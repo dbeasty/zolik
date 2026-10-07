@@ -30,6 +30,7 @@ import (
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/identity"
+	"zolik/server/internal/lastcard"
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/match"
@@ -636,7 +637,7 @@ func (a *App) matchManager() *match.Manager {
 		// One runtime, hosting every game. The registry is the only place a
 		// game is named: register a module and it appears in /modules, in the
 		// lobby's picker, and on the one screen that plays all of them.
-		modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New())
+		modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), lastcard.New())
 		a.matchMgr = a.configureManager(match.NewManager(a.matchRepo, modules, a.hub))
 	})
 	return a.matchMgr

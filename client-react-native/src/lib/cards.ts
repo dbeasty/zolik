@@ -13,7 +13,9 @@
  * serve all of them.
  */
 
+import { isLastCardCode, parseLastCard, SHAPE_GLYPH } from '@/src/components/cards/lastCardArt';
 import { currentDeck, GERMAN_SUIT_GLYPHS, germanIndex } from '@/src/lib/deck';
+import { t } from '@/src/lib/i18n';
 
 export type CardDisplay = {
   rank: string;
@@ -30,7 +32,30 @@ const SUIT_SYMBOLS: Record<string, string> = {
   S: "♠",
 };
 
+/**
+ * A Last Card's index as text: its number, "+2", or a sign for an action.
+ * The face draws its own glyphs; this is for the places a card is a line of
+ * type — a narrow index, a collapsed panel.
+ */
+const LAST_CARD_INDEX: Record<string, string> = { S: '⤼', R: '⟲', W: '✦' };
+
+function parseLastCardDisplay(card: string): CardDisplay | null {
+  const c = parseLastCard(card);
+  if (!c) return null;
+  return {
+    rank: LAST_CARD_INDEX[c.face] ?? c.face,
+    suitSymbol: c.colour ? SHAPE_GLYPH[c.colour] : '',
+    suit: c.colour ?? 'W',
+    isRed: false,
+    isJoker: false,
+  };
+}
+
 export function parseCard(card: string): CardDisplay {
+  if (isLastCardCode(card)) {
+    const lc = parseLastCardDisplay(card);
+    if (lc) return lc;
+  }
   if (card.startsWith("JOKER")) {
     return {
       rank: "JKR",
@@ -51,6 +76,7 @@ export function parseCard(card: string): CardDisplay {
 }
 
 export function displayRank(card: string): string {
+  if (isLastCardCode(card)) return parseLastCardDisplay(card)?.rank ?? card;
   if (card.startsWith("JOKER")) return "JKR";
   if (!card.length) return "?";
   if (card[0] === "T") return "10";
@@ -58,6 +84,7 @@ export function displayRank(card: string): string {
 }
 
 export function cardSuit(card: string): string {
+  if (isLastCardCode(card)) return parseLastCardDisplay(card)?.suit ?? "W";
   if (card.length < 2) return "S";
   // "TD" is a ten, so its suit is the second character rather than the last —
   // which is the same thing for a two-character card and matters only because
@@ -77,6 +104,7 @@ export function cardSuit(card: string): string {
  */
 export function cardText(card: string): string {
   if (!isCardCode(card)) return card;
+  if (isLastCardCode(card)) return lastCardText(card);
   const c = parseCard(card);
   if (c.isJoker) return 'Joker';
   // The same code on a German-suited table is a different card to look at —
@@ -94,6 +122,9 @@ export function cardText(card: string): string {
  * a known suit, or a joker. A player named "7H" keeps their name.
  */
 export function isCardCode(value: string): boolean {
+  // Last Card's codes count only at a Last Card table: "W" is a card there
+  // and a perfectly good name anywhere else.
+  if (currentDeck() === 'lastcard' && isLastCardCode(value)) return true;
   if (value.startsWith("JOKER")) return true;
   if (value.length < 2 || value.length > 2) return false;
   const [rank, suit] = [value[0], value[1]];
@@ -131,4 +162,28 @@ export function tileText(tile: string): string {
   if (!isTileCode(tile)) return tile;
   const [n, colour] = tile.split("-");
   return `${TILE_COLOURS[colour]}${n}`;
+}
+
+/**
+ * A Last Card in a sentence: its colour's shape and what is printed on it —
+ * "◆7", "▲ Skip", "Wild Draw Four". The shape carries the colour the way ♠
+ * carries a suit, so no locale has to name it; the actions are named in the
+ * player's language.
+ */
+export function lastCardText(card: string): string {
+  const c = parseLastCard(card);
+  if (!c) return card;
+  switch (c.kind) {
+    case 'wild':
+      return t('lastcard.card.wild');
+    case 'wildDrawFour':
+      return t('lastcard.card.wildDrawFour');
+    case 'skip':
+      return `${SHAPE_GLYPH[c.colour]} ${t('lastcard.card.skip')}`;
+    case 'reverse':
+      return `${SHAPE_GLYPH[c.colour]} ${t('lastcard.card.reverse')}`;
+    case 'drawTwo':
+      return `${SHAPE_GLYPH[c.colour]} ${t('lastcard.card.drawTwo')}`;
+  }
+  return `${SHAPE_GLYPH[c.colour]}${c.face}`;
 }

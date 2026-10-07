@@ -193,9 +193,10 @@ func (n namer) facts(fs []module.Fact) []string {
 
 var suitGlyph = map[byte]string{'H': "♥", 'D': "♦", 'C': "♣", 'S': "♠"}
 
-// isCardCode is cards.ts's: a rank and a suit, or a joker.
+// isCardCode is cards.ts's: a rank and a suit, or a joker — or one of Last
+// Card's own codes ("C-7", "T-S", "W4").
 func isCardCode(s string) bool {
-	if strings.HasPrefix(s, "JOKER") {
+	if strings.HasPrefix(s, "JOKER") || lastCardText(s) != "" {
 		return true
 	}
 	return len(s) == 2 && strings.IndexByte("A23456789TJQK", s[0]) >= 0 && strings.IndexByte("HDCS", s[1]) >= 0
@@ -206,6 +207,9 @@ func cardText(c string) string {
 	if strings.HasPrefix(c, "JOKER") {
 		return "JK"
 	}
+	if t := lastCardText(c); t != "" {
+		return t
+	}
 	if !isCardCode(c) {
 		return c
 	}
@@ -214,6 +218,32 @@ func cardText(c string) string {
 		rank = "10"
 	}
 	return rank + suitGlyph[c[1]]
+}
+
+var lastCardColours = map[string]string{"C": "coral", "T": "teal", "V": "violet", "A": "amber"}
+var lastCardFaces = map[string]string{"S": "skip", "R": "reverse", "D": "draw-two"}
+
+// lastCardText names a Last Card code in words a model reads easily —
+// "coral 7", "teal skip", "wild draw-four" — or "" for anything else.
+func lastCardText(c string) string {
+	switch c {
+	case "W":
+		return "wild"
+	case "W4":
+		return "wild draw-four"
+	}
+	colour, face, ok := strings.Cut(c, "-")
+	name, isColour := lastCardColours[colour]
+	if !ok || !isColour {
+		return ""
+	}
+	if f, isAction := lastCardFaces[face]; isAction {
+		return name + " " + f
+	}
+	if len(face) == 1 && face[0] >= '0' && face[0] <= '9' {
+		return name + " " + face
+	}
+	return ""
 }
 
 func cardsText(cs []string) string {
@@ -235,6 +265,10 @@ func bySuit(cs []string) string {
 		switch {
 		case strings.HasPrefix(c, "JOKER"):
 			jokers = append(jokers, "JK")
+		case lastCardText(c) != "":
+			// Last Card is not a rummy hand: no runs to show, and its names
+			// already say the colour.
+			other = append(other, lastCardText(c))
 		case isCardCode(c):
 			groups[c[1]] = append(groups[c[1]], c)
 		default:

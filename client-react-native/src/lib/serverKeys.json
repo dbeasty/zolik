@@ -43,6 +43,13 @@
     "INVALID_MELD",
     "JOKER_DISCARD_FORBIDDEN",
     "JOKER_SWAP_MISMATCH",
+    "LASTCARD_ALREADY_DREW",
+    "LASTCARD_COLOUR_REQUIRED",
+    "LASTCARD_DRAW_FOUR_HELD",
+    "LASTCARD_NOTHING_TO_KEEP",
+    "LASTCARD_NO_MATCH",
+    "LASTCARD_ONLY_DRAWN_CARD",
+    "LASTCARD_UNKNOWN_COLOUR",
     "MARIAS_BELOW_THE_BID",
     "MARIAS_BID_TOO_LOW",
     "MARIAS_DISCARD_TWO",
@@ -496,6 +503,37 @@
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
+    "lastcard.colour.A",
+    "lastcard.colour.C",
+    "lastcard.colour.T",
+    "lastcard.colour.V",
+    "lastcard.header.anticlockwise",
+    "lastcard.header.clockwise",
+    "lastcard.header.colour",
+    "lastcard.offer.keep",
+    "lastcard.prompt.chooseColour",
+    "lastcard.prompt.playDrawnOrKeep",
+    "lastcard.remedy.followColourFirst",
+    "lastcard.remedy.matchOrDraw",
+    "lastcard.remedy.nameAColour",
+    "lastcard.remedy.playDrawnOrKeep",
+    "lastcard.remedy.playOrDraw",
+    "lastcard.rules.deal",
+    "lastcard.rules.deck",
+    "lastcard.rules.drawTwo",
+    "lastcard.rules.end",
+    "lastcard.rules.goal",
+    "lastcard.rules.reverse",
+    "lastcard.rules.section.end",
+    "lastcard.rules.section.goal",
+    "lastcard.rules.section.setup",
+    "lastcard.rules.section.special",
+    "lastcard.rules.section.turn",
+    "lastcard.rules.skip",
+    "lastcard.rules.turn.draw",
+    "lastcard.rules.turn.match",
+    "lastcard.rules.wild",
+    "lastcard.rules.wildDrawFour",
     "marias.badge.trumpCard",
     "marias.fact.rung",
     "marias.fact.times",
@@ -986,6 +1024,27 @@
     "holdem.rules.stack",
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "lastcard.remedy.followColourFirst",
+    "lastcard.remedy.matchOrDraw",
+    "lastcard.remedy.nameAColour",
+    "lastcard.remedy.playDrawnOrKeep",
+    "lastcard.remedy.playOrDraw",
+    "lastcard.rules.deal",
+    "lastcard.rules.deck",
+    "lastcard.rules.drawTwo",
+    "lastcard.rules.end",
+    "lastcard.rules.goal",
+    "lastcard.rules.reverse",
+    "lastcard.rules.section.end",
+    "lastcard.rules.section.goal",
+    "lastcard.rules.section.setup",
+    "lastcard.rules.section.special",
+    "lastcard.rules.section.turn",
+    "lastcard.rules.skip",
+    "lastcard.rules.turn.draw",
+    "lastcard.rules.turn.match",
+    "lastcard.rules.wild",
+    "lastcard.rules.wildDrawFour",
     "marias.rules.bid.announce",
     "marias.rules.bid.flek",
     "marias.rules.bid.flekLimit",
@@ -1695,6 +1754,40 @@
       "hole",
       "playerId"
     ],
+    "lastcard.colour.A": [
+      "value"
+    ],
+    "lastcard.colour.C": [
+      "value"
+    ],
+    "lastcard.colour.T": [
+      "value"
+    ],
+    "lastcard.colour.V": [
+      "value"
+    ],
+    "lastcard.header.colour": [
+      "value"
+    ],
+    "lastcard.prompt.playDrawnOrKeep": [
+      "card"
+    ],
+    "lastcard.remedy.followColourFirst": [
+      "colour"
+    ],
+    "lastcard.remedy.matchOrDraw": [
+      "card",
+      "colour"
+    ],
+    "lastcard.remedy.playDrawnOrKeep": [
+      "card"
+    ],
+    "lastcard.rules.deal": [
+      "n"
+    ],
+    "lastcard.rules.deck": [
+      "value"
+    ],
     "marias.fact.rung": [
       "rung"
     ],
@@ -2207,6 +2300,17 @@
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
+    "lastcard.colour.A",
+    "lastcard.colour.C",
+    "lastcard.colour.T",
+    "lastcard.colour.V",
+    "lastcard.header.colour",
+    "lastcard.prompt.playDrawnOrKeep",
+    "lastcard.remedy.followColourFirst",
+    "lastcard.remedy.matchOrDraw",
+    "lastcard.remedy.playDrawnOrKeep",
+    "lastcard.rules.deal",
+    "lastcard.rules.deck",
     "marias.fact.rung",
     "marias.fact.times",
     "marias.fact.units",

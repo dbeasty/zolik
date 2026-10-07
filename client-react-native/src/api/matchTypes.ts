@@ -455,10 +455,11 @@ export type MatchPlayer = {
  * The pack a game is dealt from, when it is not the French one: `german` is
  * the German-suited 32 (mariášky) — hearts, bells, acorns and leaves, with a
  * spodek and a svršek where the French pack has a jack and a queen. The card
- * codes are the same; only how they are drawn and named changes. See
- * `src/lib/deck.ts`.
+ * codes are the same; only how they are drawn and named changes. `lastcard`
+ * is a pack of its own, with codes of its own ("C-7", "T-S", "W4"), drawn by
+ * `LastCardFace`. See `src/lib/deck.ts`.
  */
-export type CardDeck = 'german';
+export type CardDeck = 'german' | 'lastcard';
 
 export type MatchState = {
   type: 'match_state';
