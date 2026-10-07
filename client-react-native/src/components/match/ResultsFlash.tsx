@@ -134,16 +134,21 @@ export function ResultsFlash({
       <View style={[StyleSheet.absoluteFill, final ? styles.takeover : styles.veil]} />
       {final && won ? <CardRain /> : null}
       <View style={final ? styles.centreFinal : styles.card} testID="results-flash-card">
-        {/* The cards dance at the end of a match for everyone at the table, and
-            one hops for a round you took. Nobody dances for a loss they
-            weren't part of — the round card stays plain then. */}
-        {final || won ? (
-          <View style={styles.dancers} testID="results-flash-dancers">
-            {(final ? DANCERS : DANCERS.slice(0, 1)).map((s, i) => (
-              <CardCharacter key={s} suit={s} mode="dance" size={final ? 38 : 28} delay={i * 110} />
-            ))}
-          </View>
-        ) : null}
+        {/* Two different dances, so the table can tell the endings apart: the
+            four suits hop and wave when the match is over, and a trio pirouettes
+            when a round is — for everyone at the table, not only the winner
+            (the winner's row is a card longer). */}
+        <View style={styles.dancers} testID="results-flash-dancers">
+          {(final ? DANCERS : won ? DANCERS.slice(0, 4) : TWIRLERS).map((s, i) => (
+            <CardCharacter
+              key={s}
+              suit={s}
+              mode={final ? 'dance' : 'twirl'}
+              size={final ? 38 : 28}
+              delay={i * (final ? 110 : 140)}
+            />
+          ))}
+        </View>
         <Text style={[styles.eyebrow, final && styles.eyebrowFinal]} testID="results-flash-eyebrow">
           {lines.eyebrow}
         </Text>
@@ -167,6 +172,7 @@ export function ResultsFlash({
 }
 
 const DANCERS: Suit[] = ['S', 'H', 'C', 'D'];
+const TWIRLERS: Suit[] = ['H', 'S', 'D'];
 
 type Lines = {
   eyebrow: string;
