@@ -290,6 +290,26 @@ function placementForSelection(placements: Placement[], cards: string[]): Placem
 }
 
 /**
+ * Whether any card in hand can be played by dropping it on the board right
+ * now — some enabled offer that takes cards and says where it lands, the same
+ * test `dropSpotsFor` uses to list a spot at all.
+ *
+ * What the hand's hint asks before telling a player they may drag a card
+ * "onto the board to play it". In a game that never plays a card to the
+ * board — poker swaps cards through a button, blackjack takes none — no offer
+ * ever names a target, and the hint says only what is true: the fan can be
+ * rearranged.
+ */
+export function someOfferDroppable(offers: ActionOffer[]): boolean {
+  return offers.some(
+    (o) =>
+      o.enabled &&
+      (o.source?.minCards ?? 0) > 0 &&
+      !!(o.target?.meldId || o.target?.zoneId),
+  );
+}
+
+/**
  * The spots a drop would actually be taken by — what lights up, and what a
  * release sends.
  *

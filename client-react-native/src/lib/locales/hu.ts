@@ -1420,6 +1420,7 @@ export const hu: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Húzd a lapot a legyező mentén az átrendezéshez, vagy az asztalra a kijátszáshoz',
+  'hand.dragHintRearrange': 'Húzd a lapot a legyező mentén az átrendezéshez',
   'hand.moveLeft': 'Balra',
   'hand.moveRight': 'Jobbra',
   'hand.openFan': 'Lapok szétterítése',

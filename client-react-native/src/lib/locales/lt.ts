@@ -1404,6 +1404,7 @@ export const lt: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Tempk kortą palei vėduoklę, kad ją perstumtum, arba ant stalo, kad ją sužaistum',
+  'hand.dragHintRearrange': 'Tempk kortą palei vėduoklę, kad ją perstumtum',
   'hand.moveLeft': 'Kairėn',
   'hand.moveRight': 'Dešinėn',
   'hand.openFan': 'Išskleisti kortas',

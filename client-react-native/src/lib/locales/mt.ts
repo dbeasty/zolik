@@ -1426,6 +1426,7 @@ export const mt: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': "Iġbed karta tul il-mruħa biex terġa' tirranġaha, jew fuq il-mejda biex tilgħabha",
+  'hand.dragHintRearrange': "Iġbed karta tul il-mruħa biex terġa' tirranġaha",
   'hand.moveLeft': 'Lejn ix-xellug',
   'hand.moveRight': 'Lejn il-lemin',
   'hand.openFan': 'Ifrex il-karti',

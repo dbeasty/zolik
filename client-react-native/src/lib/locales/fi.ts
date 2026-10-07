@@ -1413,6 +1413,7 @@ export const fi: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Raahaa korttia viuhkaa pitkin järjestääksesi sen uudelleen, tai pöydälle pelataksesi sen',
+  'hand.dragHintRearrange': 'Raahaa korttia viuhkaa pitkin järjestääksesi sen uudelleen',
   'hand.moveLeft': 'Vasemmalle',
   'hand.moveRight': 'Oikealle',
   'hand.openFan': 'Levitä kortit',

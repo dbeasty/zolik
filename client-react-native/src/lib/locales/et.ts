@@ -1407,6 +1407,7 @@ export const et: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Lohista kaarti mööda lehvikut, et see ümber paigutada, või lauale, et see välja mängida',
+  'hand.dragHintRearrange': 'Lohista kaarti mööda lehvikut, et see ümber paigutada',
   'hand.moveLeft': 'Vasakule',
   'hand.moveRight': 'Paremale',
   'hand.openFan': 'Laota kaardid laiali',

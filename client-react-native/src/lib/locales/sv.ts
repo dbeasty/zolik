@@ -1400,6 +1400,7 @@ export const sv: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Dra ett kort längs solfjädern för att flytta det, eller ut på bordet för att spela det',
+  'hand.dragHintRearrange': 'Dra ett kort längs solfjädern för att flytta det',
   'hand.moveLeft': 'Åt vänster',
   'hand.moveRight': 'Åt höger',
   'hand.openFan': 'Sprid ut korten',

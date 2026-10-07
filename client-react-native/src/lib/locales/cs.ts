@@ -1395,6 +1395,7 @@ export const cs: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Táhni kartu podél vějíře, když ji chceš přerovnat, nebo na stůl, když ji chceš zahrát',
+  'hand.dragHintRearrange': 'Táhni kartu podél vějíře, když ji chceš přerovnat',
   'hand.moveLeft': 'Doleva',
   'hand.moveRight': 'Doprava',
   'hand.openFan': 'Rozlož karty',

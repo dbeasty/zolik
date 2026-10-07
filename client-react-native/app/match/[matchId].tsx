@@ -45,6 +45,7 @@ import {
   positionAt,
   readyWith,
   refusalAt,
+  someOfferDroppable,
   someOfferReady,
   sourceSpotsFor,
   takeableSpots,
@@ -1242,6 +1243,11 @@ export default function MatchScreen() {
   // than sliced in half by the first panel edge it crosses. The hand keeps
   // hold of the card it is carrying (moving its node would lose the gesture),
   // so lifting the card means lifting the hand — see `dragLayer`.
+  // Whether the hint may say a card goes "onto the board" — true only while
+  // some offer would take one dropped there. Read from the offers, never the
+  // game: a game whose cards only ever leave through a button gets a hint
+  // about rearranging and nothing more.
+  const canDropOnBoard = someOfferDroppable(state.legalActions);
   const handPanel = (
   <View style={[styles.mine, !!drag && dragLayer]} {...opening.anchor('hand')}>
     {myHands.map((z) => (
@@ -1279,6 +1285,7 @@ export default function MatchScreen() {
         externalTarget={hoveredDrop}
         registerSpot={dropProps.registerDrop}
         entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
+        canDropOnBoard={canDropOnBoard}
         badges={badgesFor(z)}
         onPressBadge={(card, badgeKeys) =>
           setExplaining({

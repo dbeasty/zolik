@@ -1429,6 +1429,7 @@ export const nl: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Sleep een kaart langs de waaier om hem te verplaatsen, of naar het bord om hem te spelen',
+  'hand.dragHintRearrange': 'Sleep een kaart langs de waaier om hem te verplaatsen',
   'hand.moveLeft': 'Naar links',
   'hand.moveRight': 'Naar rechts',
   'hand.openFan': 'Kaarten uitspreiden',

@@ -1403,6 +1403,7 @@ export const sk: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Ťahaj kartu pozdĺž vejára, ak ju chceš preusporiadať, alebo na stôl, ak ju chceš zahrať',
+  'hand.dragHintRearrange': 'Ťahaj kartu pozdĺž vejára, ak ju chceš preusporiadať',
   'hand.moveLeft': 'Doľava',
   'hand.moveRight': 'Doprava',
   'hand.openFan': 'Rozlož karty',

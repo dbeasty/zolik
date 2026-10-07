@@ -1403,6 +1403,7 @@ export const lv: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Velc kārti gar vēdekli, lai to pārkārtotu, vai uz galda, lai to izspēlētu',
+  'hand.dragHintRearrange': 'Velc kārti gar vēdekli, lai to pārkārtotu',
   'hand.moveLeft': 'Pa kreisi',
   'hand.moveRight': 'Pa labi',
   'hand.openFan': 'Izklāt kārtis',

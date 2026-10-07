@@ -1421,6 +1421,7 @@ export const en: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Drag a card along the fan to rearrange it, or onto the board to play it',
+  'hand.dragHintRearrange': 'Drag a card along the fan to rearrange it',
   'hand.moveLeft': 'Move left',
   'hand.moveRight': 'Move right',
   'hand.openFan': 'Spread the cards out',
