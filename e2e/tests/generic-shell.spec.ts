@@ -507,9 +507,10 @@ test.describe('one shell, every game', () => {
     await openGame(page, 'holdem');
     await openGameSetup(page, 'holdem');
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
-    // And a game with two shipped rulesets offers both.
-    await expect(page.getByTestId('variation-holdem-freezeout')).toBeVisible();
-    await expect(page.getByTestId('variation-holdem-timed')).toBeVisible();
+    // Poker ships one ruleset so far, so there is no picker — how a match
+    // ends is the hand-count option instead.
+    await expect(page.getByTestId('setup-section-holdem-variation')).toHaveCount(0);
+    await expect(page.getByTestId('option-holdem-handLimit-10')).toBeVisible();
   });
 
   test('the settings arrive open, and only a game against bots asks how many', async ({

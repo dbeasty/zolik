@@ -113,6 +113,17 @@ type VariationSpec struct {
 	// table and a stuck one.
 	MinPlayers int `json:"minPlayers,omitempty"`
 	MaxPlayers int `json:"maxPlayers,omitempty"`
+
+	// Formerly lists retired variation IDs this one still answers to.
+	//
+	// A variation ID is stored on every match and copied by every rematch, so
+	// renaming or merging one would otherwise turn an old table's "play again"
+	// into UNKNOWN_VARIATION. Hold'em's "freezeout" and "timed" became one
+	// "holdem" variation with the hand count as an option; a match created
+	// under either still resolves here. The module itself decides what an old
+	// ID means — the descriptor only promises it is not refused. Never sent:
+	// a lobby offers the current IDs, not their history.
+	Formerly []string `json:"-"`
 }
 
 // ModuleDescriptor is a game's whole self-description.
@@ -212,11 +223,19 @@ func (d ModuleDescriptor) SeatRange(variation string) (min, max int) {
 	return min, max
 }
 
-// Variation returns the named variation's spec, or nil.
+// Variation returns the named variation's spec, or nil. A retired ID listed
+// in a variation's Formerly resolves to that variation.
 func (d ModuleDescriptor) Variation(id string) *VariationSpec {
 	for i := range d.Variations {
 		if d.Variations[i].ID == id {
 			return &d.Variations[i]
+		}
+	}
+	for i := range d.Variations {
+		for _, old := range d.Variations[i].Formerly {
+			if old == id {
+				return &d.Variations[i]
+			}
 		}
 	}
 	return nil

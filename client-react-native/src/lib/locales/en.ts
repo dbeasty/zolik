@@ -1373,6 +1373,9 @@ export const en: Record<string, string> = {
   'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Target score',
   'option.canastasToGoOut': 'Canastas to go out',
+  // Poker's variations are the poker games, and "Texas Hold'em" is a name, so
+  // it has no line. These two are the Hold'em variations a stored match may
+  // still carry from before the hand count became an option.
   'variation.holdem.freezeout': 'Freezeout',
   'variation.holdem.timed': 'Fixed hands',
   'option.startingStack': 'Starting chips',

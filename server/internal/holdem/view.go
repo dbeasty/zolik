@@ -30,7 +30,19 @@ type variationDefaults struct {
 	handLimit     int
 }
 
+// VarHoldem is Texas Hold'em, the module's one variation for now. The module
+// is shown as "Poker" and its variations are the poker games — Omaha and
+// Five-Card Draw join here — so how a match ends is a table option
+// (OptHandLimit), not a variation of its own.
+const VarHoldem = "holdem"
+
 var variations = map[string]variationDefaults{
+	VarHoldem: {startingStack: 1000, bigBlind: 20, handLimit: 0},
+	// The two variations Hold'em shipped with, before poker was one game with
+	// several. Each differed only in its hand limit, which every match already
+	// stores as an option; these keep a match created under either — and its
+	// rematch — reading the defaults it was created with.
+	//
 	// Freezeout: play until one player holds every chip.
 	"freezeout": {startingStack: 1000, bigBlind: 20, handLimit: 0},
 	// Timed: a fixed number of hands, most chips wins — and, unlike a
@@ -43,47 +55,35 @@ func resolveVariation(cfg module.MatchConfig) variationDefaults {
 	if v, ok := variations[cfg.Variation]; ok {
 		return v
 	}
-	return variations["freezeout"]
+	return variations[VarHoldem]
 }
 
-// Descriptor is Hold'em's self-description.
+// Descriptor is Poker's self-description.
 //
 // Note what it needs that no card game did: a chip count and a blind size. The
 // option vocabulary expressed both without changing, which is the quiet half of
 // this experiment's result — the descriptor was the part that did not bend.
+//
+// The ID stays "holdem": it is stored on every match, stat and shipped model,
+// and the label is the only part a player reads.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
 		ID:         "holdem",
-		Label:      "Texas Hold'em",
+		Label:      "Poker",
 		MinPlayers: 2,
 		MaxPlayers: 9,
 		Variations: []module.VariationSpec{
 			{
-				ID:    "freezeout",
-				Label: "Freezeout",
+				ID:       VarHoldem,
+				Label:    "Texas Hold'em",
+				Formerly: []string{"freezeout", "timed"},
 				Summary: []module.Fact{
 					{LabelKey: "holdem.rules.noLimit"},
-					{LabelKey: "holdem.rules.lastPlayerStanding"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:   variations["freezeout"].startingStack,
-					OptBigBlind:        variations["freezeout"].bigBlind,
-					OptHandLimit:       variations["freezeout"].handLimit,
-					OptShowdownReveal:  RevealEveryone,
-					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
-				},
-			},
-			{
-				ID:    "timed",
-				Label: "Fixed hands",
-				Summary: []module.Fact{
-					{LabelKey: "holdem.rules.noLimit"},
-					{LabelKey: "holdem.rules.mostChipsWins"},
-				},
-				Defaults: map[string]int{
-					OptStartingStack:   variations["timed"].startingStack,
-					OptBigBlind:        variations["timed"].bigBlind,
-					OptHandLimit:       variations["timed"].handLimit,
+					OptStartingStack:   variations[VarHoldem].startingStack,
+					OptBigBlind:        variations[VarHoldem].bigBlind,
+					OptHandLimit:       variations[VarHoldem].handLimit,
 					OptShowdownReveal:  RevealEveryone,
 					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
 				},

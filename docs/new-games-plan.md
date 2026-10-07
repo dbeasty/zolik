@@ -1,7 +1,8 @@
-# New games: Omaha, Hearts, Spades, Schnapsen
+# New games: Poker (Five-Card Draw, Omaha), Hearts, Spades, Schnapsen
 
-Order of work: **Omaha → (trick-taking groundwork) → Hearts → Spades → Schnapsen.**
-Each game lands as its own PR (Omaha may be two). Every slice ships playable,
+Order of work: **Poker rename → Five-Card Draw → Omaha → Omaha Hi-Lo →
+(trick-taking groundwork) → Hearts → Spades → Schnapsen.**
+Each slice lands as its own PR. Every slice ships playable,
 with Easy/Medium bots, written rules, refusal explanations, and all 25 locales.
 A slice is not finished until it has been played in the browser.
 
@@ -47,27 +48,95 @@ Standing rules from earlier work:
 
 ---
 
-## 1. Omaha (Pot-Limit Omaha, then Hi-Lo)
+## 1. Poker: one game, the poker games as its variations
 
-### Decision: separate module, shared engine
-Make Omaha its **own module ID (`omaha`, "Omaha")** built from the `holdem`
-package, not a third Hold'em variation:
-- It gets its own lobby tile, stats, standings and popularity slot. Putting it
-  under the "Texas Hold'em" tile would be wrong.
-- The shipped Hold'em network (`learn/models/holdem.bin`, keyed `"holdem"`)
-  would otherwise see Omaha states through a 2-card encoder. The encoder
-  silently drops cards 3-4 (`learn.go:237-255`). A separate module gets a
-  separate `learnGame` name, and the Hard seat falls back to the rule bot until
-  an Omaha net exists.
+### Decision (David, 2026-10-07): one "Poker" tile
+The Hold'em module becomes **Poker**. Its variations are the poker games: Texas
+Hold'em, Five-Card Draw, Pot-Limit Omaha and Omaha Hi-Lo.
+- **The module ID stays `holdem`.** It is stored on every match, stat row and
+  shipped model (`learn/models/holdem.bin`) and in the MCP tools; only the label
+  a player reads changes. Stats already record the variation, so results per
+  poker game stay separable.
+- **How a match ends is a table option, not a variation.** The old `freezeout`
+  and `timed` variations differed only in `OptHandLimit`, which is already an
+  option.
+- **Betting structure becomes an option too** (`betting`: no-limit, pot-limit,
+  and later fixed-limit). Each variation sets a default: Hold'em NL, Draw NL,
+  Omaha PL.
+- **The trained network plays Hold'em only.** `Bot()` checks the ruleset and
+  hands Draw and Omaha to the rule bot, because the encoder reads exactly 2 hole
+  cards (`learn.go:237-255`) and would silently drop the rest. An `omaha` or
+  `draw` learn game can come later.
 
-Implementation: copy Canasta's `ruleset` pattern (`canasta/ruleset.go`).
-`holdem` gets a `ruleset{holeCards, mustUseHole, betting, hiLo}` stored on
-`GameState` and read via `s.rules()`. Old states, which have no ruleset, resolve
-to Hold'em. The package then exports both `New()` (Hold'em) and `NewOmaha()`,
-each with its own descriptor. Freezeout and timed variations are reused as they
-are. No game logic is duplicated.
+**Implementation:** copy Canasta's `ruleset` pattern (`canasta/ruleset.go`).
+- `holdem` gets `ruleset{holeCards, board, mustUseHole, draws, betting, hiLo}`,
+  stored on `GameState` and read via `s.rules()`.
+- Old states, which have no ruleset, resolve to Hold'em.
+- Every rule difference reads the ruleset, never the variation ID.
 
-### O1 — Pot-Limit Omaha (PLO)
+### P0 — Rename to Poker (done on `claude/poker-rename`)
+- **Descriptor:** the label is now "Poker", with one variation:
+  `holdem` / "Texas Hold'em", whose default hand limit is 0 (until one seat is
+  left).
+- **`module.VariationSpec.Formerly`:** retired IDs a variation still answers to,
+  never sent on the wire. `descriptor.Variation(id)` resolves them, so
+  `Manager.Create`, rematch, `/modules/{id}/rules` and the MCP all accept an old
+  `freezeout`/`timed` match.
+- `resolveVariation` keeps both legacy IDs with their original defaults. A match
+  stored as `timed` therefore still plays 10 hands, and Hold'em's bot goldens are
+  unchanged.
+- **Lobby:** with a single variation the picker hides itself (`setup.tsx:189`).
+  A saved setup naming `timed` falls back to the first variation and keeps its
+  saved options.
+- **Locales:** none needed. "Poker" joins `PROPER` in
+  `scripts/check-server-labels.js` ("Texas Hold'em" is already there). The
+  `variation.holdem.freezeout/timed` keys stay so stored "my games" rows still
+  read.
+- **Tests:** `TestRetiredVariationsStillDeal`,
+  `TestVariationAnswersToItsFormerIDs`, and a new `holdem` conformance case. The
+  generic-shell e2e now expects no variation picker and a hand-count option.
+
+### P1 — Five-Card Draw
+- **Ruleset:** 5 hole cards, no board, one draw, at most 6 seats. Six players
+  hold 30 cards and draw at most 18, which fits a 52-card deck with no reshuffle
+  rule. The variation narrows `MaxPlayers` the way Samba does.
+- **Streets:** blinds, then betting, then the draw, then betting, then the
+  showdown. The draw is a new phase in which each seat in turn, from the left of
+  the button:
+  - discards 0-3 cards (a hand selection, `MinCards 1` / `MaxCards 3`), or 4
+    when keeping an ace (an option), or
+  - stands pat (its own offer, since a zero-card selection is not one).
+
+  Replacements come off the deck. **How many cards each seat drew is public**:
+  it goes in the seat label and in the narration.
+- **Evaluator:** the existing `Best` over 5 cards is already exact. The
+  showdown, pots, side pots and reveal code are unchanged.
+- **View:** the hand zone is the 5 cards; there is no board zone. During the
+  draw, each opponent's zone shows the "drew N" label. `MAX_BACKS = 4`
+  (`ZoneView.tsx:656`) must become 5, or opponents' hands show a count instead
+  of backs. Check at phone width.
+- **Rules:** literal-key facts for the deal, the draw, "stand pat", and the
+  4-card-with-an-ace option. A new refusal `ErrDrawTooMany` maps to the draw
+  rule.
+- **Bots:**
+  - Pre-draw strength is a small table over made-hand categories plus draws
+    (four-flush, open-ended straight draw).
+  - Draw choice follows the textbook: keep made hands, keep a pair and draw 3,
+    keep two pair and draw 1, keep a four-flush or open-ended straight draw and
+    draw 1, otherwise keep the high cards.
+  - After the draw, bet on made-hand strength adjusted by how many cards each
+    opponent drew.
+  - Easy and Medium are rules; Hard simulates draws from the unseen cards to
+    estimate equity (`score.go` already scores 5-card hands).
+  - There are no Chen or push-fold charts. Gate them off with `ruleset`.
+- **Tests:**
+  - a conformance case
+  - `TestBotDoesNotPeek`, including the deck order after the draw
+  - the draw count is public and the drawn cards are private
+  - the draw refusals
+  - Hold'em goldens identical
+
+### O1 — Pot-Limit Omaha (PLO) as a variation
 **Engine**
 - Deal `ruleset.holeCards` (4) at `engine.go:105`. Nine seats need 9×4+5 = 41
   cards, which fits.
@@ -362,6 +431,8 @@ differs slightly.
 
 | Slice | Main risk | Rough size |
 |---|---|---|
+| P0 Poker rename | old match IDs and rematch | small (done) |
+| P1 Five-Card Draw | the draw phase, and a new bot without Hold'em's charts | medium |
 | O1 PLO | evaluator and bot cost; the ruleset refactor must leave Hold'em goldens identical | large: about Blackjack-sized, plus bot work |
 | O2 Hi-Lo | splitting pots per side-pot level, and two-half result views | medium |
 | T0 trick groundwork | 52-card, 4-seat solve cost | small to medium |
@@ -376,7 +447,8 @@ After each slice:
 - play a hand in the browser at desktop and phone width
 
 ## 7. Open questions for David
-1. Omaha as its own tile (recommended), or a variation under Hold'em?
+1. ~~Omaha as its own tile?~~ Decided: one Poker tile with the poker games
+   as variations.
 2. Hi-Lo in the first Omaha PR, or as a follow-up? The plan assumes a follow-up.
 3. Schnapsen default deck: German (recommended) or French?
 4. Should Hearts and Spades get trained networks in the learn-core track
