@@ -48,6 +48,9 @@ type DropProps = {
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  pickableGroups?: ReadonlySet<string>;
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
   entranceDelays?: ReadonlyMap<string, number>;
   /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
   changedGroups?: ChangeMarks;
@@ -270,6 +273,9 @@ export function Section({
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  pickableGroups?: ReadonlySet<string>;
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
 }) {
   if (!zones.length) return null;
 

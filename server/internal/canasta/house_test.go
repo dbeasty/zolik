@@ -504,3 +504,57 @@ func TestCanastaXIsOfferDriven(t *testing.T) {
 		}
 	}
 }
+
+// A wild that could go at either end of a dirty sequence is offered at both,
+// and lands where it is let go.
+func TestWildAtEitherEnd(t *testing.T) {
+	raw := canastaXTable(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{{ID: "t0-seq1", TeamID: 0, Kind: meldRun, Suit: "H", Cards: []string{"6H", "7H", "8H", "9H"}}}
+		s.Hands["p1"] = []string{"2C", "KS", "QS"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := offerByID(offers, "lay_off:t0-seq1")
+	if o == nil || len(o.Source.Placements) != 1 || !slices.Equal(o.Source.Placements[0].Positions, []string{"front", "end"}) {
+		t.Fatalf("offer %+v", o)
+	}
+	raw, code := apply(t, raw, "p1", module.Action{Verb: VerbLayOff, Cards: []string{"2C"}, Target: "t0-seq1",
+		Params: map[string]string{module.PositionParam: "front"}})
+	if code != "" {
+		t.Fatal(code)
+	}
+	if m := mustDecode(t, raw).Teams[0].Melds[0]; m.Cards[0] != "2C" || m.standsFor(0) != "5H" {
+		t.Fatalf("meld %+v", m)
+	}
+
+	// At the ace there is only one end, and no choice to offer.
+	raw = canastaXTable(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{{ID: "t0-seq1", TeamID: 0, Kind: meldRun, Suit: "H", Cards: []string{"JH", "QH", "KH", "AH"}}}
+		s.Hands["p1"] = []string{"2C", "KS", "QS"}
+	})
+	offers, _ = New().LegalActions(raw, "p1")
+	if o := offerByID(offers, "lay_off:t0-seq1"); o == nil || len(o.Source.Placements) != 0 {
+		t.Fatalf("offer at the ace %+v", o)
+	}
+}
+
+// A bot moves a card between its own melds only to finish a canasta.
+func TestBotFinishesACanastaByMoving(t *testing.T) {
+	raw := canastaXTable(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{
+			{ID: "t0-K", TeamID: 0, Kind: meldSet, Rank: "K", Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD"}},
+			{ID: "t0-9", TeamID: 0, Kind: meldSet, Rank: "9", Cards: []string{"9C", "9D", "9S", "9H", "2C"}},
+		}
+		s.Hands["p1"] = []string{"5S", "7D", "TC"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, ok := bot{}.Act(raw, module.BotSeat{PlayerID: "p1", Skill: module.SkillMedium}, offers)
+	if !ok || a.Verb != VerbMoveCards || a.Target != "t0-K" || a.Cards[0] != "2C" {
+		t.Fatalf("bot chose %+v", a)
+	}
+}

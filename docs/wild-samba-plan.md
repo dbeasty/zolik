@@ -1,6 +1,8 @@
-# Wild Samba — plan
+# CanastaX — plan
 
-Status: draft, rules agreed in chat 2026-10-07; nothing built yet.
+Status: built on `claude/canastax` (2026-10-07). Server rules, client
+interaction and heuristic-bot support are in; trained models read CanastaX
+as Samba until one is trained on it.
 
 A house-rules Samba where the table is alive: your side reshapes its own melds,
 sequences may carry wilds, a meld of 2s is the big prize, and any wild on the
@@ -27,7 +29,7 @@ two canastas to go out, 10 000 to win) except where it says otherwise.
   limits: at most 2 jokers, at least twice as many 2s as jokers.
 - Seven cards is a canasta and counts toward the two needed to go out:
   - all 2s — **2250** (Samba's 1500 + 50%);
-  - with jokers — *open question, proposed 1500*.
+  - with jokers — **1500**.
 - Not part of an initial meld: three 2s are 60 points, which would make opening
   trivial. Laid only once the side has opened.
 
@@ -53,7 +55,13 @@ two canastas to go out, 10 000 to win) except where it says otherwise.
   canasta makes it natural (300 → 500; a dirty samba becomes a samba, 700 →
   1500). Poaching costs them a wild and may pay them for it.
 
-### 1.5 Guards that already exist and keep holding
+### 1.5 Top card or whole pile
+- Wherever a capture of the discard pile is legal, the same capture may take
+  the top card alone: melded with the same cards from hand (or onto the same
+  meld), and the rest of the pile stays where it is, frozen or not as it was.
+  Like a capture, it replaces the draw. Verb `take_pile_top`.
+
+### 1.6 Guards that already exist and keep holding
 - A move or poach that would leave the turn unfinishable (e.g. breaking the
   canasta you need to go out while holding one card) is refused, the same way a
   lay is today (`checkTurnFinishes`).
@@ -62,7 +70,7 @@ two canastas to go out, 10 000 to win) except where it says otherwise.
 
 ## 2. Packaging
 
-Four table options on Canasta, each off by default so no existing table changes
+Five table options on Canasta, each off by default so no existing table changes
 (house rules are options, not constants):
 
 | Option | Values | Notes |
@@ -71,8 +79,9 @@ Four table options on Canasta, each off by default so no existing table changes
 | `wildMeld` | off / on | the 2s meld |
 | `rearrange` | off / on | |
 | `poach` | off / on | most useful with `dirtySequences` |
+| `topOnlyCapture` | off / on | |
 
-Plus a preset variation, **Wild Samba** (name open), = Samba with all four on.
+Plus a preset variation, **CanastaX** (`canastax`), = Samba with all five on.
 Its trained-model encoding reads as Samba (`learn.go`'s `variationName`) until a
 model is trained on it.
 
@@ -107,7 +116,22 @@ be selected or dragged (only hand cards can).
    need; ignore rearranging at first.
 2. Trained models: later, once there are games to learn from.
 
-## 4. Open questions
-- Value of a 7-card 2s meld that holds jokers (proposed 1500).
-- Name of the preset.
-- Can a wild poached this turn be laid this turn? (Proposed yes.)
+## 4. As built
+
+- Engine: `server/internal/canasta/house.go` (run positions, the 2s meld,
+  `move_cards`, `poach`, `undo_reshape`, the offers for them); a dirty run
+  stores its start in `Meld.Low` and its cards in position order.
+- Undo: lays, moves and poaches unwind last-in-first-out across stacks
+  (`Seq`); an undo out of order is refused with `UNDO_LATEST_FIRST`.
+- A wild that could join a dirty run at either end carries `front`/`end`
+  placements; where it is let go on the run decides which end.
+- Client: melds whose cards can move are tapped open, then their cards picked
+  and a lit meld tapped; poaching is a hand card dropped/tapped onto any meld
+  with a wild it stands for. Moves are not in the button bar.
+- Bots: poach off opponents (never the last wild of a canasta, which would
+  pay them), move a card only to finish a canasta without breaking one, and
+  lay dirty runs and the 2s meld through the ordinary meld offers.
+- Decided in chat: a 2s canasta with jokers pays 1500; a poached wild may be
+  laid the same turn.
+- Not yet: choosing which end a wild goes on when laying a *new* dirty run
+  (it goes on top unless the top is the ace); a trained model for CanastaX.

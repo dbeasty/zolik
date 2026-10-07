@@ -159,9 +159,10 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 			o.RemedyOfferID = firstEnabled(OfferUndoLayMeld, OfferUndoLayOff)
 
 		case ErrUndoLatestFirst:
-			// A move or a poach was made after this; it has to come back first.
+			// Something was laid, moved or poached after this; whichever undo
+			// is live is the one that comes first.
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.undoLatestFirst"}
-			o.RemedyOfferID = firstEnabled(OfferUndoReshape)
+			o.RemedyOfferID = firstEnabled(OfferUndoReshape, OfferUndoLayMeld, OfferUndoLayOff)
 
 		case ErrMustMeldFirst:
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.openFirst"}

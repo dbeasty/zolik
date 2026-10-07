@@ -357,6 +357,24 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		// card at a time, those were left off the list, and the player could
 		// only build a sequence one card per lay-off.
 		placements := layOffPlacements(m, raw, playerID, mm, eligible, accepted, verdict)
+		// A wild that could start a dirty sequence's next card at either end
+		// says so, and which end is where it is let go (house.go).
+		if ends := runEndPlacements(r, mm, accepted, func(c, pos string) bool {
+			ok, _ := probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Cards: []string{c}, Target: mm.ID,
+				Params: map[string]string{module.PositionParam: pos},
+			})
+			return ok
+		}); ends != nil {
+			// Placements, once listed, list every card; keep the ones that
+			// need company that layOffPlacements found.
+			for _, p := range placements {
+				if len(p.Requires) > 0 {
+					ends = append(ends, p)
+				}
+			}
+			placements = ends
+		}
 		switch {
 		case len(accepted) > 0:
 			o.Enabled = true

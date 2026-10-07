@@ -19,8 +19,14 @@ import (
 
 // --- sequences with wilds in them ------------------------------------------------
 
-// noLow is "no position asked for" to arrangeRun.
-const noLow = -1
+// noLow is "no position asked for" to arrangeRun: spare wilds go on top, and
+// below only once the top is full. lowFront and lowEnd ask for every spare
+// wild below, or above, and are refused where that end has no room.
+const (
+	noLow    = -1
+	lowFront = -2
+	lowEnd   = -3
+)
 
 // span is the first and last position a sequence covers, wilds included.
 func (m Meld) span() (low, high int) {
@@ -134,13 +140,20 @@ func arrangeRun(r ruleset, fixed []string, fixedLow int, add []string, wantLow i
 	extra := len(wilds)
 	top := len(runRanks) - 1
 	below := 0
-	if wantLow != noLow {
+	switch {
+	case wantLow == lowFront:
+		below = extra
+	case wantLow == lowEnd:
+		below = 0
+	case wantLow != noLow:
 		below = lo - wantLow
 		if below < 0 || below > extra {
 			return nil, 0, errCode(ErrRunNotConsecutive)
 		}
-	} else if above := min(extra, top-hi); above < extra {
-		below = extra - above
+	default:
+		if above := min(extra, top-hi); above < extra {
+			below = extra - above
+		}
 	}
 	above := extra - below
 	if lo-below < 0 || hi+above > top {
@@ -357,7 +370,17 @@ func shrunkMeld(r ruleset, m Meld, cards []string) (Meld, bool, error) {
 // wantLowOf reads the position a player asked a sequence to start at — a rank,
 // "4" to "A" — or noLow when they did not say.
 func wantLowOf(a module.Action) int {
-	if a.Params == nil || a.Params["low"] == "" {
+	if a.Params == nil {
+		return noLow
+	}
+	// The generic drop hint: which end of the run the card was let go on.
+	switch a.Params[module.PositionParam] {
+	case positionFront:
+		return lowFront
+	case positionEnd:
+		return lowEnd
+	}
+	if a.Params["low"] == "" {
 		return noLow
 	}
 	if i, ok := runRankIndex[a.Params["low"]]; ok {
@@ -367,6 +390,47 @@ func wantLowOf(a module.Action) int {
 		return i
 	}
 	return noLow
+}
+
+// The two ends of a sequence, as a drop names them (module.PositionParam):
+// "front" is below the lowest card, "end" above the highest — the words the
+// rummy engine already sends, so a client draws both games' runs the same way.
+const (
+	positionFront = "front"
+	positionEnd   = "end"
+)
+
+// runEndPlacements says, for each wild in cards that could join the run at
+// either end, both ends and where each lands on screen; the rest go as they
+// are. Nil when no wild has a choice, which leaves an offer as it was. try
+// is the engine's own answer for one card at one end.
+func runEndPlacements(r ruleset, target Meld, cards []string, try func(card, position string) bool) []module.Placement {
+	if !r.DirtySequences || target.kind() != meldRun {
+		return nil
+	}
+	var out []module.Placement
+	choice := false
+	asked := map[string]bool{}
+	for _, c := range cards {
+		p := module.Placement{Card: c}
+		if isWild(c) {
+			both, seen := asked[c]
+			if !seen {
+				both = try(c, positionFront) && try(c, positionEnd)
+				asked[c] = both
+			}
+			if both {
+				p.Positions = []string{positionFront, positionEnd}
+				p.Slots = []int{0, len(target.Cards)}
+				choice = true
+			}
+		}
+		out = append(out, p)
+	}
+	if !choice {
+		return nil
+	}
+	return out
 }
 
 // --- reshapes: their bookkeeping ------------------------------------------------
@@ -749,16 +813,13 @@ func dirtyRunCandidates(r ruleset, hand []string, t *Team) []candidate {
 				continue
 			}
 			seen[key] = true
-			var pool []string
-			for _, c := range best {
-				if !isWild(c) {
-					pool = append(pool, c)
-				}
-			}
-			pool = sortedCards(append(pool, wilds...))
+			// No pool wider than the submission: a pool holding every wild in
+			// the hand made a selection of wilds alone look like the start of
+			// this run, and three 2s picked for the meld of 2s became a
+			// question about which meld they were for.
 			out = append(out, candidate{
 				Kind: meldRun, Suit: s, Dirty: true,
-				Cards: arranged, Pool: pool, Value: handValue(best),
+				Cards: arranged, Value: handValue(best),
 			})
 		}
 	}
@@ -858,13 +919,20 @@ func houseOffers(m *Module, raw module.State, s *GameState, playerID string) []m
 				if len(movable) == 0 {
 					continue
 				}
+				placements := runEndPlacements(r, to, sortedCards(movable), func(c, pos string) bool {
+					ok, _ := probe(m, raw, playerID, module.Action{
+						Verb: VerbMoveCards, Cards: []string{c}, Target: to.ID,
+						Params: map[string]string{"from": from.ID, module.PositionParam: pos},
+					})
+					return ok
+				})
 				out = append(out, module.ActionOffer{
 					ID: "move:" + from.ID + ":" + to.ID, Verb: VerbMoveCards, Enabled: true,
 					LabelKey: "verb.moveCards",
 					Facts:    []module.Fact{meldOfferFact(from), meldOfferFact(to)},
 					Source: &module.Selector{
 						Zone: module.FromMeld, MeldID: from.ID, ZoneID: meldsZoneID(t.ID),
-						Cards: sortedCards(movable), MinCards: 1, MaxCards: len(from.Cards),
+						Cards: sortedCards(movable), Placements: placements, MinCards: 1, MaxCards: len(from.Cards),
 					},
 					Target: &module.Selector{Zone: module.ToMeld, MeldID: to.ID, ZoneID: meldsZoneID(t.ID)},
 				})

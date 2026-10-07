@@ -119,6 +119,15 @@ type Props = {
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
   /**
+   * Group ids whose cards may be picked up one by one — the source of a move
+   * between melds. A group in this set, once tapped open, takes a tap on any
+   * of its cards as picking that card rather than as folding the group.
+   */
+  pickableGroups?: ReadonlySet<string>;
+  /** The cards picked up so far, by position in their group. */
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
+  /**
    * How long this zone's newest card should hold its entrance, keyed by the
    * zone's own element id — set while a flight is landing here, so the card
    * doesn't greet its own arrival. Absent or zero means enter at once, which
@@ -157,6 +166,9 @@ export function ZoneView({
   armableGroups,
   armedGroupId,
   onAimGroup,
+  pickableGroups,
+  pickedInGroup,
+  onPickGroupCard,
   entranceDelays,
   changedGroups,
 }: Props) {
@@ -361,6 +373,11 @@ export function ZoneView({
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // Cards that may be picked up off this meld, one tap each — only
+            // while it is spread open, so every card is there in full to aim
+            // at, and the tap that opens it stays the tap that opens it.
+            const cardsPickable = groupOpen && (pickableGroups?.has(g.id) ?? false) && !groupPressable;
+            const picked = pickedInGroup?.groupId === g.id ? pickedInGroup.indices : [];
             // A finished meld folds down to its top card and a count: it is
             // a score now, not something to read card by card, and a
             // canasta's column of corners was the tallest thing in the row.
@@ -495,7 +512,14 @@ export function ZoneView({
                           {indices ? (
                             <CardIndex card={c} testID={`index-${g.id}-${i}`} />
                           ) : (
-                            <CardView card={c} compact stacked={!groupOpen} />
+                            <CardView
+                              card={c}
+                              compact
+                              stacked={!groupOpen}
+                              selected={picked.includes(i)}
+                              onPress={cardsPickable ? () => onPickGroupCard?.(g.id, i, c) : undefined}
+                              testID={cardsPickable ? `group-card-${g.id}-${i}` : undefined}
+                            />
                           )}
                         </SettleIn>
                         {ringed.has(i) ? (
