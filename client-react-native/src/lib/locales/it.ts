@@ -1761,6 +1761,12 @@ export const it: Record<string, string> = {
   'setup.titleBots': '{game} contro i bot',
   'setup.openTable': 'Apri il tavolo',
   'setup.dealMeIn': 'Dai le carte',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Impostazione del tavolo',
+  'setup.botSkill.easy': 'Facile',
+  'setup.botSkill.medium': 'Medio',
+  'setup.botSkill.hard': 'Difficile',
+  'setup.botSkill.ai': 'IA',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Mani',

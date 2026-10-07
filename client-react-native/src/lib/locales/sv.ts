@@ -1747,6 +1747,12 @@ export const sv: Record<string, string> = {
   'setup.titleBots': '{game} mot bottar',
   'setup.openTable': 'Öppna bord',
   'setup.dealMeIn': 'Ge mig kort',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Bordets inställning',
+  'setup.botSkill.easy': 'Lätt',
+  'setup.botSkill.medium': 'Medel',
+  'setup.botSkill.hard': 'Svår',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Givar',

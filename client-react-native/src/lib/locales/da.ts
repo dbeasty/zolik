@@ -1748,6 +1748,12 @@ export const da: Record<string, string> = {
   'setup.titleBots': '{game} mod bots',
   'setup.openTable': 'Åbn bord',
   'setup.dealMeIn': 'Giv mig kort',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Bordets indstilling',
+  'setup.botSkill.easy': 'Let',
+  'setup.botSkill.medium': 'Mellem',
+  'setup.botSkill.hard': 'Svær',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Give',

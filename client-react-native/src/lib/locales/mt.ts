@@ -1767,6 +1767,12 @@ export const mt: Record<string, string> = {
   'setup.titleBots': '{game} kontra l-bots',
   'setup.openTable': 'Iftaħ mejda',
   'setup.dealMeIn': 'Qassamli',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Issettjar tal-mejda',
+  'setup.botSkill.easy': 'Faċli',
+  'setup.botSkill.medium': 'Medju',
+  'setup.botSkill.hard': 'Diffiċli',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Tqassimiet',

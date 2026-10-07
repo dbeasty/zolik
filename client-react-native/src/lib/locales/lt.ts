@@ -1751,6 +1751,12 @@ export const lt: Record<string, string> = {
   'setup.titleBots': '{game} prieš botus',
   'setup.openTable': 'Atidaryti stalą',
   'setup.dealMeIn': 'Dalink man',
+  'setup.botSeat': 'Botas {n}',
+  'setup.botSkillTable': 'Stalo nustatymas',
+  'setup.botSkill.easy': 'Lengvas',
+  'setup.botSkill.medium': 'Vidutinis',
+  'setup.botSkill.hard': 'Sunkus',
+  'setup.botSkill.ai': 'DI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dalijimai',

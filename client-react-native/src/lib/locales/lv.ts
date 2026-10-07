@@ -1750,6 +1750,12 @@ export const lv: Record<string, string> = {
   'setup.titleBots': '{game} pret botiem',
   'setup.openTable': 'Atvērt galdu',
   'setup.dealMeIn': 'Izdali man',
+  'setup.botSeat': 'Bots {n}',
+  'setup.botSkillTable': 'Galda iestatījums',
+  'setup.botSkill.easy': 'Viegls',
+  'setup.botSkill.medium': 'Vidējs',
+  'setup.botSkill.hard': 'Grūts',
+  'setup.botSkill.ai': 'MI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dalījumi',

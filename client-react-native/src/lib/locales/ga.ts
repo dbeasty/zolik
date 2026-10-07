@@ -1783,6 +1783,12 @@ export const ga: Record<string, string> = {
   'setup.titleBots': '{game} in aghaidh bot',
   'setup.openTable': 'Oscail bord',
   'setup.dealMeIn': 'Roinn orm',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Socrú an tábla',
+  'setup.botSkill.easy': 'Éasca',
+  'setup.botSkill.medium': 'Measartha',
+  'setup.botSkill.hard': 'Deacair',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dáiltí',

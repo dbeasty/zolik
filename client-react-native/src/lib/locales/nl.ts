@@ -1766,6 +1766,12 @@ export const nl: Record<string, string> = {
   'setup.titleBots': '{game} tegen bots',
   'setup.openTable': 'Tafel openen',
   'setup.dealMeIn': 'Deel me in',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Tafelinstelling',
+  'setup.botSkill.easy': 'Makkelijk',
+  'setup.botSkill.medium': 'Gemiddeld',
+  'setup.botSkill.hard': 'Moeilijk',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Rondes',

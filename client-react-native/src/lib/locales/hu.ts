@@ -1767,6 +1767,12 @@ export const hu: Record<string, string> = {
   'setup.titleBots': '{game} botok ellen',
   'setup.openTable': 'Asztal megnyitása',
   'setup.dealMeIn': 'Ossz nekem',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Az asztal beállítása',
+  'setup.botSkill.easy': 'Könnyű',
+  'setup.botSkill.medium': 'Közepes',
+  'setup.botSkill.hard': 'Nehéz',
+  'setup.botSkill.ai': 'MI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Leosztások',

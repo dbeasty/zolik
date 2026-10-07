@@ -1758,6 +1758,12 @@ export const fi: Record<string, string> = {
   'setup.titleBots': '{game} botteja vastaan',
   'setup.openTable': 'Avaa pöytä',
   'setup.dealMeIn': 'Jaa minulle',
+  'setup.botSeat': 'Botti {n}',
+  'setup.botSkillTable': 'Pöydän asetus',
+  'setup.botSkill.easy': 'Helppo',
+  'setup.botSkill.medium': 'Keskitaso',
+  'setup.botSkill.hard': 'Vaikea',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Jakoja',
