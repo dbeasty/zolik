@@ -1762,6 +1762,12 @@ export const bg: Record<string, string> = {
   'setup.titleBots': '{game} срещу ботове',
   'setup.openTable': 'Отвори маса',
   'setup.dealMeIn': 'Раздай ми',
+  'setup.botSeat': 'Бот {n}',
+  'setup.botSkillTable': 'Настройка на масата',
+  'setup.botSkill.easy': 'Лесен',
+  'setup.botSkill.medium': 'Среден',
+  'setup.botSkill.hard': 'Труден',
+  'setup.botSkill.ai': 'ИИ',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Раздавания',

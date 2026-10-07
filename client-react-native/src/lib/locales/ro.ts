@@ -1760,6 +1760,12 @@ export const ro: Record<string, string> = {
   'setup.titleBots': '{game} cu boți',
   'setup.openTable': 'Deschide masa',
   'setup.dealMeIn': 'Împarte-mi',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Setarea mesei',
+  'setup.botSkill.easy': 'Ușor',
+  'setup.botSkill.medium': 'Mediu',
+  'setup.botSkill.hard': 'Greu',
+  'setup.botSkill.ai': 'IA',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Împărțiri',

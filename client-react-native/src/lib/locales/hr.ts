@@ -1749,6 +1749,12 @@ export const hr: Record<string, string> = {
   'setup.titleBots': '{game} protiv botova',
   'setup.openTable': 'Otvori stol',
   'setup.dealMeIn': 'Podijeli mi',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Postavka stola',
+  'setup.botSkill.easy': 'Lagan',
+  'setup.botSkill.medium': 'Srednji',
+  'setup.botSkill.hard': 'Težak',
+  'setup.botSkill.ai': 'AI',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dijeljenja',
