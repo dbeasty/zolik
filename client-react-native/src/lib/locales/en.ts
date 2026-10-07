@@ -1767,6 +1767,12 @@ export const en: Record<string, string> = {
   'setup.titleTable': 'New {game} table',
   'setup.titleBots': '{game} against bots',
   'setup.openTable': 'Open table',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Table setting',
+  'setup.botSkill.easy': 'Easy',
+  'setup.botSkill.medium': 'Medium',
+  'setup.botSkill.hard': 'Hard',
+  'setup.botSkill.ai': 'AI',
   'setup.dealMeIn': 'Deal me in',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',

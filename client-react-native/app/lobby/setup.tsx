@@ -15,6 +15,9 @@ import { colors, shared } from '@/src/theme';
 
 type Mode = 'table' | 'bots';
 
+/** '' leaves a seat on the table's Opponents setting; the rest are the server's module.Skill ids. */
+const SEAT_SKILLS = ['', 'easy', 'medium', 'hard', 'ai'] as const;
+
 /**
  * One game's settings, all of them open, and the button that starts it.
  *
@@ -47,6 +50,10 @@ export default function GameSetupScreen() {
   const [variation, setVariation] = useState<string | undefined>();
   const [options, setOptions] = useState<Record<string, number>>({});
   const [bots, setBots] = useState<number | undefined>();
+  // One entry per bot seat: '' follows the table's Opponents setting, anything
+  // else is that seat's own strength. Not remembered between visits — a mix of
+  // strengths is a choice about this game, not a preference.
+  const [seatSkills, setSeatSkills] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,7 +127,7 @@ export default function GameSetupScreen() {
       // descriptor does, and the clamp is the only thing reading it.
       const seats = botCount(mod, bots);
       for (let i = 0; i < seats; i++) {
-        await client.addBot(matchId);
+        await client.addBot(matchId, seatSkills[i] || undefined);
       }
       await client.startMatch(matchId);
       router.replace(`/match/${matchId}`);
@@ -129,7 +136,7 @@ export default function GameSetupScreen() {
     } finally {
       setBusy(false);
     }
-  }, [client, session, mod, mode, variation, options, bots]);
+  }, [client, session, mod, mode, variation, options, bots, seatSkills]);
 
   if (error) {
     return (
@@ -218,6 +225,34 @@ export default function GameSetupScreen() {
               </View>
             </View>
           ) : null}
+
+          {mode === 'bots' && (mod.options ?? []).some((o) => o.name === 'botSkill')
+            ? Array.from({ length: botCount(mod, bots) }, (_, i) => (
+                <View key={i} testID={`setup-section-${mod.id}-bot-${i}`} style={styles.option}>
+                  <Text style={styles.optionLabel}>{t('setup.botSeat', { n: i + 1 })}</Text>
+                  <View style={styles.row}>
+                    {SEAT_SKILLS.map((s) => (
+                      <Pressable
+                        key={s || 'table'}
+                        testID={`bot-skill-${mod.id}-${i}-${s || 'table'}`}
+                        onPress={() =>
+                          setSeatSkills((prev) => {
+                            const next = [...prev];
+                            next[i] = s;
+                            return next;
+                          })
+                        }
+                        style={[styles.pill, (seatSkills[i] ?? '') === s && styles.pillOn]}
+                      >
+                        <Text style={styles.pillText}>
+                          {s ? t(`setup.botSkill.${s}`) : t('setup.botSkillTable')}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ))
+            : null}
 
           {(mod.options ?? []).map((opt) => (
             <View key={opt.name} style={styles.option}>
