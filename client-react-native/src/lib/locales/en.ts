@@ -196,7 +196,7 @@ export const en: Record<string, string> = {
   'canasta.rules.meldsAreShared':
     "Melds belong to the partnership: either partner may extend them, and neither side may touch the other's.",
   'canasta.rules.layOffAfterOpening':
-    'Until your side has made its initial meld it may not lay off onto anything.',
+    'Until your side has made its initial meld it may lay off only natural cards, and only onto melds it laid this turn. Those count toward the minimum.',
   'canasta.rules.goOutKeepsACard':
     'You must always be able to finish your turn, so never meld away your whole hand unless it is the move that goes out.',
   'canasta.rules.oneCanastaToGoOut': 'One completed canasta is enough for your side to go out.',
@@ -1767,6 +1767,12 @@ export const en: Record<string, string> = {
   'setup.titleTable': 'New {game} table',
   'setup.titleBots': '{game} against bots',
   'setup.openTable': 'Open table',
+  'setup.botSeat': 'Bot {n}',
+  'setup.botSkillTable': 'Table setting',
+  'setup.botSkill.easy': 'Easy',
+  'setup.botSkill.medium': 'Medium',
+  'setup.botSkill.hard': 'Hard',
+  'setup.botSkill.ai': 'AI',
   'setup.dealMeIn': 'Deal me in',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
