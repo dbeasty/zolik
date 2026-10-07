@@ -54,10 +54,16 @@ func canastaScore(r ruleset, t *Team) int {
 		if !m.isCanasta() {
 			continue
 		}
-		switch {
-		case m.kind() == meldRun:
+		switch canastaKind(m) {
+		case "samba":
 			total += r.SambaBonus
-		case m.isNatural():
+		case "dirtySamba":
+			total += r.DirtySambaBonus
+		case "wild":
+			total += r.WildCanastaBonus
+		case "wildMixed":
+			total += r.WildMixedCanastaBonus
+		case "natural":
 			total += r.NaturalCanastaBonus
 		default:
 			total += r.MixedCanastaBonus
@@ -156,8 +162,14 @@ func canastaKind(m Meld) string {
 	switch {
 	case !m.isCanasta():
 		return ""
+	case m.kind() == meldRun && !m.isNatural():
+		return "dirtySamba"
 	case m.kind() == meldRun:
 		return "samba"
+	case m.kind() == meldWild && m.isNatural():
+		return "wild"
+	case m.kind() == meldWild:
+		return "wildMixed"
 	case m.isNatural():
 		return "natural"
 	default:
@@ -181,6 +193,12 @@ func tallyTable(r ruleset, t *Team, tr *TeamResult) {
 			tr.Mixed++
 		case "samba":
 			tr.Sambas++
+		case "dirtySamba":
+			tr.DirtySambas++
+		case "wild":
+			tr.WildCanastas++
+		case "wildMixed":
+			tr.WildMixedCanastas++
 		}
 	}
 	if n := len(t.RedThrees); n > 0 {

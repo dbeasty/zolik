@@ -103,7 +103,7 @@ func extendersOf(r ruleset, t *Team) [cardinfer.NumSlots]bool {
 				}
 			}
 		case meldRun:
-			lo, hi := runSpan(m.Cards)
+			lo, hi := m.span()
 			for _, p := range []int{lo - 1, hi + 1} {
 				if p >= 0 && p < len(runRanks) {
 					if k := cardinfer.Slot(runRanks[p] + m.Suit); k >= 0 {

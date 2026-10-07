@@ -1,5 +1,7 @@
 package canasta
 
+import "zolik/server/internal/module"
+
 // A variation's whole shape, in one place.
 //
 // This started as three ints — hand size, target, canastas to go out — because
@@ -94,7 +96,39 @@ type ruleset struct {
 	// ConcealedBonus replaces GoingOutBonus for a hand melded in one turn. Zero
 	// means the variation has no such bonus, which is Samba.
 	ConcealedBonus int `json:"concealedBonus,omitempty"`
+
+	// The CanastaX house rules (docs/wild-samba-plan.md). Each is a table
+	// option, off everywhere but the variation that ships them all on, so a
+	// table that never asked for one plays exactly what it always did.
+	//
+	// DirtySequences lets a sequence hold wilds, under the group limits
+	// (MaxWilds, NaturalsPerWild); each wild stands for one position (Meld.Low).
+	DirtySequences bool `json:"dirtySequences,omitempty"`
+	// WildMeld allows one meld of 2s per side, which may hold jokers.
+	WildMeld bool `json:"wildMeld,omitempty"`
+	// Rearrange lets an opened side move cards between its own melds.
+	Rearrange bool `json:"rearrange,omitempty"`
+	// Poach lets an opened side buy any wild on the table with the natural it
+	// stands for; the wild goes to the hand.
+	Poach bool `json:"poach,omitempty"`
+	// TopOnlyCapture offers every capture of the pile a second way: the top
+	// card alone, melded the same way, leaving the rest of the pile standing.
+	TopOnlyCapture bool `json:"topOnlyCapture,omitempty"`
+
+	DirtySambaBonus       int `json:"dirtySambaBonus,omitempty"`
+	WildCanastaBonus      int `json:"wildCanastaBonus,omitempty"`
+	WildMixedCanastaBonus int `json:"wildMixedCanastaBonus,omitempty"`
 }
+
+// The CanastaX bonuses, for a table that switches one of its rules on under a
+// variation that does not declare them itself. A clean meld of 2s is Samba's
+// 1500 and half again; one with jokers in it is paid as a samba; a dirty
+// sequence sits between a mixed canasta and a samba.
+const (
+	defaultDirtySambaBonus       = 700
+	defaultWildCanastaBonus      = 2250
+	defaultWildMixedCanastaBonus = 1500
+)
 
 // floor is one band of the initial-meld minimum: at Above points and up, a side
 // must lay Min in a turn to open.
@@ -245,9 +279,55 @@ func init() {
 	}
 }
 
+func init() {
+	// CanastaX: Samba with every house rule on — dirty sequences, a meld of
+	// 2s, rearranging your own table, poaching anybody's wilds, and the choice
+	// of the top card or the whole pile (docs/wild-samba-plan.md).
+	x := variations["samba"]
+	x.DirtySequences = true
+	x.WildMeld = true
+	x.Rearrange = true
+	x.Poach = true
+	x.TopOnlyCapture = true
+	x.DirtySambaBonus = defaultDirtySambaBonus
+	x.WildCanastaBonus = defaultWildCanastaBonus
+	x.WildMixedCanastaBonus = defaultWildMixedCanastaBonus
+	variations[variationCanastaX] = x
+}
+
+// variationCanastaX is the house-rules variation's id.
+const variationCanastaX = "canastax"
+
 func resolveVariation(variation string) ruleset {
 	if v, ok := variations[variation]; ok {
 		return v
 	}
 	return variations["classic"]
+}
+
+// resolveRules is the variation with the lobby's options applied — the one
+// place NewMatch, Rules() and the refusal index all read a table's rules from,
+// so the three cannot describe different games.
+func resolveRules(cfg module.MatchConfig, seats int) ruleset {
+	r := resolveVariation(cfg.Variation)
+	hand := r.HandSize
+	if seats > 0 {
+		hand = r.handSizeFor(seats)
+	}
+	r.HandSize = cfg.Opt(OptHandSize, hand)
+	r.TargetScore = cfg.Opt(OptTargetScore, r.TargetScore)
+	r.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, r.CanastasToGoOut)
+	r.DirtySequences = cfg.Opt(OptDirtySequences, module.BoolOpt(r.DirtySequences)) == module.OptOn && r.Sequences
+	r.WildMeld = cfg.Opt(OptWildMeld, module.BoolOpt(r.WildMeld)) == module.OptOn
+	r.Rearrange = cfg.Opt(OptRearrange, module.BoolOpt(r.Rearrange)) == module.OptOn
+	r.Poach = cfg.Opt(OptPoach, module.BoolOpt(r.Poach)) == module.OptOn
+	r.TopOnlyCapture = cfg.Opt(OptTopOnlyCapture, module.BoolOpt(r.TopOnlyCapture)) == module.OptOn
+	if r.DirtySequences && r.DirtySambaBonus == 0 {
+		r.DirtySambaBonus = defaultDirtySambaBonus
+	}
+	if r.WildMeld && r.WildCanastaBonus == 0 {
+		r.WildCanastaBonus = defaultWildCanastaBonus
+		r.WildMixedCanastaBonus = defaultWildMixedCanastaBonus
+	}
+	return r
 }

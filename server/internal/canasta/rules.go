@@ -12,10 +12,10 @@ var _ module.RulesProvider = (*Module)(nil)
 // score and go-out requirement, resolved the same way the engine resolves
 // them (engine.go).
 func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
-	v := resolveVariation(cfg.Variation)
-	handSize := cfg.Opt(OptHandSize, v.HandSize)
-	targetScore := cfg.Opt(OptTargetScore, v.TargetScore)
-	canastasToGoOut := cfg.Opt(OptCanastasToGoOut, v.CanastasToGoOut)
+	v := resolveRules(cfg, 0)
+	handSize := v.HandSize
+	targetScore := v.TargetScore
+	canastasToGoOut := v.CanastasToGoOut
 
 	// Reuses the exact keys Descriptor's Summary already ships (param-free —
 	// the sentence spells "one"/"two" out in words) rather than a second,
@@ -104,10 +104,35 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		module.Fact{LabelKey: "canasta.rules.layOffAfterOpening"},
 	)
 	if v.Sequences {
+		// "Never with a wild" is the rule only where sequences stay clean; a
+		// table with dirty sequences states its own sentence below instead.
+		if !v.DirtySequences {
+			melding = append(melding, module.Fact{LabelKey: "canasta.rules.sequences"})
+		}
 		melding = append(melding,
-			module.Fact{LabelKey: "canasta.rules.sequences"},
 			module.Fact{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": v.SambaBonus}},
 		)
+	}
+	// The CanastaX house rules, each stated only where the table has it on.
+	if v.DirtySequences {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.dirtySequences", Params: map[string]any{"n": v.DirtySambaBonus},
+		})
+	}
+	if v.WildMeld {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.wildMeld",
+			Params:   map[string]any{"n": v.WildCanastaBonus, "mixed": v.WildMixedCanastaBonus},
+		})
+	}
+	if v.Rearrange {
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.rearrange"})
+	}
+	if v.Poach {
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.poach"})
+	}
+	if v.TopOnlyCapture {
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.topOnlyCapture"})
 	}
 	// Black threes are two rules in one sentence — what they do to the pile, and
 	// whether they can ever leave a hand for the table — and which of the two

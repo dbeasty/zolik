@@ -204,5 +204,6 @@ func (s *GameState) layCopy(playerID string) *GameState {
 	}
 	c.LaidOff = nil
 	c.MeldsLaid = nil
+	c.Reshapes = nil
 	return &c
 }

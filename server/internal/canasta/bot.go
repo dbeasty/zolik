@@ -586,6 +586,13 @@ func (b bot) build(raw module.State, s *GameState, playerID string, p profile, t
 		return openingMove(raw, s, playerID, mn)
 	}
 
+	// A wild bought off the other side's table: it costs them the wild and
+	// costs this side a natural it was holding anyway. See bestPoach for the
+	// one poach that is a gift instead.
+	if o, card, ok := bestPoach(s, t, mn); ok {
+		return module.Action{OfferID: o.ID, Verb: VerbPoach, Target: o.Target.MeldID, Cards: []string{card}}, true
+	}
+
 	// Lay-offs first. A lay-off grows a meld the side already owns, which is
 	// the only way a canasta ever gets finished, and unlike a new meld it can
 	// never split the hand's material across two ranks that each then stall at
@@ -1086,4 +1093,37 @@ func betterShed(x, y discardCandidate) bool {
 		return x.value > y.value
 	}
 	return x.ordinal < y.ordinal
+}
+
+// bestPoach is the poach worth making, if any (CanastaX).
+//
+// Only off the other sides' melds — a poach off its own table gains a side a
+// wild by spending a natural it could have laid off, which is a wash at best —
+// and never the poach that hands them a bonus: the last wild out of a canasta
+// turns it natural, 300 to 500 or a dirty samba to a samba, which pays them
+// more than the wild costs them. Jokers before 2s, for the fifty points.
+func bestPoach(s *GameState, t *Team, mn menu) (module.ActionOffer, string, bool) {
+	var best module.ActionOffer
+	bestCard, bestValue := "", 0
+	for _, o := range mn.byVerb(VerbPoach) {
+		if o.Target == nil || o.Source == nil || len(o.Source.Cards) == 0 {
+			continue
+		}
+		owner, m := s.findMeld(o.Target.MeldID)
+		if m == nil || t == nil || owner.ID == t.ID {
+			continue
+		}
+		if m.isCanasta() && m.wilds() == 1 {
+			continue
+		}
+		card := o.Source.Cards[0]
+		slot := poachSlot(*m, card, "")
+		if slot < 0 {
+			continue
+		}
+		if v := cardValue(m.Cards[slot]); v > bestValue {
+			best, bestCard, bestValue = o, card, v
+		}
+	}
+	return best, bestCard, bestCard != ""
 }

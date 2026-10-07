@@ -129,18 +129,24 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// client would then have to own.
 	took := 0
 	for _, opt := range pileTakeOptions(s, playerID) {
-		a := module.Action{Verb: VerbTakePile, Cards: opt.Cards, Target: opt.MeldID}
+		a := module.Action{Verb: opt.verb(), Cards: opt.Cards, Target: opt.MeldID}
 		ok, why := probe(m, raw, playerID, a)
 		if !ok {
 			continue // the engine disagrees; it is the authority, not this list
 		}
-		o := module.ActionOffer{ID: pileOfferID(opt), Verb: VerbTakePile, Enabled: ok, WhyNot: why}
+		o := module.ActionOffer{ID: pileOfferID(opt), Verb: opt.verb(), Enabled: ok, WhyNot: why}
 		// Several captures can be legal at once and they are different moves;
 		// labelled only by the verb they would be a row of identical buttons.
 		if opt.MeldID != "" {
 			o.LabelKey = "verb.takePileOntoMeld"
 		} else {
 			o.LabelKey = "verb.takePileFromHand"
+		}
+		if opt.TopOnly {
+			o.LabelKey = "verb.takeTopOntoMeld"
+			if opt.MeldID == "" {
+				o.LabelKey = "verb.takeTopFromHand"
+			}
 		}
 		if opt.MeldID != "" {
 			o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
@@ -214,6 +220,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// run takes no wilds: it is the maximal block of consecutive ranks in a
 	// suit rather than a shape somebody composes (docs/samba-plan.md §3.3).
 	candidates = append(candidates, runCandidates(r, hand, t)...)
+	// CanastaX's: sequences bridged by wilds, and the meld of 2s.
+	candidates = append(candidates, dirtyRunCandidates(r, hand, t)...)
+	if wc := wildMeldCandidate(r, hand, t); wc != nil {
+		candidates = append(candidates, *wc)
+	}
 	for _, c := range candidates {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
@@ -221,16 +232,22 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			continue
 		}
 		fact := module.Fact{LabelKey: "canasta.offer.rank", Value: c.Rank}
-		if c.Kind == meldRun {
+		switch c.Kind {
+		case meldRun:
 			// A run is told apart by where it starts and stops, not by a rank
-			// it does not have.
+			// it does not have — and a dirty one by the cards its ends stand
+			// for, since an end may be a wild.
+			from, to := c.Cards[0], c.Cards[len(c.Cards)-1]
+			if cards, low, err := arrangeRun(r, nil, 0, c.Cards, noLow); err == nil {
+				from, to = runRanks[low]+c.Suit, runRanks[low+len(cards)-1]+c.Suit
+			}
 			fact = module.Fact{
 				LabelKey: "canasta.offer.sequence",
-				Value:    c.Cards[0] + "-" + c.Cards[len(c.Cards)-1],
-				Params: map[string]any{
-					"suit": c.Suit, "from": c.Cards[0], "to": c.Cards[len(c.Cards)-1],
-				},
+				Value:    from + "-" + to,
+				Params:   map[string]any{"suit": c.Suit, "from": from, "to": to},
 			}
+		case meldWild:
+			fact = module.Fact{LabelKey: "canasta.offer.wildMeld", Value: rankTwo}
 		}
 		offers = append(offers, module.ActionOffer{
 			ID: OfferLayMeld + ":" + c.offerKey(), Verb: VerbLayMeld, Enabled: true,
@@ -411,6 +428,9 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		offers = append(offers, o)
 	}
 
+	// --- CanastaX: rearranging, poaching, and taking either back -------------
+	offers = append(offers, houseOffers(m, raw, s, playerID)...)
+
 	// Why each disabled offer is disabled, in terms a player can act on: the
 	// written rules that justify the refusal, and the move that gets round it.
 	// Both read off what was just built rather than being worked out again —
@@ -426,28 +446,35 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 // identical buttons in a row — which is the thing the offer list is supposed to
 // stop a client having to work out for itself.
 func meldOfferFact(m Meld) module.Fact {
-	if m.kind() != meldRun {
-		return module.Fact{LabelKey: "canasta.offer.rank", Value: m.Rank}
+	switch m.kind() {
+	case meldWild:
+		return module.Fact{LabelKey: "canasta.offer.wildMeld", Value: rankTwo}
+	case meldRun:
+		// The cards the ends stand for, which for a clean run are the cards.
+		from, to := m.standsFor(0), m.standsFor(len(m.Cards)-1)
+		return module.Fact{
+			LabelKey: "canasta.offer.sequence",
+			Value:    from + "-" + to,
+			Params:   map[string]any{"suit": m.Suit, "from": from, "to": to},
+		}
 	}
-	return module.Fact{
-		LabelKey: "canasta.offer.sequence",
-		Value:    m.Cards[0] + "-" + m.Cards[len(m.Cards)-1],
-		Params: map[string]any{
-			"suit": m.Suit, "from": m.Cards[0], "to": m.Cards[len(m.Cards)-1],
-		},
-	}
+	return module.Fact{LabelKey: "canasta.offer.rank", Value: m.Rank}
 }
 
 func pileOfferID(opt pileOption) string {
+	suffix := ""
+	if opt.TopOnly {
+		suffix = ":top"
+	}
 	if opt.MeldID != "" {
-		return OfferTakePile + ":meld:" + opt.MeldID
+		return OfferTakePile + ":meld:" + opt.MeldID + suffix
 	}
 	for _, c := range opt.Cards {
 		if isWild(c) {
-			return OfferTakePile + ":wild"
+			return OfferTakePile + ":wild" + suffix
 		}
 	}
-	return OfferTakePile + ":naturals"
+	return OfferTakePile + ":naturals" + suffix
 }
 
 // discardableCards lists which cards the engine would actually accept as this
@@ -700,7 +727,7 @@ func runCompany(eligible []string, mm Meld, c string) []string {
 			byIndex[j] = e
 		}
 	}
-	low, high := runSpan(mm.Cards)
+	low, high := mm.span()
 	from, to := high+1, i-1
 	if i < low {
 		from, to = i+1, low-1
