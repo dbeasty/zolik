@@ -4,7 +4,7 @@ import "zolik/server/internal/module"
 
 var _ module.RulesProvider = (*Module)(nil)
 
-// Rules writes out Hold'em's rules for one lobby's actual stack, blind and
+// Rules writes out the poker game's rules for one lobby's actual stack, blind and
 // hand-limit choices, resolved the same way the engine resolves them.
 func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	v := resolveVariation(cfg)
@@ -25,14 +25,35 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		end = append(end, module.Fact{LabelKey: "holdem.rules.lastPlayerStanding"})
 	}
 
+	setup := []module.Fact{
+		{LabelKey: "holdem.rules.stack", Params: map[string]any{"n": stack}},
+		{LabelKey: "holdem.rules.blinds", Params: map[string]any{"sb": bigBlind / 2, "bb": bigBlind}},
+	}
+	// The betting section is the same rules in either game, around a
+	// different shape of hand: four rounds with a board, or two with a draw
+	// between them.
+	betting := []module.Fact{{LabelKey: "holdem.rules.streets"}}
+	if rulesFor(cfg.Variation).draw {
+		setup = append(setup, module.Fact{LabelKey: "holdem.rules.draw.deal"})
+		betting = []module.Fact{
+			{LabelKey: "holdem.rules.draw.streets"},
+			{LabelKey: "holdem.rules.draw.draw", Params: map[string]any{"n": drawRules.maxDiscard}},
+			{LabelKey: "holdem.rules.draw.public"},
+		}
+	}
+	betting = append(betting,
+		module.Fact{LabelKey: "holdem.rules.checkOrCall"},
+		module.Fact{LabelKey: "holdem.rules.minRaise"},
+		module.Fact{LabelKey: "holdem.rules.allIn"},
+		module.Fact{LabelKey: "holdem.rules.foldedOut"},
+		module.Fact{LabelKey: "holdem.rules.showdown"},
+	)
+
 	return []module.RuleSection{
 		module.Section("holdem.rules.section.goal",
 			module.Fact{LabelKey: "holdem.rules.goal"},
 		),
-		module.Section("holdem.rules.section.setup",
-			module.Fact{LabelKey: "holdem.rules.stack", Params: map[string]any{"n": stack}},
-			module.Fact{LabelKey: "holdem.rules.blinds", Params: map[string]any{"sb": bigBlind / 2, "bb": bigBlind}},
-		),
+		module.Section("holdem.rules.section.setup", setup...),
 		// The mechanics of a betting round, and not only its shape.
 		//
 		// Written out because this is where every refusal in the game comes
@@ -40,14 +61,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		// "you don't have that many chips" are all one rule each, and none of
 		// them was stated anywhere a player could read it before being told
 		// no. See ruleindex.go, which points each of those codes here.
-		module.Section("holdem.rules.section.betting",
-			module.Fact{LabelKey: "holdem.rules.streets"},
-			module.Fact{LabelKey: "holdem.rules.checkOrCall"},
-			module.Fact{LabelKey: "holdem.rules.minRaise"},
-			module.Fact{LabelKey: "holdem.rules.allIn"},
-			module.Fact{LabelKey: "holdem.rules.foldedOut"},
-			module.Fact{LabelKey: "holdem.rules.showdown"},
-		),
+		module.Section("holdem.rules.section.betting", betting...),
 		// What happens after the chips are pushed, which is a section this
 		// game did not have because it used to be over by then.
 		//

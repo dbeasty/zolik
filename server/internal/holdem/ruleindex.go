@@ -31,7 +31,14 @@ func explainWith(stated map[string]bool, code string) []string {
 func refusalRules(code string) []string {
 	switch code {
 	case ErrNotYourTurn:
-		return []string{"holdem.rules.streets"}
+		// Whichever of the two games is being played states one of these.
+		return []string{"holdem.rules.streets", "holdem.rules.draw.streets", "holdem.rules.draw.draw"}
+
+	// --- the draw ---------------------------------------------------------
+	case ErrDrawing, ErrNotDrawing:
+		return []string{"holdem.rules.draw.streets", "holdem.rules.draw.draw"}
+	case ErrDrawTooMany, ErrDrawEmpty, ErrCardNotInHand:
+		return []string{"holdem.rules.draw.draw"}
 	case ErrSeatNotInHand:
 		return []string{"holdem.rules.foldedOut"}
 

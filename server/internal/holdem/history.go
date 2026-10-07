@@ -51,7 +51,7 @@ func record(s *GameState, verb string, d decisionAt) {
 	}
 
 	r := st.reads()
-	if s.Street == streetPreflop {
+	if s.opening() {
 		// Once per hand each: a limp and a later call of a raise are one hand
 		// in which this seat chose to play, not two.
 		if (verb == VerbCall || verb == VerbRaise) && !s.didPreflop(d.seat, VerbCall, VerbRaise) {
@@ -90,7 +90,7 @@ func record(s *GameState, verb string, d decisionAt) {
 // the flop in this hand.
 func (s *GameState) didPreflop(seat int, verbs ...string) bool {
 	for _, a := range s.HandLog {
-		if a.Seat != seat || a.Street != streetPreflop {
+		if a.Seat != seat || (a.Street != streetPreflop && a.Street != streetPredraw) {
 			continue
 		}
 		for _, v := range verbs {
@@ -119,7 +119,10 @@ const bigBet = 0.75
 // a raise with ace-king is not a bluff by any definition worth counting.
 func readShown(s *GameState, idx int) {
 	st := &s.Seats[idx]
-	if len(st.Hole) < 2 {
+	// The bluff test reads a bet against the board it was made on, which is
+	// a Hold'em question. A Draw hand changed between its bets, and the cards
+	// it was bet on were thrown away face down.
+	if len(st.Hole) < 2 || !s.rules().board {
 		return
 	}
 	for _, a := range s.HandLog {

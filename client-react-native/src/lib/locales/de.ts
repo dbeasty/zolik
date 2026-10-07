@@ -1991,4 +1991,23 @@ export const de: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Du hältst das Gebot: sag Mám oder passe',
   'err.MARIAS_YOU_BID': 'Du reizt: biete höher oder passe',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Jeder Spieler erhält fünf verdeckte Karten. Es gibt keine Gemeinschaftskarten: Deine Hand sind die fünf Karten, die du hältst.',
+  'holdem.rules.draw.streets': 'Gesetzt wird in zwei Runden — einmal auf die ausgeteilten Karten und einmal nach dem Tausch.',
+  'holdem.rules.draw.draw': 'Beim Tausch wirft jeder Spieler, der noch in der Hand ist, beginnend links vom Geber, eine bis {n} Karten ab und erhält ebenso viele neue — oder er behält alle fünf. Auch Spieler, die all-in sind, tauschen.',
+  'holdem.rules.draw.public': 'Alle erfahren, wie viele Karten jeder getauscht hat, aber nie welche.',
+  'holdem.offer.discard': 'Karten tauschen',
+  'holdem.offer.stand': 'Alle behalten',
+  'holdem.seat.drew': 'Getauscht',
+  'holdem.seat.stoodPat': 'Nichts getauscht',
+  'holdem.street.predraw': 'Vor dem Tausch',
+  'holdem.street.draw': 'Der Tausch',
+  'holdem.street.postdraw': 'Nach dem Tausch',
+  'holdem.prompt.draw': 'Wähle bis zu {n} Karten zum Tauschen oder behalte alle',
+  'holdem.remedy.discardOrStand': 'Jetzt wird getauscht — wähle eine bis {n} Karten zum Tauschen oder behalte alle.',
+  'err.DRAW_NOT_NOW': 'Karten tauschen geht nur beim Tausch',
+  'err.DRAW_PENDING': 'Am Tisch wird getauscht — tausche zuerst Karten oder behalte alle',
+  'err.DRAW_TOO_MANY': 'Du kannst höchstens drei Karten tauschen',
+  'err.DRAW_EMPTY': 'Wähle mindestens eine Karte zum Tauschen oder behalte alle',
+  // --- end Five-Card Draw ---
 };

@@ -1960,4 +1960,23 @@ export const sl: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Držiš ponudbo: reci mám ali naprej',
   'err.MARIAS_YOU_BID': 'Ti licitiraš: ponudi več ali naprej',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Vsak igralec dobi pet kart s hrbtom navzgor. Skupnih kart ni: tvoja roka je tistih pet kart, ki jih držiš.',
+  'holdem.rules.draw.streets': 'Stavi se v dveh krogih — enkrat na razdeljene karte in enkrat po menjavi.',
+  'holdem.rules.draw.draw': 'Pri menjavi vsak igralec, ki je še v igri, začenši levo od delivca, odvrže eno do {n} karte in dobi enako število novih — ali obdrži vseh pet. Menjajo tudi igralci, ki so all-in.',
+  'holdem.rules.draw.public': 'Vsi izvejo, koliko kart je kdo zamenjal, nikoli pa katere.',
+  'holdem.offer.discard': 'Zamenjaj karte',
+  'holdem.offer.stand': 'Obdrži vse',
+  'holdem.seat.drew': 'Zamenjal',
+  'holdem.seat.stoodPat': 'Obdržal vse',
+  'holdem.street.predraw': 'Pred menjavo',
+  'holdem.street.draw': 'Menjava',
+  'holdem.street.postdraw': 'Po menjavi',
+  'holdem.prompt.draw': 'Izberi do {n} karte za menjavo ali obdrži vse',
+  'holdem.remedy.discardOrStand': 'Zdaj je menjava — izberi eno do {n} karte za menjavo ali obdrži vse.',
+  'err.DRAW_NOT_NOW': 'Karte lahko menjaš samo med menjavo',
+  'err.DRAW_PENDING': 'Za mizo poteka menjava — najprej zamenjaj karte ali obdrži vse',
+  'err.DRAW_TOO_MANY': 'Zamenjaš lahko največ tri karte',
+  'err.DRAW_EMPTY': 'Izberi vsaj eno karto za menjavo ali obdrži vse',
+  // --- end Five-Card Draw ---
 };

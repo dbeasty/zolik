@@ -1957,4 +1957,23 @@ export const cs: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Držíš nabídku: řekni mám, nebo pasuj',
   'err.MARIAS_YOU_BID': 'Licituješ: nabídni víc, nebo pasuj',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Každý hráč dostane pět karet lícem dolů. Na stole nejsou žádné společné karty: tvoje kombinace je těch pět karet, které držíš.',
+  'holdem.rules.draw.streets': 'Sází se ve dvou kolech — jednou na rozdané karty a jednou po výměně.',
+  'holdem.rules.draw.draw': 'Při výměně každý hráč, který je ještě ve hře, počínaje vlevo od rozdávajícího, odhodí jednu až {n} karty a dostane stejný počet nových — nebo si nechá všech pět. Měnit smí i hráči, kteří jsou all-in.',
+  'holdem.rules.draw.public': 'Všichni se dozví, kolik karet kdo vyměnil, ale nikdy které.',
+  'holdem.offer.discard': 'Vyměnit karty',
+  'holdem.offer.stand': 'Nechat si všechny',
+  'holdem.seat.drew': 'Vyměnil',
+  'holdem.seat.stoodPat': 'Bez výměny',
+  'holdem.street.predraw': 'Před výměnou',
+  'holdem.street.draw': 'Výměna',
+  'holdem.street.postdraw': 'Po výměně',
+  'holdem.prompt.draw': 'Vyber až {n} karty k výměně, nebo si nech všechny',
+  'holdem.remedy.discardOrStand': 'Teď se mění — vyber jednu až {n} karty k výměně, nebo si nech všechny.',
+  'err.DRAW_NOT_NOW': 'Karty se dají měnit jen při výměně',
+  'err.DRAW_PENDING': 'U stolu se právě mění — nejdřív vyměň karty, nebo si nech všechny',
+  'err.DRAW_TOO_MANY': 'Vyměnit můžeš nejvýš tři karty',
+  'err.DRAW_EMPTY': 'Vyber aspoň jednu kartu k výměně, nebo si nech všechny',
+  // --- end Five-Card Draw ---
 };

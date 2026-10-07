@@ -15,6 +15,12 @@ const (
 	OfferCall  = "call"
 	OfferRaise = "raise"
 	OfferShow  = "show"
+
+	// Five-Card Draw's draw. The discard is the one offer in this module that
+	// takes cards, and it is composite: one to three of the five, which the
+	// player picks and the offer does not enumerate.
+	OfferDiscard = "discard"
+	OfferStand   = "stand"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -56,6 +62,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			}
 		}
 		return append(on, showOffer(s, playerID)), nil
+	}
+
+	if s.Street == streetDraw {
+		return m.drawOffers(raw, s, playerID), nil
 	}
 
 	if s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
@@ -133,6 +143,42 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// actionable — see remedy.go.
 	m.annotate(configOf(s), s, seat, offers)
 	return offers, nil
+}
+
+// drawOffers is the draw, for whoever is asking: the seat drawing gets its two
+// choices, everyone else the same two greyed out with the reason.
+//
+// Stand comes first. A bot or a retry with no opinion takes the first enabled
+// offer, and keeping a hand is the move that can never be a mistake about
+// which cards to throw — the discard is composite, so nothing without an
+// opinion could take it anyway.
+func (m *Module) drawOffers(raw module.State, s *GameState, playerID string) []module.ActionOffer {
+	stand := module.ActionOffer{ID: OfferStand, Verb: VerbStand, LabelKey: "holdem.offer.stand"}
+	discard := module.ActionOffer{
+		ID: OfferDiscard, Verb: VerbDiscard, LabelKey: "holdem.offer.discard", Composite: true,
+	}
+	seat := s.seat(playerID)
+	if seat != nil {
+		discard.Source = &module.Selector{
+			Zone: module.FromHand, OwnerID: playerID, ZoneID: "hole:" + playerID,
+			Cards: append([]string(nil), seat.Hole...), MinCards: 1, MaxCards: s.rules().maxDiscard,
+		}
+	}
+
+	stand.Enabled, stand.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbStand})
+	probeDiscard := module.Action{Verb: VerbDiscard}
+	if seat != nil && len(seat.Hole) > 0 {
+		probeDiscard.Cards = seat.Hole[:1]
+	}
+	discard.Enabled, discard.WhyNot = probe(m, raw, playerID, probeDiscard)
+	if !discard.Enabled {
+		// Nothing to pick from while somebody else is drawing.
+		discard.Source = nil
+	}
+
+	offers := []module.ActionOffer{stand, discard}
+	m.annotate(configOf(s), s, seat, offers)
+	return offers
 }
 
 // raiseRange is the smallest and largest total this seat may raise to.

@@ -1981,4 +1981,23 @@ export const fr: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': "Tu tiens l'enchère : dis mám ou passe",
   'err.MARIAS_YOU_BID': "Tu enchéris : monte l'enchère ou passe",
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Chaque joueur reçoit cinq cartes face cachée. Il n\'y a pas de cartes communes : ta main, ce sont les cinq cartes que tu tiens.',
+  'holdem.rules.draw.streets': 'Les mises se font en deux tours — un sur les cartes distribuées, un après l\'échange.',
+  'holdem.rules.draw.draw': 'Pendant l\'échange, chaque joueur encore dans le coup, en commençant à gauche du donneur, jette d\'une à {n} cartes et en reçoit autant de nouvelles — ou se déclare servi et garde ses cinq cartes. Les joueurs à tapis échangent aussi.',
+  'holdem.rules.draw.public': 'Tout le monde sait combien de cartes chacun a échangées, mais jamais lesquelles.',
+  'holdem.offer.discard': 'Échanger des cartes',
+  'holdem.offer.stand': 'Garder les cinq',
+  'holdem.seat.drew': 'A échangé',
+  'holdem.seat.stoodPat': 'Servi',
+  'holdem.street.predraw': 'Avant l\'échange',
+  'holdem.street.draw': 'L\'échange',
+  'holdem.street.postdraw': 'Après l\'échange',
+  'holdem.prompt.draw': 'Choisis jusqu\'à {n} cartes à échanger, ou garde les cinq',
+  'holdem.remedy.discardOrStand': 'C\'est l\'échange — choisis d\'une à {n} cartes à échanger, ou garde les cinq.',
+  'err.DRAW_NOT_NOW': 'Tu ne peux échanger des cartes que pendant l\'échange',
+  'err.DRAW_PENDING': 'La table échange — échange d\'abord des cartes ou garde les cinq',
+  'err.DRAW_TOO_MANY': 'Tu peux échanger trois cartes au plus',
+  'err.DRAW_EMPTY': 'Choisis au moins une carte à échanger, ou garde les cinq',
+  // --- end Five-Card Draw ---
 };

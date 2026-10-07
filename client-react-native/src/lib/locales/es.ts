@@ -1979,4 +1979,23 @@ export const es: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Mantienes la puja: di mám o pasa',
   'err.MARIAS_YOU_BID': 'Estás pujando: puja más alto o pasa',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Cada jugador recibe cinco cartas boca abajo. No hay cartas comunitarias: tu mano son las cinco cartas que tienes.',
+  'holdem.rules.draw.streets': 'Se apuesta en dos rondas — una con las cartas repartidas y otra después del descarte.',
+  'holdem.rules.draw.draw': 'En el descarte, cada jugador que sigue en la mano, empezando a la izquierda del repartidor, tira de una a {n} cartas y recibe otras tantas nuevas — o se planta y se queda con las cinco. Los jugadores que están all-in también descartan.',
+  'holdem.rules.draw.public': 'Todos saben cuántas cartas cambió cada jugador, pero nunca cuáles.',
+  'holdem.offer.discard': 'Cambiar cartas',
+  'holdem.offer.stand': 'Plantarse',
+  'holdem.seat.drew': 'Cambió',
+  'holdem.seat.stoodPat': 'Plantado',
+  'holdem.street.predraw': 'Antes del descarte',
+  'holdem.street.draw': 'El descarte',
+  'holdem.street.postdraw': 'Después del descarte',
+  'holdem.prompt.draw': 'Elige hasta {n} cartas para cambiar, o plántate',
+  'holdem.remedy.discardOrStand': 'Es el descarte — elige de una a {n} cartas para cambiar, o plántate.',
+  'err.DRAW_NOT_NOW': 'Solo puedes cambiar cartas durante el descarte',
+  'err.DRAW_PENDING': 'La mesa está descartando — cambia cartas o plántate primero',
+  'err.DRAW_TOO_MANY': 'Puedes cambiar como mucho tres cartas',
+  'err.DRAW_EMPTY': 'Elige al menos una carta para cambiar, o plántate',
+  // --- end Five-Card Draw ---
 };

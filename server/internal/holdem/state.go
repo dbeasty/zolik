@@ -1,4 +1,5 @@
-// Package holdem implements No-Limit Texas Hold'em as a game module.
+// Package holdem implements Poker as a game module: No-Limit Texas Hold'em, and
+// Five-Card Draw on the same engine (ruleset.go).
 //
 // It exists to falsify the module interface against a game that is not about
 // matching cards at all — the fourth module, and the first whose central
@@ -46,6 +47,14 @@ const (
 	// had to see: a bluff that took the pot uncontested is information its
 	// owner may want to give away, and no rule requires or forbids it.
 	VerbShow = "show"
+
+	// VerbDiscard and VerbStand are Five-Card Draw's draw: throw away one to
+	// three cards for as many new ones, or keep all five. Standing pat is its
+	// own verb rather than a discard of nothing, because "I am happy with
+	// these" is a statement the table hears, and a selection of zero cards is
+	// not something a hand of cards can be asked to submit.
+	VerbDiscard = "discard"
+	VerbStand   = "stand"
 )
 
 // Streets, in order.
@@ -84,6 +93,18 @@ const (
 	// turned its hand over is asking twice.
 	ErrNothingToShow = "NOTHING_TO_SHOW"
 	ErrAlreadyShown  = "ALREADY_SHOWN"
+
+	// --- the draw ----------------------------------------------------------
+	//
+	// ErrNotDrawing is a discard or a stand when nobody is drawing, and
+	// ErrDrawing a bet while somebody is. ErrDrawTooMany and ErrDrawEmpty
+	// bound the discard; ErrCardNotInHand is the shared code every card game
+	// here uses for a card the seat does not hold.
+	ErrNotDrawing    = "DRAW_NOT_NOW"
+	ErrDrawing       = "DRAW_PENDING"
+	ErrDrawTooMany   = "DRAW_TOO_MANY"
+	ErrDrawEmpty     = "DRAW_EMPTY"
+	ErrCardNotInHand = "CARD_NOT_IN_HAND"
 )
 
 // Seat is one player's position at the table, for the whole match.
@@ -106,6 +127,15 @@ type Seat struct {
 	// Out is eliminated from the match — no chips, no way back.
 	Out  bool     `json:"out,omitempty"`
 	Hole []string `json:"hole,omitempty"`
+
+	// Drawn is whether this seat has had its draw this hand, and Drew how
+	// many cards it took — public, the one thing about a draw the table is
+	// told. Discarded is what it threw away, which nobody else ever sees: it
+	// is kept because the seat itself remembers it, and a bot reasoning about
+	// which cards are left must know its own discards are not among them.
+	Drawn     bool     `json:"drawn,omitempty"`
+	Drew      int      `json:"drew,omitempty"`
+	Discarded []string `json:"discarded,omitempty"`
 
 	// Reads is what the table has seen this seat do, over the whole match —
 	// the numbers a regular keeps in their head about the player opposite.
