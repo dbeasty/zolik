@@ -95,30 +95,47 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
   const actions = (
     <>
       <Text style={styles.heading}>{t('game.startYourOwn')}</Text>
-      <View style={styles.buttons}>
-        <SettleIn kind="deal" delay={0} style={styles.cell}>
-          <Pressable
-            testID={`play-friends-${mod.id}`}
-            accessibilityRole="button"
-            style={[shared.button, styles.cellButton]}
-            onPress={() => setup('table')}
-          >
-            <Text style={shared.buttonText}>{t('lobby.games.openTable')}</Text>
-          </Pressable>
-        </SettleIn>
-        <SettleIn kind="deal" delay={70} style={styles.cell}>
-          <Pressable
-            testID={`play-bots-${mod.id}`}
-            accessibilityRole="button"
-            style={[shared.button, shared.buttonSecondary, styles.cellButton]}
-            onPress={() => setup('bots')}
-          >
-            <Text style={[shared.buttonText, shared.buttonTextSecondary, styles.cellText]}>
-              {t('game.playBots')}
-            </Text>
-          </Pressable>
-        </SettleIn>
-      </View>
+      {mod.maxPlayers === 1 ? (
+        // A one-seat game has no table to open and no bots to play: one
+        // button, which deals.
+        <View style={styles.buttons}>
+          <SettleIn kind="deal" delay={0} style={styles.cell}>
+            <Pressable
+              testID={`play-solo-${mod.id}`}
+              accessibilityRole="button"
+              style={[shared.button, styles.cellButton]}
+              onPress={() => setup('bots')}
+            >
+              <Text style={shared.buttonText}>{t('setup.dealMeIn')}</Text>
+            </Pressable>
+          </SettleIn>
+        </View>
+      ) : (
+        <View style={styles.buttons}>
+          <SettleIn kind="deal" delay={0} style={styles.cell}>
+            <Pressable
+              testID={`play-friends-${mod.id}`}
+              accessibilityRole="button"
+              style={[shared.button, styles.cellButton]}
+              onPress={() => setup('table')}
+            >
+              <Text style={shared.buttonText}>{t('lobby.games.openTable')}</Text>
+            </Pressable>
+          </SettleIn>
+          <SettleIn kind="deal" delay={70} style={styles.cell}>
+            <Pressable
+              testID={`play-bots-${mod.id}`}
+              accessibilityRole="button"
+              style={[shared.button, shared.buttonSecondary, styles.cellButton]}
+              onPress={() => setup('bots')}
+            >
+              <Text style={[shared.buttonText, shared.buttonTextSecondary, styles.cellText]}>
+                {t('game.playBots')}
+              </Text>
+            </Pressable>
+          </SettleIn>
+        </View>
+      )}
       {session ? (
         <View style={[styles.buttons, { marginTop: 8 }]}>
           {/* Every finished game of this one, not just the latest: the menu
@@ -168,7 +185,9 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
           <Text style={shared.title}>{moduleLabel(mod)}</Text>
           <Text style={styles.meta}>
             {mod.minPlayers === mod.maxPlayers
-              ? t('lobby.games.players', { n: mod.minPlayers })
+              ? mod.minPlayers === 1
+                ? t('lobby.games.onePlayer')
+                : t('lobby.games.players', { n: mod.minPlayers })
               : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
           </Text>
         </View>

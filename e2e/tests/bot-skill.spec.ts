@@ -56,6 +56,12 @@ test('the lobby offers a strength for the opponents', async ({ request }) => {
   const modules = body.modules ?? body;
 
   for (const mod of modules) {
+    // A one-seat game has no opponents to set a strength for, and says so by
+    // declaring no such option rather than one that configures nothing.
+    if (mod.maxPlayers <= 1) {
+      expect((mod.options ?? []).some((o: { name: string }) => o.name === 'botSkill')).toBe(false);
+      continue;
+    }
     const opt = (mod.options ?? []).find((o: { name: string }) => o.name === 'botSkill');
     expect(opt, `${mod.id} does not offer botSkill`).toBeTruthy();
     const labels = opt.choices.map((c: { label: string }) => c.label);

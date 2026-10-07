@@ -95,7 +95,8 @@ test.describe('module runtime', () => {
     // Each is self-describing enough to render a picker and a new-match form.
     for (const m of modules) {
       expect(m.label).toBeTruthy();
-      expect(m.minPlayers).toBeGreaterThanOrEqual(2);
+      // One is a real table size: solitaire is played alone, against the deck.
+      expect(m.minPlayers).toBeGreaterThanOrEqual(1);
       expect(m.maxPlayers).toBeGreaterThanOrEqual(m.minPlayers);
     }
   });

@@ -192,6 +192,12 @@ type Group struct {
 	// which card says what a group is made of is a rule of the game; nil
 	// means the last card.
 	Face *int `json:"face,omitempty"`
+	// Hidden is how many cards lie face-down beneath Cards, never sent: a
+	// Klondike column is three unturned cards under a face-up run. It is the
+	// per-group counterpart of Zone.Count and works the same way — a secret
+	// stays secret because it is not sent, only counted. CardView.FaceDown is
+	// not reused for this because its documented meaning is "not a secret".
+	Hidden int `json:"hidden,omitempty"`
 }
 
 // Zone is one area of the board.
@@ -250,6 +256,11 @@ type Zone struct {
 	// shape, not a game, so every trick-taking game draws its tricks the same
 	// way without the shell learning any of their names.
 	Arrange string `json:"arrange,omitempty"`
+	// Fan, on a ZonePile, is how many of the top cards to show overlapped
+	// rather than folded down to one: Klondike's waste when it deals three at a
+	// time. Presentational — a client that ignores it shows the top card and
+	// loses nothing it needs to play.
+	Fan int `json:"fan,omitempty"`
 }
 
 // ArrangeBySeat lays a zone's cards out around the table, each toward the

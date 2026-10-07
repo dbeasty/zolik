@@ -403,7 +403,7 @@ func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchC
 		TurnOrder: []string{host.ID},
 		HostID:    host.ID,
 		JoinCode:  randomJoinCode(6),
-		Seed:      time.Now().UnixNano(),
+		Seed:      newSeed(),
 		CreatedAt: time.Now().UTC(),
 	}
 	created, err := m.repo.Insert(ctx, match)
