@@ -363,6 +363,16 @@ message carries a `repeatDeal` flag in its place. "Repeat" is per player
 (`models.Match.DealRepeat`): set for "Play this deal again", and for a sent deal only when the
 recipient had played the source game themselves.
 
+**Same-deal comparison.** `GET /matches/{id}/same-deal` lists every finished attempt at the
+deal, up to 20: the original game, its replays, and the games played from sent links. Each
+row has the player's name, whether they won, the module's standing, the seat facts (score and
+moves) and the repeat flag. Rows carry no match ids. The list is given only to a player who
+has finished the deal themselves, because until then the others' results are a hint about the
+cards. `Repository.FindDealtFrom` finds the tables: Mongo uses a sparse index on `dealFrom`,
+and kdb uses a scan, like every cross-match read on that backend. That is why the client asks
+for the list once from the finished banner, instead of it riding on every broadcast. The
+banner shows it only when there is somebody else to compare with.
+
 **Client.** A table card is liftable when an enabled offer's `source.submit` starts with it.
 A press sends the move when there is one destination and lights the targets when there are
 several. A drag carries the run through the screen's existing `moveDrag` and `endDrag`. A
@@ -371,7 +381,6 @@ card indices on a phone. Measured at 375 px in `e2e/tests/klondike.spec.ts`.
 
 **Not done yet:**
 - Replay chapters at each recycle.
-- Comparing results on the same deal. `dealFrom` is stored on matches and results, ready for it.
 - Recording solitaire stats facts.
 - A refused drop explaining itself. Klondike sends no disabled move offers, so a card let go
   on a wrong column just snaps back.

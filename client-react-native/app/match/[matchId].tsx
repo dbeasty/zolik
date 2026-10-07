@@ -74,6 +74,7 @@ import { factText, label, playerName } from '@/src/lib/labels';
 import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
+import { SameDeal } from '@/src/components/match/SameDeal';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -1573,6 +1574,10 @@ export default function MatchScreen() {
                 circle while the game is still warm. Online tables only —
                 the players at a table on a phone in the room are that
                 phone's guests, not accounts the online circle knows. */}
+            {/* Everybody else who played these cards, once this player has. */}
+            {state.status === 'completed' && state.canDealAgain && seatedHere && !offline ? (
+              <SameDeal client={client} matchId={String(matchId)} palette={skin.colors} />
+            ) : null}
             {state.status === 'completed' && !offline ? (
               <AddToCircle players={state.players} viewerId={viewerId} palette={skin.colors} />
             ) : null}

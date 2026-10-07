@@ -911,3 +911,20 @@ export type StoredTable = {
    *  was asked for it — see `listMyTables`' `turns`. */
   yourTurn?: boolean;
 };
+
+/**
+ * One finished attempt at a deal, for the same-deal comparison. Mirrors
+ * `server/internal/match/samedeal.go`'s `DealResult`: who, whether they won,
+ * and the module's own numbers for the seat — never which match it was.
+ */
+export type DealResult = {
+  name: string;
+  avatar?: string;
+  you?: boolean;
+  won: boolean;
+  score: number;
+  scoreLabelKey?: string;
+  facts?: Fact[];
+  repeat?: boolean;
+  finishedAt: string;
+};
