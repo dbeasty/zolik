@@ -1976,4 +1976,23 @@ export const it: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': "Tieni l'offerta: di' mám o passa",
   'err.MARIAS_YOU_BID': 'Stai offrendo: offri di più o passa',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Ogni giocatore riceve cinque carte coperte. Non ci sono carte comuni: la tua mano sono le cinque carte che hai.',
+  'holdem.rules.draw.streets': 'Si punta in due giri — uno sulle carte distribuite e uno dopo il cambio.',
+  'holdem.rules.draw.draw': 'Al cambio, ogni giocatore ancora in mano, a partire dalla sinistra del mazziere, scarta da una a {n} carte e ne riceve altrettante nuove — oppure si dichiara servito e tiene tutte e cinque. Cambiano anche i giocatori all-in.',
+  'holdem.rules.draw.public': 'Tutti sanno quante carte ha cambiato ciascun giocatore, ma mai quali.',
+  'holdem.offer.discard': 'Cambia carte',
+  'holdem.offer.stand': 'Resto servito',
+  'holdem.seat.drew': 'Ha cambiato',
+  'holdem.seat.stoodPat': 'Servito',
+  'holdem.street.predraw': 'Prima del cambio',
+  'holdem.street.draw': 'Il cambio',
+  'holdem.street.postdraw': 'Dopo il cambio',
+  'holdem.prompt.draw': 'Scegli fino a {n} carte da cambiare, oppure resta servito',
+  'holdem.remedy.discardOrStand': 'È il momento del cambio — scegli da una a {n} carte da cambiare, oppure resta servito.',
+  'err.DRAW_NOT_NOW': 'Puoi cambiare carte solo durante il cambio',
+  'err.DRAW_PENDING': 'Al tavolo si sta cambiando — prima cambia le carte o resta servito',
+  'err.DRAW_TOO_MANY': 'Puoi cambiare al massimo tre carte',
+  'err.DRAW_EMPTY': 'Scegli almeno una carta da cambiare, oppure resta servito',
+  // --- end Five-Card Draw ---
 };

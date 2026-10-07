@@ -1971,4 +1971,23 @@ export const pl: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Trzymasz odzywkę: powiedz mám albo pasuj',
   'err.MARIAS_YOU_BID': 'Licytujesz: podbij albo pasuj',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Każdy gracz dostaje pięć kart zakrytych. Nie ma kart wspólnych: twoja ręka to pięć kart, które trzymasz.',
+  'holdem.rules.draw.streets': 'Licytacja odbywa się w dwóch rundach — na rozdanych kartach i po wymianie.',
+  'holdem.rules.draw.draw': 'Podczas wymiany każdy gracz, który jest jeszcze w rozdaniu, zaczynając od lewej strony rozdającego, odrzuca od jednej do {n} kart i dostaje tyle samo nowych — albo zostaje przy swoich i zatrzymuje wszystkie pięć. Gracze all-in też wymieniają.',
+  'holdem.rules.draw.public': 'Wszyscy wiedzą, ile kart wymienił każdy gracz, ale nigdy których.',
+  'holdem.offer.discard': 'Wymień karty',
+  'holdem.offer.stand': 'Zostaję przy swoich',
+  'holdem.seat.drew': 'Wymienił',
+  'holdem.seat.stoodPat': 'Bez wymiany',
+  'holdem.street.predraw': 'Przed wymianą',
+  'holdem.street.draw': 'Wymiana',
+  'holdem.street.postdraw': 'Po wymianie',
+  'holdem.prompt.draw': 'Wybierz do {n} kart do wymiany albo zostań przy swoich',
+  'holdem.remedy.discardOrStand': 'Teraz wymiana — wybierz od jednej do {n} kart do wymiany albo zostań przy swoich.',
+  'err.DRAW_NOT_NOW': 'Karty można wymieniać tylko podczas wymiany',
+  'err.DRAW_PENDING': 'Przy stole trwa wymiana — najpierw wymień karty albo zostań przy swoich',
+  'err.DRAW_TOO_MANY': 'Możesz wymienić najwyżej trzy karty',
+  'err.DRAW_EMPTY': 'Wybierz co najmniej jedną kartę do wymiany albo zostań przy swoich',
+  // --- end Five-Card Draw ---
 };

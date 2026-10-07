@@ -1975,4 +1975,23 @@ export const ro: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Tu ții licitația: spune mám sau pas',
   'err.MARIAS_YOU_BID': 'Tu licitezi: licitează mai sus sau pas',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Fiecare jucător primește cinci cărți cu fața în jos. Nu există cărți comune: mâna ta sunt cele cinci cărți pe care le ții.',
+  'holdem.rules.draw.streets': 'Se pariază în două runde — una pe cărțile împărțite și una după schimb.',
+  'holdem.rules.draw.draw': 'La schimb, fiecare jucător încă în mână, începând din stânga dealerului, aruncă între una și {n} cărți și primește tot atâtea noi — sau rămâne servit și le păstrează pe toate cinci. Schimbă și jucătorii all-in.',
+  'holdem.rules.draw.public': 'Toată lumea află câte cărți a schimbat fiecare jucător, dar niciodată care.',
+  'holdem.offer.discard': 'Schimbă cărți',
+  'holdem.offer.stand': 'Păstrează-le pe toate',
+  'holdem.seat.drew': 'A schimbat',
+  'holdem.seat.stoodPat': 'Servit',
+  'holdem.street.predraw': 'Înainte de schimb',
+  'holdem.street.draw': 'Schimbul',
+  'holdem.street.postdraw': 'După schimb',
+  'holdem.prompt.draw': 'Alege până la {n} cărți de schimbat sau păstrează-le pe toate',
+  'holdem.remedy.discardOrStand': 'E rândul schimbului — alege între una și {n} cărți de schimbat sau păstrează-le pe toate.',
+  'err.DRAW_NOT_NOW': 'Poți schimba cărți doar la schimb',
+  'err.DRAW_PENDING': 'La masă se schimbă cărți — mai întâi schimbă cărți sau păstrează-le pe toate',
+  'err.DRAW_TOO_MANY': 'Poți schimba cel mult trei cărți',
+  'err.DRAW_EMPTY': 'Alege cel puțin o carte de schimbat sau păstrează-le pe toate',
+  // --- end Five-Card Draw ---
 };

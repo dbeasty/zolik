@@ -95,6 +95,11 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 	p := b.profileOf(botSeat.Skill)
 	rnd := seededRand(seedFor(s, seat))
 	defer releaseRand(rnd)
+	// Five-Card Draw is the same betting around a different hand, and the
+	// hand is the part this file's arithmetic is about (drawbot.go).
+	if s.rules().draw {
+		return drawAct(s, seat, offers, p, rnd)
+	}
 	if s.Street == streetPreflop {
 		return mn.action(preflop(s, seat, mn, p, rnd))
 	}
@@ -1153,6 +1158,10 @@ func streetIndex(street string) int {
 		return 3
 	case streetShowdown:
 		return 4
+	case streetDraw:
+		return 5
+	case streetPostdraw:
+		return 6
 	default:
 		return 0
 	}

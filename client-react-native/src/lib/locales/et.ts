@@ -1969,4 +1969,23 @@ export const et: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Sina hoiad pakkumist: ütle mám või pass',
   'err.MARIAS_YOU_BID': 'Sina pakud: paku kõrgemalt või pass',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Iga mängija saab viis kaarti pilt allapoole. Ühiskaarte pole: sinu käsi on need viis kaarti, mis sul on.',
+  'holdem.rules.draw.streets': 'Panustatakse kahes voorus — korra jagatud kaartidega ja korra pärast vahetust.',
+  'holdem.rules.draw.draw': 'Vahetuses viskab iga veel mängus olev mängija, alustades jagajast vasakult, ära ühe kuni {n} kaarti ja saab sama palju uusi — või jätab kõik viis alles. Ka all-in mängijad vahetavad.',
+  'holdem.rules.draw.public': 'Kõigile öeldakse, mitu kaarti iga mängija vahetas, aga mitte kunagi milliseid.',
+  'holdem.offer.discard': 'Vaheta kaarte',
+  'holdem.offer.stand': 'Jäta kõik',
+  'holdem.seat.drew': 'Vahetas',
+  'holdem.seat.stoodPat': 'Jättis kõik',
+  'holdem.street.predraw': 'Enne vahetust',
+  'holdem.street.draw': 'Vahetus',
+  'holdem.street.postdraw': 'Pärast vahetust',
+  'holdem.prompt.draw': 'Vali kuni {n} kaarti vahetamiseks või jäta kõik',
+  'holdem.remedy.discardOrStand': 'Praegu vahetatakse — vali üks kuni {n} kaarti vahetamiseks või jäta kõik.',
+  'err.DRAW_NOT_NOW': 'Kaarte saab vahetada ainult vahetuse ajal',
+  'err.DRAW_PENDING': 'Laud vahetab kaarte — vaheta enne kaarte või jäta kõik',
+  'err.DRAW_TOO_MANY': 'Saad vahetada kõige rohkem kolm kaarti',
+  'err.DRAW_EMPTY': 'Vali vähemalt üks kaart vahetamiseks või jäta kõik',
+  // --- end Five-Card Draw ---
 };

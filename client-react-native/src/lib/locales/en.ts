@@ -1986,4 +1986,23 @@ export const en: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'You hold the bid: say mám, or pass',
   'err.MARIAS_YOU_BID': 'You are bidding: bid higher, or pass',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Each player is dealt five cards face down. There is no board: your hand is the five cards you hold.',
+  'holdem.rules.draw.streets': 'Betting happens in two rounds — one on the cards as dealt, and one after the draw.',
+  'holdem.rules.draw.draw': 'In the draw, each player still in the hand, starting left of the dealer, throws away one to {n} cards and is dealt as many new ones — or stands pat and keeps all five. Players who are all in draw too.',
+  'holdem.rules.draw.public': 'Everyone is told how many cards each player drew, but never which ones.',
+  'holdem.offer.discard': 'Swap cards',
+  'holdem.offer.stand': 'Stand pat',
+  'holdem.seat.drew': 'Drew',
+  'holdem.seat.stoodPat': 'Stood pat',
+  'holdem.street.predraw': 'Before the draw',
+  'holdem.street.draw': 'The draw',
+  'holdem.street.postdraw': 'After the draw',
+  'holdem.prompt.draw': 'Pick up to {n} cards to swap, or stand pat',
+  'holdem.remedy.discardOrStand': 'It is the draw — pick one to {n} cards to swap, or stand pat.',
+  'err.DRAW_NOT_NOW': 'You can only swap cards during the draw',
+  'err.DRAW_PENDING': 'The table is drawing — swap cards or stand pat first',
+  'err.DRAW_TOO_MANY': 'You can swap at most three cards',
+  'err.DRAW_EMPTY': 'Pick at least one card to swap, or stand pat',
+  // --- end Five-Card Draw ---
 };

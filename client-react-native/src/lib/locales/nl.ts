@@ -1981,4 +1981,23 @@ export const nl: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Jij houdt het bod: zeg mám of pas',
   'err.MARIAS_YOU_BID': 'Jij biedt: bied hoger of pas',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Elke speler krijgt vijf kaarten gedekt. Er zijn geen gemeenschappelijke kaarten: je hand is de vijf kaarten die je vasthoudt.',
+  'holdem.rules.draw.streets': 'Er wordt in twee rondes ingezet — één op de gedeelde kaarten en één na het ruilen.',
+  'holdem.rules.draw.draw': 'Bij het ruilen gooit elke speler die nog in de hand zit, te beginnen links van de gever, één tot {n} kaarten weg en krijgt er evenveel nieuwe — of houdt alle vijf. Spelers die all-in zijn ruilen ook.',
+  'holdem.rules.draw.public': 'Iedereen hoort hoeveel kaarten elke speler ruilde, maar nooit welke.',
+  'holdem.offer.discard': 'Kaarten ruilen',
+  'holdem.offer.stand': 'Alles houden',
+  'holdem.seat.drew': 'Ruilde',
+  'holdem.seat.stoodPat': 'Niets geruild',
+  'holdem.street.predraw': 'Voor het ruilen',
+  'holdem.street.draw': 'Het ruilen',
+  'holdem.street.postdraw': 'Na het ruilen',
+  'holdem.prompt.draw': 'Kies tot {n} kaarten om te ruilen, of houd alles',
+  'holdem.remedy.discardOrStand': 'Er wordt geruild — kies één tot {n} kaarten om te ruilen, of houd alles.',
+  'err.DRAW_NOT_NOW': 'Je kunt alleen kaarten ruilen tijdens het ruilen',
+  'err.DRAW_PENDING': 'De tafel is aan het ruilen — ruil eerst kaarten of houd alles',
+  'err.DRAW_TOO_MANY': 'Je kunt hoogstens drie kaarten ruilen',
+  'err.DRAW_EMPTY': 'Kies minstens één kaart om te ruilen, of houd alles',
+  // --- end Five-Card Draw ---
 };

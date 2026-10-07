@@ -96,45 +96,59 @@ Hold'em, Five-Card Draw, Pot-Limit Omaha and Omaha Hi-Lo.
   `TestVariationAnswersToItsFormerIDs`, and a new `holdem` conformance case. The
   generic-shell e2e now expects no variation picker and a hand-count option.
 
-### P1 — Five-Card Draw
-- **Ruleset:** 5 hole cards, no board, one draw, at most 6 seats. Six players
-  hold 30 cards and draw at most 18, which fits a 52-card deck with no reshuffle
-  rule. The variation narrows `MaxPlayers` the way Samba does.
-- **Streets:** blinds, then betting, then the draw, then betting, then the
-  showdown. The draw is a new phase in which each seat in turn, from the left of
-  the button:
-  - discards 0-3 cards (a hand selection, `MinCards 1` / `MaxCards 3`), or 4
-    when keeping an ace (an option), or
-  - stands pat (its own offer, since a zero-card selection is not one).
-
-  Replacements come off the deck. **How many cards each seat drew is public**:
-  it goes in the seat label and in the narration.
-- **Evaluator:** the existing `Best` over 5 cards is already exact. The
-  showdown, pots, side pots and reveal code are unchanged.
-- **View:** the hand zone is the 5 cards; there is no board zone. During the
-  draw, each opponent's zone shows the "drew N" label. `MAX_BACKS = 4`
-  (`ZoneView.tsx:656`) must become 5, or opponents' hands show a count instead
-  of backs. Check at phone width.
-- **Rules:** literal-key facts for the deal, the draw, "stand pat", and the
-  4-card-with-an-ace option. A new refusal `ErrDrawTooMany` maps to the draw
-  rule.
-- **Bots:**
-  - Pre-draw strength is a small table over made-hand categories plus draws
-    (four-flush, open-ended straight draw).
-  - Draw choice follows the textbook: keep made hands, keep a pair and draw 3,
-    keep two pair and draw 1, keep a four-flush or open-ended straight draw and
-    draw 1, otherwise keep the high cards.
-  - After the draw, bet on made-hand strength adjusted by how many cards each
-    opponent drew.
-  - Easy and Medium are rules; Hard simulates draws from the unseen cards to
-    estimate equity (`score.go` already scores 5-card hands).
-  - There are no Chen or push-fold charts. Gate them off with `ruleset`.
+### P1 — Five-Card Draw (done on `claude/five-card-draw`)
+- **Ruleset (`holdem/ruleset.go`):**
+  - 5 hole cards, no board, one draw of up to 3, at most 6 seats. Six players
+    hold 30 cards and draw at most 18, which fits a 52-card deck with no
+    reshuffle rule. For the same reason there is no "four when keeping an ace"
+    option.
+  - The variation narrows `MaxPlayers` the way Samba does.
+  - Every rule difference reads `s.rules()`, derived from the stored variation,
+    never the variation ID.
+- **Streets:** `predraw`, then `draw`, then `postdraw`, then the showdown.
+  - The draw starts left of the button and visits every seat still in the hand
+    once. All-in seats draw too.
+  - The verbs are `discard` (1–3 cards, a composite hand selection) and `stand`.
+    Stand is listed first, so a bot or retry with no opinion stands pat.
+  - A bet during the draw is `DRAW_PENDING`, a discard outside it is
+    `DRAW_NOT_NOW`. The discard is bounded by `DRAW_TOO_MANY`, `DRAW_EMPTY`, and
+    the shared `CARD_NOT_IN_HAND`, which also catches a card named twice.
+- **What is public:** the count. Each seat carries `Drawn`/`Drew` and shows
+  "Drew N" or "Stood pat". The `drew` event carries the count only. `Discarded`
+  is kept on the seat for that seat's own bot and is never sent.
+- **Evaluator and showdown:** unchanged. Every `Best(hole++board)` now goes
+  through `s.handOf(seat)`.
+- **View:** there is no board zone. The header names Draw's street as its own
+  literal fact ("Before the draw" / "The draw" / "After the draw"), because the
+  key manifest only finds keys in a `LabelKey`.
+  - Correction to the earlier note: opponents' hands are not drawn as zones on
+    the match screen at all, so `MAX_BACKS` needed no change.
+- **Rules:** `holdem.rules.draw.{deal,streets,draw,public}`, stated only at a
+  Draw table, with the refusals mapped to them.
+- **Bots (`holdem/drawbot.go`):**
+  - **Draws:** the textbook — keep anything made, draw 1 to a four-flush or an
+    open-ended straight, else keep the pair or the two highest. Easy keeps a
+    kicker with a pair.
+  - **Bets:** equity by rollout over the unseen cards (own hand and discards
+    excluded), with this seat's and each opponent's draw played out.
+  - **Hard** also reads the table. Half of each opponent's range is dealt
+    consistent with its draw count and, after the draw, with a bet: a bet
+    claims at least two pair.
+  - **Measured (300 heads-up matches):** Hard beats Medium by +5.6 big blinds
+    a match. On the fixed-seed ladder test, Medium beats Easy, and all three
+    beat a calling station.
+  - **Cost:** at most about 5 ms per Hard decision at six seats.
+  - The trained Hold'em network refuses Draw positions (`errNotHoldem`), so
+    every AI seat falls back to this rule bot. The style opponents (maniac,
+    rock, …) do the same through `holdemOnly`.
 - **Tests:**
-  - a conformance case
-  - `TestBotDoesNotPeek`, including the deck order after the draw
-  - the draw count is public and the drawn cards are private
-  - the draw refusals
-  - Hold'em goldens identical
+  - `draw_test.go`: deal, turn order, discard, refusals, all-in draws, offers,
+    the textbook, bot legality at 2–6 seats, no peeking at any street or skill,
+    and rules text.
+  - A `holdem/draw` row in `allmodules_test` and `replay_test`.
+  - `e2e/tests/draw.spec.ts`: a person swaps two cards in the browser.
+  - A Five-Card Draw row in the one-shell e2e.
+  - Hold'em goldens unchanged.
 
 ### O1 — Pot-Limit Omaha (PLO) as a variation
 **Engine**
@@ -195,8 +209,7 @@ charts, 2-card equity and outs.
   for modules with no model.
 
 **Client:** no code change. The raise slider reads min and max from the offer.
-Check that `MAX_BACKS = 4` (`ZoneView.tsx:656`) still draws opponents' four
-backs, and look at the 9-seat layout on phone width.
+Look at the 9-seat layout on phone width.
 
 **Tests:** extend `cards_test`, `score_test` and `engine_test` with
 "must use two" cases (the board's four-flush with one heart in hand does not
@@ -215,8 +228,7 @@ must not change: that is the regression guard for the ruleset refactor.
   already shows the result rows, so check how it looks rather than assuming.
 - Bots: low draws in the strength table and in equity, which means scoring
   scoops and halves.
-- Optional later: 5-card PLO as a `holeCards: 5` variation. `MAX_BACKS` must
-  rise to 5.
+- Optional later: 5-card PLO as a `holeCards: 5` variation.
 
 ---
 
@@ -432,7 +444,7 @@ differs slightly.
 | Slice | Main risk | Rough size |
 |---|---|---|
 | P0 Poker rename | old match IDs and rematch | small (done) |
-| P1 Five-Card Draw | the draw phase, and a new bot without Hold'em's charts | medium |
+| P1 Five-Card Draw | the draw phase, and a new bot without Hold'em's charts | medium (done) |
 | O1 PLO | evaluator and bot cost; the ruleset refactor must leave Hold'em goldens identical | large: about Blackjack-sized, plus bot work |
 | O2 Hi-Lo | splitting pots per side-pot level, and two-half result views | medium |
 | T0 trick groundwork | 52-card, 4-seat solve cost | small to medium |

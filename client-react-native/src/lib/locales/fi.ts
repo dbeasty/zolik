@@ -1973,4 +1973,23 @@ export const fi: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Sinä pidät tarjouksen: sano mám tai passaa',
   'err.MARIAS_YOU_BID': 'Sinä tarjoat: tarjoa korkeammalle tai passaa',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Jokainen pelaaja saa viisi korttia kuvapuoli alaspäin. Yhteisiä kortteja ei ole: kätesi on ne viisi korttia, jotka pidät.',
+  'holdem.rules.draw.streets': 'Panostetaan kahdella kierroksella — kerran jaetuilla korteilla ja kerran vaihdon jälkeen.',
+  'holdem.rules.draw.draw': 'Vaihdossa jokainen vielä kädessä mukana oleva pelaaja jakajan vasemmalta alkaen heittää pois 1–{n} korttia ja saa yhtä monta uutta — tai pitää kaikki viisi. Myös all-in-pelaajat vaihtavat.',
+  'holdem.rules.draw.public': 'Kaikille kerrotaan, montako korttia kukin vaihtoi, mutta ei koskaan mitkä.',
+  'holdem.offer.discard': 'Vaihda kortteja',
+  'holdem.offer.stand': 'Pidä kaikki',
+  'holdem.seat.drew': 'Vaihtoi',
+  'holdem.seat.stoodPat': 'Piti kaikki',
+  'holdem.street.predraw': 'Ennen vaihtoa',
+  'holdem.street.draw': 'Vaihto',
+  'holdem.street.postdraw': 'Vaihdon jälkeen',
+  'holdem.prompt.draw': 'Valitse enintään {n} korttia vaihdettavaksi tai pidä kaikki',
+  'holdem.remedy.discardOrStand': 'Nyt vaihdetaan — valitse 1–{n} korttia vaihdettavaksi tai pidä kaikki.',
+  'err.DRAW_NOT_NOW': 'Kortteja voi vaihtaa vain vaihdossa',
+  'err.DRAW_PENDING': 'Pöydässä vaihdetaan — vaihda ensin kortteja tai pidä kaikki',
+  'err.DRAW_TOO_MANY': 'Voit vaihtaa enintään kolme korttia',
+  'err.DRAW_EMPTY': 'Valitse vähintään yksi kortti vaihdettavaksi tai pidä kaikki',
+  // --- end Five-Card Draw ---
 };

@@ -101,6 +101,18 @@ func allModules() []hosted {
 			finishes: true,
 		},
 		{
+			// Five-Card Draw: the same module, a different hand, and the one
+			// poker table with a turn that takes cards. The driver stands
+			// pat — the discard is composite and has no single submission.
+			name:     "holdem/draw",
+			rounds:   true,
+			mod:      holdem.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: holdem.VarDraw, Options: module.Options{holdem.OptHandLimit: 10}},
+			prefer:   []string{"call", "check", "stand", "raise", "fold"},
+			finishes: true,
+		},
+		{
 			name:     "ginrummy",
 			rounds:   true,
 			mod:      ginrummy.New(),
