@@ -70,6 +70,13 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, offers []module.
 			}
 			o.RemedyOfferID = enabled(OfferAccept, OfferChallenge)
 
+		case ErrMustAnswerDraw:
+			o.Remedy = &module.Fact{
+				LabelKey: "lastcard.remedy.stackOrTake",
+				Params:   map[string]any{"n": s.PendingDraw},
+			}
+			o.RemedyOfferID = enabled(OfferDraw)
+
 		case ErrAlreadyCalled:
 			o.Remedy = &module.Fact{LabelKey: "lastcard.remedy.nowPlay"}
 			o.RemedyOfferID = enabled(OfferPlay, OfferDraw)

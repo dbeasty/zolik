@@ -109,6 +109,21 @@ type GameState struct {
 	// acts.
 	Reveal *Reveal `json:"reveal,omitempty"`
 
+	// --- house rules ----------------------------------------------------------
+
+	// Stacking is how draw cards may be passed on: stackOff, stackTwos (a
+	// Draw Two on a Draw Two) or stackAny (any draw card on a Draw Two, a Wild
+	// Draw Four on a Wild Draw Four too). Resolved once at NewMatch.
+	Stacking int `json:"stacking,omitempty"`
+	// PendingDraw is the stack waiting on the player to move: they add to it
+	// or take it all. Only ever non-zero where Stacking is on.
+	PendingDraw int `json:"pendingDraw,omitempty"`
+	// DrawUntil keeps drawing until a playable card turns up.
+	DrawUntil bool `json:"drawUntil,omitempty"`
+	// SevenZero makes a 7 swap hands with the shortest hand and a 0 pass
+	// every hand on.
+	SevenZero bool `json:"sevenZero,omitempty"`
+
 	// --- the match across deals ----------------------------------------------
 
 	// TargetScore ends the match when a player's total reaches it. Zero is
@@ -179,6 +194,7 @@ const (
 	ErrNothingToCatch   = "LASTCARD_NOTHING_TO_CATCH"
 	ErrCallNotNow       = "LASTCARD_CALL_NOT_NOW"
 	ErrAlreadyCalled    = "LASTCARD_ALREADY_CALLED"
+	ErrMustAnswerDraw   = "LASTCARD_STACK_OR_TAKE"
 	ErrUnknownAction    = "UNKNOWN_ACTION"
 	ErrTooFewPlayers    = "TOO_FEW_PLAYERS"
 )
@@ -194,6 +210,31 @@ const (
 	VerbChallenge = "challenge" // dispute a Wild Draw Four
 	VerbAccept    = "accept"    // take a Wild Draw Four's four cards
 )
+
+// Stacking settings.
+const (
+	stackOff  = 0
+	stackTwos = 1
+	stackAny  = 2
+)
+
+// stackable is whether card may answer the draw stack waiting on the pile:
+// a Draw Two on a Draw Two, and where any draw card stacks, a Wild Draw Four
+// on either. Never a Draw Two on a Wild Draw Four — four is not answered by
+// two.
+func (s *GameState) stackable(card string) bool {
+	top := s.top()
+	switch s.Stacking {
+	case stackTwos:
+		return faceOf(card) == faceDrawTwo && !isWild(card) && faceOf(top) == faceDrawTwo
+	case stackAny:
+		if card == cardWildDrawFour {
+			return true
+		}
+		return faceOf(card) == faceDrawTwo && !isWild(card) && faceOf(top) == faceDrawTwo && !isWild(top)
+	}
+	return false
+}
 
 // Card values at the end of a deal: what the winner scores for each card
 // left in another hand.

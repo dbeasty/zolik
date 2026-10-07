@@ -20,6 +20,11 @@ const (
 	OptLastCardCall = "lastCardCall"
 	// OptDrawFourChallenge is whether a Wild Draw Four may be challenged.
 	OptDrawFourChallenge = "drawFourChallenge"
+
+	// House rules, every one off by default.
+	OptStacking          = "stacking"
+	OptDrawUntilPlayable = "drawUntilPlayable"
+	OptSevenZero         = "sevenZero"
 )
 
 // Descriptor is Last Card's self-description.
@@ -47,6 +52,9 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptTargetScore:               defaultTargetScore,
 					OptLastCardCall:              module.OptOn,
 					OptDrawFourChallenge:         module.OptOn,
+					OptStacking:                  stackOff,
+					OptDrawUntilPlayable:         module.OptOff,
+					OptSevenZero:                 module.OptOff,
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
@@ -85,6 +93,37 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: module.OptOff, Label: "Off"},
 				},
 			},
+			{
+				Name:  OptStacking,
+				Type:  module.OptionEnumInt,
+				Label: "Stacking draw cards",
+				Help:  "Answer a draw card with one of your own and pass the whole stack on.",
+				Choices: []module.OptionChoice{
+					{Value: stackOff, Label: "Off"},
+					{Value: stackTwos, Label: "Draw Two on Draw Two"},
+					{Value: stackAny, Label: "Any draw card"},
+				},
+			},
+			{
+				Name:  OptDrawUntilPlayable,
+				Type:  module.OptionEnumInt,
+				Label: "Draw until you can play",
+				Help:  "Keep drawing until a card you can play turns up.",
+				Choices: []module.OptionChoice{
+					{Value: module.OptOff, Label: "Off"},
+					{Value: module.OptOn, Label: "On"},
+				},
+			},
+			{
+				Name:  OptSevenZero,
+				Type:  module.OptionEnumInt,
+				Label: "Sevens and zeros",
+				Help:  "A 7 swaps your hand with the shortest one; a 0 passes every hand along.",
+				Choices: []module.OptionChoice{
+					{Value: module.OptOff, Label: "Off"},
+					{Value: module.OptOn, Label: "On"},
+				},
+			},
 			module.PauseOption(),
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
@@ -114,6 +153,9 @@ func configOf(s *GameState) module.MatchConfig {
 		OptTargetScore:       s.TargetScore,
 		OptLastCardCall:      module.BoolOpt(s.CallOn),
 		OptDrawFourChallenge: module.BoolOpt(s.ChallengeOn),
+		OptStacking:          s.Stacking,
+		OptDrawUntilPlayable: module.BoolOpt(s.DrawUntil),
+		OptSevenZero:         module.BoolOpt(s.SevenZero),
 	}}
 }
 
@@ -228,6 +270,12 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			vm.Prompts = append(vm.Prompts, module.Fact{
 				LabelKey: "lastcard.prompt.playDrawnOrKeep",
 				Params:   map[string]any{"card": s.DrawnCard},
+			})
+		}
+		if s.PendingDraw > 0 && s.DrawFour == nil {
+			vm.Prompts = append(vm.Prompts, module.Fact{
+				LabelKey: "lastcard.prompt.stack",
+				Params:   map[string]any{"n": s.PendingDraw},
 			})
 		}
 		if s.DrawFour != nil && s.DrawFour.Victim == viewerID {

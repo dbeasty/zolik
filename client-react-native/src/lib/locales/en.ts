@@ -2081,5 +2081,29 @@ export const en: Record<string, string> = {
   'choice.drawFourChallenge.1': 'On',
   'choice.drawFourChallenge.0': 'Off',
   'choice.lastcard.targetScore.0': 'One deal',
+  // Phase 3: house rules.
+  'lastcard.rules.turn.drawUntil':
+    "If you don't play, draw until a card you can play turns up — then play it or keep it. Either way your turn then ends.",
+  'lastcard.rules.section.house': 'House rules',
+  'lastcard.rules.stacking.twos':
+    "Stacking: answer a Draw Two with a Draw Two of your own and pass the whole stack on. Whoever can't, takes it all and misses their turn.",
+  'lastcard.rules.stacking.any':
+    "Stacking: answer a draw card with one of your own — a Draw Two on a Draw Two, a Wild Draw Four on either — and pass the whole stack on. Whoever can't, takes it all and misses their turn.",
+  'lastcard.rules.sevens': 'Play a 7 and you swap hands with whoever holds the fewest cards.',
+  'lastcard.rules.zeros': 'Play a 0 and every hand passes to the next player in the direction of play.',
+  'lastcard.remedy.stackOrTake': 'Answer with a draw card of your own, or take the {n} cards.',
+  'lastcard.offer.takeStack': 'Take them',
+  'lastcard.prompt.stack': '{n} cards are coming your way — stack a draw card on them, or take them.',
+  'err.LASTCARD_STACK_OR_TAKE': 'Only a draw card can answer the stack',
+  'option.stacking': 'Stacking draw cards',
+  'choice.stacking.0': 'Off',
+  'choice.stacking.1': 'Draw Two on Draw Two',
+  'choice.stacking.2': 'Any draw card',
+  'option.drawUntilPlayable': 'Draw until you can play',
+  'choice.drawUntilPlayable.0': 'Off',
+  'choice.drawUntilPlayable.1': 'On',
+  'option.sevenZero': 'Sevens and zeros',
+  'choice.sevenZero.0': 'Off',
+  'choice.sevenZero.1': 'On',
   // --- end Last Card ---
 };

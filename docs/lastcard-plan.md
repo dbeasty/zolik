@@ -148,6 +148,11 @@ game is stable.
 
 ### 2.4 House-rule options (v3)
 
+**As built:** stacking (off / Draw Two on Draw Two / any draw card), draw
+until playable, and sevens-and-zeros — where a 7 swaps with the shortest
+hand automatically, since an offer cannot yet name another seat. The full
+rules as built are in [lastcard-rules.md](lastcard-rules.md).
+
 Per house-rules-as-options, every option defaults to the standard rule:
 
 - `stacking`: `off` | `drawTwoOnDrawTwo` | `anyDraw`. A Draw card may be passed

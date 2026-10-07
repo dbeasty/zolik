@@ -13,7 +13,11 @@ import (
 // which colour a wild names. Prší's bot taught the shape of the answer: the
 // cards that do something to somebody are worth most held until the player
 // they land on is nearly out, and the wild is the one card that is never dead.
-type bot struct{}
+type bot struct {
+	// fixed plays one profile whatever skill the seat asks for — a bench
+	// style (learn.go), never a shipped setting.
+	fixed *profile
+}
 
 var _ module.Bot = bot{}
 
@@ -29,6 +33,9 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 		return module.ChooseAction(offers, nil)
 	}
 	p := profileFor(seat.Skill)
+	if b.fixed != nil {
+		p = *b.fixed
+	}
 
 	// A Wild Draw Four waiting on this seat comes before anything else.
 	if o := findOffer(offers, OfferChallenge); o != nil && o.Enabled {
@@ -66,7 +73,8 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 // Only a profile that bluffs keeps one, and only when the next player is
 // close enough to out that four cards is worth the risk of a challenge.
 func (b bot) honest(s *GameState, playerID string, p profile, playable []string) []string {
-	if !s.holdsColour(s.Hands[playerID]) {
+	// Stacked on a draw card a Wild Draw Four is an answer, never a bluff.
+	if s.PendingDraw > 0 || !s.holdsColour(s.Hands[playerID]) {
 		return playable
 	}
 	if p.bluffs && nextHandSize(s, playerID) <= 2 {
@@ -121,6 +129,10 @@ type profile struct {
 	keepsTheWild bool
 	// attackFirst plays a Skip, Reverse or Draw Two ahead of a plain card.
 	attackFirst bool
+
+	// swapsDown plays a 7 first, where sevens swap hands, when it would trade
+	// for a hand at least two cards shorter.
+	swapsDown bool
 
 	// sometimesForgets leaves "Last card!" unsaid one time in three — a
 	// beginner's slip, and a chance for the table to catch them.
@@ -177,6 +189,9 @@ var profiles = map[module.Skill]profile{
 		// near certain.
 		bluffs:      true,
 		challengeAt: 8,
+		// Where sevens swap hands: 36.1% against three-seat Hard tables
+		// without it (6 000 games, par 33.3%).
+		swapsDown: true,
 	},
 }
 
@@ -195,6 +210,8 @@ type candidate struct {
 	wild int
 	// attack is a Skip, Reverse or Draw Two.
 	attack bool
+	// swap is a 7 that would trade this hand for a much shorter one.
+	swap bool
 }
 
 // choose picks which of the legal plays to make.
@@ -202,9 +219,21 @@ func (b bot) choose(s *GameState, playerID string, p profile, playable []string)
 	if len(s.Hands[playerID]) == 1 || len(playable) == 1 {
 		return playable[0]
 	}
+	shortest := 1 << 30
+	if s.SevenZero {
+		for _, q := range s.TurnOrder {
+			if q != playerID && len(s.Hands[q]) < shortest {
+				shortest = len(s.Hands[q])
+			}
+		}
+	}
 	cands := make([]candidate, 0, len(playable))
 	for _, c := range playable {
 		cd := candidate{card: c, attack: isAttack(c)}
+		// After playing the 7 this hand is one card shorter; the trade is
+		// worth making when the hand it gets back is shorter still.
+		cd.swap = p.swapsDown && s.SevenZero && faceOf(c) == "7" && !isWild(c) &&
+			shortest <= len(s.Hands[playerID])-3
 		switch c {
 		case cardWild:
 			cd.wild = 1
@@ -219,6 +248,9 @@ func (b bot) choose(s *GameState, playerID string, p profile, playable []string)
 
 // betterPlay orders the legal plays, best first.
 func betterPlay(x, y candidate, p profile) bool {
+	if x.swap != y.swap {
+		return x.swap
+	}
 	if p.wildsFirst && x.wild != y.wild {
 		return x.wild > y.wild
 	}

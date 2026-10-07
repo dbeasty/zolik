@@ -26,7 +26,9 @@ func refusalRules(code string) []string {
 	case ErrNotYourTurn, ErrCardDoesNotMatch:
 		return []string{"lastcard.rules.turn.match"}
 	case ErrOnlyDrawnCard, ErrAlreadyDrew, ErrNothingToKeep:
-		return []string{"lastcard.rules.turn.draw"}
+		return []string{"lastcard.rules.turn.draw", "lastcard.rules.turn.drawUntil"}
+	case ErrMustAnswerDraw:
+		return []string{"lastcard.rules.stacking.twos", "lastcard.rules.stacking.any"}
 	case ErrDrawFourHeld:
 		return []string{"lastcard.rules.wildDrawFour"}
 	case ErrColourRequired, ErrUnknownColour:

@@ -77,6 +77,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 
 	// --- draw ----------------------------------------------------------------
 	draw := module.ActionOffer{ID: OfferDraw, Verb: VerbDraw}
+	if s.PendingDraw > 0 && s.Current == playerID && s.DrawFour == nil {
+		// The same verb, a different gesture: not one card, the whole stack.
+		draw.LabelKey = "lastcard.offer.takeStack"
+	}
 	draw.Enabled, draw.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbDraw})
 	draw.Source = &module.Selector{Zone: module.FromDeck, ZoneID: drawZoneID}
 	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}

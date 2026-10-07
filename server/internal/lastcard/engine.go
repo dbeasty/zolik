@@ -56,6 +56,9 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		CallOn:      cfg.Opt(OptLastCardCall, module.OptOn) == module.OptOn,
 		ChallengeOn: cfg.Opt(OptDrawFourChallenge, module.OptOn) == module.OptOn,
 		Pause:       cfg.PauseBetweenRounds(true),
+		Stacking:    cfg.Opt(OptStacking, stackOff),
+		DrawUntil:   cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn,
+		SevenZero:   cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn,
 		Scores:      map[string]int{},
 	}
 	for _, p := range players {
@@ -81,7 +84,7 @@ func (s *GameState) deal() {
 	s.Direction = 1
 	s.DeclaredColour, s.DrawnCard, s.Called, s.Unannounced = "", "", "", ""
 	s.DrawFour, s.Reveal = nil, nil
-	s.BlankDraws, s.Reshuffles = 0, 0
+	s.BlankDraws, s.Reshuffles, s.PendingDraw = 0, 0, 0
 
 	for i := 0; i < handSize; i++ {
 		for _, p := range s.TurnOrder {
@@ -172,7 +175,10 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		s.Unannounced = ""
 		events, err = s.applyAccept(playerID)
 	case VerbPlay, VerbDraw, VerbPass:
-		if s.DrawFour != nil {
+		// A Wild Draw Four waiting on an answer takes a challenge, an
+		// acceptance — or, where any draw card stacks, another Wild Draw
+		// Four on top.
+		if s.DrawFour != nil && !(a.Verb == VerbPlay && s.Stacking == stackAny) {
 			return nil, nil, module.Error{Code: ErrAnswerDrawFour}
 		}
 		// Anything but a catch closes the window on a player who went to one
@@ -216,15 +222,28 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 	if s.DrawnCard != "" && card != s.DrawnCard {
 		return nil, module.Error{Code: ErrOnlyDrawnCard}
 	}
-	if !s.matches(card) {
-		return nil, module.Error{Code: ErrCardDoesNotMatch}
-	}
-	// Without the challenge, holding the colour simply forbids the card.
-	// With it, the card may go down anyway — and that is the bluff a
-	// challenge exists to test.
-	bluff := card == cardWildDrawFour && s.holdsColour(hand)
-	if bluff && !s.ChallengeOn {
-		return nil, module.Error{Code: ErrDrawFourHeld}
+	// A stack waiting on this player is answered by a draw card of their
+	// own, or taken; nothing else may go down on it.
+	stacked := s.PendingDraw > 0
+	bluff := false
+	if stacked {
+		if !s.stackable(card) {
+			if s.DrawFour != nil {
+				return nil, module.Error{Code: ErrAnswerDrawFour}
+			}
+			return nil, module.Error{Code: ErrMustAnswerDraw}
+		}
+	} else {
+		if !s.matches(card) {
+			return nil, module.Error{Code: ErrCardDoesNotMatch}
+		}
+		// Without the challenge, holding the colour simply forbids the card.
+		// With it, the card may go down anyway — and that is the bluff a
+		// challenge exists to test.
+		bluff = card == cardWildDrawFour && s.holdsColour(hand)
+		if bluff && !s.ChallengeOn {
+			return nil, module.Error{Code: ErrDrawFourHeld}
+		}
 	}
 
 	declared := ""
@@ -250,8 +269,26 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 		"playerId": playerID, "card": card, "declaredColour": declared,
 	}}}
 
-	left := len(s.Hands[playerID])
-	if left == 1 && s.CallOn {
+	next := s.nextPlayer(playerID)
+	if len(s.Hands[playerID]) == 0 {
+		// The last card still does what it says: a Draw card that goes out
+		// makes the next player draw — the whole stack, where there is one —
+		// which a points game counts.
+		if n := drawCount(card) + s.PendingDraw; n > 0 {
+			s.PendingDraw = 0
+			if got := s.drawInto(next, n); got > 0 {
+				events = append(events, drawnEvent(next, got))
+			}
+		}
+		return append(events, s.endDeal(playerID)...), nil
+	}
+
+	// Sevens and zeros move hands — before the call is judged, because what
+	// matters is the hand the player is left holding.
+	if s.SevenZero {
+		events = append(events, s.sevenZero(playerID, card)...)
+	}
+	if len(s.Hands[playerID]) == 1 && s.CallOn {
 		if s.Called == playerID {
 			events = append(events, module.Event{Type: "last_card", Data: map[string]any{"playerId": playerID}})
 		} else {
@@ -260,16 +297,18 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 	}
 	s.Called = ""
 
-	next := s.nextPlayer(playerID)
-	if left == 0 {
-		// The last card still does what it says: a Draw card that goes out
-		// makes the next player draw, which a points game counts.
-		if n := drawCount(card); n > 0 {
-			if got := s.drawInto(next, n); got > 0 {
-				events = append(events, drawnEvent(next, got))
-			}
+	if s.Stacking != stackOff && drawCount(card) > 0 {
+		// The draw goes on the stack and the next player answers it. A Wild
+		// Draw Four that starts a stack can still be challenged; one stacked
+		// on another is an answer, not a bluff.
+		s.PendingDraw += drawCount(card)
+		s.DrawFour, s.Reveal = nil, nil
+		if card == cardWildDrawFour && s.ChallengeOn && !stacked {
+			s.DrawFour = &DrawFourPending{Player: playerID, Victim: next, Bluff: bluff}
+			s.Reveal = &Reveal{Owner: playerID, Cards: before, Bluff: bluff}
 		}
-		return append(events, s.endDeal(playerID)...), nil
+		s.passTurn(next)
+		return events, nil
 	}
 
 	switch {
@@ -327,6 +366,17 @@ func (s *GameState) direction() int {
 func (s *GameState) applyDraw(playerID string) ([]module.Event, error) {
 	if s.DrawnCard != "" {
 		return nil, module.Error{Code: ErrAlreadyDrew}
+	}
+	if s.PendingDraw > 0 {
+		// Taking the stack: every card on it, and the turn.
+		got := s.drawInto(playerID, s.PendingDraw)
+		s.PendingDraw = 0
+		s.DrawFour, s.Reveal = nil, nil
+		s.passTurn(s.nextPlayer(playerID))
+		return []module.Event{drawnEvent(playerID, got), skippedEvent(playerID)}, nil
+	}
+	if s.DrawUntil {
+		return s.drawUntilPlayable(playerID)
 	}
 	card, ok := s.drawOne()
 	if !ok {
@@ -410,6 +460,8 @@ func (s *GameState) applyChallenge(playerID string) ([]module.Event, error) {
 	if s.Reveal != nil {
 		s.Reveal.Viewer = playerID
 	}
+	owed := s.owed(4)
+	s.PendingDraw = 0
 	if d.Bluff {
 		got := s.drawInto(d.Player, 4)
 		return []module.Event{
@@ -417,7 +469,7 @@ func (s *GameState) applyChallenge(playerID string) ([]module.Event, error) {
 			drawnEvent(d.Player, got),
 		}, nil
 	}
-	got := s.drawInto(playerID, 6)
+	got := s.drawInto(playerID, owed+2)
 	s.passTurn(s.nextPlayer(playerID))
 	return []module.Event{
 		{Type: "challenge_lost", Data: map[string]any{"playerId": playerID, "against": d.Player}},
@@ -434,7 +486,8 @@ func (s *GameState) applyAccept(playerID string) ([]module.Event, error) {
 	}
 	s.DrawFour = nil
 	s.Reveal = nil
-	got := s.drawInto(playerID, 4)
+	got := s.drawInto(playerID, s.owed(4))
+	s.PendingDraw = 0
 	s.passTurn(s.nextPlayer(playerID))
 	return []module.Event{drawnEvent(playerID, got), skippedEvent(playerID)}, nil
 }
@@ -469,6 +522,7 @@ func (s *GameState) endDeal(winner string) []module.Event {
 	}
 	s.Deals = append(s.Deals, res)
 	s.DrawFour, s.Unannounced, s.Called, s.DrawnCard = nil, "", "", ""
+	s.PendingDraw = 0
 
 	events := []module.Event{{Type: "deal_ended", Data: map[string]any{
 		"deal": res.Number, "winnerId": winner, "points": res.Points,
@@ -555,4 +609,80 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 		return s.Status == "completed", nil, nil
 	}
 	return true, []string{s.WinnerID}, nil
+}
+
+// owed is what a Wild Draw Four costs its victim: the stack it sits on where
+// stacking is played, otherwise the card's own count.
+func (s *GameState) owed(dflt int) int {
+	if s.PendingDraw > 0 {
+		return s.PendingDraw
+	}
+	return dflt
+}
+
+// drawUntilPlayable draws until a card that can be played turns up, which is
+// then the player's to play or keep. If the pack runs out first the turn
+// passes with whatever was drawn.
+func (s *GameState) drawUntilPlayable(playerID string) ([]module.Event, error) {
+	got := 0
+	for {
+		card, ok := s.drawOne()
+		if !ok {
+			break
+		}
+		got++
+		s.Hands[playerID] = append(s.Hands[playerID], card)
+		if s.playableDrawn(playerID, card) {
+			s.BlankDraws = 0
+			s.DrawnCard = card
+			return []module.Event{drawnEvent(playerID, got)}, nil
+		}
+	}
+	events := []module.Event{drawnEvent(playerID, got)}
+	if got == 0 {
+		s.BlankDraws++
+		if s.BlankDraws >= len(s.TurnOrder) {
+			return append(events, s.endDeal(s.fewestCards())...), nil
+		}
+	} else {
+		s.BlankDraws = 0
+	}
+	s.passTurn(s.nextPlayer(playerID))
+	return events, nil
+}
+
+// sevenZero applies the house rule's two cards. A 7 swaps the player's hand
+// with the shortest other hand, the nearest in the direction of play taking a
+// tie — the swap a player would choose, made for them, so the rule needs no
+// way to name another seat. A 0 passes every hand to the next player in the
+// direction of play.
+func (s *GameState) sevenZero(playerID, card string) []module.Event {
+	switch faceOf(card) {
+	case "7":
+		if isWild(card) {
+			return nil
+		}
+		target := ""
+		for i, p := 1, s.nextPlayer(playerID); i < len(s.TurnOrder); i, p = i+1, s.nextPlayer(p) {
+			if target == "" || len(s.Hands[p]) < len(s.Hands[target]) {
+				target = p
+			}
+		}
+		if target == "" {
+			return nil
+		}
+		s.Hands[playerID], s.Hands[target] = s.Hands[target], s.Hands[playerID]
+		return []module.Event{{Type: "hands_swapped", Data: map[string]any{"playerId": playerID, "with": target}}}
+	case "0":
+		if isWild(card) {
+			return nil
+		}
+		moved := map[string][]string{}
+		for _, p := range s.TurnOrder {
+			moved[s.nextPlayer(p)] = s.Hands[p]
+		}
+		s.Hands = moved
+		return []module.Event{{Type: "hands_passed", Data: map[string]any{"playerId": playerID}}}
+	}
+	return nil
 }

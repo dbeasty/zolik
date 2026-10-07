@@ -12,6 +12,9 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	target := cfg.Opt(OptTargetScore, defaultTargetScore)
 	call := cfg.Opt(OptLastCardCall, module.OptOn) == module.OptOn
 	challenge := cfg.Opt(OptDrawFourChallenge, module.OptOn) == module.OptOn
+	stacking := cfg.Opt(OptStacking, stackOff)
+	drawUntil := cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn
+	sevenZero := cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn
 
 	goal := module.Fact{LabelKey: "lastcard.rules.goal"}
 	end := module.Fact{LabelKey: "lastcard.rules.end"}
@@ -24,6 +27,11 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		drawFour = module.Fact{LabelKey: "lastcard.rules.wildDrawFourBluff"}
 	}
 
+	turnDraw := module.Fact{LabelKey: "lastcard.rules.turn.draw"}
+	if drawUntil {
+		turnDraw = module.Fact{LabelKey: "lastcard.rules.turn.drawUntil"}
+	}
+
 	out := []module.RuleSection{
 		module.Section("lastcard.rules.section.goal", goal),
 		module.Section("lastcard.rules.section.setup",
@@ -32,7 +40,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		),
 		module.Section("lastcard.rules.section.turn",
 			module.Fact{LabelKey: "lastcard.rules.turn.match"},
-			module.Fact{LabelKey: "lastcard.rules.turn.draw"},
+			turnDraw,
 		),
 		module.Section("lastcard.rules.section.special",
 			module.Fact{LabelKey: "lastcard.rules.skip"},
@@ -41,6 +49,23 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "lastcard.rules.wild"},
 			drawFour,
 		),
+	}
+	// House rules, each stated only at a table that plays it.
+	var house []module.Fact
+	switch stacking {
+	case stackTwos:
+		house = append(house, module.Fact{LabelKey: "lastcard.rules.stacking.twos"})
+	case stackAny:
+		house = append(house, module.Fact{LabelKey: "lastcard.rules.stacking.any"})
+	}
+	if sevenZero {
+		house = append(house,
+			module.Fact{LabelKey: "lastcard.rules.sevens"},
+			module.Fact{LabelKey: "lastcard.rules.zeros"},
+		)
+	}
+	if len(house) > 0 {
+		out = append(out, module.Section("lastcard.rules.section.house", house...))
 	}
 	if call {
 		out = append(out, module.Section("lastcard.rules.section.call",
