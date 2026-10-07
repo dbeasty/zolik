@@ -12,6 +12,7 @@ import (
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/klondike"
+	"zolik/server/internal/lastcard"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -80,6 +81,14 @@ func allModules() []hosted {
 			mod:      prsi.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"play_card", "pass", "draw"},
+			finishes: true,
+		},
+		{
+			name:     "lastcard",
+			rounds:   true,
+			mod:      lastcard.New(),
+			players:  refs("p1", "p2", "p3"),
+			prefer:   []string{"continue", "accept", "catch", "call", "play_card", "pass", "draw"},
 			finishes: true,
 		},
 		{

@@ -213,12 +213,13 @@ type Persona struct {
 // intact as the id.
 func (p Persona) Key() string { return string(p.Skill) + ":" + p.Slug }
 
-// personas is the whole roster, eight to a skill.
+// personas is the whole roster, nine to a skill.
 //
-// Eight because the largest table seats nine (Hold'em) and the host is one of
+// Nine because the largest table seats ten (Last Card) and the host is one of
 // them: a table set to one strength can then be filled with bots without two
-// of them sharing a name and a lifetime record. TestRosterFillsTheLargestTable
-// holds the roster to that.
+// of them sharing a name and a lifetime record. It was eight while Hold'em's
+// nine seats were the most; TestFillingATableNeverSeatsANameTwice (in
+// internal/match) holds the roster to whatever the largest table is.
 //
 // The names came from internal/ai, where they had sat unused since they were
 // written: nothing ever read them, so every bot was called "Bot 4F". They are
@@ -234,6 +235,7 @@ var personas = []Persona{
 	{Slug: "milan", Name: "Muddled Milan", Skill: SkillEasy},
 	{Slug: "pavel", Name: "Puzzled Pavel", Skill: SkillEasy},
 	{Slug: "jana", Name: "Jittery Jana", Skill: SkillEasy},
+	{Slug: "frantisek", Name: "Fumbling František", Skill: SkillEasy},
 
 	{Slug: "karel", Name: "Clever Karel", Skill: SkillMedium},
 	{Slug: "sarka", Name: "Sharp Šárka", Skill: SkillMedium},
@@ -243,6 +245,7 @@ var personas = []Persona{
 	{Slug: "petra", Name: "Plucky Petra", Skill: SkillMedium},
 	{Slug: "barbora", Name: "Brisk Barbora", Skill: SkillMedium},
 	{Slug: "honza", Name: "Handy Honza", Skill: SkillMedium},
+	{Slug: "nikola", Name: "Nimble Nikola", Skill: SkillMedium},
 
 	{Slug: "miroslav", Name: "Master Miroslav", Skill: SkillHard},
 	{Slug: "sona", Name: "Shark Soňa", Skill: SkillHard},
@@ -252,6 +255,7 @@ var personas = []Persona{
 	{Slug: "vera", Name: "Vicious Věra", Skill: SkillHard},
 	{Slug: "gustav", Name: "Grim Gustav", Skill: SkillHard},
 	{Slug: "tereza", Name: "Tigress Tereza", Skill: SkillHard},
+	{Slug: "rudolf", Name: "Ruthless Rudolf", Skill: SkillHard},
 
 	{Slug: "anna", Name: "Analytic Anna", Skill: SkillAI},
 	{Slug: "boris", Name: "Binary Boris", Skill: SkillAI},
@@ -261,6 +265,7 @@ var personas = []Persona{
 	{Slug: "filip", Name: "Fractal Filip", Skill: SkillAI},
 	{Slug: "gita", Name: "Gradient Gita", Skill: SkillAI},
 	{Slug: "hugo", Name: "Helix Hugo", Skill: SkillAI},
+	{Slug: "kamil", Name: "Kernel Kamil", Skill: SkillAI},
 }
 
 // PersonasFor lists the roster for one skill, in a fixed order.

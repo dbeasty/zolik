@@ -13,6 +13,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/lastcard"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -78,6 +79,8 @@ func replayables() []replayable {
 			[]string{"swap_joker", "commit", "reset_turn", "draw"}, nil},
 		{"marias", marias.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
 			[]string{"play_card", "discard", "choose_trump", "announce", "good", "pass"}, nil},
+		{"lastcard", lastcard.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
+			[]string{"continue", "accept", "catch", "call", "play_card", "pass", "draw"}, nil},
 		{"marias-licit", marias.New(), refs("p1", "p2", "p3"), module.MatchConfig{Variation: "licitovany"},
 			[]string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"}, nil},
 	}
@@ -161,7 +164,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 func replayManager() *Manager {
 	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(),
+		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(),
 	)}
 }
 

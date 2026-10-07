@@ -48,6 +48,19 @@
     "JOKER_DISCARD_FORBIDDEN",
     "JOKER_SWAP_MISMATCH",
     "KING_ONLY",
+    "LASTCARD_ALREADY_CALLED",
+    "LASTCARD_ALREADY_DREW",
+    "LASTCARD_ANSWER_DRAW_FOUR",
+    "LASTCARD_CALL_NOT_NOW",
+    "LASTCARD_COLOUR_REQUIRED",
+    "LASTCARD_DRAW_FOUR_HELD",
+    "LASTCARD_NOTHING_TO_CATCH",
+    "LASTCARD_NOTHING_TO_KEEP",
+    "LASTCARD_NO_DRAW_FOUR",
+    "LASTCARD_NO_MATCH",
+    "LASTCARD_ONLY_DRAWN_CARD",
+    "LASTCARD_STACK_OR_TAKE",
+    "LASTCARD_UNKNOWN_COLOUR",
     "MARIAS_BELOW_THE_BID",
     "MARIAS_BID_TOO_LOW",
     "MARIAS_DISCARD_TWO",
@@ -564,6 +577,74 @@
     "klondike.zone.stock",
     "klondike.zone.tableau",
     "klondike.zone.waste",
+    "lastcard.colour.A",
+    "lastcard.colour.C",
+    "lastcard.colour.T",
+    "lastcard.colour.V",
+    "lastcard.header.anticlockwise",
+    "lastcard.header.clockwise",
+    "lastcard.header.colour",
+    "lastcard.header.deal",
+    "lastcard.offer.accept",
+    "lastcard.offer.call",
+    "lastcard.offer.catch",
+    "lastcard.offer.challenge",
+    "lastcard.offer.keep",
+    "lastcard.offer.takeStack",
+    "lastcard.prompt.bluffCaught",
+    "lastcard.prompt.catch",
+    "lastcard.prompt.chooseColour",
+    "lastcard.prompt.drawFour",
+    "lastcard.prompt.noBluff",
+    "lastcard.prompt.playDrawnOrKeep",
+    "lastcard.prompt.stack",
+    "lastcard.remedy.answerDrawFour",
+    "lastcard.remedy.followColourFirst",
+    "lastcard.remedy.matchOrDraw",
+    "lastcard.remedy.nameAColour",
+    "lastcard.remedy.nowPlay",
+    "lastcard.remedy.playDrawnOrKeep",
+    "lastcard.remedy.playOrDraw",
+    "lastcard.remedy.stackOrTake",
+    "lastcard.round.deal",
+    "lastcard.rules.call",
+    "lastcard.rules.catch",
+    "lastcard.rules.challenge",
+    "lastcard.rules.deal",
+    "lastcard.rules.deck",
+    "lastcard.rules.drawTwo",
+    "lastcard.rules.end",
+    "lastcard.rules.end.points",
+    "lastcard.rules.goal",
+    "lastcard.rules.goal.points",
+    "lastcard.rules.reverse",
+    "lastcard.rules.scoring",
+    "lastcard.rules.section.call",
+    "lastcard.rules.section.challenge",
+    "lastcard.rules.section.end",
+    "lastcard.rules.section.goal",
+    "lastcard.rules.section.house",
+    "lastcard.rules.section.scoring",
+    "lastcard.rules.section.setup",
+    "lastcard.rules.section.special",
+    "lastcard.rules.section.turn",
+    "lastcard.rules.sevens",
+    "lastcard.rules.skip",
+    "lastcard.rules.stacking.any",
+    "lastcard.rules.stacking.twos",
+    "lastcard.rules.turn.draw",
+    "lastcard.rules.turn.drawUntil",
+    "lastcard.rules.turn.match",
+    "lastcard.rules.values",
+    "lastcard.rules.wild",
+    "lastcard.rules.wildDrawFour",
+    "lastcard.rules.wildDrawFourBluff",
+    "lastcard.rules.zeros",
+    "lastcard.score.actions",
+    "lastcard.score.numbers",
+    "lastcard.score.wilds",
+    "lastcard.seat.lastCard",
+    "lastcard.seat.points",
     "marias.badge.trumpCard",
     "marias.fact.rung",
     "marias.fact.times",
@@ -1088,6 +1169,47 @@
     "klondike.rules.takeBack",
     "klondike.rules.undo",
     "klondike.rules.won",
+    "lastcard.remedy.answerDrawFour",
+    "lastcard.remedy.followColourFirst",
+    "lastcard.remedy.matchOrDraw",
+    "lastcard.remedy.nameAColour",
+    "lastcard.remedy.nowPlay",
+    "lastcard.remedy.playDrawnOrKeep",
+    "lastcard.remedy.playOrDraw",
+    "lastcard.remedy.stackOrTake",
+    "lastcard.rules.call",
+    "lastcard.rules.catch",
+    "lastcard.rules.challenge",
+    "lastcard.rules.deal",
+    "lastcard.rules.deck",
+    "lastcard.rules.drawTwo",
+    "lastcard.rules.end",
+    "lastcard.rules.end.points",
+    "lastcard.rules.goal",
+    "lastcard.rules.goal.points",
+    "lastcard.rules.reverse",
+    "lastcard.rules.scoring",
+    "lastcard.rules.section.call",
+    "lastcard.rules.section.challenge",
+    "lastcard.rules.section.end",
+    "lastcard.rules.section.goal",
+    "lastcard.rules.section.house",
+    "lastcard.rules.section.scoring",
+    "lastcard.rules.section.setup",
+    "lastcard.rules.section.special",
+    "lastcard.rules.section.turn",
+    "lastcard.rules.sevens",
+    "lastcard.rules.skip",
+    "lastcard.rules.stacking.any",
+    "lastcard.rules.stacking.twos",
+    "lastcard.rules.turn.draw",
+    "lastcard.rules.turn.drawUntil",
+    "lastcard.rules.turn.match",
+    "lastcard.rules.values",
+    "lastcard.rules.wild",
+    "lastcard.rules.wildDrawFour",
+    "lastcard.rules.wildDrawFourBluff",
+    "lastcard.rules.zeros",
     "marias.rules.bid.announce",
     "marias.rules.bid.flek",
     "marias.rules.bid.flekLimit",
@@ -1821,6 +1943,79 @@
     "klondike.rules.stuck": [
       "n"
     ],
+    "lastcard.colour.A": [
+      "value"
+    ],
+    "lastcard.colour.C": [
+      "value"
+    ],
+    "lastcard.colour.T": [
+      "value"
+    ],
+    "lastcard.colour.V": [
+      "value"
+    ],
+    "lastcard.header.colour": [
+      "value"
+    ],
+    "lastcard.header.deal": [
+      "n"
+    ],
+    "lastcard.prompt.bluffCaught": [
+      "cards",
+      "player"
+    ],
+    "lastcard.prompt.catch": [
+      "player"
+    ],
+    "lastcard.prompt.drawFour": [
+      "player"
+    ],
+    "lastcard.prompt.noBluff": [
+      "cards",
+      "player"
+    ],
+    "lastcard.prompt.playDrawnOrKeep": [
+      "card"
+    ],
+    "lastcard.prompt.stack": [
+      "n"
+    ],
+    "lastcard.remedy.answerDrawFour": [
+      "player"
+    ],
+    "lastcard.remedy.followColourFirst": [
+      "colour"
+    ],
+    "lastcard.remedy.matchOrDraw": [
+      "card",
+      "colour"
+    ],
+    "lastcard.remedy.playDrawnOrKeep": [
+      "card"
+    ],
+    "lastcard.remedy.stackOrTake": [
+      "n"
+    ],
+    "lastcard.rules.deal": [
+      "n"
+    ],
+    "lastcard.rules.deck": [
+      "value"
+    ],
+    "lastcard.rules.end.points": [
+      "target"
+    ],
+    "lastcard.rules.goal.points": [
+      "target"
+    ],
+    "lastcard.rules.scoring": [
+      "target"
+    ],
+    "lastcard.seat.points": [
+      "n",
+      "value"
+    ],
     "marias.fact.rung": [
       "rung"
     ],
@@ -2341,6 +2536,29 @@
     "klondike.fact.toColumn",
     "klondike.rules.redealsLimited",
     "klondike.rules.stuck",
+    "lastcard.colour.A",
+    "lastcard.colour.C",
+    "lastcard.colour.T",
+    "lastcard.colour.V",
+    "lastcard.header.colour",
+    "lastcard.header.deal",
+    "lastcard.prompt.bluffCaught",
+    "lastcard.prompt.catch",
+    "lastcard.prompt.drawFour",
+    "lastcard.prompt.noBluff",
+    "lastcard.prompt.playDrawnOrKeep",
+    "lastcard.prompt.stack",
+    "lastcard.remedy.answerDrawFour",
+    "lastcard.remedy.followColourFirst",
+    "lastcard.remedy.matchOrDraw",
+    "lastcard.remedy.playDrawnOrKeep",
+    "lastcard.remedy.stackOrTake",
+    "lastcard.rules.deal",
+    "lastcard.rules.deck",
+    "lastcard.rules.end.points",
+    "lastcard.rules.goal.points",
+    "lastcard.rules.scoring",
+    "lastcard.seat.points",
     "marias.fact.rung",
     "marias.fact.times",
     "marias.fact.units",
