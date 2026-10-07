@@ -27,8 +27,12 @@ type Props = {
   suit: Suit;
   /** Card width in px; everything else scales from it. */
   size?: number;
-  /** 'walk' strides in place (the caller moves it); 'dance' hops and waves. */
-  mode?: 'walk' | 'dance';
+  /**
+   * 'walk' strides in place (the caller moves it); 'dance' hops and waves — the
+   * end of a match; 'twirl' spins on the spot with arms out — the end of a round,
+   * so the two endings never look alike.
+   */
+  mode?: 'walk' | 'dance' | 'twirl';
   /** Milliseconds before the first step, so a row doesn't move in lockstep. */
   delay?: number;
 };
@@ -47,7 +51,7 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
     return loopWithHeadStart(
       beat,
       {
-        duration: mode === 'dance' ? ms(520) : ms(480),
+        duration: mode === 'dance' ? ms(520) : mode === 'twirl' ? ms(900) : ms(480),
         easing: Easing.linear,
         useNativeDriver: true,
       },
@@ -65,8 +69,20 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
     inputRange: [0, 0.25, 0.5, 0.75, 1],
     outputRange: [0, -size * 0.12, 0, -size * 0.12, 0],
   });
-  const tilt = swing(mode === 'dance' ? '-10deg' : '-3deg', mode === 'dance' ? '10deg' : '3deg');
-  const lift = mode === 'dance' ? ['-150deg', '-30deg'] : ['25deg', '-25deg'];
+  const twirl = mode === 'twirl';
+  const tilt = twirl ? '0deg' : swing(mode === 'dance' ? '-10deg' : '-3deg', mode === 'dance' ? '10deg' : '3deg');
+  // A turn on the spot, drawn as the card narrowing to an edge and widening
+  // again — twice per cycle, so it reads as a full pirouette.
+  const turn = beat.interpolate({
+    inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
+    outputRange: [1, 0.08, 1, 0.08, 1, 1],
+  });
+  // One tall leap per cycle rather than a hop on every beat.
+  const leap = beat.interpolate({
+    inputRange: [0, 0.3, 0.6, 1],
+    outputRange: [0, -size * 0.45, 0, 0],
+  });
+  const lift = mode === 'dance' ? ['-150deg', '-30deg'] : twirl ? ['-100deg', '-80deg'] : ['25deg', '-25deg'];
   const armA = swing(lift[0]!, lift[1]!);
   const armB = swing(lift[1]!, lift[0]!);
 
@@ -88,7 +104,7 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
         width: size + leg,
         height: h + leg,
         alignItems: 'center',
-        transform: [{ translateY: hop }, { rotateZ: tilt }],
+        transform: [{ translateY: twirl ? leap : hop }, { rotateZ: tilt }, ...(twirl ? [{ scaleX: turn }] : [])],
       }}
     >
       <View style={[styles.card, { width: size, height: h, borderRadius: size * 0.14 }]}>
