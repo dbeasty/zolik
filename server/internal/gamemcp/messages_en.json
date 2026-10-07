@@ -215,7 +215,7 @@
  "canasta.rules.goal": "Play in partnerships; the first side to reach {n} points wins the match.",
  "canasta.rules.goingOutBonus": "Going out is worth {n} points on its own — {concealed} if your side does it in a single turn, with nothing melded before that.",
  "canasta.rules.goingOutBonusFlat": "Going out is worth {n} points on its own.",
- "canasta.rules.layOffAfterOpening": "Until your side has made its initial meld it may not lay off onto anything.",
+ "canasta.rules.layOffAfterOpening": "Until your side has made its initial meld it may lay off only natural cards, and only onto melds it laid this turn. Those count toward the minimum.",
  "canasta.rules.meldFloorBands": "Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} beyond that.",
  "canasta.rules.meldFloorBandsFive": "Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} up to {highUpTo}, {top} beyond that.",
  "canasta.rules.meldShape": "A meld is {n} or more cards of the same rank.",
