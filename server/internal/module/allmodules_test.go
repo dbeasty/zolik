@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/klondike"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -49,6 +50,10 @@ type hosted struct {
 	// hidden: going out needs a meld *shape* the offer protocol deliberately
 	// does not enumerate (extensibility-plan.md §1.1).
 	finishes bool
+	// solo is a one-seat game played against the deck. It may finish naming
+	// nobody — a lost game of solitaire was won by no one — and that is the
+	// only term it is excused.
+	solo bool
 }
 
 func refs(ids ...string) []module.PlayerRef {
@@ -156,6 +161,17 @@ func allModules() []hosted {
 			prefer:   []string{"swap_joker", "commit", "reset_turn", "draw"},
 			finishes: false,
 		},
+		{
+			name:    "klondike",
+			rounds:  false,
+			mod:     klondike.New(),
+			players: refs("p1"),
+			// The offers are listed best first, so a driver that prefers moves
+			// and only then draws plays a fair game of solitaire.
+			prefer:   []string{"autofinish", "move", "draw", "recycle"},
+			finishes: true,
+			solo:     true,
+		},
 	}
 }
 
@@ -180,7 +196,7 @@ func TestEveryModuleDescribesItself(t *testing.T) {
 			}
 			seen[key] = true
 
-			if d.MinPlayers < 2 || d.MaxPlayers < d.MinPlayers {
+			if d.MinPlayers < 1 || (d.MinPlayers < 2 && !g.solo) || d.MaxPlayers < d.MinPlayers {
 				t.Errorf("player range %d..%d makes no sense", d.MinPlayers, d.MaxPlayers)
 			}
 			for _, v := range d.Variations {
@@ -600,7 +616,7 @@ func TestEveryModuleNamesItsWinners(t *testing.T) {
 			if !res.Finished {
 				t.Fatalf("did not finish in %d actions", res.Actions)
 			}
-			if len(res.Winners) == 0 {
+			if len(res.Winners) == 0 && !g.solo {
 				t.Fatal("finished naming nobody")
 			}
 

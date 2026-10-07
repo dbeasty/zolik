@@ -635,6 +635,38 @@ describe('sourceSpotsFor', () => {
     expect(spots.map((s) => s.elementId)).toEqual(['zone-draw']);
   });
 
+  // Solitaire: the stock and the waste are the table's, and a draw lands on
+  // the waste rather than in a hand. The stack is what a player taps, both to
+  // draw and, once it is empty, to turn the waste back over.
+  it("presses the stack for a move between the table's own piles", () => {
+    const table: Zone[] = [
+      { id: 'stock', kind: 'stack', count: 0, shared: true },
+      { id: 'waste', kind: 'pile', count: 5, shared: true, cards: [{ card: '9S' }] },
+    ];
+    const draw: ActionOffer = {
+      id: 'draw',
+      verb: 'draw',
+      enabled: true,
+      source: { zone: 'deck', zoneId: 'stock' },
+      target: { zone: 'table', zoneId: 'waste' },
+    };
+    const recycle: ActionOffer = {
+      id: 'recycle',
+      verb: 'recycle',
+      enabled: true,
+      source: { zone: 'discard_pile', zoneId: 'waste' },
+      target: { zone: 'table', zoneId: 'stock' },
+    };
+    expect(sourceSpotsFor([draw, { ...recycle, enabled: false }], table, 'me')).toEqual([
+      { offerId: 'draw', elementId: 'zone-stock', ready: true },
+    ]);
+    expect(sourceSpotsFor([{ ...draw, enabled: false }, recycle], table, 'me')).toEqual([
+      { offerId: 'recycle', elementId: 'zone-stock', ready: true },
+    ]);
+    // An undo is never what a tap on a pile means.
+    expect(sourceSpotsFor([{ ...recycle, undo: true }], table, 'me')).toEqual([]);
+  });
+
   it('ignores an offer that still needs a form filled in', () => {
     const withParam: ActionOffer = {
       ...drawDeck,

@@ -317,3 +317,61 @@ the same tableau. **Assert what the user sees**, not the socket alone. | `e2e/te
   follow-up, and it is also the natural basis for a `hint` offer.
 - **FreeCell and Spider.** Separate modules. Spider needs `Group.Hidden` too, and FreeCell needs
   nothing new, so the protocol cost is paid once here.
+
+## 10. Outcome (first implementation)
+
+Shipped on `claude/klondike`, covering PRs 1, 2 and 4 of §8 in one branch, and most of PR 3:
+`OpenViewer`, and "Play this deal again" (`Manager.DealAgain`, `POST /matches/{id}/deal-again`).
+The new table copies the seed on the server. `dealFrom` always names the first table the deal
+was played at, so repeats of repeats agree. Stats mark the result as a repeat
+(`MatchRef.Repeat`), and the finished banner says the deal has been played before.
+
+**As predicted.** `Group.Hidden` and `Zone.Fan` were the only protocol additions. The contract
+test needed exactly the `solo` relaxations (`MinPlayers >= 1`, an empty winner list). Nothing
+else in it bent.
+
+**Beyond the predictions:**
+- **The stall bound.** A driver that takes the first offer moved cards between columns
+  forever. Carrying a card up to a foundation and back down also counted as progress every
+  time. Progress is now a high-water mark (`BestFound`): a card going up again after being
+  taken down is not progress. The game also ends itself after 250 moves in a row that got
+  nowhere, which is written as a rule (`klondike.rules.stuck`).
+- **Undo is a list of inverse moves, not snapshots.** Snapshots made the state about 120 KB
+  and the contract suite took 55 s for one game. Only moves that turned nothing up are
+  undoable, so taking one back just carries the cards home. Draws clear the history as well
+  as turn-ups, because stepping back over a draw is a free look at the stock.
+- **`NOT_A_RUN` was taken.** Rummy Tiles already uses it to mean "only a run can be split",
+  so the Klondike code is `NOT_WHOLE_RUN`.
+- **The phone's embedded core leaves server-dealt games out of its registry.** A node with an
+  outbox (`App.hostedModules`) does not register them, so the game is never offered offline.
+  The importer's refusal remains as the backstop.
+- **gamemcp `new_table`** assumed at least one bot seat.
+- **Stats:** a solo result updates `ByModule`, the streak and the history, but not `Overall`.
+  The solitaire-specific facts (best score, fewest moves) are not recorded yet.
+
+**Send this deal.** `POST /matches/{id}/deal-link` returns a token, and the link is
+`/deal/<token>`. `GET /deals/{token}` names the game and its settings, and
+`POST /deals/{token}/play` deals it at a table of the recipient's own. The token is the
+source match id sealed with AES-GCM under a key derived from the access secret
+(`auth.SealDealLink`), so it is opaque, unforgeable and needs no storage.
+
+The plan had overlooked something here. A finished match's board is readable by anyone who
+has its id, and it shows every card its player turned up. So a recipient who learned which
+match a deal came from could look at it before playing. Neither the link nor anything the
+recipient is sent carries that id: `models.Match.DealFrom` is now `json:"-"`, and the state
+message carries a `repeatDeal` flag in its place. "Repeat" is per player
+(`models.Match.DealRepeat`): set for "Play this deal again", and for a sent deal only when the
+recipient had played the source game themselves.
+
+**Client.** A table card is liftable when an enabled offer's `source.submit` starts with it.
+A press sends the move when there is one destination and lights the targets when there are
+several. A drag carries the run through the screen's existing `moveDrag` and `endDrag`. A
+shared spread of six or more groups is drawn as one row of equal columns, which falls back to
+card indices on a phone. Measured at 375 px in `e2e/tests/klondike.spec.ts`.
+
+**Not done yet:**
+- Replay chapters at each recycle.
+- Comparing results on the same deal. `dealFrom` is stored on matches and results, ready for it.
+- Recording solitaire stats facts.
+- A refused drop explaining itself. Klondike sends no disabled move offers, so a card let go
+  on a wrong column just snaps back.

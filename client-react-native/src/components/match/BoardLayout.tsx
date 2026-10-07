@@ -51,6 +51,13 @@ type DropProps = {
   entranceDelays?: ReadonlyMap<string, number>;
   /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
   changedGroups?: ChangeMarks;
+  /** Table cards a press or drag may lift — see `ZoneView`. */
+  liftable?: ReadonlySet<string>;
+  picked?: string | null;
+  onLift?: (card: string) => void;
+  onLiftDragStart?: (card: string) => void;
+  onDragMove?: (x: number, y: number) => void;
+  onDragEnd?: (x: number, y: number) => boolean;
 };
 
 type PanelProps = { panelId: string; minimized: boolean; onToggleMinimized: () => void };

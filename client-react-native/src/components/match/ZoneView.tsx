@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 import type { Zone } from '@/src/api/matchTypes';
 import { CardBack } from '@/src/components/CardBack';
@@ -12,7 +14,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { concealedCount } from '@/src/lib/board';
 import { marksIn, type ChangeMarks } from '@/src/lib/changes';
-import { groupElementId, zoneElementId } from '@/src/lib/drops';
+import { groupElementId, liftKey, zoneElementId } from '@/src/lib/drops';
 import {
   CARD_INDEX_GAP,
   cardIndexBox,
@@ -132,6 +134,21 @@ type Props = {
    * anything.
    */
   changedGroups?: ChangeMarks;
+  /**
+   * Table cards a player may pick up — the head of a run an offer lifts off a
+   * group, the top of a pile an offer moves — keyed by `liftKey(where, card)`
+   * with `where` the group's or zone's own id. The match screen reads them off
+   * the offers' sources; this file only draws them as things to press or drag.
+   */
+  liftable?: ReadonlySet<string>;
+  /** The head of the run picked up by a press and waiting for a target, if any. */
+  picked?: string | null;
+  /** A liftable card was pressed. */
+  onLift?: (card: string) => void;
+  /** A liftable card started being dragged; the run under it goes with it. */
+  onLiftDragStart?: (card: string) => void;
+  onDragMove?: (x: number, y: number) => void;
+  onDragEnd?: (x: number, y: number) => boolean;
 };
 
 export function ZoneView({
@@ -159,6 +176,12 @@ export function ZoneView({
   onAimGroup,
   entranceDelays,
   changedGroups,
+  liftable,
+  picked,
+  onLift,
+  onLiftDragStart,
+  onDragMove,
+  onDragEnd,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -175,6 +198,40 @@ export function ZoneView({
   const entranceDelay = entranceDelays?.get(zoneId) ?? 0;
 
   const cards = zone.cards ?? [];
+
+  // A run being carried off a group or a pile by hand: which, from where in
+  // it, and how far it has travelled. Drawn by moving those cards and nothing
+  // else, so no box anything is measured against moves with them.
+  const [carry, setCarry] = useState<{ where: string; from: number; dx: number; dy: number } | null>(null);
+  const carriedStyle = (where: string, index: number) =>
+    carry && carry.where === where && index >= carry.from
+      ? { transform: [{ translateX: carry.dx }, { translateY: carry.dy }], zIndex: 50 }
+      : null;
+  /** A card wrapped so it can be pressed or dragged, when an offer lifts it. */
+  const lift = (where: string, card: string, index: number, child: ReactNode) =>
+    liftable?.has(liftKey(where, card)) ? (
+      <LiftableCard
+        card={card}
+        picked={picked === card}
+        onLift={onLift}
+        onStart={() => {
+          setCarry({ where, from: index, dx: 0, dy: 0 });
+          onLiftDragStart?.(card);
+        }}
+        onMove={(x, y, dx, dy) => {
+          setCarry((was) => (was ? { ...was, dx, dy } : was));
+          onDragMove?.(x, y);
+        }}
+        onEnd={(x, y) => {
+          setCarry(null);
+          onDragEnd?.(x, y);
+        }}
+      >
+        {child}
+      </LiftableCard>
+    ) : (
+      child
+    );
   /**
    * Cards this zone holds and is not showing — a blackjack dealer's hole
    * card, an opponent's hand. Drawn face down rather than described in
@@ -219,7 +276,10 @@ export function ZoneView({
    * zone into a wall of cards that pushes the rest of the board off screen, so
    * it is folded down to the top card and can be opened.
    */
-  const foldable = zone.kind === 'pile' && cards.length > 1;
+  // A pile the module asked to fan shows that many of its top cards, which is
+  // what it sent; there is nothing under them to fold away.
+  const fanned = zone.kind === 'pile' && (zone.fan ?? 0) > 1;
+  const foldable = zone.kind === 'pile' && cards.length > 1 && !fanned;
   const [open, setOpen] = useState(false);
   const shown = foldable && !open ? cards.slice(-1) : cards;
   const buried = cards.length - shown.length;
@@ -277,6 +337,11 @@ export function ZoneView({
   // decides the shape, same as it decides the layout above. A stack needs
   // none of this: its count is the whole of what it ever shows, open or not.
   const groups = zone.groups ?? [];
+  // A table spread of many groups — solitaire's seven columns — is one row
+  // across the whole board, every group an equal column of it. Wrapped like
+  // any other spread, the last columns fell to a second line and stopped
+  // reading as a tableau at all.
+  const wide = zone.kind === 'spread' && !!zone.shared && groups.length >= WIDE_GROUPS;
   // How many of this zone's groups carry a mark — said on the panel's own
   // header too, which stays in view when the panel is put away or scrolled
   // past, so a change is never only visible from inside the group.
@@ -302,6 +367,7 @@ export function ZoneView({
       subtitle={subtitle}
       inline={inline}
       nested={nested}
+      style={wide ? styles.widePanel : undefined}
       live={zoneLive}
       refused={zoneRefused}
       hovered={hoveredDrop === zoneId}
@@ -352,7 +418,7 @@ export function ZoneView({
           both would show every card twice. */}
         {(zone.groups ?? []).length > 0 ? (
         <>
-        <View style={styles.groups}>
+        <View style={[styles.groups, wide && styles.wideGroups]}>
           {(zone.groups ?? []).map((g) => {
             const groupId = groupElementId(g.id);
             const groupLive = activeDrops?.has(groupId) ?? false;
@@ -368,6 +434,9 @@ export function ZoneView({
             // stays in view is the module's call (`face`), so a folded
             // canasta shows what it is made of rather than a wild.
             const folded = !!g.complete && !groupOpen && g.cards.length > 1;
+            // Face-down cards under the face-up ones (`Group.hidden`): drawn
+            // as backs at the top of the stack, where a column keeps them.
+            const hidden = folded ? 0 : g.hidden ?? 0;
             const shownAt = folded ? [foldedFace(g)] : g.cards.map((_, i) => i);
             // On a narrow board a closed group is a column of its cards'
             // indices instead of overlapped cards — every card still there
@@ -418,6 +487,8 @@ export function ZoneView({
                 ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
                 style={[
                   styles.group,
+                  wide && styles.wideGroup,
+                  carry?.where === g.id && styles.carrying,
                   !!mark && styles.changed,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
@@ -459,13 +530,28 @@ export function ZoneView({
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
+                    {Array.from({ length: hidden }, (_, h) => (
+                      <View
+                        key={`${g.id}-hidden-${h}`}
+                        style={h > 0 && !groupOpen && (indices ? styles.indexGap : styles.stackedOverlap)}
+                        testID={`group-hidden-${g.id}-${h}`}
+                      >
+                        {indices ? <View style={styles.indexBack} /> : <CardView card="" faceDown compact />}
+                      </View>
+                    ))}
+                    {/* An empty group still has a place on the table, card
+                        sized, so it can be seen and aimed at. */}
+                    {hidden === 0 && g.cards.length === 0 ? (
+                      <View style={styles.emptySlot} testID={`group-empty-${g.id}`} />
+                    ) : null}
                     {shownAt.map((i, j) => {
                       const c = g.cards[i];
                       return (
                       <View
                         key={`${g.id}-${c}-${i}`}
                         style={[
-                          j > 0 && !groupOpen && (indices ? styles.indexGap : styles.stackedOverlap),
+                          (j > 0 || hidden > 0) && !groupOpen && (indices ? styles.indexGap : styles.stackedOverlap),
+                          carriedStyle(g.id, i),
                           // Stepping down out of the way, so the gap this card
                           // would be pushed along by is a gap you can see.
                           // Same move the hand makes and for the same reason
@@ -492,10 +578,25 @@ export function ZoneView({
                             mounting right now, which is exactly the one a
                             flight is bringing. */}
                         <SettleIn kind="settle" delay={entranceDelay}>
-                          {indices ? (
-                            <CardIndex card={c} testID={`index-${g.id}-${i}`} />
-                          ) : (
-                            <CardView card={c} compact stacked={!groupOpen} />
+                          {lift(
+                            g.id,
+                            c,
+                            i,
+                            indices ? (
+                              <CardIndex card={c} testID={`index-${g.id}-${i}`} />
+                            ) : (
+                              <CardView
+                                card={c}
+                                compact
+                                // A wide spread's columns are read from the
+                                // top down: the last card of each is seen
+                                // whole, and only the covered ones are
+                                // reduced to their corner.
+                                stacked={!groupOpen && !(wide && i === g.cards.length - 1)}
+                                selected={picked === c && !!liftable?.has(liftKey(g.id, c))}
+                                testID={`card-${g.id}-${i}`}
+                              />
+                            ),
                           )}
                         </SettleIn>
                         {ringed.has(i) ? (
@@ -584,7 +685,7 @@ export function ZoneView({
         </>
       ) : (
         <>
-          <View style={styles.cards}>
+          <View style={[styles.cards, fanned && styles.fan]}>
             {/* Indices are into the whole pile, not into what is on screen, so a
                 card keeps the same name whether the pile is open or folded. */}
             {shown.map((c, i) => (
@@ -592,20 +693,29 @@ export function ZoneView({
               // element — and a new element's mount is its entrance: the top of
               // a pile flips over as if peeled off a deck, anything else
               // settles into place.
-              <SettleIn
+              <View
                 key={`${zone.id}-${c.card}-${buried + i}`}
-                kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
-                delay={buried + i === cards.length - 1 ? entranceDelay : 0}
+                style={[fanned && i > 0 && styles.fanOverlap, carriedStyle(zone.id, buried + i)]}
               >
-                <CardView
-                  card={c.card}
-                  faceDown={c.faceDown}
-                  compact={compact}
-                  selected={selected?.includes(c.card)}
-                  onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
-                  testID={`card-${zone.id}-${buried + i}`}
-                />
-              </SettleIn>
+                <SettleIn
+                  kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
+                  delay={buried + i === cards.length - 1 ? entranceDelay : 0}
+                >
+                  {lift(
+                    zone.id,
+                    c.card,
+                    buried + i,
+                    <CardView
+                      card={c.card}
+                      faceDown={c.faceDown}
+                      compact={compact}
+                      selected={selected?.includes(c.card) || (!!picked && picked === c.card)}
+                      onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
+                      testID={`card-${zone.id}-${buried + i}`}
+                    />,
+                  )}
+                </SettleIn>
+              </View>
             ))}
             {/* The zone's own face-down cards, in the same row as the ones it
                 is showing — a hole card lies beside the upcard, not under it. */}
@@ -655,6 +765,89 @@ export function ZoneView({
  * short of an opponent's whole hand, where it is not.
  */
 const MAX_BACKS = 4;
+
+/** How many groups a table spread needs before it is laid out as one row of columns. */
+const WIDE_GROUPS = 6;
+
+/**
+ * A table card a player may pick up: a press lifts it (the match screen then
+ * sends the move or lights its targets), a drag carries it and the cards on
+ * top of it to wherever it is let go.
+ */
+function LiftableCard({
+  card,
+  picked,
+  onLift,
+  onStart,
+  onMove,
+  onEnd,
+  children,
+}: {
+  card: string;
+  picked: boolean;
+  onLift?: (card: string) => void;
+  onStart: () => void;
+  onMove: (x: number, y: number, dx: number, dy: number) => void;
+  onEnd: (x: number, y: number) => void;
+  children: ReactNode;
+}) {
+  const at = useRef({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  // A press that ended a drag is not also a tap.
+  const swallow = useRef(false);
+
+  const start = () => {
+    dragging.current = true;
+    swallow.current = true;
+    onStart();
+  };
+  const update = (x: number, y: number, dx: number, dy: number) => {
+    at.current = { x, y };
+    onMove(x, y, dx, dy);
+  };
+  const finish = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    onEnd(at.current.x, at.current.y);
+  };
+
+  const pan = Gesture.Pan()
+    .minDistance(8)
+    .onStart(() => {
+      runOnJS(start)();
+    })
+    .onUpdate((e) => {
+      runOnJS(update)(e.absoluteX, e.absoluteY, e.translationX, e.translationY);
+    })
+    .onFinalize(() => {
+      runOnJS(finish)();
+    });
+  // Same hand-off as a card in hand: a vertical swipe on a phone still
+  // scrolls the board, and a press is the way to play from there.
+  pan.config.touchAction = 'pan-y';
+
+  return (
+    <GestureDetector gesture={pan}>
+      {/* No button role of its own: it sits inside a group's own toggle,
+          and a button may not hold another button. The label still says
+          which card it is. */}
+      <Pressable
+        aria-selected={picked}
+        accessibilityLabel={card}
+        testID={`lift-${card}`}
+        onPress={() => {
+          if (swallow.current) {
+            swallow.current = false;
+            return;
+          }
+          onLift?.(card);
+        }}
+      >
+        {children}
+      </Pressable>
+    </GestureDetector>
+  );
+}
 
 /**
  * A face-down pile: the count is the only thing that matters about it.
@@ -731,6 +924,41 @@ function zoneStyles(m: Metrics, s: Skin) {
     summaryCount: { color: colors.muted, fontSize: m.panel.bodyFont },
     toggleText: { color: colors.accentButton, fontSize: m.panel.bodyFont, fontWeight: '700' },
     cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+    // A fanned pile: its top cards overlapped sideways, each one leaving its
+    // left edge — where the index is — in view.
+    fan: { flexWrap: 'nowrap', gap: 0 },
+    fanOverlap: { marginLeft: -(m.card.compactWidth * 0.62) },
+    // A wide table spread takes the whole width of the row it sits in...
+    widePanel: { flexBasis: '100%', flexGrow: 1, flexShrink: 1, minWidth: 0 },
+    // ...and draws its groups as equal columns on one line.
+    wideGroups: { flexWrap: 'nowrap', gap: 4 },
+    wideGroup: {
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 0,
+      minWidth: 0,
+      alignItems: 'center',
+      minHeight: stackedCardBox(m) + 12,
+    },
+    // Raised over its neighbours while a run is being carried out of it.
+    carrying: { zIndex: 50 },
+    emptySlot: {
+      marginTop: 6,
+      width: m.card.compactWidth + 2 * (m.card.ringPadding + m.card.ringBorder),
+      height: stackedCardBox(m),
+      borderRadius: 6,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: colors.border,
+    },
+    indexBack: {
+      width: cardIndexBox(m).width,
+      height: cardIndexBox(m).height,
+      borderRadius: 3,
+      backgroundColor: s.card.back.colors[1],
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.4)',
+    },
     // A vertical stack instead of cards.row's horizontal fan — see the comment
     // where this is used. alignItems keeps the column hugging the cards'
     // width instead of stretching to the group box's, which matters once

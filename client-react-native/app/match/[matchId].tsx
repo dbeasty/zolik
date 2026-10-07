@@ -41,6 +41,7 @@ import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import {
   dropSpotsFor,
   groupElementId,
+  liftKey,
   positionAt,
   readyWith,
   refusalAt,
@@ -63,6 +64,8 @@ import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
+import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
+import { moduleName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
@@ -195,8 +198,8 @@ export default function MatchScreen() {
   // arrive before the state that started the drag has been committed, and a
   // drag whose first frames land nowhere reads as an unresponsive one.
   const drops = useDropRegistry();
-  const dragRef = useRef<{ slotIds: string[]; cards: string[] } | null>(null);
-  const [drag, setDrag] = useState<{ cards: string[] } | null>(null);
+  const dragRef = useRef<{ slotIds: string[]; cards: string[]; fromTable?: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ cards: string[]; fromTable?: boolean } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
   // The refusal currently being explained, if any. One at a time: a sheet is
   // an answer to a question a player just asked, and the last one asked is
@@ -237,6 +240,10 @@ export default function MatchScreen() {
   // the *target* was pointed at first, before any control or any card. See
   // `onAimGroup` below for how it is set and cleared.
   const [armedMeldId, setArmedMeldId] = useState<string | null>(null);
+  // A run picked up off the table by a press — solitaire's cards are on the
+  // table, not in a hand — and waiting for the player to say where it goes.
+  // The cards are the offer's own `source.submit`, never worked out here.
+  const [tablePick, setTablePick] = useState<string[] | null>(null);
   // Whether a tap on the status dot has opened its explanation — declared
   // before the `!state` early return below so hook order stays fixed
   // whether or not the socket has delivered a state yet.
@@ -245,6 +252,10 @@ export default function MatchScreen() {
   // Setting up the same table again, and whatever went wrong trying — declared
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
+  // A finished game's deal, sent on: the link, and whether it got as far as a
+  // share sheet or the clipboard. When it did not, the link is shown to copy.
+  const [sentDeal, setSentDeal] = useState<{ url: string; handedOver: boolean } | null>(null);
+  const [sendingDeal, setSendingDeal] = useState(false);
   const [againError, setAgainError] = useState('');
   // "No thanks" to somebody else's rematch: the banner goes back to its own
   // offers. Held here rather than on the server's answer, because the
@@ -339,6 +350,8 @@ export default function MatchScreen() {
   useEffect(() => {
     setHint(null);
     setHintRefusal(null);
+    // A pick belongs to the board it was made on.
+    setTablePick(null);
   }, [state]);
   useEffect(() => {
     setIdle(false);
@@ -496,6 +509,22 @@ export default function MatchScreen() {
 
   const selectedCards = cardsForSelection(heldSlots, selected);
 
+  // Cards an offer lifts straight off the table: the head of the run it names
+  // as `source.submit`, in a group or a pile that is nobody's hand. Read off
+  // the offers and nothing else — which card heads a movable run is a rule,
+  // and the module has already answered it by offering the move.
+  const handIds = new Set(myHands.map((z) => z.id));
+  const liftOffers = state.legalActions.filter(
+    (o) =>
+      o.enabled &&
+      !!o.source?.submit?.length &&
+      (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))),
+  );
+  const liftable = new Set(
+    liftOffers.map((o) => liftKey(o.source!.meldId ?? o.source!.zoneId!, o.source!.submit![0]!)),
+  );
+  const liftsOf = (card: string) => liftOffers.filter((o) => o.source!.submit![0] === card);
+
   const canAct = state.legalActions.some((o) => o.enabled);
   const step = turnStep(state.legalActions);
   // Whose turn it is when it is somebody else's: the first thing a player
@@ -512,7 +541,9 @@ export default function MatchScreen() {
       const { action } = await client.hint(String(matchId));
       setHint(action);
       const offer = state.legalActions.find((o) => o.id === action.offerId);
-      if (action.cards?.length) {
+      if (offer && liftOffers.includes(offer) && action.cards?.length) {
+        setTablePick(action.cards);
+      } else if (action.cards?.length) {
         const slots = slotsForCards(heldSlots, action.cards);
         if (slots.size) {
           setSelected(slots);
@@ -542,8 +573,12 @@ export default function MatchScreen() {
   // refuse them, which now carry the reason instead of being dropped from the
   // list. `takeableSpots` is what lights up and what a release sends;
   // `refusalAt` is what a release anywhere else says.
-  const spotsFor = (cards: string[]) => dropSpotsFor(state.legalActions, cards);
-  const liveSpots = drag ? spotsFor(drag.cards) : [];
+  // A run lifted off the table goes only where an offer for that very run
+  // says: every other offer names other cards, and would only light up as
+  // refusing.
+  const spotsFor = (cards: string[], fromTable?: boolean) =>
+    dropSpotsFor(fromTable ? liftsOf(cards[0] ?? '') : state.legalActions, cards);
+  const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable) : [];
   const liveTakeable = takeableSpots(liveSpots);
 
   // A card in hand is a card looking for somewhere to go. Every enabled offer
@@ -584,8 +619,9 @@ export default function MatchScreen() {
   // enabled, already-one-tap-ready offers is still a live target then, cards
   // or no cards, the same as a lone offer of the same shape would be. With
   // nothing selected and no folded control pressed, nothing is pending.
-  const pendingSpots: DropSpot[] =
-    selectedCards.length > 0
+  const pendingSpots: DropSpot[] = tablePick
+    ? dropSpotsFor(liftsOf(tablePick[0] ?? ''), tablePick)
+    : selectedCards.length > 0
       ? dropSpotsFor(pendingCandidates, selectedCards)
       : pendingGroupKey
         ? pendingCandidates.flatMap((o) =>
@@ -605,7 +641,7 @@ export default function MatchScreen() {
   // chosen means "put these here" — the discard pile is both, one phase apart
   // — and a press has to mean one thing. What is picked is what says which.
   const sourceSpots =
-    !drag && selectedCards.length === 0 && !pendingGroupKey
+    !drag && selectedCards.length === 0 && !pendingGroupKey && !tablePick
       ? sourceSpotsFor(state.legalActions, zones, viewerId)
       : [];
 
@@ -632,6 +668,38 @@ export default function MatchScreen() {
     setArmedMeldId((prev) => (prev === meldId ? null : meldId));
   };
 
+
+  // A card on the table pressed: with one place to go it goes there, the way
+  // a solitaire player expects a tap to play; with several, they light up and
+  // the next press says which. A target aimed at first decides it outright.
+  const liftCard = (card: string) => {
+    const offers = liftsOf(card);
+    if (!offers.length) return;
+    const aimed = armedMeldIdLive ? offers.filter((o) => o.target?.meldId === armedMeldIdLive) : [];
+    const only = aimed.length === 1 ? aimed[0] : offers.length === 1 ? offers[0] : undefined;
+    if (only) {
+      const action = submissionFor(only, { cards: only.source!.submit });
+      if (!action) return;
+      send(action);
+      clearSelection();
+      setTablePick(null);
+      return;
+    }
+    clearSelection();
+    setPendingGroupKey(null);
+    setTablePick((was) => (was?.[0] === card ? null : offers[0]!.source!.submit!));
+  };
+
+  // The same run carried by hand rather than picked by a press.
+  const beginTableDrag = (card: string) => {
+    const offer = liftsOf(card)[0];
+    if (!offer) return;
+    const cards = offer.source!.submit!;
+    setTablePick(null);
+    dragRef.current = { slotIds: [], cards, fromTable: true };
+    setDrag({ cards, fromTable: true });
+    drops.measure();
+  };
 
   const beginDrag = (zoneId: string, index: number) => {
     const slots = slotsFor(zoneId);
@@ -668,7 +736,7 @@ export default function MatchScreen() {
   const moveDrag = (x: number, y: number) => {
     const current = dragRef.current;
     if (!current) return;
-    const spots = takeableSpots(spotsFor(current.cards));
+    const spots = takeableSpots(spotsFor(current.cards, current.fromTable));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     setHoveredDrop((prev) => (prev === over ? prev : over));
 
@@ -707,7 +775,7 @@ export default function MatchScreen() {
     setHoveredPosition(null);
     if (!current) return false;
 
-    const spots = spotsFor(current.cards);
+    const spots = spotsFor(current.cards, current.fromTable);
     const takeable = takeableSpots(spots);
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     const spot = takeable.find((s) => s.elementId === over);
@@ -789,7 +857,8 @@ export default function MatchScreen() {
     // built with no cards named falls back to its own one-tap default, the
     // same way a bare press on a lone offer of the same shape already does;
     // an empty array is a *chosen* zero, and settles on nothing at all.
-    const action = submissionFor(offer, { cards: selectedCards.length ? selectedCards : undefined });
+    const picked = tablePick ?? selectedCards;
+    const action = submissionFor(offer, { cards: picked.length ? picked : undefined });
     if (!action) return;
 
     const rect = drops.rectFor(elementId);
@@ -799,6 +868,7 @@ export default function MatchScreen() {
     send(action);
     clearSelection();
     setPendingGroupKey(null);
+    setTablePick(null);
   };
 
   // Which cards the module marked, by card value. A mark is something true
@@ -827,6 +897,12 @@ export default function MatchScreen() {
     onAimGroup,
     entranceDelays: flightPlan.holds,
     changedGroups: changeMarks,
+    liftable,
+    picked: tablePick?.[0] ?? null,
+    onLift: liftCard,
+    onLiftDragStart: beginTableDrag,
+    onDragMove: moveDrag,
+    onDragEnd: endDrag,
   };
 
   // The same table again, with the same people: same game, variation and
@@ -845,6 +921,42 @@ export default function MatchScreen() {
       const code = e instanceof ApiError ? e.code : undefined;
       setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
       setStartingAgain(false);
+    }
+  };
+
+  // The same cards again, at a new table — offered where the server says a
+  // game may be (`canDealAgain`), which is a game played alone.
+  const dealAgain = async () => {
+    setStartingAgain(true);
+    setAgainError('');
+    try {
+      const next = await client.dealAgain(String(matchId));
+      router.replace(routeForMatch(next.status, next.hostId === viewerId, next.matchId));
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
+      setStartingAgain(false);
+    }
+  };
+
+  // The same cards for somebody else. The server mints the link and seals the
+  // game it came from inside it, so nothing here — or in the link — says
+  // which game that was.
+  const sendDeal = async () => {
+    setSendingDeal(true);
+    setAgainError('');
+    try {
+      const { token } = await client.dealLink(String(matchId));
+      const url = dealUrlFor(token);
+      const handedOver = url
+        ? await shareInviteLink(url, t('match.sendDealMessage', { game: moduleName(state.moduleId) }))
+        : false;
+      setSentDeal({ url, handedOver });
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSendingDeal(false);
     }
   };
 
@@ -1343,6 +1455,13 @@ export default function MatchScreen() {
                 </Pressable>
               </>
             ) : null}
+            {/* A deal played again says so: a score made on cards already
+                seen is not a first attempt. */}
+            {state.repeatDeal && !wasAbandoned ? (
+              <Text testID="match-over-repeat" style={styles.overOutcome}>
+                {t('match.repeatDeal')}
+              </Text>
+            ) : null}
             {rematchOffer ? (
               <Text testID="match-over-rematch-offer" style={styles.overOutcome}>
                 {t('match.rematchOffer', { name: playerName(state.players, rematchOffer.hostId) })}
@@ -1391,6 +1510,28 @@ export default function MatchScreen() {
                   </Text>
                 </Pressable>
               ) : null}
+              {seatedHere && state.canDealAgain ? (
+                <Pressable
+                  testID="match-over-deal-again"
+                  accessibilityState={{ disabled: startingAgain }}
+                  disabled={startingAgain}
+                  onPress={dealAgain}
+                  style={[styles.overButton, startingAgain && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>{t('match.dealAgain')}</Text>
+                </Pressable>
+              ) : null}
+              {seatedHere && state.canDealAgain ? (
+                <Pressable
+                  testID="match-over-send-deal"
+                  accessibilityState={{ disabled: sendingDeal }}
+                  disabled={sendingDeal}
+                  onPress={sendDeal}
+                  style={[styles.overButton, sendingDeal && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>{t('match.sendDeal')}</Text>
+                </Pressable>
+              ) : null}
               {rematchOffer ? (
                 <Pressable
                   testID="match-over-decline-rematch"
@@ -1408,6 +1549,21 @@ export default function MatchScreen() {
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
               </Pressable>
             </View>
+            {/* What became of the link — handed to a share sheet or copied,
+                or neither — and the link itself, either way: "copied" is
+                invisible, and people like to see what they are about to paste. */}
+            {sentDeal ? (
+              <View testID="match-over-deal-link">
+                <Text style={styles.overOutcome}>
+                  {sentDeal.handedOver ? t('match.sendDealDone') : t('match.sendDealCopy')}
+                </Text>
+                {sentDeal.url ? (
+                  <Text selectable testID="match-over-deal-url" style={styles.overOutcome}>
+                    {sentDeal.url}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             {againError || resumeError ? (
               <Text testID="match-over-error" style={styles.overError}>
                 {againError || resumeError}
