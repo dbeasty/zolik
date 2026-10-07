@@ -1984,4 +1984,12 @@ export const lv: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Vari nomainīt ne vairāk kā trīs kārtis',
   'err.DRAW_EMPTY': 'Izvēlies vismaz vienu kārti maiņai vai paturi visas',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Likmes ar bankas limitu — paaugstinājums var būt ne lielāks par banku pēc tava izlīdzinājuma.',
+  'holdem.rules.omaha.deal': 'Katrs spēlētājs saņem četras kārtis ar attēlu uz leju.',
+  'holdem.rules.omaha.useTwo': 'Tavā kombinācijā jāizmanto tieši divas no tavām četrām kārtīm un tieši trīs no galda.',
+  'holdem.rules.omaha.allIn': 'Tu nekad nevari likt vairāk, nekā tev ir, vai vairāk, nekā atļauj banka. All-in ir atļauts vienmēr, kad tavi žetoni iekļaujas šajā limitā — pat par mazāk nekā pilnu paaugstinājumu.',
+  'holdem.remedy.raiseAtMostPot': 'Paaugstini ne vairāk kā līdz {n} — tik liela ir banka.',
+  'err.OVER_POT_LIMIT': 'Šis paaugstinājums ir lielāks par banku',
+  // --- end Pot-Limit Omaha ---
 };

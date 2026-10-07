@@ -2017,4 +2017,12 @@ export const ga: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Is féidir leat trí chárta ar a mhéad a mhalartú',
   'err.DRAW_EMPTY': 'Roghnaigh cárta amháin ar a laghad le malartú, nó coinnigh iad ar fad',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Geallta teorainn an phota — ní féidir le hardú a bheith níos mó ná an pota tar éis duit glaoch.',
+  'holdem.rules.omaha.deal': 'Faigheann gach imreoir ceithre chárta béal faoi.',
+  'holdem.rules.omaha.useTwo': 'Caithfidh do lámh dhá cheann díreach de do cheithre chárta a úsáid, agus trí cinn díreach ón mbord.',
+  'holdem.rules.omaha.allIn': 'Ní féidir leat níos mó ná do chruach a chur isteach riamh, ná níos mó ná mar a cheadaíonn an pota. Ceadaítear dul all-in aon uair a fheileann do chruach faoin teorainn sin — fiú ar níos lú ná ardú iomlán.',
+  'holdem.remedy.raiseAtMostPot': 'Ardaigh go {n} ar a mhéad — sin méid an phota.',
+  'err.OVER_POT_LIMIT': 'Tá an t-ardú sin níos mó ná an pota',
+  // --- end Pot-Limit Omaha ---
 };

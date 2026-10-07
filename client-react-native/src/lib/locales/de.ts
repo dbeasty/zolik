@@ -2010,4 +2010,12 @@ export const de: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Du kannst höchstens drei Karten tauschen',
   'err.DRAW_EMPTY': 'Wähle mindestens eine Karte zum Tauschen oder behalte alle',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-Limit — eine Erhöhung darf höchstens so groß sein wie der Pot, nachdem du mitgegangen bist.',
+  'holdem.rules.omaha.deal': 'Jeder Spieler erhält vier verdeckte Karten.',
+  'holdem.rules.omaha.useTwo': 'Deine Hand muss genau zwei deiner vier Karten und genau drei vom Board verwenden.',
+  'holdem.rules.omaha.allIn': 'Du kannst nie mehr setzen, als du hast, oder mehr, als der Pot erlaubt. All-in ist erlaubt, wann immer dein Stack unter dieses Limit passt — auch für weniger als eine volle Erhöhung.',
+  'holdem.remedy.raiseAtMostPot': 'Erhöhe auf höchstens {n} — das ist die Größe des Pots.',
+  'err.OVER_POT_LIMIT': 'Diese Erhöhung ist größer als der Pot',
+  // --- end Pot-Limit Omaha ---
 };

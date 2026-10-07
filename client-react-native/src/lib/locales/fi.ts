@@ -1992,4 +1992,12 @@ export const fi: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Voit vaihtaa enintään kolme korttia',
   'err.DRAW_EMPTY': 'Valitse vähintään yksi kortti vaihdettavaksi tai pidä kaikki',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pottirajaiset panokset — korotus voi olla enintään potin kokoinen sen jälkeen, kun olet maksanut.',
+  'holdem.rules.omaha.deal': 'Jokainen pelaaja saa neljä korttia kuvapuoli alaspäin.',
+  'holdem.rules.omaha.useTwo': 'Kätesi on käytettävä tasan kahta neljästä kortistasi ja tasan kolmea pöydän kortista.',
+  'holdem.rules.omaha.allIn': 'Et voi koskaan panostaa enempää kuin sinulla on tai enempää kuin potti sallii. All-in on sallittu aina, kun pinosi mahtuu tuon rajan alle — myös vähemmällä kuin täydellä korotuksella.',
+  'holdem.remedy.raiseAtMostPot': 'Korota enintään {n}:een — se on potin koko.',
+  'err.OVER_POT_LIMIT': 'Korotus on suurempi kuin potti',
+  // --- end Pot-Limit Omaha ---
 };

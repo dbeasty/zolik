@@ -95,10 +95,14 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 	p := b.profileOf(botSeat.Skill)
 	rnd := seededRand(seedFor(s, seat))
 	defer releaseRand(rnd)
-	// Five-Card Draw is the same betting around a different hand, and the
-	// hand is the part this file's arithmetic is about (drawbot.go).
-	if s.rules().draw {
+	// Five-Card Draw and Omaha are the same betting around a different
+	// hand, and the hand is the part this file's arithmetic is about
+	// (drawbot.go, omahabot.go).
+	switch r := s.rules(); {
+	case r.draw:
 		return drawAct(s, seat, offers, p, rnd)
+	case !r.holdem():
+		return omahaAct(s, seat, mn, p, rnd)
 	}
 	if s.Street == streetPreflop {
 		return mn.action(preflop(s, seat, mn, p, rnd))

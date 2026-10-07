@@ -323,6 +323,11 @@ func applyRaise(s *GameState, seat *Seat, a module.Action) ([]module.Event, erro
 	if amount > maxTo {
 		return nil, errCode(ErrNotEnoughChips)
 	}
+	if amount > s.raiseCap(seat) {
+		// The chips are there; the pot limit is what stops them. An all-in
+		// is only the always-allowed exception below when it fits the cap.
+		return nil, errCode(ErrOverPotLimit)
+	}
 	if amount <= s.CurrentBet {
 		return nil, errCode(ErrRaiseTooSmall)
 	}
@@ -576,7 +581,7 @@ func reveal(s *GameState, res *HandResult, contenders []int) {
 			res.Mucked = append(res.Mucked, st.PlayerID)
 			continue
 		}
-		best := Best(s.handOf(st))
+		best := s.bestOf(st)
 		res.Shown = append(res.Shown, ShownHand{
 			PlayerID: st.PlayerID, Hole: append([]string(nil), st.Hole...),
 			Best: best.Cards, LabelKey: categoryKey(best.Category),
@@ -625,8 +630,8 @@ func applyShow(s *GameState, playerID string) ([]module.Event, error) {
 		Hole:      append([]string(nil), st.Hole...),
 		Voluntary: true,
 	}
-	if len(st.Hole)+len(s.Board) >= 5 && !s.LastHand.Uncontested && st.inHand() {
-		best := Best(s.handOf(st))
+	if s.canName(st) && !s.LastHand.Uncontested && st.inHand() {
+		best := s.bestOf(st)
 		shown.Best, shown.LabelKey = best.Cards, categoryKey(best.Category)
 	}
 	s.LastHand.Shown = append(s.LastHand.Shown, shown)
@@ -677,7 +682,7 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 
 	best := map[int]HandRank{}
 	for _, idx := range contenders {
-		best[idx] = Best(s.handOf(&s.Seats[idx]))
+		best[idx] = s.bestOf(&s.Seats[idx])
 	}
 
 	var out []PotResult

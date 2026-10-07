@@ -2001,4 +2001,12 @@ export const mt: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Tista\' tibdel l-aktar tliet karti',
   'err.DRAW_EMPTY': 'Agħżel mill-inqas karta waħda biex tibdel, jew żomm kollox',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Imħatri pot-limit — għolla tista\' tkun l-aktar daqs il-pot wara li ssejjaħ.',
+  'holdem.rules.omaha.deal': 'Kull plejer jingħata erba\' karti wiċċhom \'l isfel.',
+  'holdem.rules.omaha.useTwo': 'Idek trid tuża eżatt tnejn mill-erba\' karti tiegħek u eżatt tlieta mill-mejda.',
+  'holdem.rules.omaha.allIn': 'Qatt ma tista\' tpoġġi aktar milli għandek, jew aktar milli jippermetti l-pot. All-in huwa permess kull meta ċ-ċipep tiegħek joqogħdu taħt dak il-limitu — anke għal inqas minn għolla sħiħa.',
+  'holdem.remedy.raiseAtMostPot': 'Għolli għal l-aktar {n} — dak huwa d-daqs tal-pot.',
+  'err.OVER_POT_LIMIT': 'Dik l-għolla hija akbar mill-pot',
+  // --- end Pot-Limit Omaha ---
 };

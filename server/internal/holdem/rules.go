@@ -15,7 +15,11 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	// holdem.rules.mostChipsWins and .lastPlayerStanding are also used
 	// param-free in Descriptor's Summary, so they stay param-free here too —
 	// the hand count gets its own key rather than being folded into either.
+	game := rulesFor(cfg.Variation)
 	end := []module.Fact{{LabelKey: "holdem.rules.noLimit"}}
+	if game.potLimit {
+		end = []module.Fact{{LabelKey: "holdem.rules.potLimit"}}
+	}
 	if handLimit > 0 {
 		end = append(end,
 			module.Fact{LabelKey: "holdem.rules.handLimit", Params: map[string]any{"n": handLimit}},
@@ -33,7 +37,11 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	// different shape of hand: four rounds with a board, or two with a draw
 	// between them.
 	betting := []module.Fact{{LabelKey: "holdem.rules.streets"}}
-	if rulesFor(cfg.Variation).draw {
+	if game.useHole > 0 {
+		setup = append(setup, module.Fact{LabelKey: "holdem.rules.omaha.deal"})
+		betting = append(betting, module.Fact{LabelKey: "holdem.rules.omaha.useTwo"})
+	}
+	if game.draw {
 		setup = append(setup, module.Fact{LabelKey: "holdem.rules.draw.deal"})
 		betting = []module.Fact{
 			{LabelKey: "holdem.rules.draw.streets"},
@@ -41,10 +49,17 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			{LabelKey: "holdem.rules.draw.public"},
 		}
 	}
+	// Going all in is always allowed — except at a pot-limit table, where a
+	// stack bigger than the pot can only go in as far as the pot. One
+	// sentence per table rather than one with a hole in it.
+	allIn := module.Fact{LabelKey: "holdem.rules.allIn"}
+	if game.potLimit {
+		allIn = module.Fact{LabelKey: "holdem.rules.omaha.allIn"}
+	}
 	betting = append(betting,
 		module.Fact{LabelKey: "holdem.rules.checkOrCall"},
 		module.Fact{LabelKey: "holdem.rules.minRaise"},
-		module.Fact{LabelKey: "holdem.rules.allIn"},
+		allIn,
 		module.Fact{LabelKey: "holdem.rules.foldedOut"},
 		module.Fact{LabelKey: "holdem.rules.showdown"},
 	)

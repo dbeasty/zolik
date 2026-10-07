@@ -1996,4 +1996,12 @@ export const pt: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Podes trocar no máximo três cartas',
   'err.DRAW_EMPTY': 'Escolhe pelo menos uma carta para trocar, ou fica servido',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Apostas com limite do pote — um aumento pode ser no máximo do tamanho do pote depois de pagares.',
+  'holdem.rules.omaha.deal': 'Cada jogador recebe quatro cartas viradas para baixo.',
+  'holdem.rules.omaha.useTwo': 'A tua mão tem de usar exatamente duas das tuas quatro cartas e exatamente três da mesa.',
+  'holdem.rules.omaha.allIn': 'Nunca podes apostar mais do que tens, nem mais do que o pote permite. Ir all-in é permitido sempre que as tuas fichas cabem nesse limite — mesmo por menos do que um aumento completo.',
+  'holdem.remedy.raiseAtMostPot': 'Sobe no máximo para {n} — é o tamanho do pote.',
+  'err.OVER_POT_LIMIT': 'Esse aumento é maior do que o pote',
+  // --- end Pot-Limit Omaha ---
 };

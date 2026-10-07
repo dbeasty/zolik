@@ -2001,4 +2001,12 @@ export const hu: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Legfeljebb három lapot cserélhetsz',
   'err.DRAW_EMPTY': 'Válassz legalább egy lapot cserére, vagy tartsd meg mindet',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit tétek — egy emelés legfeljebb akkora lehet, mint a kassza a megadásod után.',
+  'holdem.rules.omaha.deal': 'Minden játékos négy lapot kap képpel lefelé.',
+  'holdem.rules.omaha.useTwo': 'A kezednek pontosan kettőt kell használnia a négy lapodból, és pontosan hármat az asztalról.',
+  'holdem.rules.omaha.allIn': 'Soha nem tehetsz be többet, mint amennyid van, vagy amennyit a kassza enged. Az all-in mindig megengedett, ha a zsetonjaid beleférnek ebbe a határba — akkor is, ha kevesebb egy teljes emelésnél.',
+  'holdem.remedy.raiseAtMostPot': 'Emelj legfeljebb {n}-ra — ekkora a kassza.',
+  'err.OVER_POT_LIMIT': 'Ez az emelés nagyobb a kasszánál',
+  // --- end Pot-Limit Omaha ---
 };

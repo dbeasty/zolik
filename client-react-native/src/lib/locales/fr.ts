@@ -2000,4 +2000,12 @@ export const fr: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Tu peux échanger trois cartes au plus',
   'err.DRAW_EMPTY': 'Choisis au moins une carte à échanger, ou garde les cinq',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Mises pot-limit — une relance ne peut pas dépasser le pot une fois que tu as suivi.',
+  'holdem.rules.omaha.deal': 'Chaque joueur reçoit quatre cartes face cachée.',
+  'holdem.rules.omaha.useTwo': 'Ta main doit utiliser exactement deux de tes quatre cartes et exactement trois du tableau.',
+  'holdem.rules.omaha.allIn': 'Tu ne peux jamais miser plus que ton tapis, ni plus que ce que le pot autorise. Le tapis est permis chaque fois que ton tapis tient sous cette limite — même pour moins qu\'une relance complète.',
+  'holdem.remedy.raiseAtMostPot': 'Relance à {n} au plus — c\'est la taille du pot.',
+  'err.OVER_POT_LIMIT': 'Cette relance dépasse le pot',
+  // --- end Pot-Limit Omaha ---
 };

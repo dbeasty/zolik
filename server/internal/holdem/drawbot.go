@@ -61,6 +61,14 @@ func drawBet(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choic
 		return choice{verb: VerbCheck}
 	}
 	eq := drawEquity(s, seat, p, drawTrials(p), rnd)
+	return betOnEquity(s, seat, mn, p, rnd, eq, opponents, s.Street == streetPostdraw)
+}
+
+// betOnEquity is a betting decision from a rolled-out equity: the arithmetic
+// postflop() does for Hold'em, shared by the games whose hands it cannot read
+// (Draw and Omaha). bluffSpot is the street where a heads-up bluff tells a
+// story — after the draw, or on the turn and river.
+func betOnEquity(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand, eq float64, opponents int, bluffSpot bool) choice {
 	// Equity against the field, as a multiple of a fair share of it: 1 is an
 	// average hand at this table, whatever its size. Thresholds on this rather
 	// than on raw equity are what let one rule play heads-up and six-handed.
@@ -73,10 +81,10 @@ func drawBet(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choic
 			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.70))}
 		case edge >= 1.25 && mn.can(VerbRaise) && rnd.Float64() < 0.5:
 			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.50))}
-		case s.Street == streetPostdraw && p.bluff > 0 && opponents == 1 && edge < 0.6 &&
+		case bluffSpot && p.bluff > 0 && opponents == 1 && edge < 0.6 &&
 			mn.can(VerbRaise) && rnd.Float64() < p.bluff:
-			// A bluff after the draw, heads-up, rarely: the one spot where a
-			// story — "I drew one and made it" — can be told with a bet.
+			// A bluff, heads-up, rarely, where a story can be told with a bet
+			// — "I drew one and made it", or the card that just came.
 			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.60))}
 		}
 		return choice{verb: VerbCheck}

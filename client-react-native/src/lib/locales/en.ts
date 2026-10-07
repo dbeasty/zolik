@@ -2005,4 +2005,12 @@ export const en: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'You can swap at most three cards',
   'err.DRAW_EMPTY': 'Pick at least one card to swap, or stand pat',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit betting — a raise can be at most the size of the pot after you call.',
+  'holdem.rules.omaha.deal': 'Each player is dealt four cards face down.',
+  'holdem.rules.omaha.useTwo': 'Your hand must use exactly two of your four cards and exactly three from the board.',
+  'holdem.rules.omaha.allIn': 'You can never put in more than your stack, or more than the pot allows. Going all in is allowed whenever your stack fits under that limit — even for less than a full raise.',
+  'holdem.remedy.raiseAtMostPot': 'Raise to at most {n} — that is the size of the pot.',
+  'err.OVER_POT_LIMIT': 'That raise is bigger than the pot',
+  // --- end Pot-Limit Omaha ---
 };

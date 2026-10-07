@@ -1994,4 +1994,12 @@ export const ro: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Poți schimba cel mult trei cărți',
   'err.DRAW_EMPTY': 'Alege cel puțin o carte de schimbat sau păstrează-le pe toate',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pariuri pot-limit — o ridicare poate fi cel mult cât potul după ce ai plătit.',
+  'holdem.rules.omaha.deal': 'Fiecare jucător primește patru cărți cu fața în jos.',
+  'holdem.rules.omaha.useTwo': 'Mâna ta trebuie să folosească exact două dintre cele patru cărți ale tale și exact trei de pe masă.',
+  'holdem.rules.omaha.allIn': 'Nu poți pune niciodată mai mult decât ai, nici mai mult decât permite potul. All-in-ul e permis ori de câte ori jetoanele tale încap sub această limită — chiar și pentru mai puțin decât o ridicare întreagă.',
+  'holdem.remedy.raiseAtMostPot': 'Ridică la cel mult {n} — aceasta e mărimea potului.',
+  'err.OVER_POT_LIMIT': 'Ridicarea aceasta e mai mare decât potul',
+  // --- end Pot-Limit Omaha ---
 };

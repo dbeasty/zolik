@@ -1982,4 +1982,12 @@ export const da: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Du kan højst bytte tre kort',
   'err.DRAW_EMPTY': 'Vælg mindst ét kort at bytte, eller behold alle',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit — en forhøjelse må højst være på størrelse med puljen, efter du har syn.',
+  'holdem.rules.omaha.deal': 'Hver spiller får fire kort med bagsiden opad.',
+  'holdem.rules.omaha.useTwo': 'Din hånd skal bruge præcis to af dine fire kort og præcis tre fra bordet.',
+  'holdem.rules.omaha.allIn': 'Du kan aldrig satse mere, end du har, eller mere, end puljen tillader. All-in er tilladt, når din stak kan være under den grænse — også for mindre end en fuld forhøjelse.',
+  'holdem.remedy.raiseAtMostPot': 'Hæv til højst {n} — det er puljens størrelse.',
+  'err.OVER_POT_LIMIT': 'Den forhøjelse er større end puljen',
+  // --- end Pot-Limit Omaha ---
 };

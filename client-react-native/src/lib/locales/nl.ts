@@ -2000,4 +2000,12 @@ export const nl: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Je kunt hoogstens drie kaarten ruilen',
   'err.DRAW_EMPTY': 'Kies minstens één kaart om te ruilen, of houd alles',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit — een verhoging mag hoogstens zo groot zijn als de pot nadat je hebt gecalld.',
+  'holdem.rules.omaha.deal': 'Elke speler krijgt vier kaarten gedekt.',
+  'holdem.rules.omaha.useTwo': 'Je hand moet precies twee van je vier kaarten en precies drie van het bord gebruiken.',
+  'holdem.rules.omaha.allIn': 'Je kunt nooit meer inzetten dan je hebt, of meer dan de pot toestaat. All-in mag altijd als je stack onder die grens past — ook voor minder dan een volledige verhoging.',
+  'holdem.remedy.raiseAtMostPot': 'Verhoog naar hoogstens {n} — dat is de grootte van de pot.',
+  'err.OVER_POT_LIMIT': 'Die verhoging is groter dan de pot',
+  // --- end Pot-Limit Omaha ---
 };

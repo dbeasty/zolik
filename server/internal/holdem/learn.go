@@ -41,8 +41,8 @@ func init() { learn.Register(learnGame{}) }
 // errNotHoldem is the encoder declining a poker game that is not Hold'em.
 //
 // The network was trained on two hole cards and a board, and the observation
-// has a slot for exactly that: given Five-Card Draw's five cards it would read
-// two of them and an empty board and play a hand that does not exist. Refusing
+// has a slot for exactly that: given Five-Card Draw's five cards or Omaha's
+// four it would read two of them and play a hand that does not exist. Refusing
 // the position is what hands the decision back to the rule bot (learn.NetBot
 // falls back on any error), which knows every game this module deals.
 var errNotHoldem = errors.New("holdem: the learned model plays Texas Hold'em only")
@@ -235,7 +235,7 @@ func (learnGame) EncodeFor(p learn.Position, playerID string) ([]float32, error)
 	if err != nil {
 		return nil, err
 	}
-	if !s.rules().board {
+	if !s.rules().holdem() {
 		return nil, errNotHoldem
 	}
 	me := s.seatIndex(playerID)
@@ -568,7 +568,7 @@ func (learnGame) CandidatesFor(p learn.Position, playerID string, offers []modul
 	if err != nil {
 		return nil, err
 	}
-	if !s.rules().board {
+	if !s.rules().holdem() {
 		return nil, errNotHoldem
 	}
 	if s.Break.Open || s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {

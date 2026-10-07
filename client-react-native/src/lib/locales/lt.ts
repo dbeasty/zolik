@@ -1985,4 +1985,12 @@ export const lt: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Gali pakeisti daugiausia tris kortas',
   'err.DRAW_EMPTY': 'Pasirink bent vieną kortą keitimui arba pasilik visas',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Statymai su banko limitu — pakelti galima daugiausia tiek, kiek yra banke tau išlyginus.',
+  'holdem.rules.omaha.deal': 'Kiekvienas žaidėjas gauna keturias užverstas kortas.',
+  'holdem.rules.omaha.useTwo': 'Tavo derinys turi naudoti lygiai dvi iš tavo keturių kortų ir lygiai tris nuo stalo.',
+  'holdem.rules.omaha.allIn': 'Niekada negali statyti daugiau, nei turi, ar daugiau, nei leidžia bankas. All-in leidžiamas visada, kai tavo žetonai telpa į šią ribą — net už mažiau nei visą pakėlimą.',
+  'holdem.remedy.raiseAtMostPot': 'Kelk daugiausia iki {n} — toks yra bankas.',
+  'err.OVER_POT_LIMIT': 'Šis pakėlimas didesnis už banką',
+  // --- end Pot-Limit Omaha ---
 };

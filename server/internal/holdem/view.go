@@ -39,6 +39,7 @@ const VarHoldem = "holdem"
 var variations = map[string]variationDefaults{
 	VarHoldem: {startingStack: 1000, bigBlind: 20, handLimit: 0},
 	VarDraw:   {startingStack: 1000, bigBlind: 20, handLimit: 0},
+	VarOmaha:  {startingStack: 1000, bigBlind: 20, handLimit: 0},
 	// The two variations Hold'em shipped with, before poker was one game with
 	// several. Each differed only in its hand limit, which every match already
 	// stores as an option; these keep a match created under either — and its
@@ -85,6 +86,25 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptStartingStack:   variations[VarHoldem].startingStack,
 					OptBigBlind:        variations[VarHoldem].bigBlind,
 					OptHandLimit:       variations[VarHoldem].handLimit,
+					OptShowdownReveal:  RevealEveryone,
+					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+				},
+			},
+			{
+				// Four in the hand, five on the felt, and a hand made of
+				// exactly two and exactly three of them; raises capped at the
+				// pot. Played pot-limit everywhere it is played, so the limit
+				// is part of the game rather than a table setting.
+				ID:    VarOmaha,
+				Label: "Pot-Limit Omaha",
+				Summary: []module.Fact{
+					{LabelKey: "holdem.rules.potLimit"},
+					{LabelKey: "holdem.rules.omaha.useTwo"},
+				},
+				Defaults: map[string]int{
+					OptStartingStack:   variations[VarOmaha].startingStack,
+					OptBigBlind:        variations[VarOmaha].bigBlind,
+					OptHandLimit:       variations[VarOmaha].handLimit,
 					OptShowdownReveal:  RevealEveryone,
 					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
 				},

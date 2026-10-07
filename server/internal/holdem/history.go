@@ -119,10 +119,10 @@ const bigBet = 0.75
 // a raise with ace-king is not a bluff by any definition worth counting.
 func readShown(s *GameState, idx int) {
 	st := &s.Seats[idx]
-	// The bluff test reads a bet against the board it was made on, which is
-	// a Hold'em question. A Draw hand changed between its bets, and the cards
-	// it was bet on were thrown away face down.
-	if len(st.Hole) < 2 || !s.rules().board {
+	// The bluff test reads a bet against the board it was made on with two
+	// hole cards, which is a Hold'em question. A Draw hand changed between
+	// its bets, and an Omaha hand's pair and draws are made by other rules.
+	if len(st.Hole) < 2 || !s.rules().holdem() {
 		return
 	}
 	for _, a := range s.HandLog {

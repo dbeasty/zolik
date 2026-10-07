@@ -45,7 +45,7 @@ func (learnGame) Styles() map[string]module.Bot {
 type holdemOnly struct{ style module.Bot }
 
 func (h holdemOnly) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
-	if s, err := decode(raw); err == nil && !s.rules().board {
+	if s, err := decode(raw); err == nil && !s.rules().holdem() {
 		return bot{}.Act(raw, seat, offers)
 	}
 	return h.style.Act(raw, seat, offers)

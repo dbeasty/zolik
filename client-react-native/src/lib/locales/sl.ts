@@ -1979,4 +1979,12 @@ export const sl: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Zamenjaš lahko največ tri karte',
   'err.DRAW_EMPTY': 'Izberi vsaj eno karto za menjavo ali obdrži vse',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Stave z omejitvijo pota — dvig je lahko največ tolikšen, kot je pot, ko izenačiš.',
+  'holdem.rules.omaha.deal': 'Vsak igralec dobi štiri karte s hrbtom navzgor.',
+  'holdem.rules.omaha.useTwo': 'Tvoja roka mora uporabiti natanko dve od tvojih štirih kart in natanko tri z mize.',
+  'holdem.rules.omaha.allIn': 'Nikoli ne moreš staviti več, kot imaš, ali več, kot dovoli pot. All-in je dovoljen, kadar koli tvoji žetoni ustrezajo tej meji — tudi za manj kot poln dvig.',
+  'holdem.remedy.raiseAtMostPot': 'Zvišaj največ na {n} — tolikšen je pot.',
+  'err.OVER_POT_LIMIT': 'Ta dvig je večji od pota',
+  // --- end Pot-Limit Omaha ---
 };

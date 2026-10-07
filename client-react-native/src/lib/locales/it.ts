@@ -1995,4 +1995,12 @@ export const it: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Puoi cambiare al massimo tre carte',
   'err.DRAW_EMPTY': 'Scegli almeno una carta da cambiare, oppure resta servito',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Puntate pot-limit — un rilancio può essere al massimo pari al piatto dopo che hai chiamato.',
+  'holdem.rules.omaha.deal': 'Ogni giocatore riceve quattro carte coperte.',
+  'holdem.rules.omaha.useTwo': 'La tua mano deve usare esattamente due delle tue quattro carte ed esattamente tre del tavolo.',
+  'holdem.rules.omaha.allIn': 'Non puoi mai puntare più di quanto hai, né più di quanto consente il piatto. L\'all-in è permesso ogni volta che il tuo stack rientra in quel limite — anche per meno di un rilancio completo.',
+  'holdem.remedy.raiseAtMostPot': 'Rilancia al massimo a {n} — è la dimensione del piatto.',
+  'err.OVER_POT_LIMIT': 'Quel rilancio è più grande del piatto',
+  // --- end Pot-Limit Omaha ---
 };

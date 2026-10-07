@@ -1981,4 +1981,12 @@ export const sv: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Du kan byta högst tre kort',
   'err.DRAW_EMPTY': 'Välj minst ett kort att byta, eller behåll alla',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit — en höjning får vara högst lika stor som potten efter att du har synat.',
+  'holdem.rules.omaha.deal': 'Varje spelare får fyra kort med baksidan upp.',
+  'holdem.rules.omaha.useTwo': 'Din hand måste använda exakt två av dina fyra kort och exakt tre från bordet.',
+  'holdem.rules.omaha.allIn': 'Du kan aldrig satsa mer än du har, eller mer än potten tillåter. All-in är tillåtet när din stack ryms under den gränsen — även för mindre än en full höjning.',
+  'holdem.remedy.raiseAtMostPot': 'Höj till högst {n} — det är pottens storlek.',
+  'err.OVER_POT_LIMIT': 'Den höjningen är större än potten',
+  // --- end Pot-Limit Omaha ---
 };

@@ -150,7 +150,43 @@ Hold'em, Five-Card Draw, Pot-Limit Omaha and Omaha Hi-Lo.
   - A Five-Card Draw row in the one-shell e2e.
   - Hold'em goldens unchanged.
 
-### O1 — Pot-Limit Omaha (PLO) as a variation
+### O1 — Pot-Limit Omaha (PLO) as a variation (done on `claude/omaha`)
+
+**As built** (the original notes follow):
+- **Ruleset row:** `omahaRules` has 4 hole cards, a board, `useHole: 2`,
+  `potLimit`, and 9 seats. The limit is part of the game rather than a table
+  option: Omaha is played pot-limit everywhere.
+- **Hand evaluation:** `BestUsing(hole, board, 2)` tries all 60 exact
+  combinations. Every showdown path goes through `s.bestOf(seat)`, and
+  `s.canName` guards "show" before the flop. The fast scorer `omahaScore` is
+  held to `BestUsing` by `TestOmahaScoreAgreesWithBestUsing`.
+- **Pot limit:** `s.raiseCap(seat)` is the current bet plus the pot after this
+  seat's call. It is used by `applyRaise` (new refusal `OVER_POT_LIMIT`) and
+  `raiseRange`.
+  - Quick choices are "½ Pot" and "Pot". "All-in" appears only when the stack
+    is under the cap.
+  - Preflop at 10/20 under the gun: minimum 40, pot 70.
+- **Rules:** `omaha.deal`, `omaha.useTwo`, and `potLimit` in place of
+  `noLimit`. `omaha.allIn` replaces Hold'em's "all in is always allowed",
+  which is false under a pot limit. Six new strings in 24 locales.
+- **Bot (`omahabot.go`):**
+  - Equity by rollout with `omahaScore`, through `betOnEquity`, the betting
+    decision now shared with Draw. Draw's ladder numbers are unchanged by the
+    refactor.
+  - Hard reads a bet after the flop as a claim of two pair now, with trust 0.5.
+  - Fixed-seed ladder (60 matches each): Hard beats Medium by +9.9 big blinds a
+    match and Medium beats Easy by +4.2. All three beat a calling station by
+    28–32.
+  - At most about 6 ms per Hard decision at nine seats.
+  - The trained network and the style opponents now gate on `ruleset.holdem()`
+    rather than "has a board".
+- **Tests:**
+  - `omaha_test.go`: exactly-two cases, scorer agreement, the deal and a
+    showdown, the pot-limit cap and quick choices (and Hold'em unaffected), bot
+    legality at 2–9 seats, no peeking, rules text, and the ladder.
+  - `holdem/omaha` rows in `allmodules_test` and `replay_test`.
+  - `e2e/tests/omaha.spec.ts` plus a one-shell row.
+
 **Engine**
 - Deal `ruleset.holeCards` (4) at `engine.go:105`. Nine seats need 9×4+5 = 41
   cards, which fits.
@@ -445,7 +481,7 @@ differs slightly.
 |---|---|---|
 | P0 Poker rename | old match IDs and rematch | small (done) |
 | P1 Five-Card Draw | the draw phase, and a new bot without Hold'em's charts | medium (done) |
-| O1 PLO | evaluator and bot cost; the ruleset refactor must leave Hold'em goldens identical | large: about Blackjack-sized, plus bot work |
+| O1 PLO | evaluator and bot cost; the ruleset refactor must leave Hold'em goldens identical | large (done) |
 | O2 Hi-Lo | splitting pots per side-pot level, and two-half result views | medium |
 | T0 trick groundwork | 52-card, 4-seat solve cost | small to medium |
 | Hearts | simultaneous pass, the moon model in a two-sided search | medium |

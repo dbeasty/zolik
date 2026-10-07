@@ -1990,4 +1990,12 @@ export const pl: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Możesz wymienić najwyżej trzy karty',
   'err.DRAW_EMPTY': 'Wybierz co najmniej jedną kartę do wymiany albo zostań przy swoich',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Zakłady z limitem puli — możesz podbić najwyżej o tyle, ile jest w puli po twoim sprawdzeniu.',
+  'holdem.rules.omaha.deal': 'Każdy gracz dostaje cztery karty zakryte.',
+  'holdem.rules.omaha.useTwo': 'Twój układ musi wykorzystać dokładnie dwie z twoich czterech kart i dokładnie trzy ze stołu.',
+  'holdem.rules.omaha.allIn': 'Nigdy nie możesz postawić więcej, niż masz, ani więcej, niż pozwala pula. All-in jest dozwolony, gdy twoje żetony mieszczą się w tym limicie — nawet za mniej niż pełne podbicie.',
+  'holdem.remedy.raiseAtMostPot': 'Podbij najwyżej do {n} — tyle wynosi pula.',
+  'err.OVER_POT_LIMIT': 'To podbicie jest większe niż pula',
+  // --- end Pot-Limit Omaha ---
 };

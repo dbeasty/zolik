@@ -1988,4 +1988,12 @@ export const et: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Saad vahetada kõige rohkem kolm kaarti',
   'err.DRAW_EMPTY': 'Vali vähemalt üks kaart vahetamiseks või jäta kõik',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Poti limiidiga panused — tõsta saab kõige rohkem poti suuruse võrra pärast seda, kui oled maksnud.',
+  'holdem.rules.omaha.deal': 'Iga mängija saab neli kaarti pilt allapoole.',
+  'holdem.rules.omaha.useTwo': 'Sinu käsi peab kasutama täpselt kahte oma neljast kaardist ja täpselt kolme lauakaarti.',
+  'holdem.rules.omaha.allIn': 'Sa ei saa kunagi panustada rohkem, kui sul on, ega rohkem, kui pott lubab. All-in on lubatud alati, kui su žetoonid mahuvad selle piiri alla — isegi vähema kui täie tõstmise eest.',
+  'holdem.remedy.raiseAtMostPot': 'Tõsta kõige rohkem {n}-ni — see on poti suurus.',
+  'err.OVER_POT_LIMIT': 'See tõstmine on suurem kui pott',
+  // --- end Pot-Limit Omaha ---
 };

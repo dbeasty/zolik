@@ -75,6 +75,13 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, seat *Seat, offe
 			}
 			o.RemedyOfferID = enabled(OfferRaise)
 
+		case ErrOverPotLimit:
+			o.Remedy = &module.Fact{
+				LabelKey: "holdem.remedy.raiseAtMostPot",
+				Params:   map[string]any{"n": maxTo},
+			}
+			o.RemedyOfferID = enabled(OfferRaise)
+
 		case ErrAmountRequired:
 			o.Remedy = &module.Fact{
 				LabelKey: "holdem.remedy.nameAnAmount",

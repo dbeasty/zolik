@@ -84,7 +84,11 @@ const (
 	ErrRaiseTooSmall   = "RAISE_TOO_SMALL"
 	ErrNotEnoughChips  = "NOT_ENOUGH_CHIPS"
 	ErrCannotRaise     = "CANNOT_RAISE"
-	ErrSeatNotInHand   = "SEAT_NOT_IN_HAND"
+	// ErrOverPotLimit is a raise past the pot at a pot-limit table (Omaha).
+	// Its own code rather than NOT_ENOUGH_CHIPS: the chips are there, and the
+	// rule that stops them is a different one.
+	ErrOverPotLimit  = "OVER_POT_LIMIT"
+	ErrSeatNotInHand = "SEAT_NOT_IN_HAND"
 
 	// --- showing a hand ----------------------------------------------------
 	//

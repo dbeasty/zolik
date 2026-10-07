@@ -1984,4 +1984,12 @@ export const sk: Record<string, string> = {
   'err.DRAW_TOO_MANY': 'Vymeniť môžeš najviac tri karty',
   'err.DRAW_EMPTY': 'Vyber aspoň jednu kartu na výmenu, alebo si nechaj všetky',
   // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Stávky s limitom banku — zvýšiť môžeš najviac o toľko, koľko je v banku po tvojom dorovnaní.',
+  'holdem.rules.omaha.deal': 'Každý hráč dostane štyri karty lícom nadol.',
+  'holdem.rules.omaha.useTwo': 'Tvoja kombinácia musí použiť presne dve zo tvojich štyroch kariet a presne tri zo stola.',
+  'holdem.rules.omaha.allIn': 'Nikdy nemôžeš staviť viac, než máš, ani viac, než dovolí bank. All-in je povolený vždy, keď sa tvoje žetóny do tohto limitu zmestia — aj za menej ako celé zvýšenie.',
+  'holdem.remedy.raiseAtMostPot': 'Zvýš najviac na {n} — to je veľkosť banku.',
+  'err.OVER_POT_LIMIT': 'Také zvýšenie je väčšie ako bank',
+  // --- end Pot-Limit Omaha ---
 };

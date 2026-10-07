@@ -117,6 +117,7 @@
     "NO_SUCH_MELD",
     "NO_SUCH_SET",
     "OPTION_NOT_ALLOWED",
+    "OVER_POT_LIMIT",
     "PILE_BLOCKED",
     "PILE_EMPTY",
     "PILE_FROZEN",
@@ -463,6 +464,7 @@
     "holdem.remedy.nothingToShow",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.remedy.waitForNextHand",
     "holdem.round.hand",
     "holdem.round.pot",
@@ -481,6 +483,10 @@
     "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.omaha.allIn",
+    "holdem.rules.omaha.deal",
+    "holdem.rules.omaha.useTwo",
+    "holdem.rules.potLimit",
     "holdem.rules.revealEveryone",
     "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
@@ -980,6 +986,7 @@
     "holdem.remedy.nothingToShow",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.remedy.waitForNextHand",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
@@ -995,6 +1002,10 @@
     "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.omaha.allIn",
+    "holdem.rules.omaha.deal",
+    "holdem.rules.omaha.useTwo",
+    "holdem.rules.potLimit",
     "holdem.rules.revealEveryone",
     "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
@@ -1669,6 +1680,9 @@
     "holdem.remedy.raiseAtMost": [
       "n"
     ],
+    "holdem.remedy.raiseAtMostPot": [
+      "n"
+    ],
     "holdem.round.pot": [
       "n"
     ],
@@ -2232,6 +2246,7 @@
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.round.pot",
     "holdem.rules.blinds",
     "holdem.rules.draw.draw",

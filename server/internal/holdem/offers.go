@@ -126,7 +126,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Step:     1,
 			Default:  minTo,
 			Headline: true,
-			Choices:  raiseQuickChoices(s, minTo, maxTo),
+			Choices:  raiseQuickChoices(s, seat, minTo, maxTo),
 		}}
 		// The pot as it stands once this seat's call is in — the base every
 		// pot-sized raise is measured from — and worded as exactly that, "pot
@@ -188,7 +188,7 @@ func (m *Module) drawOffers(raw module.State, s *GameState, playerID string) []m
 // by accident and which quietly allows an illegal re-raise after a big one.
 // Both ends are capped at the stack, since a player may always move all in.
 func raiseRange(s *GameState, seat *Seat) (int, int) {
-	maxTo := seat.Bet + seat.Stack
+	maxTo := s.raiseCap(seat)
 	minTo := s.CurrentBet + s.MinRaise
 	if minTo > maxTo {
 		minTo = maxTo
@@ -215,7 +215,12 @@ func raiseRange(s *GameState, seat *Seat) (int, int) {
 // invisible to that scan. Insertion order decides the tie: all in goes in
 // first, so a pot or half-pot amount that happens to coincide with it is
 // dropped from the list rather than duplicating the button under another name.
-func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
+//
+// At a pot-limit table the top of the range is usually the pot rather than the
+// stack, and a button reading "All-in" that put in a third of the stack would
+// be a lie — so the top is named "Pot" there, and "All-in" appears only when
+// the stack is what the cap is.
+func raiseQuickChoices(s *GameState, seat *Seat, minTo, maxTo int) []module.ParamChoice {
 	potAfterCall := s.potIfCalled()
 	clamp := func(n int) int {
 		if n < minTo {
@@ -230,9 +235,21 @@ func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
 	allIn := maxTo
 	pot := clamp(s.CurrentBet + potAfterCall)
 	halfPot := clamp(s.CurrentBet + potAfterCall/2)
+	if s.rules().potLimit {
+		// The pot-limit pot — the same figure applyRaise refuses above — and
+		// half of what it adds to the bet.
+		full := s.potLimitTo(seat)
+		pot = clamp(full)
+		halfPot = clamp(s.CurrentBet + (full-s.CurrentBet)/2)
+	}
 
 	seen := map[int]bool{allIn: true}
 	choices := []module.ParamChoice{{Value: strconv.Itoa(allIn), LabelKey: "holdem.quick.allIn"}}
+	if maxTo < seat.Bet+seat.Stack {
+		// The top is the pot limit, not the stack.
+		seen = map[int]bool{maxTo: true}
+		choices = []module.ParamChoice{{Value: strconv.Itoa(maxTo), LabelKey: "holdem.quick.pot"}}
+	}
 	if !seen[pot] {
 		seen[pot] = true
 		choices = append([]module.ParamChoice{{Value: strconv.Itoa(pot), LabelKey: "holdem.quick.pot"}}, choices...)
