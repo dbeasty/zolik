@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
 import { CardBack } from '@/src/components/CardBack';
@@ -107,7 +107,11 @@ type Props = {
    * is populated between drags, not during one.
    */
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  /**
+   * `share` is how far down the target the press landed, 0 to 1, where the
+   * target knows its own height — what picks an end of a run on a tap.
+   */
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   /**
    * Group ids (a meld's own id, not an element id) that could be *aimed at*
    * right now — pointed at before any card is picked, so a move can be made
@@ -238,6 +242,9 @@ export function ZoneView({
 
   /** Which melds the player has tapped open, to see past the stacked corners. */
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(new Set());
+  // Each lit group's height, from its own layout, so a tap on it can say how
+  // far down it landed.
+  const pressHeights = useRef(new Map<string, number>());
   const toggleGroup = (id: string) =>
     setExpandedGroups((was) => {
       const next = new Set(was);
@@ -570,7 +577,10 @@ export function ZoneView({
                   <Pressable
                     testID={`group-press-${g.id}`}
                     style={StyleSheet.absoluteFill}
-                    onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageY)}
+                    onLayout={(e) => pressHeights.current.set(g.id, e.nativeEvent.layout.height)}
+                    onPress={(e) =>
+                      onPressDrop?.(groupId, e.nativeEvent.pageY, pressShare(e, pressHeights.current.get(g.id)))
+                    }
                   />
                 ) : null}
                 {/* The place a card in flight would land if let go right now.
@@ -919,4 +929,26 @@ function zoneStyles(m: Metrics, s: Skin) {
       borderRadius: 9,
     },
   });
+}
+
+/**
+ * How far down its target a press landed, 0 at the top edge to 1 at the
+ * bottom — or undefined when that cannot be told.
+ *
+ * Two routes, because the platforms disagree about what a press carries. On
+ * the web the target is a DOM node and the event a pointer event, so the
+ * answer is the pointer against the node's own box, both in viewport terms; a
+ * react-native-web press does not fill in `locationY`. On a device
+ * `locationY` is the offset into the target, and the target's height is what
+ * its layout last reported.
+ */
+function pressShare(e: GestureResponderEvent, layoutHeight: number | undefined): number | undefined {
+  const target = e.currentTarget as unknown as { getBoundingClientRect?: () => DOMRect };
+  const clientY = (e.nativeEvent as unknown as { clientY?: number }).clientY;
+  if (typeof target?.getBoundingClientRect === 'function' && typeof clientY === 'number') {
+    const box = target.getBoundingClientRect();
+    return box.height > 0 ? (clientY - box.top) / box.height : undefined;
+  }
+  const y = e.nativeEvent.locationY;
+  return layoutHeight && Number.isFinite(y) ? y / layoutHeight : undefined;
 }

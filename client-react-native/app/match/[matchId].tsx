@@ -42,6 +42,7 @@ import {
   dropSpotsFor,
   groupElementId,
   positionAt,
+  positionAtShare,
   readyWith,
   refusalAt,
   someOfferReady,
@@ -809,7 +810,7 @@ export default function MatchScreen() {
   // y — the one thing a tap still supplies that a plain press otherwise
   // would not — so a target with a choice of two positions reads a press on
   // its top half the same way it would read a drop there.
-  const pressDrop = (elementId: string, pageY: number) => {
+  const pressDrop = (elementId: string, pageY: number, share?: number) => {
     // A target chosen by what is picked wins over a pile that would be taken
     // from, for the same reason `sourceSpots` is empty while anything is
     // picked: with cards in hand a pile is somewhere to put them.
@@ -844,8 +845,16 @@ export default function MatchScreen() {
     const action = submissionFor(offer, { cards: pressCards.length ? pressCards : undefined });
     if (!action) return;
 
+    // Which end, when there is a choice: from how far down the target the
+    // press landed where the target said, and only otherwise from a rect a
+    // drag measured — in window coordinates, and possibly long ago.
     const rect = drops.rectFor(elementId);
-    const position = rect ? positionAt(spot.positions, pageY, rect) : spot.positions?.[0];
+    const position =
+      share !== undefined
+        ? positionAtShare(spot.positions, share)
+        : rect
+          ? positionAt(spot.positions, pageY, rect)
+          : spot.positions?.[0];
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);

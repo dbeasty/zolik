@@ -44,7 +44,7 @@ type DropProps = {
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
@@ -269,7 +269,7 @@ export function Section({
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
