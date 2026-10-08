@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
@@ -109,7 +109,11 @@ type Props = {
    * is populated between drags, not during one.
    */
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  /**
+   * `share` is how far down the target the press landed, 0 to 1, where the
+   * target knows its own height — what picks an end of a run on a tap.
+   */
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   /**
    * Group ids (a meld's own id, not an element id) that could be *aimed at*
    * right now — pointed at before any card is picked, so a move can be made
@@ -120,6 +124,15 @@ type Props = {
   /** The one currently aimed at, if any. */
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  /**
+   * Group ids whose cards may be picked up one by one — the source of a move
+   * between melds. A group in this set, once tapped open, takes a tap on any
+   * of its cards as picking that card rather than as folding the group.
+   */
+  pickableGroups?: ReadonlySet<string>;
+  /** The cards picked up so far, by position in their group. */
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
   /**
    * How long this zone's newest card should hold its entrance, keyed by the
    * zone's own element id — set while a flight is landing here, so the card
@@ -174,6 +187,9 @@ export function ZoneView({
   armableGroups,
   armedGroupId,
   onAimGroup,
+  pickableGroups,
+  pickedInGroup,
+  onPickGroupCard,
   entranceDelays,
   changedGroups,
   liftable,
@@ -286,6 +302,9 @@ export function ZoneView({
 
   /** Which melds the player has tapped open, to see past the stacked corners. */
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(new Set());
+  // Each lit group's height, from its own layout, so a tap on it can say how
+  // far down it landed.
+  const pressHeights = useRef(new Map<string, number>());
   const toggleGroup = (id: string) =>
     setExpandedGroups((was) => {
       const next = new Set(was);
@@ -427,6 +446,11 @@ export function ZoneView({
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // Cards that may be picked up off this meld, one tap each — only
+            // while it is spread open, so every card is there in full to aim
+            // at, and the tap that opens it stays the tap that opens it.
+            const cardsPickable = groupOpen && (pickableGroups?.has(g.id) ?? false) && !groupPressable;
+            const pickedHere = pickedInGroup?.groupId === g.id ? pickedInGroup.indices : [];
             // A finished meld folds down to its top card and a count: it is
             // a score now, not something to read card by card, and a
             // canasta's column of corners was the tallest thing in the row.
@@ -593,7 +617,8 @@ export function ZoneView({
                                 // whole, and only the covered ones are
                                 // reduced to their corner.
                                 stacked={!groupOpen && !(wide && i === g.cards.length - 1)}
-                                selected={picked === c && !!liftable?.has(liftKey(g.id, c))}
+                                selected={pickedHere.includes(i) || (picked === c && !!liftable?.has(liftKey(g.id, c)))}
+                                onPress={cardsPickable ? () => onPickGroupCard?.(g.id, i, c) : undefined}
                                 testID={`card-${g.id}-${i}`}
                               />
                             ),
@@ -647,7 +672,10 @@ export function ZoneView({
                   <Pressable
                     testID={`group-press-${g.id}`}
                     style={StyleSheet.absoluteFill}
-                    onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageY)}
+                    onLayout={(e) => pressHeights.current.set(g.id, e.nativeEvent.layout.height)}
+                    onPress={(e) =>
+                      onPressDrop?.(groupId, e.nativeEvent.pageY, pressShare(e, pressHeights.current.get(g.id)))
+                    }
                   />
                 ) : null}
                 {/* The place a card in flight would land if let go right now.
@@ -1123,4 +1151,26 @@ function zoneStyles(m: Metrics, s: Skin) {
       borderRadius: 9,
     },
   });
+}
+
+/**
+ * How far down its target a press landed, 0 at the top edge to 1 at the
+ * bottom — or undefined when that cannot be told.
+ *
+ * Two routes, because the platforms disagree about what a press carries. On
+ * the web the target is a DOM node and the event a pointer event, so the
+ * answer is the pointer against the node's own box, both in viewport terms; a
+ * react-native-web press does not fill in `locationY`. On a device
+ * `locationY` is the offset into the target, and the target's height is what
+ * its layout last reported.
+ */
+function pressShare(e: GestureResponderEvent, layoutHeight: number | undefined): number | undefined {
+  const target = e.currentTarget as unknown as { getBoundingClientRect?: () => DOMRect };
+  const clientY = (e.nativeEvent as unknown as { clientY?: number }).clientY;
+  if (typeof target?.getBoundingClientRect === 'function' && typeof clientY === 'number') {
+    const box = target.getBoundingClientRect();
+    return box.height > 0 ? (clientY - box.top) / box.height : undefined;
+  }
+  const y = e.nativeEvent.locationY;
+  return layoutHeight && Number.isFinite(y) ? y / layoutHeight : undefined;
 }

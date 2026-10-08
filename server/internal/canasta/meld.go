@@ -42,14 +42,20 @@ func meldRank(cards []string) (string, bool) {
 // Where it does not, a mixed list is a group with mixed ranks, which is exactly
 // the refusal Canasta gave before sequences existed.
 func validateMeld(r ruleset, cards []string) error {
-	if meldKindOf(r, cards) == meldRun {
+	switch meldKindOf(r, cards) {
+	case meldRun:
 		return validateRun(r, cards)
+	case meldWild:
+		return validateWildMeld(r, cards)
 	}
 	return validateGroup(r, cards)
 }
 
 // meldKindOf is what a list of cards is asking to be.
 func meldKindOf(r ruleset, cards []string) string {
+	if isWildMeld(r, cards) {
+		return meldWild
+	}
 	if !r.Sequences {
 		return meldSet
 	}
@@ -75,37 +81,10 @@ func validateRun(r ruleset, cards []string) error {
 	if len(cards) > canastaSize {
 		return errCode(ErrMeldTooLarge)
 	}
-
-	suit := ""
-	idx := make([]int, 0, len(cards))
-	for _, c := range cards {
-		if isWild(c) {
-			return errCode(ErrSequenceNoWilds)
-		}
-		if rankOf(c) == rankThree {
-			return errCode(ErrCannotMeldThree)
-		}
-		i, ok := runIndexOf(c)
-		if !ok {
-			return errCode(ErrRunNotConsecutive)
-		}
-		if suit == "" {
-			suit = suitOf(c)
-		} else if suitOf(c) != suit {
-			return errCode(ErrSequenceNeedsOneSuit)
-		}
-		idx = append(idx, i)
-	}
-
-	sort.Ints(idx)
-	for i := 1; i < len(idx); i++ {
-		// Equal catches the duplicate that three decks make easy to hold: two
-		// nines of hearts are two cards, not two steps.
-		if idx[i] != idx[i-1]+1 {
-			return errCode(ErrRunNotConsecutive)
-		}
-	}
-	return nil
+	// Where the cards go, and whether that is a run, is arrangeRun's — the one
+	// place a sequence is built, wilds or no wilds (house.go).
+	_, _, err := arrangeRun(r, nil, 0, cards, noLow)
+	return err
 }
 
 // validateGroup is the rules for n cards of one rank.
@@ -134,19 +113,10 @@ func validateGroup(r ruleset, cards []string) error {
 			wilds++
 		}
 	}
-	naturals := len(cards) - wilds
-	if wilds > r.MaxWilds {
-		return errCode(ErrTooManyWilds)
-	}
-	if naturals < r.MinNaturals {
-		return errCode(ErrNotEnoughNaturals)
-	}
-	// Samba's ratio: twice as many naturals as wilds, which makes a two-wild
-	// group need four naturals rather than the two an absolute floor asks for.
-	if r.NaturalsPerWild > 0 && naturals < wilds*r.NaturalsPerWild {
-		return errCode(ErrNotEnoughNaturals)
-	}
-	return nil
+	// Samba's ratio lives in checkWildLimits too: twice as many naturals as
+	// wilds, which makes a two-wild group need four naturals rather than the
+	// two an absolute floor asks for.
+	return checkWildLimits(r, len(cards)-wilds, wilds)
 }
 
 // validateBlackThreeMeld is the one exception: on the way out a player may put
@@ -192,6 +162,10 @@ type candidate struct {
 	// the selection its own rules had nothing against. The submission stays
 	// conservative; what a person may choose does not have to be.
 	Pool []string
+
+	// Dirty is a sequence with wilds in it (CanastaX), told apart from a clean
+	// one starting at the same card.
+	Dirty bool
 }
 
 // selectable is the cards a person may pick for this meld — the pool where
@@ -207,8 +181,21 @@ func (c candidate) selectable() []string {
 // offerKey is what tells one candidate from another on screen: a rank for a
 // group, and a suit and low card for a sequence.
 func (c candidate) offerKey() string {
-	if c.Kind == meldRun {
-		return "run:" + c.Suit + c.Cards[0][:len(c.Cards[0])-1]
+	switch c.Kind {
+	case meldRun:
+		first := ""
+		for _, x := range c.Cards {
+			if !isWild(x) {
+				first = x[:len(x)-1]
+				break
+			}
+		}
+		if c.Dirty {
+			return "run:" + c.Suit + first + "*"
+		}
+		return "run:" + c.Suit + first
+	case meldWild:
+		return meldWild
 	}
 	return c.Rank
 }
@@ -379,11 +366,24 @@ func layOffCards(r ruleset, hand []string, m *Meld) []string {
 		return nil
 	}
 	if m.kind() == meldRun {
-		return runExtensions(hand, m, m.room(r))
+		out := runExtensions(hand, m, m.room(r))
+		// A dirty sequence takes wilds as a group does; which of them fit is
+		// the engine's to say, and the offer list asks it.
+		if r.DirtySequences && m.room(r) > 0 && m.wilds() < r.MaxWilds {
+			out = append(out, handWilds(hand)...)
+		}
+		return sortedCards(out)
 	}
 	room := m.room(r)
 	var out []string
 	for _, c := range hand {
+		if m.Kind == meldWild {
+			// The 2s are this meld's own rank; jokers are its wilds.
+			if rankOf(c) == rankTwo || (rankOf(c) == rankJoker && m.wilds() < r.MaxWilds && room > 0) {
+				out = append(out, c)
+			}
+			continue
+		}
 		if isWild(c) {
 			if m.wilds() < r.MaxWilds && room > 0 {
 				out = append(out, c)
@@ -423,7 +423,7 @@ func runExtensions(hand []string, m *Meld, room int) []string {
 		}
 	}
 
-	low, high := runSpan(m.Cards)
+	low, high := m.span()
 	var out []string
 	// Upward first, then downward, because a sequence is worth more at the top
 	// and a scarce slot should be spent there.
@@ -551,7 +551,7 @@ func runOverlapsTable(t *Team, suit string, block []string) bool {
 		if m.kind() != meldRun || m.Suit != suit {
 			continue
 		}
-		low, high := runSpan(m.Cards)
+		low, high := m.span()
 		for _, c := range block {
 			if j, ok := runIndexOf(c); ok && j >= low-1 && j <= high+1 {
 				return true
@@ -614,6 +614,9 @@ func reachableValue(r ruleset, hand []string, t *Team) int {
 		{newMeldCandidates, layOffCandidates, runCandidates},
 		{newMeldCandidates, runCandidates, layOffCandidates},
 	} {
+		// Sequences with wilds in them last in every order: they spend what
+		// wilds the others left, so they can only add.
+		order = append(order, dirtyRunCandidates)
 		remaining := append([]string(nil), hand...)
 		total := 0
 		for _, enumerate := range order {
@@ -651,10 +654,17 @@ func layOffCandidates(r ruleset, hand []string, t *Team) []candidate {
 			if m.closed(r) {
 				break
 			}
-			if isWild(c) && (!opened || m.wilds() >= r.MaxWilds) {
+			if isWild(c) && !opened {
 				continue
 			}
-			m.Cards = append(m.Cards, c)
+			// Asked of the same check a lay-off makes, so a card counted here
+			// is one that would really go on: an over-estimate is the dead end
+			// reachableValue exists to prevent.
+			grown, err := grownMeld(r, m, []string{c}, noLow)
+			if err != nil {
+				continue
+			}
+			m = grown
 			remaining, _ = removeCards(remaining, []string{c})
 			cards = append(cards, c)
 		}

@@ -43,6 +43,7 @@ import {
   groupElementId,
   liftKey,
   positionAt,
+  positionAtShare,
   readyWith,
   refusalAt,
   someOfferDroppable,
@@ -203,6 +204,13 @@ export default function MatchScreen() {
   const dragRef = useRef<{ slotIds: string[]; cards: string[]; fromTable?: boolean } | null>(null);
   const [drag, setDrag] = useState<{ cards: string[]; fromTable?: boolean } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
+  // Cards picked up off a meld on the table rather than out of the hand — the
+  // source of a move between melds (Canasta's rearranging). Kept apart from
+  // the hand's selection on purpose: the same card string can be in a hand
+  // and on a meld at once with two decks in play, and an offer that takes
+  // cards *from a meld* must never be satisfied by hand cards, nor the other
+  // way round. By position in the group, so two copies of a card are two picks.
+  const [meldPick, setMeldPick] = useState<{ meldId: string; indices: number[]; cards: string[] } | null>(null);
   // The refusal currently being explained, if any. One at a time: a sheet is
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
@@ -354,6 +362,7 @@ export default function MatchScreen() {
     setHintRefusal(null);
     // A pick belongs to the board it was made on.
     setTablePick(null);
+    setMeldPick(null);
   }, [state]);
   useEffect(() => {
     setIdle(false);
@@ -464,6 +473,7 @@ export default function MatchScreen() {
     setSelected(new Set());
     setSelectionIsAuto(false);
     setArmedMeldId(null);
+    setMeldPick(null);
   };
 
   // Whether a card in hand carries a mark the module put there — Žolíky's
@@ -482,6 +492,7 @@ export default function MatchScreen() {
     // that choice over rather than resolving it against a selection that has
     // since moved on.
     setPendingGroupKey(null);
+    setMeldPick(null);
     setSelected((prev) => {
       // `provisional` is what makes a tap on some *other* card replace the
       // app's own pick rather than join it — see `toggleSelection` — but
@@ -510,6 +521,43 @@ export default function MatchScreen() {
   };
 
   const selectedCards = cardsForSelection(heldSlots, selected);
+
+  // Which offers take their cards out of a meld rather than out of a hand.
+  // Read off the offer's own source zone — the server says where a move's
+  // cards come from — so no game is named here.
+  // A move whose cards the module has already named (`submit`) is a lift —
+  // solitaire's, below — not a choice made card by card.
+  const fromMeld = (o: ActionOffer) => o.source?.zone === 'from_meld' && !o.source?.submit?.length;
+  // Everything a hand selection could be for: the whole list, less the moves
+  // that start on the table.
+  const handOffers = state.legalActions.filter((o) => !fromMeld(o));
+  // Melds whose cards may be picked up right now, by meld id.
+  const pickableGroups = new Set(
+    state.legalActions
+      .filter((o) => o.enabled && fromMeld(o) && o.source?.meldId)
+      .map((o) => o.source!.meldId!),
+  );
+  const meldPickLive = meldPick && pickableGroups.has(meldPick.meldId) ? meldPick : null;
+  const onPickGroupCard = (meldId: string, index: number, card: string) => {
+    if (!pickableGroups.has(meldId)) return;
+    // A card off the table and a card out of the hand are never one
+    // submission; picking one starts over on the other.
+    setSelected(new Set());
+    setSelectionIsAuto(false);
+    setPendingGroupKey(null);
+    setArmedMeldId(null);
+    setTablePick(null);
+    setMeldPick((prev) => {
+      const base = prev && prev.meldId === meldId ? prev : { meldId, indices: [], cards: [] };
+      const at = base.indices.indexOf(index);
+      if (at >= 0) {
+        const indices = base.indices.filter((_, i) => i !== at);
+        const cards = base.cards.filter((_, i) => i !== at);
+        return indices.length ? { meldId, indices, cards } : null;
+      }
+      return { meldId, indices: [...base.indices, index], cards: [...base.cards, card] };
+    });
+  };
 
   // Cards an offer lifts straight off the table: the head of the run it names
   // as `source.submit`, in a group or a pile that is nobody's hand. Read off
@@ -579,7 +627,7 @@ export default function MatchScreen() {
   // says: every other offer names other cards, and would only light up as
   // refusing.
   const spotsFor = (cards: string[], fromTable?: boolean) =>
-    dropSpotsFor(fromTable ? liftsOf(cards[0] ?? '') : state.legalActions, cards);
+    dropSpotsFor(fromTable ? liftsOf(cards[0] ?? '') : handOffers, cards);
   const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable) : [];
   const liveTakeable = takeableSpots(liveSpots);
 
@@ -605,12 +653,12 @@ export default function MatchScreen() {
   // whenever it was tapped, so a meld played away by a bot while armed does
   // not leave the screen pointed at nothing.
   const meldsWithOffers = new Set(
-    state.legalActions
+    handOffers
       .filter((o) => o.enabled && o.target?.meldId && (o.source?.minCards ?? 0) > 0)
       .map((o) => o.target!.meldId!),
   );
   const armedMeldIdLive = armedMeldId && meldsWithOffers.has(armedMeldId) ? armedMeldId : null;
-  const pendingCandidates = state.legalActions.filter(
+  const pendingCandidates = handOffers.filter(
     (o) =>
       o.enabled &&
       (!pendingGroupKey || (o.target?.meldId && offerGroupKey(o) === pendingGroupKey)) &&
@@ -621,8 +669,15 @@ export default function MatchScreen() {
   // enabled, already-one-tap-ready offers is still a live target then, cards
   // or no cards, the same as a lone offer of the same shape would be. With
   // nothing selected and no folded control pressed, nothing is pending.
+  // Cards picked up off a meld light the melds they may be moved to — the
+  // same spots, from the offers that start on that meld.
+  const moveCandidates = meldPickLive
+    ? state.legalActions.filter((o) => o.enabled && fromMeld(o) && o.source?.meldId === meldPickLive.meldId)
+    : [];
   const pendingSpots: DropSpot[] = tablePick
     ? dropSpotsFor(liftsOf(tablePick[0] ?? ''), tablePick)
+    : meldPickLive
+      ? dropSpotsFor(moveCandidates, meldPickLive.cards)
     : selectedCards.length > 0
       ? dropSpotsFor(pendingCandidates, selectedCards)
       : pendingGroupKey
@@ -643,7 +698,7 @@ export default function MatchScreen() {
   // chosen means "put these here" — the discard pile is both, one phase apart
   // — and a press has to mean one thing. What is picked is what says which.
   const sourceSpots =
-    !drag && selectedCards.length === 0 && !pendingGroupKey && !tablePick
+    !drag && selectedCards.length === 0 && !pendingGroupKey && !tablePick && !meldPickLive
       ? sourceSpotsFor(state.legalActions, zones, viewerId)
       : [];
 
@@ -664,7 +719,7 @@ export default function MatchScreen() {
   // chosen, a fitting target is already live and pressable above, and aiming
   // has nothing left to add. Tapping one arms it (see `onAimGroup`); tapping
   // the armed one again clears it.
-  const armableGroups = selectedCards.length === 0 ? meldsWithOffers : new Set<string>();
+  const armableGroups = selectedCards.length === 0 && !meldPickLive ? meldsWithOffers : new Set<string>();
   const onAimGroup = (meldId: string) => {
     if (!meldsWithOffers.has(meldId)) return;
     setArmedMeldId((prev) => (prev === meldId ? null : meldId));
@@ -830,7 +885,7 @@ export default function MatchScreen() {
   // y — the one thing a tap still supplies that a plain press otherwise
   // would not — so a target with a choice of two positions reads a press on
   // its top half the same way it would read a drop there.
-  const pressDrop = (elementId: string, pageY: number) => {
+  const pressDrop = (elementId: string, pageY: number, share?: number) => {
     // A target chosen by what is picked wins over a pile that would be taken
     // from, for the same reason `sourceSpots` is empty while anything is
     // picked: with cards in hand a pile is somewhere to put them.
@@ -849,8 +904,11 @@ export default function MatchScreen() {
     // with `submissionFor` refusing the short submission two lines later and
     // the press dying on `if (!action) return`. Say what the control beside it
     // says instead, in the same words.
+    // The cards this press sends: those picked off a meld, for a move that
+    // starts on one, and the hand's selection for everything else.
+    const pressCards = fromMeld(offer) ? (meldPickLive?.cards ?? []) : (tablePick ?? selectedCards);
     if (!spot.ready) {
-      const fit = readyWith(offer, selectedCards);
+      const fit = readyWith(offer, pressCards);
       if (!fit.ok) setExplaining({ labelKey: fit.labelKey, params: fit.params });
       return;
     }
@@ -859,12 +917,19 @@ export default function MatchScreen() {
     // built with no cards named falls back to its own one-tap default, the
     // same way a bare press on a lone offer of the same shape already does;
     // an empty array is a *chosen* zero, and settles on nothing at all.
-    const picked = tablePick ?? selectedCards;
-    const action = submissionFor(offer, { cards: picked.length ? picked : undefined });
+    const action = submissionFor(offer, { cards: pressCards.length ? pressCards : undefined });
     if (!action) return;
 
+    // Which end, when there is a choice: from how far down the target the
+    // press landed where the target said, and only otherwise from a rect a
+    // drag measured — in window coordinates, and possibly long ago.
     const rect = drops.rectFor(elementId);
-    const position = rect ? positionAt(spot.positions, pageY, rect) : spot.positions?.[0];
+    const position =
+      share !== undefined
+        ? positionAtShare(spot.positions, share)
+        : rect
+          ? positionAt(spot.positions, pageY, rect)
+          : spot.positions?.[0];
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
@@ -897,6 +962,9 @@ export default function MatchScreen() {
     armableGroups,
     armedGroupId: armedMeldIdLive,
     onAimGroup,
+    pickableGroups,
+    pickedInGroup: meldPickLive ? { groupId: meldPickLive.meldId, indices: meldPickLive.indices } : null,
+    onPickGroupCard,
     entranceDelays: flightPlan.holds,
     changedGroups: changeMarks,
     liftable,
@@ -1134,7 +1202,7 @@ export default function MatchScreen() {
       testID="controls-panel"
       summary={
         <OfferGlance
-          offers={state.legalActions}
+          offers={handOffers}
           selectedCards={selectedCards}
           armedGroupId={armedMeldIdLive}
           onSend={send}
@@ -1209,8 +1277,15 @@ export default function MatchScreen() {
           that vanished when it became illegal would be
           indistinguishable from a bug, which is why the server sends
           the whole set every time. */}
+      {/* Moving cards between melds is driven from the melds themselves, not
+          from a button, so say where it lives while it is possible. */}
+      {pickableGroups.size > 0 ? (
+        <Text style={styles.muted} testID="move-hint">
+          {meldPickLive ? t('match.moveHintPicked') : t('match.moveHint')}
+        </Text>
+      ) : null}
       <OfferBar
-        offers={state.legalActions}
+        offers={handOffers}
         selectedCards={selectedCards}
         armedGroupId={armedMeldIdLive}
         onSend={send}

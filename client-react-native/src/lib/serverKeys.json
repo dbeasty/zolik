@@ -109,6 +109,7 @@
     "NOTHING_PLAYED",
     "NOTHING_TO_CALL",
     "NOTHING_TO_DRAW",
+    "NOTHING_TO_POACH",
     "NOTHING_TO_REPLAY",
     "NOTHING_TO_SHOW",
     "NOTHING_TO_SKIP",
@@ -146,8 +147,10 @@
     "RECLAIMED_JOKER_NOT_MELDED",
     "REPLAY_UNAVAILABLE",
     "ROUND_REQ_NOT_MET",
+    "RUN_LEAVES_GAP",
     "RUN_NOT_CONSECUTIVE",
     "RUN_TOO_LONG",
+    "SAME_MELD",
     "SEAT_IN_USE",
     "SEAT_LINK_EXPIRED",
     "SEAT_NOT_IN_HAND",
@@ -168,6 +171,7 @@
     "TOO_MANY_WILDS",
     "TOP_CARD_UNUSABLE",
     "TRAY_NOT_EMPTY",
+    "UNDO_LATEST_FIRST",
     "UNDO_MELDS_FIRST",
     "UNKNOWN_ACTION",
     "UNKNOWN_FRIEND_CODE",
@@ -186,9 +190,11 @@
   ],
   "labelKeys": [
     "badge.cleanRun",
+    "badge.dirtySamba",
     "badge.mixedCanasta",
     "badge.naturalCanasta",
     "badge.samba",
+    "badge.wildCanasta",
     "blackjack.fact.extraStake",
     "blackjack.fact.insuranceCost",
     "blackjack.fact.surrenderReturn",
@@ -281,6 +287,7 @@
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
     "canasta.line.canastas",
+    "canasta.line.dirtySamba",
     "canasta.line.goingOut",
     "canasta.line.goingOutConcealed",
     "canasta.line.hand",
@@ -299,16 +306,21 @@
     "canasta.line.redThreesShort",
     "canasta.line.redThreesSum",
     "canasta.line.samba",
+    "canasta.line.wildCanasta",
+    "canasta.line.wildMixedCanasta",
     "canasta.move.discarded",
     "canasta.move.drewStock",
     "canasta.move.laidOff",
     "canasta.move.melded",
+    "canasta.move.moved",
+    "canasta.move.poached",
     "canasta.move.redThrees",
     "canasta.move.tookPile",
     "canasta.move.tookTopCard",
     "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
+    "canasta.offer.wildMeld",
     "canasta.remedy.blackThreesOnTheWayOut",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.discardNotARedThree",
@@ -326,6 +338,7 @@
     "canasta.remedy.pileFrozen",
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
+    "canasta.remedy.undoLatestFirst",
     "canasta.remedy.undoMeldsFirst",
     "canasta.round.canastas",
     "canasta.round.closed",
@@ -342,6 +355,7 @@
     "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.dirtySequences",
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goOutKeepsACard",
@@ -362,6 +376,8 @@
     "canasta.rules.pileNoMeldCapture",
     "canasta.rules.pileOntoMeld",
     "canasta.rules.pileTopCard",
+    "canasta.rules.poach",
+    "canasta.rules.rearrange",
     "canasta.rules.redThrees",
     "canasta.rules.samba",
     "canasta.rules.section.end",
@@ -371,10 +387,12 @@
     "canasta.rules.section.turn",
     "canasta.rules.sequences",
     "canasta.rules.stockOut",
+    "canasta.rules.topOnlyCapture",
     "canasta.rules.turn",
     "canasta.rules.turnDiscard",
     "canasta.rules.twoCanastasToGoOut",
     "canasta.rules.wildLimit",
+    "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.notOpened",
@@ -875,10 +893,14 @@
     "status.winner",
     "verb.discardToClose",
     "verb.drawFromDeck",
+    "verb.moveCards",
+    "verb.poach",
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
     "verb.takePileOntoMeld",
     "verb.takeTopForSequence",
+    "verb.takeTopFromHand",
+    "verb.takeTopOntoMeld",
     "verb.undoLayOff",
     "verb.undoMeld",
     "verb.undoTakePile",
@@ -1030,6 +1052,7 @@
     "canasta.remedy.pileFrozen",
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
+    "canasta.remedy.undoLatestFirst",
     "canasta.remedy.undoMeldsFirst",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
@@ -1037,6 +1060,7 @@
     "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.dirtySequences",
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goOutKeepsACard",
@@ -1057,6 +1081,8 @@
     "canasta.rules.pileNoMeldCapture",
     "canasta.rules.pileOntoMeld",
     "canasta.rules.pileTopCard",
+    "canasta.rules.poach",
+    "canasta.rules.rearrange",
     "canasta.rules.redThrees",
     "canasta.rules.samba",
     "canasta.rules.section.end",
@@ -1066,10 +1092,12 @@
     "canasta.rules.section.turn",
     "canasta.rules.sequences",
     "canasta.rules.stockOut",
+    "canasta.rules.topOnlyCapture",
     "canasta.rules.turn",
     "canasta.rules.turnDiscard",
     "canasta.rules.twoCanastasToGoOut",
     "canasta.rules.wildLimit",
+    "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "ginrummy.remedy.discardToEndTurn",
     "ginrummy.remedy.drawElsewhere",
@@ -1477,6 +1505,10 @@
       "n",
       "value"
     ],
+    "canasta.line.dirtySamba": [
+      "each",
+      "n"
+    ],
     "canasta.line.goingOut": [
       "player"
     ],
@@ -1534,6 +1566,14 @@
       "each",
       "n"
     ],
+    "canasta.line.wildCanasta": [
+      "each",
+      "n"
+    ],
+    "canasta.line.wildMixedCanasta": [
+      "each",
+      "n"
+    ],
     "canasta.move.discarded": [
       "card",
       "player"
@@ -1548,6 +1588,15 @@
     "canasta.move.melded": [
       "cards",
       "player"
+    ],
+    "canasta.move.moved": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.poached": [
+      "card",
+      "player",
+      "wild"
     ],
     "canasta.move.redThrees": [
       "cards",
@@ -1571,6 +1620,9 @@
       "from",
       "suit",
       "to",
+      "value"
+    ],
+    "canasta.offer.wildMeld": [
       "value"
     ],
     "canasta.remedy.captureFromHand": [
@@ -1634,6 +1686,9 @@
       "decks",
       "value"
     ],
+    "canasta.rules.dirtySequences": [
+      "n"
+    ],
     "canasta.rules.drawCount": [
       "n"
     ],
@@ -1680,6 +1735,10 @@
     "canasta.rules.wildLimit": [
       "naturals",
       "wilds"
+    ],
+    "canasta.rules.wildMeld": [
+      "mixed",
+      "n"
     ],
     "canasta.rules.wildRatio": [
       "n",
@@ -2414,6 +2473,7 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "canasta.line.dirtySamba",
     "canasta.line.goingOut",
     "canasta.line.goingOutConcealed",
     "canasta.line.hand",
@@ -2429,16 +2489,21 @@
     "canasta.line.redThreesAll",
     "canasta.line.redThreesShort",
     "canasta.line.samba",
+    "canasta.line.wildCanasta",
+    "canasta.line.wildMixedCanasta",
     "canasta.move.discarded",
     "canasta.move.drewStock",
     "canasta.move.laidOff",
     "canasta.move.melded",
+    "canasta.move.moved",
+    "canasta.move.poached",
     "canasta.move.redThrees",
     "canasta.move.tookPile",
     "canasta.move.tookTopCard",
     "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
+    "canasta.offer.wildMeld",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.meldClosed",
     "canasta.remedy.needCanastas",
@@ -2458,6 +2523,7 @@
     "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.dirtySequences",
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
@@ -2469,6 +2535,7 @@
     "canasta.rules.pileBlocked",
     "canasta.rules.samba",
     "canasta.rules.wildLimit",
+    "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",

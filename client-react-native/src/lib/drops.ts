@@ -353,8 +353,18 @@ export function positionAt(
   if (!positions?.length) return undefined;
   if (positions.length === 1) return positions[0];
   if (rect.height <= 0) return positions[0];
+  return positionAtShare(positions, (y - rect.y) / rect.height);
+}
 
-  const share = (y - rect.y) / rect.height;
+/**
+ * The same answer for a press that already knows how far down the target it
+ * landed — 0 at the top edge, 1 at the bottom — which a tap does, from the
+ * target's own layout. A tap has no drag behind it to have measured the
+ * target in window coordinates, and its page coordinate is not one.
+ */
+export function positionAtShare(positions: string[] | undefined, share: number): string | undefined {
+  if (!positions?.length) return undefined;
+  if (!Number.isFinite(share)) return positions[0];
   const index = Math.floor(share * positions.length);
   return positions[Math.max(0, Math.min(index, positions.length - 1))];
 }

@@ -421,7 +421,7 @@ func encodeTeam(v []float32, s *GameState, r ruleset, t *Team, mine bool) {
 		}
 		g := v[teamRuns+si*5:]
 		if best != nil {
-			low, high := runSpan(best.Cards)
+			low, high := best.span()
 			g[0] = float32(len(best.Cards)) / 7
 			g[1] = float32(low) / 10
 			g[2] = float32(high) / 10
@@ -501,8 +501,13 @@ func othersFrom(s *GameState, seat string) []string {
 }
 
 func variationName(s *GameState) string {
-	if s.Variation == "" {
+	switch s.Variation {
+	case "":
 		return "classic"
+	case variationCanastaX:
+		// Samba's table under house rules; until a model has been trained on
+		// it, it reads to the network as the Samba it is built on.
+		return "samba"
 	}
 	return s.Variation
 }

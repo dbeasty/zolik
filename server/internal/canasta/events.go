@@ -43,7 +43,15 @@ func (m *Module) NarrateEvent(_ module.State, ev module.Event) (module.Move, boo
 		move.Fact = module.Fact{LabelKey: "canasta.move.discarded", Params: map[string]any{
 			"player": player, "card": ev.Data["card"],
 		}}
-	case "take_pile_undone", "lay_off_undone", "meld_undone":
+	case "cards_moved":
+		move.Fact = module.Fact{LabelKey: "canasta.move.moved", Params: map[string]any{
+			"player": player, "cards": ev.Data["cards"],
+		}}
+	case "wild_poached":
+		move.Fact = module.Fact{LabelKey: "canasta.move.poached", Params: map[string]any{
+			"player": player, "card": ev.Data["card"], "wild": ev.Data["wild"],
+		}}
+	case "take_pile_undone", "lay_off_undone", "meld_undone", "reshape_undone":
 		move.Fact = module.Fact{LabelKey: "canasta.move.undid", Params: map[string]any{"player": player}}
 	default:
 		return module.Move{}, false

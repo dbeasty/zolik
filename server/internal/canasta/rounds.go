@@ -162,6 +162,27 @@ func teamLines(r ruleset, d DealResult, t TeamResult) []module.ScoreLine {
 				Points:   t.Sambas * r.SambaBonus,
 			})
 		}
+		if t.DirtySambas > 0 {
+			line.Sub = append(line.Sub, module.ScoreLine{
+				LabelKey: "canasta.line.dirtySamba",
+				Params:   map[string]any{"n": t.DirtySambas, "each": r.DirtySambaBonus},
+				Points:   t.DirtySambas * r.DirtySambaBonus,
+			})
+		}
+		if t.WildCanastas > 0 {
+			line.Sub = append(line.Sub, module.ScoreLine{
+				LabelKey: "canasta.line.wildCanasta",
+				Params:   map[string]any{"n": t.WildCanastas, "each": r.WildCanastaBonus},
+				Points:   t.WildCanastas * r.WildCanastaBonus,
+			})
+		}
+		if t.WildMixedCanastas > 0 {
+			line.Sub = append(line.Sub, module.ScoreLine{
+				LabelKey: "canasta.line.wildMixedCanasta",
+				Params:   map[string]any{"n": t.WildMixedCanastas, "each": r.WildMixedCanastaBonus},
+				Points:   t.WildMixedCanastas * r.WildMixedCanastaBonus,
+			})
+		}
 		// A deal kept before the counts were is shown as its sum alone; so is
 		// one whose counts no longer price out under the ruleset, rather than
 		// an account that does not add up.
@@ -178,7 +199,7 @@ func teamLines(r ruleset, d DealResult, t TeamResult) []module.ScoreLine {
 	case t.RedThreeShort:
 		out = append(out, module.ScoreLine{
 			LabelKey: "canasta.line.redThreesShort",
-			Params:   map[string]any{"n": t.RedThreeCount, "need": r.RedThreesNeed, "made": t.Naturals + t.Mixed + t.Sambas},
+			Params:   map[string]any{"n": t.RedThreeCount, "need": r.RedThreesNeed, "made": t.Naturals + t.Mixed + t.Sambas + t.DirtySambas + t.WildCanastas + t.WildMixedCanastas},
 			Points:   t.RedThrees,
 		})
 	case t.RedThreesAll:

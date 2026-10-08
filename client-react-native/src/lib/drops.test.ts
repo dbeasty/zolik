@@ -5,6 +5,7 @@ import {
   fits,
   readyWith,
   positionAt,
+  positionAtShare,
   refusalAt,
   someOfferDroppable,
   someOfferReady,
@@ -806,5 +807,23 @@ describe('readyWith', () => {
         expect([offer.id, cards, submissionFor(offer, { cards })]).not.toEqual([offer.id, cards, null]);
       }
     }
+  });
+});
+
+describe('positionAtShare', () => {
+  // A tap knows how far down its target it landed and nothing about window
+  // coordinates; the top of a run is its first position, the bottom its last.
+  const ends = ['front', 'end'];
+  it('reads the top half as the first position and the bottom half as the last', () => {
+    expect(positionAtShare(ends, 0.05)).toBe('front');
+    expect(positionAtShare(ends, 0.95)).toBe('end');
+  });
+  it('clamps a press on the very edge', () => {
+    expect(positionAtShare(ends, -0.1)).toBe('front');
+    expect(positionAtShare(ends, 1)).toBe('end');
+  });
+  it('falls back to the first position when the share cannot be told', () => {
+    expect(positionAtShare(ends, Number.NaN)).toBe('front');
+    expect(positionAtShare(undefined, 0.5)).toBeUndefined();
   });
 });
