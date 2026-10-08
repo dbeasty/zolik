@@ -94,7 +94,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// table says, because the stop is where the cards are — see
 			// GameState.Break. An option that decides nothing is worse than
 			// no option: a lobby renders it as a working control.
-			module.BotSkillOption(),
+			module.BotSkillOptionWithAI(),
 			module.HintsOption(),
 			{
 				Name:  OptShowdownReveal,

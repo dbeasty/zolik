@@ -144,12 +144,45 @@ func (m *Manager) reapStranded(ctx context.Context, now time.Time) int {
 		if m.attended(match) {
 			continue
 		}
+		// A one-seat game nobody is playing is a saved game. It is set aside
+		// as suspended with the long window, which takes it out of this sweep
+		// rather than skipping it on every tick, where a hundred of them
+		// would fill the batch and starve the tables that are stranded.
+		if m.savedGame(match) {
+			if m.shelve(ctx, match, now) {
+				continue
+			}
+		}
 		if m.abandon(ctx, match, now, "stranded", true,
 			"idleFor", now.Sub(lastActivity(match)).Round(time.Second)) {
 			n++
 		}
 	}
 	return n
+}
+
+// shelve suspends a one-seat game nobody is playing, to wait for its player
+// for SavedGameWindow from when it was last touched.
+func (m *Manager) shelve(ctx context.Context, scanned models.Match, now time.Time) bool {
+	e, err := m.lockMatch(ctx, scanned.ID.Hex())
+	if err != nil {
+		return false
+	}
+	defer e.mu.Unlock()
+	match := e.match
+	if match.Version != scanned.Version || match.Status != "active" || len(match.Players) == 0 {
+		return false
+	}
+	abandon := lastActivity(match).Add(SavedGameWindow)
+	match.Status = "suspended"
+	match.SuspendedAt = &now
+	match.AbandonAt = &abandon
+	match.SuspendedPlayer = match.Players[0].ID
+	if err := m.saveLocked(ctx, e, match); err != nil {
+		slog.Debug("shelve skipped, the match moved on", "match", scanned.ID.Hex(), "error", err)
+		return false
+	}
+	return true
 }
 
 // abandon writes match as abandoned under its version guard and reports

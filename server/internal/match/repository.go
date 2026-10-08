@@ -94,6 +94,11 @@ type Repository interface {
 	// inside f's window, oldest first. Read-only, and for offline tools — see
 	// finished.go.
 	EachFinished(ctx context.Context, f FinishedFilter, visit func(models.Match) error) error
+	// FindDealtFrom lists the completed matches dealt with one deal: the match
+	// named by origin itself, and every match whose DealFrom names it. Most
+	// recently updated first, capped at limit. What the same-deal comparison
+	// reads; see Manager.SameDeal.
+	FindDealtFrom(ctx context.Context, origin bson.ObjectID, limit int) ([]models.Match, error)
 }
 
 // PlayerMatchFilter narrows FindForPlayer. A zero value lists every
@@ -364,6 +369,25 @@ func (r *mongoRepository) FindStranded(ctx context.Context, idleBefore time.Time
 			bson.M{"updatedAt": bson.M{"$exists": false}, "createdAt": bson.M{"$lte": idleBefore}},
 		}},
 		options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "updatedAt", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Match
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// FindDealtFrom lists the completed matches dealt with origin's deal.
+func (r *mongoRepository) FindDealtFrom(ctx context.Context, origin bson.ObjectID, limit int) ([]models.Match, error) {
+	cur, err := r.coll.Find(ctx,
+		bson.M{"status": "completed", "$or": bson.A{
+			bson.M{"_id": origin},
+			bson.M{"dealFrom": origin.Hex()},
+		}},
+		options.Find().SetSort(bson.D{{Key: "updatedAt", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(int64(limit)),
 	)
 	if err != nil {
 		return nil, err

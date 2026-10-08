@@ -74,18 +74,20 @@ func kindOfOffer(offerID string) string {
 func trumpKind(kind string) bool { return kind != kindBetl && kind != kindDurch }
 
 // dealLicit deals ten to each seat and the talon face down to the middle,
-// and opens the auction: the zadák (the dealer) bids against the forhont,
-// and the middle player waits (ČSM general VII/3).
+// and opens the auction: the zadák (the dealer, or at a table of four the
+// player on the dealer's right) bids against the forhont, and the middle
+// player waits (ČSM general VII/3).
 func dealLicit(s *GameState, deck []string) {
 	s.Hands = map[string][]string{}
 	forhont := s.chooser()
 	seat := forhont
-	for i := 0; i < len(s.Players); i++ {
+	n := len(s.active())
+	for i := 0; i < n; i++ {
 		s.Hands[seat] = append([]string(nil), deck[i*handSize:(i+1)*handSize]...)
 		sortHand(s.Hands[seat])
 		seat = s.next(seat)
 	}
-	s.Talon = append([]string(nil), deck[len(s.Players)*handSize:]...)
+	s.Talon = append([]string(nil), deck[n*handSize:]...)
 	s.Unseen = nil
 
 	middle := s.next(forhont)

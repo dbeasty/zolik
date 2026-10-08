@@ -507,6 +507,31 @@ func (r *kdbRepository) FindStranded(ctx context.Context, idleBefore time.Time, 
 	return out, nil
 }
 
+// FindDealtFrom scans for the completed matches dealt with origin's deal — a
+// scan, as every cross-match read on this backend is.
+func (r *kdbRepository) FindDealtFrom(ctx context.Context, origin bson.ObjectID, limit int) ([]models.Match, error) {
+	want := origin.Hex()
+	var out []models.Match
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		if m.Status == "completed" && (m.ID == origin || m.DealFrom == want) {
+			out = append(out, m)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(out, func(i, j int) bool { return lastActivity(out[i]).After(lastActivity(out[j])) })
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
 // FindForPlayer scans the index for matches a seat id sits at.
 //
 // A scan, like every other cross-match read on this backend: KDB has no

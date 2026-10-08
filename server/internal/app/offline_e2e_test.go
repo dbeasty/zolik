@@ -177,6 +177,15 @@ func TestAMatchPlayedOfflineIsCreditedAfterItSyncs(t *testing.T) {
 	}})
 	phone.Start(context.Background())
 
+	// A game dealt on the server only is not one the phone offers: it would
+	// be dealing it itself, and the cloud would refuse the result.
+	if phone.matchManager().Registry().Get("klondike") != nil {
+		t.Error("the phone offers solitaire offline, from a deal of its own choosing")
+	}
+	if hub.matchManager().Registry().Get("klondike") == nil {
+		t.Error("the cloud no longer offers solitaire")
+	}
+
 	// A table in a room with no internet: the person and one bot.
 	mgr := phone.matchManager()
 	host := models.Player{ID: "seat-ada", Name: "Ada", UserID: player.ID.Hex()}

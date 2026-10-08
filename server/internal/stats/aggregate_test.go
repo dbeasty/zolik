@@ -441,3 +441,52 @@ func TestRoundsDoNotAffectLifetimeAggregates(t *testing.T) {
 		t.Errorf("a round history changed the per-game tally")
 	}
 }
+
+func TestASoloGameStaysOffTheOverallRecord(t *testing.T) {
+	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	seat := Standing{PlayerID: "p1", Rank: 1, Score: 52, Won: true}
+	m := MatchResult{
+		ModuleID: "klondike", CompletedAt: now,
+		Composition:  Composition{Players: 1, Users: 1},
+		Participants: []Standing{seat},
+	}
+	ps := ApplyMatch(PlayerStats{}, m, seat, now)
+	if ps.Overall.Matches != 0 {
+		t.Fatalf("solitaire counted overall: %+v", ps.Overall)
+	}
+	if ps.ByModule["klondike"].Wins != 1 {
+		t.Fatalf("solitaire not counted under its game: %+v", ps.ByModule)
+	}
+	if len(ps.RecentMatches) != 1 {
+		t.Fatal("solitaire missing from the history")
+	}
+}
+
+func TestADealPlayedAgainIsMarkedAsARepeat(t *testing.T) {
+	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	seat := Standing{PlayerID: "p1", Rank: 1, Score: 52, Won: true}
+	m := MatchResult{
+		ModuleID: "klondike", CompletedAt: now, DealFrom: "6ac6aa5b429c8d4653a4bf78", Repeat: true,
+		Composition:  Composition{Players: 1, Users: 1},
+		Participants: []Standing{seat},
+	}
+	ps := ApplyMatch(PlayerStats{}, m, seat, now)
+	if !ps.RecentMatches[0].Repeat {
+		t.Fatal("a deal played again is shown as a first attempt")
+	}
+}
+
+// A deal somebody was sent is a first attempt for them, though it was dealt
+// from somebody else's game.
+func TestASentDealIsAFirstAttempt(t *testing.T) {
+	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	seat := Standing{PlayerID: "p2", Rank: 1, Score: 52, Won: true}
+	m := MatchResult{
+		ModuleID: "klondike", CompletedAt: now, DealFrom: "6ac6aa5b429c8d4653a4bf78",
+		Composition:  Composition{Players: 1, Users: 1},
+		Participants: []Standing{seat},
+	}
+	if ApplyMatch(PlayerStats{}, m, seat, now).RecentMatches[0].Repeat {
+		t.Fatal("a sent deal is marked as a repeat")
+	}
+}

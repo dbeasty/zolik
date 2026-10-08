@@ -7,6 +7,7 @@ import {
   positionAt,
   positionAtShare,
   refusalAt,
+  someOfferDroppable,
   someOfferReady,
   sourceSpotsFor,
   spotAt,
@@ -433,6 +434,35 @@ describe('positionAt', () => {
   });
 });
 
+describe('someOfferDroppable', () => {
+  // The hand's hint promises a card can go "onto the board" only when one
+  // can. Poker's draw swaps cards through a button and names no target.
+  const swap: ActionOffer = {
+    id: 'swap',
+    verb: 'swap',
+    enabled: true,
+    source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', minCards: 1, maxCards: 3 },
+  };
+
+  it('is true when an enabled offer takes cards and names where they land', () => {
+    expect(someOfferDroppable([draw, discard])).toBe(true);
+    expect(someOfferDroppable([layOff])).toBe(true);
+  });
+
+  it('is false for a card swap with no target', () => {
+    expect(someOfferDroppable([swap])).toBe(false);
+  });
+
+  it('is false for a draw, which lands in hand but takes no cards', () => {
+    expect(someOfferDroppable([draw])).toBe(false);
+  });
+
+  it('is false when the only droppable offer is disabled, or there are none', () => {
+    expect(someOfferDroppable([{ ...discard, enabled: false }])).toBe(false);
+    expect(someOfferDroppable([])).toBe(false);
+  });
+});
+
 describe('someOfferReady', () => {
   // Regression: a card that just arrived in hand lands pre-selected, and a
   // second tap used to *replace* that pick outright rather than ever join
@@ -634,6 +664,38 @@ describe('sourceSpotsFor', () => {
     const alsoFromDiscard: ActionOffer = { ...drawDiscard, id: 'draw:discard:all' };
     const spots = sourceSpotsFor([drawDeck, drawDiscard, alsoFromDiscard], zones, 'me');
     expect(spots.map((s) => s.elementId)).toEqual(['zone-draw']);
+  });
+
+  // Solitaire: the stock and the waste are the table's, and a draw lands on
+  // the waste rather than in a hand. The stack is what a player taps, both to
+  // draw and, once it is empty, to turn the waste back over.
+  it("presses the stack for a move between the table's own piles", () => {
+    const table: Zone[] = [
+      { id: 'stock', kind: 'stack', count: 0, shared: true },
+      { id: 'waste', kind: 'pile', count: 5, shared: true, cards: [{ card: '9S' }] },
+    ];
+    const draw: ActionOffer = {
+      id: 'draw',
+      verb: 'draw',
+      enabled: true,
+      source: { zone: 'deck', zoneId: 'stock' },
+      target: { zone: 'table', zoneId: 'waste' },
+    };
+    const recycle: ActionOffer = {
+      id: 'recycle',
+      verb: 'recycle',
+      enabled: true,
+      source: { zone: 'discard_pile', zoneId: 'waste' },
+      target: { zone: 'table', zoneId: 'stock' },
+    };
+    expect(sourceSpotsFor([draw, { ...recycle, enabled: false }], table, 'me')).toEqual([
+      { offerId: 'draw', elementId: 'zone-stock', ready: true },
+    ]);
+    expect(sourceSpotsFor([{ ...draw, enabled: false }, recycle], table, 'me')).toEqual([
+      { offerId: 'recycle', elementId: 'zone-stock', ready: true },
+    ]);
+    // An undo is never what a tap on a pile means.
+    expect(sourceSpotsFor([{ ...recycle, undo: true }], table, 'me')).toEqual([]);
   });
 
   it('ignores an offer that still needs a form filled in', () => {

@@ -10,6 +10,8 @@ import type { MatchModule } from '@/src/api/matchTypes';
 export const DEFAULT_POPULARITY_ORDER: readonly string[] = [
   'holdem',
   'blackjack',
+  'lastcard',
+  'klondike',
   'ginrummy',
   'zolik',
   'canasta',

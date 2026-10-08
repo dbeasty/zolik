@@ -96,6 +96,9 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		{Keys: bson.D{{Key: "players.id", Value: 1}, {Key: "updatedAt", Value: -1}}},
 		{Keys: bson.D{{Key: "joinCode", Value: 1}}},
 		{Keys: bson.D{{Key: "status", Value: 1}}},
+		// FindDealtFrom: every table dealt one deal. Sparse, because only a
+		// deal played again carries the field.
+		{Keys: bson.D{{Key: "dealFrom", Value: 1}}, Options: options.Index().SetSparse(true)},
 	}); err != nil {
 		return err
 	}

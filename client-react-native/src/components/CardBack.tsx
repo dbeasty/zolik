@@ -1,7 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { LastCardBack } from '@/src/components/cards/LastCardFace';
 import { useSkin } from '@/src/hooks/useSkin';
+import { useDeck } from '@/src/lib/deck';
 
 /**
  * The face-down side of a card: a coloured wash corner to corner, a thin
@@ -14,6 +16,16 @@ import { useSkin } from '@/src/hooks/useSkin';
  */
 export function CardBack({ width, height }: { width: number; height: number }) {
   const { back, bevel } = useSkin().card;
+  const deck = useDeck();
+  if (deck === 'lastcard') {
+    // That pack's own back, in place of the skin's: a back is part of a
+    // pack's design, and this one is printed to match its faces.
+    return (
+      <View style={[styles.card, { width, height, borderColor: back.frame }]}>
+        <LastCardBack width={width - 4} height={height - 4} />
+      </View>
+    );
+  }
   return (
     <View
       style={[

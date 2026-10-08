@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"zolik/server/internal/module"
 )
 
 // What the distributed database needs to know before it lets a match change
@@ -23,6 +25,10 @@ import (
 //
 // Asked of the node that currently writes the match, so it reads the match it
 // is holding rather than a copy that may be behind.
+//
+// It is the question both device sync and handover come down to, so a match
+// whose deal must stay on the server (module.ServerDealt) answers no for every
+// device: its namespace holds every face-down card and the seed.
 func (m *Manager) Seated(ctx context.Context, matchHex, userHex string) (bool, error) {
 	id, err := bson.ObjectIDFromHex(matchHex)
 	if err != nil {
@@ -31,6 +37,9 @@ func (m *Manager) Seated(ctx context.Context, matchHex, userHex string) (bool, e
 	env, err := m.repo.FindByID(ctx, id)
 	if err != nil {
 		return false, err
+	}
+	if mod := m.registry.Get(env.ModuleID); mod != nil && module.IsServerDealt(mod) {
+		return false, nil
 	}
 	for _, p := range env.Players {
 		if p.UserID == userHex {

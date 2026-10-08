@@ -6,6 +6,8 @@ import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
 import { GermanFace } from '@/src/components/cards/GermanFace';
 import { GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
+import { LastCardFace } from '@/src/components/cards/LastCardFace';
+import { isLastCardCode } from '@/src/components/cards/lastCardArt';
 import { Suit } from '@/src/components/cards/Suit';
 import { VectorFace } from '@/src/components/cards/VectorFace';
 import { PRINTED } from '@/src/cards/vector/faces';
@@ -84,6 +86,9 @@ const EDGE = 2;
  * the fan and the index would come to disagree.
  */
 const BORDER = CARD_BORDER;
+
+/** The narrowest card a Last Card's full, illustrated face is drawn on. */
+const LAST_CARD_FULL_WIDTH = 64;
 
 /** Every dimension a card's own render needs, computed once per card size and skin. */
 function cardStyles(m: CardMetrics, s: Skin) {
@@ -371,13 +376,36 @@ export function CardView({
    * is drawn, and the deck chooses *which* card that is.
    */
   const german = deck === 'german' && !d.isJoker;
+  /**
+   * Last Card's own pack: codes no other deck has, so its faces are its own
+   * too. The skin still chooses how much is drawn — the plain skin and a
+   * stacked card get the frame-and-index face, every other skin the full one.
+   */
+  const lastCard = deck === 'lastcard' && isLastCardCode(card);
+  /**
+   * Which Last Card face. The pack is a picture deck, so wherever a card is
+   * drawn big enough to show its picture it gets the full face, whatever the
+   * skin; the plain face — frame and one big index — is for a card too small
+   * for anything else to read: a phone's hand, a compact board, a stack.
+   */
+  const lastCardVariant: 'full' | 'plain' =
+    stacked || (plain && (compact || metrics.card.width < LAST_CARD_FULL_WIDTH)) ? 'plain' : 'full';
   const germanFull = german && !stacked && !plain;
   const washed =
+    !lastCard &&
     (rich || deluxe || vector || germanFull) && !!skin.card.faceGradient && !selected && !d.isJoker;
   const germanLabel = german ? germanIndex(d.rank) : '';
   const germanColor = german ? germanInk(d.suit, skin.card.red) : '';
 
-  const face = german ? (
+  const face = lastCard ? (
+    <LastCardFace
+      card={card}
+      variant={lastCardVariant}
+      width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
+      height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
+      indexFont={metrics.card.indexFont}
+    />
+  ) : german ? (
     stacked ? (
       <View style={styles.corner}>
         <Text style={[styles.rank, { color: germanColor }]}>{germanLabel}</Text>

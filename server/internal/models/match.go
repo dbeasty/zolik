@@ -89,6 +89,19 @@ type Match struct {
 	Rematch *RematchRef `bson:"rematch,omitempty" json:"rematch,omitempty"`
 	// RematchOf is the finished table this lobby was opened from.
 	RematchOf string `bson:"rematchOf,omitempty" json:"rematchOf,omitempty"`
+	// DealFrom is the match whose deal this one is dealt again from — the
+	// first of them, when a deal has been played again more than once — so
+	// every table dealt the same cards names the same one.
+	//
+	// Never sent. The seed was copied on the server, and this id must not
+	// leave it either: a finished match's board shows the cards its player
+	// turned up, so somebody sent a deal who learned which match it came from
+	// could look at it before playing.
+	DealFrom string `bson:"dealFrom,omitempty" json:"-"`
+	// DealRepeat is whether the player at this table had seen the deal before
+	// — dealt it again themselves, or were sent one they had played. A score
+	// on cards already seen is not a first attempt.
+	DealRepeat bool `bson:"dealRepeat,omitempty" json:"-"`
 	// Reserved are the people from that table who have not sat down yet. Each
 	// holds a seat nobody else can take — a stranger with the join code meets
 	// MATCH_FULL — until they sit, say no thanks, or the table is dealt.

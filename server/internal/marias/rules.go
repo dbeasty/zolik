@@ -70,6 +70,12 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 	scoring = append(scoring, module.Rule("marias.rules.score.limit", map[string]any{"n": payLimit}))
 
 	goal := module.Section("marias.rules.section.goal", module.Fact{LabelKey: "marias.rules.goal"})
+	// Four at the table: Rules does not know how many sit down, so both
+	// sentences are always stated, each saying when it applies.
+	four := module.Section("marias.rules.section.four",
+		module.Fact{LabelKey: "marias.rules.four.sitOut"},
+		module.Fact{LabelKey: "marias.rules.four.deals"},
+	)
 	end := module.Section("marias.rules.section.end",
 		module.Fact{LabelKey: "marias.rules.end", Params: map[string]any{"n": c.deals}},
 	)
@@ -104,6 +110,7 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 			module.SectionOf("marias.rules.section.bidding", bidding),
 			play,
 			module.SectionOf("marias.rules.section.scoring", scoring),
+			four,
 			end,
 		}, nil
 	}
@@ -138,6 +145,7 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 		module.SectionOf("marias.rules.section.bidding", bidding),
 		play,
 		module.SectionOf("marias.rules.section.scoring", scoring),
+		four,
 		end,
 	}, nil
 }

@@ -41,7 +41,9 @@ import { zoneElementId } from '@/src/lib/drops';
  */
 export function concealedCount(zone: Zone): number {
   if (zone.kind === 'stack') return 0;
-  const inGroups = (zone.groups ?? []).reduce((n, g) => n + g.cards.length, 0);
+  // A group's own face-down cards are drawn in the group, under its face-up
+  // ones (`Group.hidden`), so they are not the zone's to draw a second time.
+  const inGroups = (zone.groups ?? []).reduce((n, g) => n + g.cards.length + (g.hidden ?? 0), 0);
   const shown = (zone.cards ?? []).length + inGroups;
   return Math.max(0, zone.count - shown);
 }

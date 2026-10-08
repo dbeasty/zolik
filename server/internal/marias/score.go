@@ -10,6 +10,7 @@ import (
 func (s *GameState) settle() []module.Event {
 	rec := DealRecord{
 		Number:   s.Deal + 1,
+		Sitter:   s.Sitter,
 		Declarer: s.Declarer,
 		Game:     s.Game,
 		Deltas:   map[string]int{},
@@ -20,12 +21,13 @@ func (s *GameState) settle() []module.Event {
 	}
 	rec.Parts = s.results()
 
-	for _, p := range s.Players {
+	for _, p := range s.active() {
 		if p == s.Declarer {
 			continue
 		}
 		// Each defender settles with the declarer on their own, and no deal
-		// moves more than the limit between the two of them.
+		// moves more than the limit between the two of them. A sitter is
+		// no defender: they neither pay nor are paid.
 		owed := 0
 		for _, pr := range rec.Parts {
 			if pr.ForDeclarer {
@@ -153,7 +155,7 @@ func (s *GameState) dveSedmyMade() bool {
 // lastTrickSeven reports whether the trump seven was played to the last
 // trick, by whom, and whether it took the trick.
 func (s *GameState) lastTrickSeven() (played bool, by string, took bool) {
-	if len(s.Hands[s.Players[0]]) != 0 || len(s.LastTrick) == 0 {
+	if len(s.Hands[s.Declarer]) != 0 || len(s.LastTrick) == 0 {
 		return false, "", false // the deal did not reach its last trick
 	}
 	seven := s.trumpSeven()
@@ -179,7 +181,7 @@ func (s *GameState) marriageValue(suit string) int {
 // (docs/marias-rules.md, settled question 2), and every marriage counts
 // toward a quiet hundred (ČSM general V/7).
 func (s *GameState) sideTotals() (declarer, defenders int) {
-	for _, p := range s.Players {
+	for _, p := range s.active() {
 		n := s.Points[p]
 		for _, suit := range s.Marriages[p] {
 			n += s.marriageValue(suit)
@@ -208,7 +210,7 @@ func (s *GameState) sideMarriages(declarerSide bool) int {
 // and the first marriage it announced, and no other (ČSM).
 func (s *GameState) stoCount(declarerSide bool) int {
 	n := 0
-	for _, p := range s.Players {
+	for _, p := range s.active() {
 		if (p == s.Declarer) == declarerSide {
 			n += s.Points[p]
 		}

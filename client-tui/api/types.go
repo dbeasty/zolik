@@ -83,6 +83,9 @@ type ParamSpec struct {
 	Max     int `json:"max,omitempty"`
 	Step    int `json:"step,omitempty"`
 	Default int `json:"default,omitempty"`
+	// DefaultChoice is the choice a control should start on, where the
+	// server names one; otherwise the first.
+	DefaultChoice string `json:"defaultChoice,omitempty"`
 }
 
 type Selector struct {
@@ -270,6 +273,11 @@ func DefaultParam(p ParamSpec) (string, bool) {
 	}
 	if len(p.Choices) == 0 {
 		return "", false
+	}
+	for _, c := range p.Choices {
+		if p.DefaultChoice != "" && c.Value == p.DefaultChoice {
+			return c.Value, true
+		}
 	}
 	return p.Choices[0].Value, true
 }

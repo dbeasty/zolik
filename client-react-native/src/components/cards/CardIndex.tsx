@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Suit } from '@/src/components/cards/Suit';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { INKS, isLastCardCode, parseLastCard } from '@/src/components/cards/lastCardArt';
 import { parseCard } from '@/src/lib/cards';
 import { CARD_INDEX_BORDER, cardIndexBox, type CardIndexBox } from '@/src/lib/layout';
 import type { Skin } from '@/src/skins/types';
@@ -44,6 +45,21 @@ export function CardIndex({ card, testID }: Props) {
   const box = useMemo(() => cardIndexBox(metrics), [metrics]);
   const styles = useMemo(() => indexStyles(box, skin), [box, skin]);
   const d = parseCard(card);
+
+  // A Last Card index is its number and its colour's shape, both in that
+  // colour — the shape is a glyph, so it is type like the rest of the index.
+  const lc = isLastCardCode(card) ? parseLastCard(card) : null;
+  if (lc) {
+    const color = lc.colour ? INKS[lc.colour].deep : skin.card.ink;
+    return (
+      <View style={styles.box} testID={testID}>
+        <Text style={[styles.rank, { color }]} numberOfLines={1}>
+          {d.rank}
+          {d.suitSymbol}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.box} testID={testID}>

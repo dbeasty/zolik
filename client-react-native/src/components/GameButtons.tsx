@@ -46,7 +46,9 @@ export function GameButtons({ onPick }: { onPick: (mod: MatchModule) => void }) 
           <Text style={styles.name}>{moduleLabel(mod)}</Text>
           <Text style={styles.meta}>
             {mod.minPlayers === mod.maxPlayers
-              ? t('lobby.games.players', { n: mod.minPlayers })
+              ? mod.minPlayers === 1
+                ? t('lobby.games.onePlayer')
+                : t('lobby.games.players', { n: mod.minPlayers })
               : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
           </Text>
         </Pressable>

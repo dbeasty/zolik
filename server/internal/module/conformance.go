@@ -290,7 +290,7 @@ func SubmissionFor(o ActionOffer) (Action, bool) {
 
 // defaultParam picks a legal value for a declared parameter.
 //
-// For a choice, the first one; for a number, the offer's own default, or the
+// For a choice, the offer's own default choice or else the first; for a number, the offer's own default, or the
 // bottom of its range. Deliberately the *smallest* legal number rather than
 // anything cleverer: in poker that is the minimum raise, which is a real move
 // and not a reckless one, and choosing a value the module did not sanction
@@ -306,6 +306,11 @@ func defaultParam(p ParamSpec) (string, bool) {
 	default:
 		if len(p.Choices) == 0 {
 			return "", false
+		}
+		for _, c := range p.Choices {
+			if p.DefaultChoice != "" && c.Value == p.DefaultChoice {
+				return c.Value, true
+			}
 		}
 		return p.Choices[0].Value, true
 	}

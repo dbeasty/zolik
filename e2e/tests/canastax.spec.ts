@@ -170,7 +170,7 @@ test('a wild is moved off one meld onto another, and the move undone', async ({ 
   await expect(page.getByTestId('move-hint')).toContainText('open a meld and tap the cards');
 
   await openMeld(page, 't0-K');
-  await tapCard(page, page.getByTestId('group-card-t0-K-4'));
+  await tapCard(page, page.getByTestId('card-t0-K-4'));
   await expect(page.getByTestId('move-hint')).toContainText('Now tap the meld');
   // Where the 2 may go lights up, and the meld it came from does not.
   await expect(page.getByTestId('group-press-t0-seq1')).toBeVisible();
@@ -200,13 +200,13 @@ test('a card out of the middle of a sequence cannot be moved', async ({ page, re
   });
   await openMatch(page, host, matchId);
   await openMeld(page, 't0-seq1');
-  await tapCard(page, page.getByTestId('group-card-t0-seq1-1')); // the 6♥
+  await tapCard(page, page.getByTestId('card-t0-seq1-1')); // the 6♥
   await expect(page.getByTestId('move-hint')).toContainText('Now tap the meld');
   // Nowhere to put it: the run would come apart.
   await expect(page.locator('[data-testid^="group-press-"]')).toHaveCount(0);
   // Whereas the 5♥ off the end goes onto the fives.
-  await tapCard(page, page.getByTestId('group-card-t0-seq1-1')); // put the 6♥ back down
-  await tapCard(page, page.getByTestId('group-card-t0-seq1-0'));
+  await tapCard(page, page.getByTestId('card-t0-seq1-1')); // put the 6♥ back down
+  await tapCard(page, page.getByTestId('card-t0-seq1-0'));
   await page.getByTestId('group-press-t0-5').click();
   await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-5']).toBe('5C 5D 5S 5H');
   expect((await onServer(request, matchId, host)).melds['t0-seq1']).toBe('6H 7H 8H');
@@ -281,7 +281,7 @@ test('moving cards between melds works at phone width', async ({ page, request }
   await openMatch(page, host, matchId, 390);
 
   await openMeld(page, 't0-K');
-  await tapCard(page, page.getByTestId('group-card-t0-K-4'));
+  await tapCard(page, page.getByTestId('card-t0-K-4'));
   const target = page.getByTestId('group-press-t0-9');
   await target.scrollIntoViewIfNeeded();
   await target.click();

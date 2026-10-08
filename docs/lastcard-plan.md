@@ -53,12 +53,12 @@ never be mistaken for a French `"7H"`. Duplicates share a code, as Canasta's
 double deck already does.
 
 ```
-<colour>-<face>      colour ∈ R B G Y     face ∈ 0..9 | S (skip) | V (reverse) | D (draw two)
+<colour>-<face>      colour ∈ C T V A     face ∈ 0..9 | S (skip) | R (reverse) | D (draw two)
 W                    wild
 W4                   wild draw four
 ```
 
-Examples: `"R-7"`, `"B-S"`, `"G-V"`, `"Y-D"`, `"W"`, `"W4"`. The colour named on
+Examples: `"C-7"`, `"T-S"`, `"V-R"`, `"A-D"`, `"W"`, `"W4"` (coral, teal, violet, amber). The colour named on
 a wild lives in state (`DeclaredColour`) and in `Action.Params["colour"]`,
 exactly like Prší's `DeclaredSuit` and `Params["suit"]`.
 
@@ -75,8 +75,8 @@ cards, so §3 is part of v1 and not an optional extra.
 - 2–10 players, 7 cards each. The rest is the draw pile; turn up one card to
   start the discard pile.
 - **Opening card:**
-  - Wild Draw Four: bury it in the pile and turn up another.
-  - Wild: the first player names the colour.
+  - Wild or Wild Draw Four: bury it in the pile and turn up another (as Prší
+    does with its queen — nobody has looked at their hand yet to name a colour).
   - Skip, Reverse or Draw Two: it takes effect against the first player.
 - **On your turn,** play one card that matches the top card's colour, number or
   symbol, or play a Wild. A Wild Draw Four may only be played when you hold no
@@ -102,6 +102,16 @@ cards, so §3 is part of v1 and not an optional extra.
 - `DrawnCard string`: the card just drawn that may still be played this turn.
 
 ### 2.2 Calling "Last card!" and the Draw Four challenge (v2)
+
+**As built:** the call is its own verb (`call`), offered on your turn while
+you hold two cards; it does not end the turn. A silent last card can be
+caught by whoever moves next, on their own turn, before any other move — a
+turn-based reading of "anyone may catch you", which needs no out-of-turn
+actions in the runtime. Hard and Medium bots call and catch; Easy forgets
+one time in three (fixed by the state, so replays agree). With the challenge
+on, a Wild Draw Four may be bluffed; the victim gets `challenge` / `accept`,
+and the challenger sees the hand it came from either way. Hard bluffs only
+when the next player is nearly out and challenges a hand of eight or more.
 
 Both of these interrupt the strict turn order, so they arrive after the core
 game is stable.
@@ -138,6 +148,11 @@ game is stable.
 
 ### 2.4 House-rule options (v3)
 
+**As built:** stacking (off / Draw Two on Draw Two / any draw card), draw
+until playable, and sevens-and-zeros — where a 7 swaps with the shortest
+hand automatically, since an offer cannot yet name another seat. The full
+rules as built are in [lastcard-rules.md](lastcard-rules.md).
+
 Per house-rules-as-options, every option defaults to the standard rule:
 
 - `stacking`: `off` | `drawTwoOnDrawTwo` | `anyDraw`. A Draw card may be passed
@@ -159,38 +174,29 @@ real-time races, and the turn engine doesn't have them.
 The goal is a deck that reads as instantly as the familiar one but that nobody
 would mistake for it.
 
-**Principles**
-- **Light card stock with a coloured frame**, not a full-colour face with a
-  tilted oval. The skin owns the stock colour, as it does for the French and
-  German decks.
-- **Every colour also has a shape.** This sets the deck apart and works for
-  colour-blind players. Each colour's shape appears in the corners and behind
-  the central figure:
+**As built (phase 1)**
+- **Palette:** coral, teal, violet and amber — deliberately not the familiar
+  four — each with a shape: coral ● circle, teal ◆ diamond, violet ▲
+  triangle, amber ■ square.
+- **A picture behind every card**, by colour: a sunburst (coral), rolling sea
+  (teal), a starry night over hills with a crescent moon (violet), a honeycomb
+  (amber). The wilds sit on a dusk-dark field with a scatter of stars.
+- **Full face** (any card drawn 64px wide or more, on every skin): the
+  pictured panel, a medallion in the colour's shape with a cream halo, heavy
+  rounded lettering, and an index on a cream tab in two corners. 6 and 9 are
+  underlined.
+- **Plain face** (phones, compact boards, stacks): the colour's frame and pale
+  field, one big index down the left edge sized for the strip a closed hand
+  shows, and the shape echoed in the corner.
+- **Glyphs:** Skip is an arrow hopping over a dot; Reverse is one U-turn
+  arrow; Draw Two is "+2". The wild is a four-colour wheel carrying the four
+  shapes; Wild Draw Four adds "+4".
+- **Back:** dusk field, the four shapes in a quiet repeat, the colour wheel in
+  the middle — replacing the skin's back on a Last Card table.
+- **Fixed colours:** skins change the stock, ink, bevel and shadow only.
 
-  | Code | Colour | Shape |
-  |---|---|---|
-  | R | Red (coral-red, not their red) | ● circle |
-  | B | Blue | ◆ diamond |
-  | G | Green | ▲ triangle |
-  | Y | Gold | ■ square |
-
-- **Faces:**
-  - Number: a large central numeral in the colour, on a soft tinted version of
-    the shape. Small numeral and shape in two corners. The 6 and 9 are
-    underlined.
-  - Skip: our own glyph, an arrow hopping over a dot. Not the circle-slash.
-  - Reverse: a single U-turn arrow. Not two curved arrows chasing each other.
-  - Draw Two: a bold "+2" with two small fanned card outlines.
-  - Wild: a 2×2 grid of the four shapes in their four colours, on a dark
-    neutral frame (the skin's ink).
-  - Wild Draw Four: the same four-shape grid with a bold "+4".
-- **Back:** our own pattern, a repeat of the four shapes in one muted tone, with
-  a small "Last Card" wordmark. Not red, no oval, no black field.
-- **Fixed colours:** the four card colours are fixed, like the German suit
-  colours (`GermanSuit.tsx:14-17`). Skins change only the stock, ink, bevel and
-  shadow (skins must not change sizes).
-
-**How it's made.** Like `germanArt.ts`, the art is path data in code: the shapes
+**How it's made.** `client-react-native/src/components/cards/lastCardArt.ts`
+(geometry) and `LastCardFace.tsx` (rendering). Like `germanArt.ts`, the art is path data in code: the shapes
 are simple geometry, and the action glyphs are a handful of hand-drawn paths.
 No images and no vendored assets, so there is nothing to license. Generate a
 contact sheet of all 54 distinct faces at three sizes, check it in light and

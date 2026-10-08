@@ -138,6 +138,12 @@ type ModuleDescriptor struct {
 // jack and the queen. Suits map H→hearts, D→bells, C→acorns, S→leaves.
 const DeckGerman = "german"
 
+// DeckLastCard is Last Card's own pack: four colours of 0–9, Skip, Reverse
+// and Draw Two, and two kinds of wild. Its codes are not French ones ("C-7",
+// "T-S", "W4"), so unlike DeckGerman this is not optional for a client: one
+// that does not know it has no face to draw.
+const DeckLastCard = "lastcard"
+
 // GermanSuitKey is the message key naming a German suit, for a module that
 // puts one in a sentence or on a button.
 func GermanSuitKey(suit string) string {

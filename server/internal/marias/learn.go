@@ -12,6 +12,7 @@ import (
 // game a network can learn.
 //
 //	go run ./cmd/gamebench -game marias -seats 3 -a hard-1000k -b hard -seeds 600
+//	go run ./cmd/gamebench -game marias -seats 4 -a hard -b medium -seeds 50
 type learnGame struct{}
 
 func init() { learn.Register(learnGame{}) }
@@ -26,7 +27,7 @@ func (learnGame) Module() module.GameModule { return New() }
 func (learnGame) Heuristic() module.Bot     { return bot{} }
 
 // Config is a nine-deal match, every seat choosing trumps three times, with
-// no pause between deals.
+// no pause between deals; at four seats NewMatch rounds it up to twelve.
 func (learnGame) Config(_ int, variation string) module.MatchConfig {
 	if variation == "" {
 		variation = variationVoleny
