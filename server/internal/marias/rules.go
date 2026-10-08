@@ -47,6 +47,9 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 		module.Rule("marias.rules.play.marriage", map[string]any{"plain": marriagePlain, "trump": marriageTrump}),
 		module.Rule("marias.rules.play.earlyEnd", nil),
 	})
+	if c.openBetlDurch {
+		play.Items = append(play.Items, module.Rule("marias.rules.play.openHand", nil))
+	}
 
 	scoring := []module.RuleItem{module.Rule("marias.rules.score.parts", nil)}
 	if licit {
