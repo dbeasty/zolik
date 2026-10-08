@@ -46,6 +46,11 @@ export type CardView = {
   badgeKeys?: string[];
   faceDown?: boolean;
   /**
+   * What the card stands for in play where that is not printed on it — the
+   * colour a wild was named. The deck's own face draws it; see `CardView`.
+   */
+  as?: string;
+  /**
    * The seat (player id) that put this card here — in a trick, who played
    * it. What a zone arranged `bySeat` places each card by; see
    * {@link Zone.arrange}.

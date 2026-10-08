@@ -69,6 +69,8 @@ type Props = {
   // nothing measured around it moves. A ceremonial turn, not a secret: the
   // server still says which card it is (see matchTypes.CardView.faceDown).
   faceDown?: boolean;
+  /** What the card stands for in play, where its face can show it (`CardView.as` on the wire). */
+  as?: string;
 };
 
 /** How much of a card's own side shows below and to the right of it. */
@@ -311,6 +313,7 @@ export function CardView({
   stacked,
   testID,
   faceDown,
+  as,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -400,6 +403,7 @@ export function CardView({
   const face = lastCard ? (
     <LastCardFace
       card={card}
+      as={as}
       variant={lastCardVariant}
       width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
       height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}

@@ -265,9 +265,10 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 	s.DrawnCard = ""
 	s.BlankDraws = 0
 
-	events := []module.Event{{Type: "card_played", Data: map[string]any{
-		"playerId": playerID, "card": card, "declaredColour": declared,
-	}}}
+	// What the card did, filled in below as it happens, so the line that
+	// narrates the play can say it in one sentence — see events.go.
+	played := map[string]any{"playerId": playerID, "card": card, "declaredColour": declared}
+	events := []module.Event{{Type: "card_played", Data: played}}
 
 	next := s.nextPlayer(playerID)
 	if len(s.Hands[playerID]) == 0 {
@@ -277,7 +278,8 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 		if n := drawCount(card) + s.PendingDraw; n > 0 {
 			s.PendingDraw = 0
 			if got := s.drawInto(next, n); got > 0 {
-				events = append(events, drawnEvent(next, got))
+				played["effect"], played["victim"], played["n"] = effectDraw, next, got
+				events = append(events, effectEvent(drawnEvent(next, got)))
 			}
 		}
 		return append(events, s.endDeal(playerID)...), nil
@@ -303,9 +305,11 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 		// on another is an answer, not a bluff.
 		s.PendingDraw += drawCount(card)
 		s.DrawFour, s.Reveal = nil, nil
+		played["effect"], played["victim"], played["n"] = effectStack, next, s.PendingDraw
 		if card == cardWildDrawFour && s.ChallengeOn && !stacked {
 			s.DrawFour = &DrawFourPending{Player: playerID, Victim: next, Bluff: bluff}
 			s.Reveal = &Reveal{Owner: playerID, Cards: before, Bluff: bluff}
+			played["effect"] = effectChallengeable
 		}
 		s.passTurn(next)
 		return events, nil
@@ -313,25 +317,31 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 
 	switch {
 	case faceOf(card) == faceSkip:
-		events = append(events, skippedEvent(next))
+		played["effect"], played["victim"] = effectSkip, next
+		events = append(events, effectEvent(skippedEvent(next)))
 		s.passTurn(s.nextPlayer(next))
 	case faceOf(card) == faceReverse:
 		if len(s.TurnOrder) == 2 {
 			// Between two players a Reverse brings it straight back.
-			events = append(events, skippedEvent(next))
+			played["effect"], played["victim"] = effectSkip, next
+			events = append(events, effectEvent(skippedEvent(next)))
 			s.passTurn(playerID)
 		} else {
 			s.Direction = -s.direction()
+			played["effect"] = effectReverse
+			played["clockwise"] = s.Direction > 0
 			s.passTurn(s.nextPlayer(playerID))
 		}
 	case card == cardWildDrawFour && s.ChallengeOn:
 		// The victim answers before anything is drawn.
 		s.DrawFour = &DrawFourPending{Player: playerID, Victim: next, Bluff: bluff}
 		s.Reveal = &Reveal{Owner: playerID, Cards: before, Bluff: bluff}
+		played["effect"], played["victim"] = effectChallengeable, next
 		s.passTurn(next)
 	case faceOf(card) == faceDrawTwo || card == cardWildDrawFour:
 		got := s.drawInto(next, drawCount(card))
-		events = append(events, drawnEvent(next, got), skippedEvent(next))
+		played["effect"], played["victim"], played["n"] = effectDraw, next, got
+		events = append(events, effectEvent(drawnEvent(next, got)), effectEvent(skippedEvent(next)))
 		s.passTurn(s.nextPlayer(next))
 	default:
 		s.passTurn(next)
@@ -373,7 +383,10 @@ func (s *GameState) applyDraw(playerID string) ([]module.Event, error) {
 		s.PendingDraw = 0
 		s.DrawFour, s.Reveal = nil, nil
 		s.passTurn(s.nextPlayer(playerID))
-		return []module.Event{drawnEvent(playerID, got), skippedEvent(playerID)}, nil
+		return []module.Event{
+			{Type: "stack_taken", Data: map[string]any{"playerId": playerID, "count": got}},
+			effectEvent(skippedEvent(playerID)),
+		}, nil
 	}
 	if s.DrawUntil {
 		return s.drawUntilPlayable(playerID)
@@ -442,8 +455,8 @@ func (s *GameState) applyCatch(playerID string) ([]module.Event, error) {
 	got := s.drawInto(target, 2)
 	s.Unannounced = ""
 	return []module.Event{
-		{Type: "caught", Data: map[string]any{"playerId": target, "by": playerID}},
-		drawnEvent(target, got),
+		{Type: "caught", Data: map[string]any{"playerId": target, "by": playerID, "count": got}},
+		effectEvent(drawnEvent(target, got)),
 	}, nil
 }
 
@@ -465,16 +478,16 @@ func (s *GameState) applyChallenge(playerID string) ([]module.Event, error) {
 	if d.Bluff {
 		got := s.drawInto(d.Player, 4)
 		return []module.Event{
-			{Type: "challenge_won", Data: map[string]any{"playerId": playerID, "against": d.Player}},
-			drawnEvent(d.Player, got),
+			{Type: "challenge_won", Data: map[string]any{"playerId": playerID, "against": d.Player, "count": got}},
+			effectEvent(drawnEvent(d.Player, got)),
 		}, nil
 	}
 	got := s.drawInto(playerID, owed+2)
 	s.passTurn(s.nextPlayer(playerID))
 	return []module.Event{
-		{Type: "challenge_lost", Data: map[string]any{"playerId": playerID, "against": d.Player}},
-		drawnEvent(playerID, got),
-		skippedEvent(playerID),
+		{Type: "challenge_lost", Data: map[string]any{"playerId": playerID, "against": d.Player, "count": got}},
+		effectEvent(drawnEvent(playerID, got)),
+		effectEvent(skippedEvent(playerID)),
 	}, nil
 }
 
@@ -489,7 +502,10 @@ func (s *GameState) applyAccept(playerID string) ([]module.Event, error) {
 	got := s.drawInto(playerID, s.owed(4))
 	s.PendingDraw = 0
 	s.passTurn(s.nextPlayer(playerID))
-	return []module.Event{drawnEvent(playerID, got), skippedEvent(playerID)}, nil
+	return []module.Event{
+		{Type: "draw_four_accepted", Data: map[string]any{"playerId": playerID, "count": got}},
+		effectEvent(skippedEvent(playerID)),
+	}, nil
 }
 
 // endDeal scores the deal just won and either ends the match, pauses for the
@@ -593,6 +609,22 @@ func (s *GameState) drawOne() (string, bool) {
 
 func drawnEvent(playerID string, n int) module.Event {
 	return module.Event{Type: "cards_drawn", Data: map[string]any{"playerId": playerID, "count": n}}
+}
+
+// What a card did, as card_played records it for the narration.
+const (
+	effectSkip          = "skip"
+	effectReverse       = "reverse"
+	effectDraw          = "draw"
+	effectStack         = "stack"
+	effectChallengeable = "challengeable"
+)
+
+// effectEvent marks an event as the consequence of a card just played, which
+// that card's own line already says — so the strip does not say it twice.
+func effectEvent(ev module.Event) module.Event {
+	ev.Data["effect"] = true
+	return ev
 }
 
 func skippedEvent(playerID string) module.Event {

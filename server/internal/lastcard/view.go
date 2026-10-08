@@ -204,7 +204,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(shownPile(s)), Count: len(s.DiscardPile),
+			Cards: pileViews(s), Count: len(s.DiscardPile),
 		},
 	)
 
@@ -317,6 +317,17 @@ func cardViews(cards []string) []module.CardView {
 	out := make([]module.CardView, 0, len(cards))
 	for _, c := range cards {
 		out = append(out, module.CardView{Card: c})
+	}
+	return out
+}
+
+// pileViews is the discard pile as drawn, with the colour a wild on top was
+// named carried on the card itself (CardView.As), so the card a player looks
+// at says the colour in play rather than leaving it to the header.
+func pileViews(s *GameState) []module.CardView {
+	out := cardViews(shownPile(s))
+	if n := len(out); n > 0 && isWild(out[n-1].Card) && s.DeclaredColour != "" {
+		out[n-1].As = s.DeclaredColour
 	}
 	return out
 }

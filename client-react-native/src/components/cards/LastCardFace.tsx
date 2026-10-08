@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Svg, { ClipPath, Defs, G, Path, Text as SvgText } from 'react-native-svg';
 
 import {
+  COLOURS,
   CREAM,
   DUSK,
   INKS,
@@ -17,6 +18,7 @@ import {
   shapeBlock,
   shapePath,
   skipGlyph,
+  type Colour,
   type LastCard,
   type Piece,
 } from '@/src/components/cards/lastCardArt';
@@ -48,9 +50,11 @@ type Props = {
   variant: 'full' | 'plain';
   /** The plain index's size in pixels, from the layout metrics. */
   indexFont?: number;
+  /** The colour a wild on the table was named, to draw on its face. */
+  as?: string;
 };
 
-export function LastCardFace({ card, width, height, variant, indexFont }: Props) {
+export function LastCardFace({ card, width, height, variant, indexFont, as }: Props) {
   const parsed = parseLastCard(card);
   const clip = useId().replace(/:/g, '');
   if (!parsed || width <= 0 || height <= 0) return null;
@@ -59,9 +63,9 @@ export function LastCardFace({ card, width, height, variant, indexFont }: Props)
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Svg width={width} height={height} viewBox={`0 0 100 ${h}`}>
         {variant === 'full' ? (
-          <Full card={parsed} h={h} clipId={`lc${clip}`} />
+          <Full card={parsed} h={h} clipId={`lc${clip}`} named={namedColour(parsed, as)} />
         ) : (
-          <Plain card={parsed} h={h} font={indexFont ? (indexFont * 100) / width : 40} />
+          <Plain card={parsed} h={h} font={indexFont ? (indexFont * 100) / width : 40} named={namedColour(parsed, as)} />
         )}
       </Svg>
     </View>
@@ -150,7 +154,12 @@ function Emblem({ card, cx, cy, size, ink }: { card: LastCard; cx: number; cy: n
   }
 }
 
-function Full({ card, h, clipId }: { card: LastCard; h: number; clipId: string }) {
+/** The colour a wild was named, when it is one and was named one. */
+function namedColour(card: LastCard, as?: string): Colour | undefined {
+  return card.colour === null && as && (COLOURS as readonly string[]).includes(as) ? (as as Colour) : undefined;
+}
+
+function Full({ card, h, clipId, named }: { card: LastCard; h: number; clipId: string; named?: Colour }) {
   const cx = 50;
   const cy = h / 2;
   const panel = roundedRect(5, 5, 90, h - 10, 7);
@@ -165,17 +174,18 @@ function Full({ card, h, clipId }: { card: LastCard; h: number; clipId: string }
           </ClipPath>
         </Defs>
         <Path d={panel} fill={DUSK.field} />
+        {named ? <Path d={panel} fill={INKS[named].main} opacity={0.28} /> : null}
         <G clipPath={`url(#${clipId})`}>
           <Pieces pieces={duskStars(h)} />
           <Path d={shapePath('C', cx, four ? cy - 8 : cy, 78)} fill={DUSK.glow} opacity={0.7} />
         </G>
-        <Pieces pieces={pinwheel(cx, four ? cy - 8 : cy, four ? 50 : 64)} />
+        <Pieces pieces={pinwheel(cx, four ? cy - 8 : cy, four ? 50 : 64, named)} />
         {four ? (
           <Lettering x={cx} y={cy + 38} size={28} fill={CREAM} outline={DUSK.field}>
             +4
           </Lettering>
         ) : null}
-        <Path d={panel} fill="none" stroke={DUSK.glow} strokeWidth={2} />
+        <Path d={panel} fill="none" stroke={named ? INKS[named].main : DUSK.glow} strokeWidth={named ? 4 : 2} />
         <WildTab card={card} />
         <G transform={`rotate(180 ${cx} ${cy})`}>
           <WildTab card={card} />
@@ -284,7 +294,7 @@ function WildTab({ card }: { card: LastCard }) {
  * hand shows. The index is left-aligned at the card's edge, because that
  * strip is all of the card a fanned hand lets you read.
  */
-function Plain({ card, h, font }: { card: LastCard; h: number; font: number }) {
+function Plain({ card, h, font, named }: { card: LastCard; h: number; font: number; named?: Colour }) {
   const frame = roundedRect(2.5, 2.5, 95, h - 5, 6);
   const left = 7;
   const mid = left + font * 0.42;
@@ -292,9 +302,10 @@ function Plain({ card, h, font }: { card: LastCard; h: number; font: number }) {
     const four = card.kind === 'wildDrawFour';
     return (
       <>
-        <Path d={frame} fill={DUSK.field} stroke={DUSK.glow} strokeWidth={3} />
+        <Path d={frame} fill={DUSK.field} stroke={named ? INKS[named].main : DUSK.glow} strokeWidth={named ? 6 : 3} />
+        {named ? <Path d={frame} fill={INKS[named].main} opacity={0.28} /> : null}
         <Pieces pieces={duskStars(h)} />
-        <Pieces pieces={pinwheel(64, h - 32, 46)} />
+        <Pieces pieces={pinwheel(64, h - 32, 46, named)} />
         {four ? (
           <>
             <SvgText fontFamily={FONT} x={left} y={font * 0.95 + 4} fontSize={font * 0.8} fontWeight="900" fill={CREAM}>

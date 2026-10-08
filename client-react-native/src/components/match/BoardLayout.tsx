@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { MatchState, Zone } from '@/src/api/matchTypes';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
-import { RecentMoves } from '@/src/components/match/RecentMoves';
+import { MoveAnnouncements } from '@/src/components/match/MoveAnnouncements';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
 import { ZoneView } from '@/src/components/match/ZoneView';
@@ -150,10 +150,6 @@ export function BoardLayout({
 
   // Who did what: beside the Table title, just above the cards it happened
   // to. A board with no table panel keeps it on a line of its own.
-  const movesBesideTable = tableZones.length > 0;
-  const recentMoves = state.recentMoves?.length ? (
-    <RecentMoves moves={state.recentMoves} players={state.players} viewerId={viewerId} inHeader={movesBesideTable} />
-  ) : null;
 
   // Every spread on the board, whoever's it is, sharing a wrapping row
   // instead of each claiming a full-width line — named by its owner where the
@@ -187,13 +183,6 @@ export function BoardLayout({
         {...zonePanelProps('seats')}
       />
 
-      {(view.prompts ?? []).map((f, i) => (
-        <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-          {factText(f, state.players)}
-        </Text>
-      ))}
-
-      {movesBesideTable ? null : recentMoves}
 
       {/* The piles and stacks everyone draws from and discards to, and the
           cards everyone plays against, directly above the hand and buttons. */}
@@ -213,7 +202,6 @@ export function BoardLayout({
           ))}
           <Section
             title={t('match.table')}
-            aside={movesBesideTable ? recentMoves : null}
             zones={tableZones}
             compact
             styles={styles}
@@ -223,6 +211,16 @@ export function BoardLayout({
           />
         </View>
       ) : null}
+
+      {/* What just happened, and what the table is waiting on this viewer
+          for — between the cards everyone plays to and the hand they play
+          from, where the eye goes on the way down. */}
+      <MoveAnnouncements
+        moves={state.recentMoves ?? []}
+        prompts={view.prompts ?? []}
+        players={state.players}
+        viewerId={viewerId}
+      />
 
       {holdsHand ? null : spreadsRow}
 
@@ -393,7 +391,6 @@ export function matchStyles(s: Skin) {
   statusDotOk: { backgroundColor: colors.success },
   statusDotBad: { backgroundColor: colors.danger },
   statusExplainer: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  prompt: { color: colors.gold, fontSize: 13, marginTop: 6 },
   section: { marginTop: 10 },
   sectionSummary: { flexDirection: 'row', flexShrink: 1, minWidth: 0 },
   sectionSummaryText: { color: colors.muted, fontSize: 12 },

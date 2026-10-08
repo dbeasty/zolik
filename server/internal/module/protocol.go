@@ -170,6 +170,11 @@ type CardView struct {
 	// of the player it came from. A client that ignores it still shows the
 	// cards; it only loses which is whose.
 	By string `json:"by,omitempty"`
+	// As is what this card stands for in play, where that is not printed on
+	// it: the colour a wild was named, so the card on the pile can show it.
+	// Presentational, like the deck — a client that ignores it still plays
+	// correctly, it only shows the card as printed.
+	As string `json:"as,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a
