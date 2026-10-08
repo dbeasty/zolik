@@ -79,7 +79,7 @@ export default function TableScreen() {
     }
   }, [client, id, session?.userId, offline]);
 
-  const botStrength = useBotStrength(client, id, isHost, poll);
+  const botStrength = useBotStrength(client, id, state?.moduleId, isHost, poll);
 
   useEffect(() => {
     if (!id) return;
@@ -397,7 +397,7 @@ export default function TableScreen() {
               me an opponent" and it should stay one tap.
             */}
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              {BOT_SKILLS.map((s) => (
+              {BOT_SKILLS.filter((s) => s.id !== 'ai' || botStrength.offersAI).map((s) => (
                 <Pressable
                   key={s.id}
                   testID={`table-add-bot-${s.id}`}

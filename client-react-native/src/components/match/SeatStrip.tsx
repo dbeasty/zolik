@@ -144,8 +144,13 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     // An AI client playing over MCP wears its own mark, and a seat the table
     // is playing on without says so — it checks or folds until its player is
     // back (see module.DropIn on the server).
+    // A bot's badge says how well it plays, and is where the host taps to
+    // change that (see onPickBot).
     const bot = player?.isAI ? (
-      <Text style={styles.badge}>BOT</Text>
+      <Text style={[styles.badge, pickBot && styles.badgeLink]} testID={`bot-badge-${seat.playerId}`}>
+        {player.skill ? `BOT · ${t(`setup.botSkill.${player.skill}`)}` : 'BOT'}
+        {pickBot ? ' ▾' : ''}
+      </Text>
     ) : player?.isAgent ? (
       <Text style={styles.badge} testID={`agent-badge-${seat.playerId}`} accessibilityLabel={player.agentLabel ?? 'AI agent'}>
         {'\u2726 AGENT'}
@@ -588,6 +593,8 @@ function seatStyles(m: Metrics, s: Skin) {
       paddingVertical: 2,
       flexShrink: 0,
     },
+    // A bot badge the host can tap: the accent says it is a control.
+    badgeLink: { backgroundColor: colors.accent },
     summaryPillActive: { borderColor: colors.accent },
     summaryPillOurs: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.22)' : '#22304a' },
     summaryName: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
