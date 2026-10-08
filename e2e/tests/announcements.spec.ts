@@ -130,7 +130,8 @@ test('every Last Card move is said, with what it did, between the pile and the h
         } else if (card === 'W') {
           expected = { key: 'wild', text: new RegExp(`${said} — the colour is now ${COLOUR[colour]}`) };
         } else {
-          expected = { key: 'played', text: new RegExp(`${said}$`, 'm') };
+          // A plain card's line says nothing more: no " — " after it.
+          expected = { key: 'played', text: new RegExp(`${said}(?! —)`) };
         }
       } else if (seat.enabled('pass')) {
         action = { offerId: 'pass', verb: 'pass' };
@@ -242,7 +243,7 @@ test('every Prší move is said, with what it asks of whom, between the pile and
         else if (card.startsWith('A'))
           expected = { key: 'ace', text: new RegExp(`${said} .* — ${name(next)} answers with an ace or misses a turn`) };
         else if (card.startsWith('Q')) expected = { key: 'queen', text: new RegExp(`${said} .* — the suit is now \\w+`) };
-        else expected = { key: 'played', text: new RegExp(`${said} \\S+$`, 'm') };
+        else expected = { key: 'played', text: new RegExp(`${said} \\S+(?! —)`) };
       } else if (seat.enabled('pass')) {
         action = { offerId: 'pass', verb: 'pass' };
         expected = { key: 'missed', text: new RegExp(`${me.name} misses a turn`) };

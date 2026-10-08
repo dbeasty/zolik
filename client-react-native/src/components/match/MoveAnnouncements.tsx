@@ -48,39 +48,40 @@ export function MoveAnnouncements({
   const shown = since.length > 0 ? since : moves.slice(-1);
   const settled = since.length === 0;
 
-  if (shown.length === 0 && prompts.length === 0) return null;
-
+  // A fixed height, always there. The box sits above the hand, so a box that
+  // grew with each move would move the hand under a finger mid-drag; this
+  // one keeps its size, the newest line at the bottom and the oldest falling
+  // off the top. The prompt — what the table is waiting on this player for —
+  // goes last, where nothing pushes it out of sight.
   return (
     <View style={styles.box} testID="move-announcements" accessibilityLiveRegion="polite">
-      {prompts.map((f, i) => (
-        <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-          {factText(f, players)}
-        </Text>
-      ))}
-      {shown.length > 0 ? (
-        <>
-          <Text style={styles.title}>{t('moves.title')}</Text>
-          {shown.map((m, i) => {
-            const newest = !settled && i === shown.length - 1;
-            return (
-              <View key={i} style={[styles.row, newest && styles.newestRow]}>
-                <Text
-                  testID={`announce-${i}`}
-                  style={[styles.line, newest && styles.newest, settled && styles.settled]}
-                >
-                  {factText(m.fact, players)}
-                </Text>
-              </View>
-            );
-          })}
-        </>
-      ) : null}
+      <Text style={styles.title}>{t('moves.title')}</Text>
+      <View style={styles.lines}>
+        {shown.map((m, i) => {
+          const newest = !settled && i === shown.length - 1;
+          return (
+            <View key={i} style={[styles.row, newest && styles.newestRow]}>
+              <Text testID={`announce-${i}`} style={[styles.line, newest && styles.newest, settled && styles.settled]}>
+                {factText(m.fact, players)}
+              </Text>
+            </View>
+          );
+        })}
+        {prompts.map((f, i) => (
+          <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
+            {factText(f, players)}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
 
 /** About a round at a full table; older moves are in the strip's own history. */
 const MAX_LINES = 8;
+
+/** The box's fixed room for lines: about four of them. */
+const LINES_HEIGHT = 96;
 
 function announceStyles(s: Skin) {
   const colors = s.colors;
@@ -95,7 +96,9 @@ function announceStyles(s: Skin) {
       marginTop: 10,
       gap: 3,
     },
-    prompt: { color: colors.gold, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+    prompt: { color: colors.gold, fontSize: 16, fontWeight: '700', marginTop: 2 },
+    // Room for about four lines; see the render for why it never grows.
+    lines: { height: LINES_HEIGHT, overflow: 'hidden', justifyContent: 'flex-end', gap: 3 },
     title: {
       color: colors.muted,
       fontSize: 11,
