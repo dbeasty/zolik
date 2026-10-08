@@ -30,7 +30,21 @@ type variationDefaults struct {
 	handLimit     int
 }
 
+// VarHoldem is Texas Hold'em, the module's one variation for now. The module
+// is shown as "Poker" and its variations are the poker games — Omaha and
+// Five-Card Draw join here — so how a match ends is a table option
+// (OptHandLimit), not a variation of its own.
+const VarHoldem = "holdem"
+
 var variations = map[string]variationDefaults{
+	VarHoldem: {startingStack: 1000, bigBlind: 20, handLimit: 0},
+	VarDraw:   {startingStack: 1000, bigBlind: 20, handLimit: 0},
+	VarOmaha:  {startingStack: 1000, bigBlind: 20, handLimit: 0},
+	// The two variations Hold'em shipped with, before poker was one game with
+	// several. Each differed only in its hand limit, which every match already
+	// stores as an option; these keep a match created under either — and its
+	// rematch — reading the defaults it was created with.
+	//
 	// Freezeout: play until one player holds every chip.
 	"freezeout": {startingStack: 1000, bigBlind: 20, handLimit: 0},
 	// Timed: a fixed number of hands, most chips wins — and, unlike a
@@ -43,47 +57,73 @@ func resolveVariation(cfg module.MatchConfig) variationDefaults {
 	if v, ok := variations[cfg.Variation]; ok {
 		return v
 	}
-	return variations["freezeout"]
+	return variations[VarHoldem]
 }
 
-// Descriptor is Hold'em's self-description.
+// Descriptor is Poker's self-description.
 //
 // Note what it needs that no card game did: a chip count and a blind size. The
 // option vocabulary expressed both without changing, which is the quiet half of
 // this experiment's result — the descriptor was the part that did not bend.
+//
+// The ID stays "holdem": it is stored on every match, stat and shipped model,
+// and the label is the only part a player reads.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
 		ID:         "holdem",
-		Label:      "Texas Hold'em",
+		Label:      "Poker",
 		MinPlayers: 2,
 		MaxPlayers: 9,
 		Variations: []module.VariationSpec{
 			{
-				ID:    "freezeout",
-				Label: "Freezeout",
+				ID:       VarHoldem,
+				Label:    "Texas Hold'em",
+				Formerly: []string{"freezeout", "timed"},
 				Summary: []module.Fact{
 					{LabelKey: "holdem.rules.noLimit"},
-					{LabelKey: "holdem.rules.lastPlayerStanding"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:   variations["freezeout"].startingStack,
-					OptBigBlind:        variations["freezeout"].bigBlind,
-					OptHandLimit:       variations["freezeout"].handLimit,
+					OptStartingStack:   variations[VarHoldem].startingStack,
+					OptBigBlind:        variations[VarHoldem].bigBlind,
+					OptHandLimit:       variations[VarHoldem].handLimit,
 					OptShowdownReveal:  RevealEveryone,
 					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
-				ID:    "timed",
-				Label: "Fixed hands",
+				// Four in the hand, five on the felt, and a hand made of
+				// exactly two and exactly three of them; raises capped at the
+				// pot. Played pot-limit everywhere it is played, so the limit
+				// is part of the game rather than a table setting.
+				ID:    VarOmaha,
+				Label: "Pot-Limit Omaha",
 				Summary: []module.Fact{
-					{LabelKey: "holdem.rules.noLimit"},
-					{LabelKey: "holdem.rules.mostChipsWins"},
+					{LabelKey: "holdem.rules.potLimit"},
+					{LabelKey: "holdem.rules.omaha.useTwo"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:   variations["timed"].startingStack,
-					OptBigBlind:        variations["timed"].bigBlind,
-					OptHandLimit:       variations["timed"].handLimit,
+					OptStartingStack:   variations[VarOmaha].startingStack,
+					OptBigBlind:        variations[VarOmaha].bigBlind,
+					OptHandLimit:       variations[VarOmaha].handLimit,
+					OptShowdownReveal:  RevealEveryone,
+					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+				},
+			},
+			{
+				// Five in the hand, none on the felt, and one draw between two
+				// rounds of betting — the game most people picture when they
+				// hear the word poker. Six seats at most: see ruleset.maxSeats.
+				ID:         VarDraw,
+				Label:      "Five-Card Draw",
+				MaxPlayers: drawRules.maxSeats,
+				Summary: []module.Fact{
+					{LabelKey: "holdem.rules.noLimit"},
+					{LabelKey: "holdem.rules.draw.deal"},
+				},
+				Defaults: map[string]int{
+					OptStartingStack:   variations[VarDraw].startingStack,
+					OptBigBlind:        variations[VarDraw].bigBlind,
+					OptHandLimit:       variations[VarDraw].handLimit,
 					OptShowdownReveal:  RevealEveryone,
 					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
 				},
@@ -94,7 +134,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// table says, because the stop is where the cards are — see
 			// GameState.Break. An option that decides nothing is worse than
 			// no option: a lobby renders it as a working control.
-			module.BotSkillOption(),
+			module.BotSkillOptionWithAI(),
 			module.HintsOption(),
 			{
 				Name:  OptShowdownReveal,
@@ -212,19 +252,20 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		vm.Zones = append(vm.Zones, z)
 	}
 
-	vm.Zones = append(vm.Zones,
-		module.Zone{
+	rules := s.rules()
+	if rules.board {
+		vm.Zones = append(vm.Zones, module.Zone{
 			// Shared: the five are the table's, not a player's and not a
 			// side's, so the board is drawn up on the felt beside the deck
 			// rather than down among the players' spreads.
 			ID: "board", Kind: module.ZoneSpread, LabelKey: "zone.board", Shared: true,
 			Cards: cardViews(s.Board), Count: len(s.Board),
-		},
-		module.Zone{
-			ID: "deck", Kind: module.ZoneStack, LabelKey: "zone.drawPile",
-			Count: len(s.Deck),
-		},
-	)
+		})
+	}
+	vm.Zones = append(vm.Zones, module.Zone{
+		ID: "deck", Kind: module.ZoneStack, LabelKey: "zone.drawPile",
+		Count: len(s.Deck),
+	})
 
 	// The seats. This is the field poker added, and it is where every number
 	// that is not a card lives.
@@ -257,6 +298,19 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if st.Out {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.out")
 		}
+		// How many cards a seat drew is the one public fact of a draw, and
+		// the one every reader of a draw hand starts from: a seat that stood
+		// pat is claiming five cards that already work.
+		if st.Drawn && st.inHand() {
+			if st.Drew > 0 {
+				seat.Facts = append(seat.Facts, module.Fact{
+					LabelKey: "holdem.seat.drew", Value: strconv.Itoa(st.Drew),
+					Params: map[string]any{"n": st.Drew},
+				})
+			} else {
+				seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.stoodPat")
+			}
+		}
 		// Who took the hand that is on the table, marked on the seat rather
 		// than left to be read off a sentence underneath it.
 		if open && took(s.LastHand, st.PlayerID) {
@@ -270,7 +324,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 
 	vm.Header = []module.Fact{
 		{LabelKey: "holdem.header.pot", Value: strconv.Itoa(s.Pot)},
-		{LabelKey: "holdem.header.street", Value: s.Street},
+		streetFact(s.Street),
 		{LabelKey: "holdem.header.hand", Value: strconv.Itoa(s.HandNumber)},
 		{LabelKey: "holdem.header.blinds",
 			Value:  strconv.Itoa(s.SmallBlind) + "/" + strconv.Itoa(s.BigBlind),
@@ -368,7 +422,11 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	}
 
 	if s.Status == "active" && s.Current >= 0 {
-		if s.Seats[s.Current].PlayerID == viewerID {
+		if s.Seats[s.Current].PlayerID == viewerID && s.Street == streetDraw {
+			vm.Prompts = append(vm.Prompts, module.Fact{
+				LabelKey: "holdem.prompt.draw", Params: map[string]any{"n": rules.maxDiscard},
+			})
+		} else if s.Seats[s.Current].PlayerID == viewerID {
 			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "holdem.prompt.yourAction"})
 		} else {
 			vm.Prompts = append(vm.Prompts, module.Fact{
@@ -384,6 +442,25 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		})
 	}
 	return vm, nil
+}
+
+// streetFact is the header's line for the street being played.
+//
+// Draw's streets are sentences of their own — "Before the draw" — each a
+// literal key in its own Fact, because the manifest only finds a key sitting
+// in a LabelKey; one sent as a Value would reach a screen with no line in any
+// locale. Hold'em's have always gone out as the street's own word under
+// "Street", and stay that way.
+func streetFact(street string) module.Fact {
+	switch street {
+	case streetPredraw:
+		return module.Fact{LabelKey: "holdem.street.predraw"}
+	case streetDraw:
+		return module.Fact{LabelKey: "holdem.street.draw"}
+	case streetPostdraw:
+		return module.Fact{LabelKey: "holdem.street.postdraw"}
+	}
+	return module.Fact{LabelKey: "holdem.header.street", Value: street}
 }
 
 // showdownOpen reports the table looking at a finished hand rather than

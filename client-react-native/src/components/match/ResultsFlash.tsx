@@ -203,8 +203,12 @@ export function compose({
 
   if (kind === 'match') {
     const won = winners ?? [];
+    // Alone at the table, nobody winning means the game was not solved — see
+    // the match banner, which says the same.
     const headline = !won.length
-      ? t('flash.matchDrawn')
+      ? players.length === 1
+        ? t('flash.notSolved')
+        : t('flash.matchDrawn')
       : won.includes(viewerId)
         ? t('flash.matchWonYou')
         : t('flash.matchWon', { winners: names(won) });

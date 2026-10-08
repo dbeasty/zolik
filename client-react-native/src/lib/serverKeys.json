@@ -33,6 +33,10 @@
     "DISCARD_PILE_EMPTY",
     "DISCARD_TAKEN_CARD_FORBIDDEN",
     "DOES_NOT_BUILD",
+    "DRAW_EMPTY",
+    "DRAW_NOT_NOW",
+    "DRAW_PENDING",
+    "DRAW_TOO_MANY",
     "FOUNDATION_ORDER",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
@@ -109,6 +113,7 @@
     "NOTHING_PLAYED",
     "NOTHING_TO_CALL",
     "NOTHING_TO_DRAW",
+    "NOTHING_TO_POACH",
     "NOTHING_TO_REPLAY",
     "NOTHING_TO_SHOW",
     "NOTHING_TO_SKIP",
@@ -136,6 +141,7 @@
     "NO_SUCH_MELD",
     "NO_SUCH_SET",
     "OPTION_NOT_ALLOWED",
+    "OVER_POT_LIMIT",
     "PILE_BLOCKED",
     "PILE_EMPTY",
     "PILE_FROZEN",
@@ -146,8 +152,10 @@
     "RECLAIMED_JOKER_NOT_MELDED",
     "REPLAY_UNAVAILABLE",
     "ROUND_REQ_NOT_MET",
+    "RUN_LEAVES_GAP",
     "RUN_NOT_CONSECUTIVE",
     "RUN_TOO_LONG",
+    "SAME_MELD",
     "SEAT_IN_USE",
     "SEAT_LINK_EXPIRED",
     "SEAT_NOT_IN_HAND",
@@ -168,6 +176,7 @@
     "TOO_MANY_WILDS",
     "TOP_CARD_UNUSABLE",
     "TRAY_NOT_EMPTY",
+    "UNDO_LATEST_FIRST",
     "UNDO_MELDS_FIRST",
     "UNKNOWN_ACTION",
     "UNKNOWN_FRIEND_CODE",
@@ -186,9 +195,11 @@
   ],
   "labelKeys": [
     "badge.cleanRun",
+    "badge.dirtySamba",
     "badge.mixedCanasta",
     "badge.naturalCanasta",
     "badge.samba",
+    "badge.wildCanasta",
     "blackjack.fact.extraStake",
     "blackjack.fact.insuranceCost",
     "blackjack.fact.surrenderReturn",
@@ -281,6 +292,7 @@
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
     "canasta.line.canastas",
+    "canasta.line.dirtySamba",
     "canasta.line.goingOut",
     "canasta.line.goingOutConcealed",
     "canasta.line.hand",
@@ -299,16 +311,21 @@
     "canasta.line.redThreesShort",
     "canasta.line.redThreesSum",
     "canasta.line.samba",
+    "canasta.line.wildCanasta",
+    "canasta.line.wildMixedCanasta",
     "canasta.move.discarded",
     "canasta.move.drewStock",
     "canasta.move.laidOff",
     "canasta.move.melded",
+    "canasta.move.moved",
+    "canasta.move.poached",
     "canasta.move.redThrees",
     "canasta.move.tookPile",
     "canasta.move.tookTopCard",
     "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
+    "canasta.offer.wildMeld",
     "canasta.remedy.blackThreesOnTheWayOut",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.discardNotARedThree",
@@ -326,6 +343,7 @@
     "canasta.remedy.pileFrozen",
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
+    "canasta.remedy.undoLatestFirst",
     "canasta.remedy.undoMeldsFirst",
     "canasta.round.canastas",
     "canasta.round.closed",
@@ -342,6 +360,7 @@
     "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.dirtySequences",
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goOutKeepsACard",
@@ -362,6 +381,8 @@
     "canasta.rules.pileNoMeldCapture",
     "canasta.rules.pileOntoMeld",
     "canasta.rules.pileTopCard",
+    "canasta.rules.poach",
+    "canasta.rules.rearrange",
     "canasta.rules.redThrees",
     "canasta.rules.samba",
     "canasta.rules.section.end",
@@ -371,10 +392,12 @@
     "canasta.rules.section.turn",
     "canasta.rules.sequences",
     "canasta.rules.stockOut",
+    "canasta.rules.topOnlyCapture",
     "canasta.rules.turn",
     "canasta.rules.turnDiscard",
     "canasta.rules.twoCanastasToGoOut",
     "canasta.rules.wildLimit",
+    "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.notOpened",
@@ -467,8 +490,11 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.offer.discard",
     "holdem.offer.finish",
     "holdem.offer.show",
+    "holdem.offer.stand",
+    "holdem.prompt.draw",
     "holdem.prompt.raiseTo",
     "holdem.prompt.waitingFor",
     "holdem.prompt.yourAction",
@@ -478,10 +504,12 @@
     "holdem.remedy.callAllInOrFold",
     "holdem.remedy.callOrFold",
     "holdem.remedy.checkOrRaise",
+    "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.nothingToShow",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.remedy.waitForNextHand",
     "holdem.round.hand",
     "holdem.round.pot",
@@ -489,6 +517,10 @@
     "holdem.rules.allIn",
     "holdem.rules.blinds",
     "holdem.rules.checkOrCall",
+    "holdem.rules.draw.deal",
+    "holdem.rules.draw.draw",
+    "holdem.rules.draw.public",
+    "holdem.rules.draw.streets",
     "holdem.rules.foldedOut",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
@@ -496,6 +528,10 @@
     "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.omaha.allIn",
+    "holdem.rules.omaha.deal",
+    "holdem.rules.omaha.useTwo",
+    "holdem.rules.potLimit",
     "holdem.rules.revealEveryone",
     "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
@@ -512,10 +548,12 @@
     "holdem.seat.allIn",
     "holdem.seat.bet",
     "holdem.seat.dealer",
+    "holdem.seat.drew",
     "holdem.seat.folded",
     "holdem.seat.mucked",
     "holdem.seat.out",
     "holdem.seat.stack",
+    "holdem.seat.stoodPat",
     "holdem.seat.won",
     "holdem.status.mucked",
     "holdem.status.pot",
@@ -523,6 +561,9 @@
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
+    "holdem.street.draw",
+    "holdem.street.postdraw",
+    "holdem.street.predraw",
     "klondike.fact.card",
     "klondike.fact.count",
     "klondike.fact.moves",
@@ -876,10 +917,14 @@
     "status.winner",
     "verb.discardToClose",
     "verb.drawFromDeck",
+    "verb.moveCards",
+    "verb.poach",
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
     "verb.takePileOntoMeld",
     "verb.takeTopForSequence",
+    "verb.takeTopFromHand",
+    "verb.takeTopOntoMeld",
     "verb.undoLayOff",
     "verb.undoMeld",
     "verb.undoTakePile",
@@ -1031,6 +1076,7 @@
     "canasta.remedy.pileFrozen",
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
+    "canasta.remedy.undoLatestFirst",
     "canasta.remedy.undoMeldsFirst",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
@@ -1038,6 +1084,7 @@
     "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.dirtySequences",
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goOutKeepsACard",
@@ -1058,6 +1105,8 @@
     "canasta.rules.pileNoMeldCapture",
     "canasta.rules.pileOntoMeld",
     "canasta.rules.pileTopCard",
+    "canasta.rules.poach",
+    "canasta.rules.rearrange",
     "canasta.rules.redThrees",
     "canasta.rules.samba",
     "canasta.rules.section.end",
@@ -1067,10 +1116,12 @@
     "canasta.rules.section.turn",
     "canasta.rules.sequences",
     "canasta.rules.stockOut",
+    "canasta.rules.topOnlyCapture",
     "canasta.rules.turn",
     "canasta.rules.turnDiscard",
     "canasta.rules.twoCanastasToGoOut",
     "canasta.rules.wildLimit",
+    "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "ginrummy.remedy.discardToEndTurn",
     "ginrummy.remedy.drawElsewhere",
@@ -1112,14 +1163,20 @@
     "holdem.remedy.callAllInOrFold",
     "holdem.remedy.callOrFold",
     "holdem.remedy.checkOrRaise",
+    "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.nothingToShow",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.remedy.waitForNextHand",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
     "holdem.rules.checkOrCall",
+    "holdem.rules.draw.deal",
+    "holdem.rules.draw.draw",
+    "holdem.rules.draw.public",
+    "holdem.rules.draw.streets",
     "holdem.rules.foldedOut",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
@@ -1127,6 +1184,10 @@
     "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.omaha.allIn",
+    "holdem.rules.omaha.deal",
+    "holdem.rules.omaha.useTwo",
+    "holdem.rules.potLimit",
     "holdem.rules.revealEveryone",
     "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
@@ -1479,6 +1540,10 @@
       "n",
       "value"
     ],
+    "canasta.line.dirtySamba": [
+      "each",
+      "n"
+    ],
     "canasta.line.goingOut": [
       "player"
     ],
@@ -1536,6 +1601,14 @@
       "each",
       "n"
     ],
+    "canasta.line.wildCanasta": [
+      "each",
+      "n"
+    ],
+    "canasta.line.wildMixedCanasta": [
+      "each",
+      "n"
+    ],
     "canasta.move.discarded": [
       "card",
       "player"
@@ -1550,6 +1623,15 @@
     "canasta.move.melded": [
       "cards",
       "player"
+    ],
+    "canasta.move.moved": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.poached": [
+      "card",
+      "player",
+      "wild"
     ],
     "canasta.move.redThrees": [
       "cards",
@@ -1573,6 +1655,9 @@
       "from",
       "suit",
       "to",
+      "value"
+    ],
+    "canasta.offer.wildMeld": [
       "value"
     ],
     "canasta.remedy.captureFromHand": [
@@ -1636,6 +1721,9 @@
       "decks",
       "value"
     ],
+    "canasta.rules.dirtySequences": [
+      "n"
+    ],
     "canasta.rules.drawCount": [
       "n"
     ],
@@ -1682,6 +1770,10 @@
     "canasta.rules.wildLimit": [
       "naturals",
       "wilds"
+    ],
+    "canasta.rules.wildMeld": [
+      "mixed",
+      "n"
     ],
     "canasta.rules.wildRatio": [
       "n",
@@ -1846,6 +1938,9 @@
     "holdem.header.street": [
       "value"
     ],
+    "holdem.prompt.draw": [
+      "n"
+    ],
     "holdem.prompt.waitingFor": [
       "playerId"
     ],
@@ -1864,6 +1959,9 @@
     "holdem.remedy.callOrFold": [
       "n"
     ],
+    "holdem.remedy.discardOrStand": [
+      "n"
+    ],
     "holdem.remedy.nameAnAmount": [
       "max",
       "min"
@@ -1874,12 +1972,18 @@
     "holdem.remedy.raiseAtMost": [
       "n"
     ],
+    "holdem.remedy.raiseAtMostPot": [
+      "n"
+    ],
     "holdem.round.pot": [
       "n"
     ],
     "holdem.rules.blinds": [
       "bb",
       "sb"
+    ],
+    "holdem.rules.draw.draw": [
+      "n"
     ],
     "holdem.rules.handLimit": [
       "n"
@@ -1889,6 +1993,10 @@
     ],
     "holdem.seat.bet": [
       "chips",
+      "value"
+    ],
+    "holdem.seat.drew": [
+      "n",
       "value"
     ],
     "holdem.seat.stack": [
@@ -2416,6 +2524,7 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "canasta.line.dirtySamba",
     "canasta.line.goingOut",
     "canasta.line.goingOutConcealed",
     "canasta.line.hand",
@@ -2431,16 +2540,21 @@
     "canasta.line.redThreesAll",
     "canasta.line.redThreesShort",
     "canasta.line.samba",
+    "canasta.line.wildCanasta",
+    "canasta.line.wildMixedCanasta",
     "canasta.move.discarded",
     "canasta.move.drewStock",
     "canasta.move.laidOff",
     "canasta.move.melded",
+    "canasta.move.moved",
+    "canasta.move.poached",
     "canasta.move.redThrees",
     "canasta.move.tookPile",
     "canasta.move.tookTopCard",
     "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
+    "canasta.offer.wildMeld",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.meldClosed",
     "canasta.remedy.needCanastas",
@@ -2460,6 +2574,7 @@
     "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.dirtySequences",
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
@@ -2471,6 +2586,7 @@
     "canasta.rules.pileBlocked",
     "canasta.rules.samba",
     "canasta.rules.wildLimit",
+    "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
@@ -2516,20 +2632,25 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.prompt.draw",
     "holdem.prompt.waitingFor",
     "holdem.quick.allIn",
     "holdem.quick.halfPot",
     "holdem.quick.pot",
     "holdem.remedy.callAllInOrFold",
     "holdem.remedy.callOrFold",
+    "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.round.pot",
     "holdem.rules.blinds",
+    "holdem.rules.draw.draw",
     "holdem.rules.handLimit",
     "holdem.rules.stack",
     "holdem.seat.bet",
+    "holdem.seat.drew",
     "holdem.seat.stack",
     "holdem.status.mucked",
     "holdem.status.pot",

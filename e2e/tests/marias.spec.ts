@@ -84,12 +84,12 @@ async function stateFor(request: Ctx, matchId: string, user: { userId: string; a
 }
 
 test.describe('marias', () => {
-  test('the server offers Mariáš for exactly three players', async ({ request }) => {
+  test('the server offers Mariáš for three or four players', async ({ request }) => {
     const { modules } = await (await request.get(`${API_BASE}/modules`)).json();
     const marias = modules.find((m: { id: string }) => m.id === 'marias');
     expect(marias, 'marias should be a hosted module').toBeTruthy();
     expect(marias.minPlayers).toBe(3);
-    expect(marias.maxPlayers).toBe(3);
+    expect(marias.maxPlayers).toBe(4);
     expect(marias.variations.map((v: { id: string }) => v.id)).toEqual(expect.arrayContaining(['voleny', 'licitovany']));
     expect(marias.deck).toBe('german');
   });

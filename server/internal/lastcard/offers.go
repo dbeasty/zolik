@@ -71,7 +71,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	}
 	play.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 	if containsWild(playable) {
-		play.Params = []module.ParamSpec{colourParam()}
+		play.Params = []module.ParamSpec{colourParam(s.Hands[playerID])}
 	}
 	offers = append(offers, play)
 
@@ -166,11 +166,28 @@ func containsWild(cards []string) bool {
 // colourParam declares the choice a wild demands: which colour follows it.
 // The four choices are written out so each key is a literal the key manifest
 // can see.
-func colourParam() module.ParamSpec {
-	return module.ParamSpec{Name: "colour", LabelKey: "lastcard.prompt.chooseColour", Choices: []module.ParamChoice{
+//
+// It starts on the colour the hand holds most of — what a player almost always
+// wants to name, and what a wild played without a second thought should name
+// rather than whichever colour heads the list.
+func colourParam(hand []string) module.ParamSpec {
+	return module.ParamSpec{Name: "colour", LabelKey: "lastcard.prompt.chooseColour", DefaultChoice: longestColour(hand), Choices: []module.ParamChoice{
 		{Value: "C", LabelKey: "lastcard.colour.C"},
 		{Value: "T", LabelKey: "lastcard.colour.T"},
 		{Value: "V", LabelKey: "lastcard.colour.V"},
 		{Value: "A", LabelKey: "lastcard.colour.A"},
 	}}
+}
+
+// longestColour is the colour a hand holds most of, by the fixed colour order
+// on a tie, so the same hand always starts on the same choice.
+func longestColour(hand []string) string {
+	counts := colourCounts(hand)
+	best, bestN := colours[0], -1
+	for _, c := range colours {
+		if counts[c] > bestN {
+			best, bestN = c, counts[c]
+		}
+	}
+	return best
 }

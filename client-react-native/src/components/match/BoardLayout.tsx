@@ -44,10 +44,13 @@ type DropProps = {
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  pickableGroups?: ReadonlySet<string>;
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
   entranceDelays?: ReadonlyMap<string, number>;
   /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
   changedGroups?: ChangeMarks;
@@ -74,6 +77,7 @@ export function BoardLayout({
   controls,
   tableAnchor,
   onOpenScore,
+  onPickBot,
 }: {
   state: MatchState;
   viewerId: string;
@@ -94,6 +98,8 @@ export function BoardLayout({
   tableAnchor?: { ref: Ref<View> };
   /** Open the account behind a seat's score. See `ScoreSheet`. */
   onOpenScore?: (playerId: string) => void;
+  /** The host's strength picker for a bot seat — see SeatStrip. */
+  onPickBot?: (bot: { id: string; name: string; skill?: string }) => void;
 }) {
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
@@ -177,6 +183,7 @@ export function BoardLayout({
         standings={state.standings}
         registerSpot={drops.registerDrop}
         onOpenScore={onOpenScore}
+        onPickBot={onPickBot}
         {...zonePanelProps('seats')}
       />
 
@@ -273,10 +280,13 @@ export function Section({
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  pickableGroups?: ReadonlySet<string>;
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
 }) {
   if (!zones.length) return null;
 

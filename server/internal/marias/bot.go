@@ -26,6 +26,10 @@ type bot struct {
 	skill module.Skill
 	// limits bound a hard seat's search; zero is defaultLimits.
 	limits searchLimits
+	// classicContracts is the betl and durch judgement as it was before
+	// contracts.go: betl only on a hand of nothing but low cards, durch
+	// never. Kept for the bench, to measure the judgement against.
+	classicContracts bool
 }
 
 var _ module.Bot = bot{}
@@ -60,6 +64,19 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 	switch s.Phase {
 	case phaseAuction:
 		limit := biddingLimit(hand, skill)
+		if b.classicContracts {
+			if skill != module.SkillEasy && betlHand(hand) {
+				limit = max(limit, contractRung(kindBetl, false))
+			}
+		} else {
+			// Ten cards and a talon unseen: the hand has to stand as it is.
+			switch game, _ := b.noTrumpGame(hand, 0, skill, r); game {
+			case gameDurch:
+				limit = max(limit, contractRung(kindDurch, false))
+			case gameBetl:
+				limit = max(limit, contractRung(kindBetl, false))
+			}
+		}
 		switch {
 		case me == s.Holder && s.Rung <= limit && enabled(OfferHold) != nil:
 			return send(OfferHold, VerbHold)
@@ -74,10 +91,23 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 		}
 
 	case phaseAnnounce:
+		game := ""
+		if !b.classicContracts {
+			game, _ = b.noTrumpGame(hand, 2, skill, r)
+		}
 		if s.licit() {
-			return licitContract(hand, skill, offers)
+			return licitContract(hand, skill, offers, game, b.classicContracts)
 		}
 		id := announcement(hand, tricks.Suit(s.TrumpCard), skill)
+		switch {
+		case b.classicContracts:
+		case game == gameDurch:
+			id = OfferDurch
+		case game == gameBetl:
+			id = OfferBetl
+		case id == OfferBetl:
+			id = OfferHra // betlHand's all-low hand, judged and found wanting
+		}
 		if enabled(id) == nil {
 			id = OfferHra
 		}
@@ -85,11 +115,27 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 
 	case phaseTalon:
 		if o := enabled(OfferTalon); o != nil {
+			if (s.Game == gameBetl || s.Game == gameDurch) && !b.classicContracts {
+				if pair := noTrumpTalon(s.Game, hand, o.Source.Cards); pair != nil {
+					return send(OfferTalon, VerbDiscard, pair...)
+				}
+			}
 			return send(OfferTalon, VerbDiscard, talonPair(s, hand, o.Source.Cards)...)
 		}
 
 	case phaseAnswer:
-		if skill != module.SkillEasy && betlHand(hand) && enabled(OfferBadBetl) != nil {
+		if b.classicContracts {
+			if skill != module.SkillEasy && betlHand(hand) && enabled(OfferBadBetl) != nil {
+				return send(OfferBadBetl, VerbTakeOver)
+			}
+			return send(OfferGood, VerbGood)
+		}
+		// Špatná takes the talon unseen, and it is the announcer's own
+		// discard: the ten cards in hand have to make the game by themselves.
+		switch game, _ := b.noTrumpGame(hand, 0, skill, r); {
+		case game == gameDurch && enabled(OfferBadDurch) != nil:
+			return send(OfferBadDurch, VerbTakeOver)
+		case game == gameBetl && enabled(OfferBadBetl) != nil:
 			return send(OfferBadBetl, VerbTakeOver)
 		}
 		return send(OfferGood, VerbGood)
@@ -427,10 +473,10 @@ func (b bot) losing(s *GameState, me string, cards []string) []string {
 
 // --- licitovaný -----------------------------------------------------------------
 
-// biddingLimit is the highest rung a seat will bid or hold on its ten cards,
-// before it has seen the talon: sedma where it holds a seven in a long suit,
-// sto with a trump marriage behind it, betl on a hand of low cards. Zero is
-// "pass".
+// biddingLimit is the highest rung a seat will bid or hold on its ten cards
+// in a trump game, before it has seen the talon: sedma where it holds a
+// seven in a long suit, sto with a trump marriage behind it. Zero is "pass".
+// Betl and durch are noTrumpGame's to judge.
 func biddingLimit(hand []string, skill module.Skill) int {
 	limit := 0
 	for _, suit := range []byte("HDCS") {
@@ -446,17 +492,17 @@ func biddingLimit(hand []string, skill module.Skill) int {
 			limit = max(limit, contractRung(kindSto, red))
 		}
 	}
-	if skill != module.SkillEasy && betlHand(hand) {
-		limit = max(limit, contractRung(kindBetl, false))
-	}
 	return limit
 }
 
-// licitContract picks what to announce with the talon in hand: betl on a
-// betl hand, sto or sedma in the strongest suit the offers allow, omyl when
+// licitContract picks what to announce with the talon in hand: durch or
+// betl on a hand judged to make one, sto or sedma in the strongest suit the offers allow, omyl when
 // held to plain sedma without a seven to play it — and otherwise the lowest
 // contract the offers allow, in the first suit they list.
-func licitContract(hand []string, skill module.Skill, offers []module.ActionOffer) (module.Action, bool) {
+//
+// game is the betl or durch the hand was judged to make (noTrumpGame), and
+// classic is the judgement before that existed: betlHand, never durch.
+func licitContract(hand []string, skill module.Skill, offers []module.ActionOffer, game string, classic bool) (module.Action, bool) {
 	find := func(id string) *module.ActionOffer {
 		for i := range offers {
 			if offers[i].ID == id && offers[i].Enabled {
@@ -502,7 +548,10 @@ func licitContract(hand []string, skill module.Skill, offers []module.ActionOffe
 		return a, true
 	}
 
-	if o := find(OfferLBetl); o != nil && skill != module.SkillEasy && betlHand(hand) {
+	if o := find(OfferLDurch); o != nil && !classic && game == gameDurch {
+		return withTrump(o)
+	}
+	if o := find(OfferLBetl); o != nil && (classic && skill != module.SkillEasy && betlHand(hand) || !classic && game == gameBetl) {
 		return withTrump(o)
 	}
 	if o := find(OfferLSto); o != nil && skill != module.SkillEasy {

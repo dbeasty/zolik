@@ -65,9 +65,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	// match was created with, so shipping a change to a variation cannot alter a
 	// match already in flight. The three scalars stay on the state beside it
 	// because they were there first and a client reads them.
-	r.HandSize = cfg.Opt(OptHandSize, r.handSizeFor(len(players)))
-	r.TargetScore = cfg.Opt(OptTargetScore, r.TargetScore)
-	r.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, r.CanastasToGoOut)
+	r = resolveRules(cfg, len(players))
 	s.Rules = &r
 	s.HandSize = r.HandSize
 	s.TargetScore = r.TargetScore
@@ -260,6 +258,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		s.PileTaken = nil
 		s.LaidOff = nil
 		s.MeldsLaid = nil
+		s.Reshapes = nil
 	}
 
 	seen := beforeSeen(s, playerID)
@@ -267,7 +266,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	switch a.Verb {
 	case VerbDraw:
 		events, err = applyDraw(s, playerID)
-	case VerbTakePile:
+	case VerbTakePile, VerbTakePileTop:
 		events, err = applyTakePile(s, playerID, a)
 	case VerbTakeTop:
 		events, err = applyTakeTop(s, playerID, a)
@@ -283,6 +282,12 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		events, err = applyUndoLayOff(s, playerID)
 	case VerbUndoLayMeld:
 		events, err = applyUndoLayMeld(s, playerID)
+	case VerbMoveCards:
+		events, err = applyMoveCards(s, playerID, a)
+	case VerbPoach:
+		events, err = applyPoach(s, playerID, a)
+	case VerbUndoReshape:
+		events, err = applyUndoReshape(s, playerID)
 	default:
 		err = module.Error{Code: ErrUnknownAction, Message: a.Verb}
 	}
@@ -351,6 +356,16 @@ type pileOption struct {
 	// otherwise Cards are the hand cards that receive it.
 	MeldID string
 	Cards  []string
+	// TopOnly is CanastaX's other way to make the same capture: the top card
+	// alone, leaving the rest of the pile where it is.
+	TopOnly bool
+}
+
+func (o pileOption) verb() string {
+	if o.TopOnly {
+		return VerbTakePileTop
+	}
+	return VerbTakePile
 }
 
 // pileTakeOptions lists every legal capture of the pile for this player.
@@ -430,6 +445,14 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 	// And only a capture the turn can be finished after — applyTakePile's own
 	// check, asked here too so that the offers and the empty-stock ending in
 	// advanceTurn see the same captures the engine accepts.
+	// Every capture has a top-card-only twin where the table allows it: the
+	// same cards, the same meld, and the pile left standing.
+	if r.TopOnlyCapture {
+		for _, opt := range append([]pileOption(nil), out...) {
+			opt.TopOnly = true
+			out = append(out, opt)
+		}
+	}
 	kept := out[:0]
 	for _, opt := range out {
 		if captureFinishes(s, playerID, opt) {
@@ -445,7 +468,7 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 // and keep one, so that common case is answered from the counts. Anything
 // else is the capture played on a copy.
 func captureFinishes(s *GameState, playerID string, opt pileOption) bool {
-	if s.team(playerID).HasMelded && len(s.DiscardPile) > 0 {
+	if s.team(playerID).HasMelded && len(s.DiscardPile) > 0 && !opt.TopOnly {
 		left := len(s.Hands[playerID]) - len(opt.Cards)
 		for _, c := range s.DiscardPile[:len(s.DiscardPile)-1] {
 			if !isRedThree(c) {
@@ -464,7 +487,7 @@ func captureFinishes(s *GameState, playerID string, opt pileOption) bool {
 	if err != nil {
 		return false
 	}
-	_, err = applyTakePile(c, playerID, module.Action{Verb: VerbTakePile, Target: opt.MeldID, Cards: opt.Cards})
+	_, err = applyTakePile(c, playerID, module.Action{Verb: opt.verb(), Target: opt.MeldID, Cards: opt.Cards})
 	return err == nil
 }
 
@@ -529,6 +552,10 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 // takePile is the capture itself: every rule about the pile, and the move.
 func takePile(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
 	r := s.rules()
+	topOnly := a.Verb == VerbTakePileTop
+	if topOnly && !r.TopOnlyCapture {
+		return nil, module.Error{Code: ErrUnknownAction, Message: a.Verb}
+	}
 	if s.Phase != phaseDraw {
 		return nil, errCode(ErrWrongPhase)
 	}
@@ -661,6 +688,12 @@ func takePile(s *GameState, playerID string, a module.Action) ([]module.Event, e
 
 	var redThreesGained []string
 	rest := s.DiscardPile[:len(s.DiscardPile)-1]
+	if topOnly {
+		// The top card only: what is under it stays the pile, frozen or not
+		// as it was, for the next player to take or leave.
+		s.DiscardPile = append([]string(nil), rest...)
+		rest = nil
+	}
 	for _, c := range rest {
 		// The only red three that can be buried here is the deal's opening
 		// upcard. It goes to the row like any other, with no replacement:
@@ -672,9 +705,11 @@ func takePile(s *GameState, playerID string, a module.Action) ([]module.Event, e
 		}
 		s.Hands[playerID] = append(s.Hands[playerID], c)
 	}
-	s.DiscardPile = nil
-	s.Frozen = false
-	s.TookPileThisTurn = true
+	if !topOnly {
+		s.DiscardPile = nil
+		s.Frozen = false
+		s.TookPileThisTurn = true
+	}
 	s.Phase = phaseMeld
 
 	s.LaidThisTurn += laidValue
@@ -736,7 +771,7 @@ func topCardRuns(s *GameState, playerID string) []string {
 		if m.kind() != meldRun || m.Suit != suitOf(top) || m.closed(r) {
 			continue
 		}
-		low, high := runSpan(m.Cards)
+		low, high := m.span()
 		if idx == low-1 || idx == high+1 {
 			out = append(out, m.ID)
 		}
@@ -772,8 +807,11 @@ func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Even
 	}
 
 	top := s.top()
-	grown := sortRun(append(append([]string(nil), m.Cards...), top))
-	if err := validateRun(r, grown); err != nil {
+	if isWild(top) {
+		return nil, errCode(ErrTopCardUnusable)
+	}
+	grown, err := grownMeld(r, *m, []string{top}, noLow)
+	if err != nil {
 		return nil, err
 	}
 
@@ -791,7 +829,7 @@ func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Even
 	// to what is on the table, so it cannot make a floor unreachable — which is
 	// the dead end checkInitialMeld exists to prevent.
 	s.DiscardPile = s.DiscardPile[:len(s.DiscardPile)-1]
-	m.Cards = grown
+	*m = grown
 	s.Phase = phaseMeld
 	s.LaidThisTurn += cardValue(top)
 	noteInitialMeld(s, t)
@@ -807,7 +845,8 @@ func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Even
 // it, because after one of those there is no longer a turn to take apart.
 func buildsTheTable(verb string) bool {
 	switch verb {
-	case VerbLayMeld, VerbUndoLayMeld, VerbLayOff, VerbUndoLayOff, VerbUndoTakePile:
+	case VerbLayMeld, VerbUndoLayMeld, VerbLayOff, VerbUndoLayOff, VerbUndoTakePile,
+		VerbMoveCards, VerbPoach, VerbUndoReshape:
 		return true
 	}
 	return false
@@ -827,7 +866,7 @@ func applyUndoTakePile(s *GameState, playerID string) ([]module.Event, error) {
 	if pt == nil {
 		return nil, errCode(ErrNothingToUndo)
 	}
-	if len(s.MeldsLaid) > 0 || len(s.LaidOff) > 0 {
+	if len(s.MeldsLaid) > 0 || len(s.LaidOff) > 0 || len(s.Reshapes) > 0 {
 		return nil, errCode(ErrUndoMeldsFirst)
 	}
 	t := s.team(playerID)
@@ -938,6 +977,17 @@ func layMeld(s *GameState, playerID string, a module.Action) ([]module.Event, []
 	if kind == meldSet && t.rankIsFull(r, rank) {
 		return nil, nil, errCode(ErrRankAlreadyMelded)
 	}
+	// The meld of 2s: one a side, and never part of an opening — three 2s are
+	// sixty points, which would make the floor a formality.
+	if kind == meldWild {
+		if !t.HasMelded {
+			return nil, nil, errCode(ErrMustMeldFirst)
+		}
+		if t.wildMeld() != nil {
+			return nil, nil, errCode(ErrRankAlreadyMelded)
+		}
+		rank = rankTwo
+	}
 
 	rest, _ := removeCards(s.Hands[playerID], a.Cards)
 	value := handValue(a.Cards)
@@ -948,14 +998,27 @@ func layMeld(s *GameState, playerID string, a module.Action) ([]module.Event, []
 		}
 	}
 
+	idRank := rank
+	if kind == meldWild {
+		idRank = meldWild
+	}
 	laid := Meld{
-		ID: t.newMeldID(kind, rank), TeamID: t.ID, Kind: kind, Rank: rank,
+		ID: t.newMeldID(kind, idRank), TeamID: t.ID, Kind: kind, Rank: rank,
 		Cards: append([]string(nil), a.Cards...),
 	}
 	if kind == meldRun {
+		cards, low, err := arrangeRun(r, nil, 0, a.Cards, wantLowOf(a))
+		if err != nil {
+			return nil, nil, err
+		}
 		laid.Rank = ""
-		laid.Suit = suitOf(a.Cards[0])
-		laid.Cards = sortRun(laid.Cards)
+		for _, c := range cards {
+			if !isWild(c) {
+				laid.Suit = suitOf(c)
+				break
+			}
+		}
+		laid.setRun(cards, low)
 	}
 	// Provisionally place it, so "can this partnership go out now" is asked of
 	// the table as it will actually be — a meld that completes a canasta is
@@ -974,6 +1037,7 @@ func layMeld(s *GameState, playerID string, a module.Action) ([]module.Event, []
 		PriorHand:         append([]string(nil), s.Hands[playerID]...),
 		PriorLaidThisTurn: s.LaidThisTurn,
 		PriorHasMelded:    t.HasMelded,
+		Seq:               s.nextSeq(),
 	}
 
 	s.Hands[playerID] = rest
@@ -1043,36 +1107,11 @@ func layOff(s *GameState, playerID string, a module.Action) ([]module.Event, []s
 	if owner.ID != t.ID {
 		return nil, nil, errCode(ErrNotYourMeld)
 	}
-	if m.closed(r) {
-		return nil, nil, errCode(ErrMeldClosed)
-	}
-	// What "fits" means depends on the kind. A group takes its own rank and
-	// wilds; a sequence takes the cards that continue it, in its suit, and no
-	// wild ever. Saying WRONG_RANK to somebody offering the nine of hearts to a
-	// heart run would send them to fix a rank that is not the problem.
-	if m.kind() == meldRun {
-		for _, c := range a.Cards {
-			if isWild(c) {
-				return nil, nil, errCode(ErrSequenceNoWilds)
-			}
-			if suitOf(c) != m.Suit {
-				return nil, nil, errCode(ErrSequenceNeedsOneSuit)
-			}
-		}
-	} else {
-		for _, c := range a.Cards {
-			if !isWild(c) && rankOf(c) != m.Rank {
-				return nil, nil, errCode(ErrWrongRank)
-			}
-		}
-	}
-	grown := append(append([]string(nil), m.Cards...), a.Cards...)
-	if m.kind() == meldRun {
-		grown = sortRun(grown)
-		if err := validateRun(r, grown); err != nil {
-			return nil, nil, err
-		}
-	} else if err := validateMeld(r, grown); err != nil {
+	// What "fits" depends on the kind — a group takes its own rank and wilds,
+	// a sequence the cards that continue it — and grownMeld is the one place
+	// that knows each (house.go).
+	grown, err := grownMeld(r, *m, a.Cards, wantLowOf(a))
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -1082,10 +1121,11 @@ func layOff(s *GameState, playerID string, a module.Action) ([]module.Event, []s
 		return nil, nil, err
 	}
 
+	beforeMeld := *m
 	before := m.Cards
-	m.Cards = grown
+	*m = grown
 	if err := checkLeavesPlayable(s, t, rest); err != nil {
-		m.Cards = before
+		*m = beforeMeld
 		return nil, nil, err
 	}
 
@@ -1098,6 +1138,8 @@ func layOff(s *GameState, playerID string, a module.Action) ([]module.Event, []s
 		PriorHand:         append([]string(nil), s.Hands[playerID]...),
 		PriorLaidThisTurn: s.LaidThisTurn,
 		PriorHasMelded:    t.HasMelded,
+		PriorLow:          beforeMeld.Low,
+		Seq:               s.nextSeq(),
 	})
 
 	s.Hands[playerID] = rest
@@ -1136,8 +1178,12 @@ func applyUndoLayOff(s *GameState, playerID string) ([]module.Event, error) {
 	if len(m.Cards) != len(lo.PriorCards)+len(lo.Cards) {
 		return nil, errCode(ErrNothingToUndo)
 	}
+	if s.laterReshape(lo.Seq) {
+		return nil, errCode(ErrUndoLatestFirst)
+	}
 
 	m.Cards = append([]string(nil), lo.PriorCards...)
+	m.Low = lo.PriorLow
 	s.Hands[playerID] = append([]string(nil), lo.PriorHand...)
 	s.LaidThisTurn = lo.PriorLaidThisTurn
 	t.HasMelded = lo.PriorHasMelded
@@ -1175,6 +1221,9 @@ func applyUndoLayMeld(s *GameState, playerID string) ([]module.Event, error) {
 	// stacks unwind in the order the cards arrived.
 	if len(m.Cards) != len(ml.Cards) {
 		return nil, errCode(ErrNothingToUndo)
+	}
+	if s.laterReshape(ml.Seq) {
+		return nil, errCode(ErrUndoLatestFirst)
 	}
 	// Removed by truncation, so it has to still be the last meld the side has:
 	// the stack is unwound newest-first, and applyTakePile is the only other
@@ -1338,6 +1387,7 @@ func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []mod
 	// on turn to be offered it.
 	s.LaidOff = nil
 	s.PileTaken = nil
+	s.Reshapes = nil
 	s.MeldsLaid = nil
 
 	res := scoreDeal(s, wentOut, concealed, exhausted)

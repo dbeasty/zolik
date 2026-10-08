@@ -25,16 +25,30 @@ import (
 // going on, never by turning a hand over.
 
 // Styles are the opponents this module adds to the training pool.
+//
+// Each is a Hold'em caricature — Chen scores, board reads, the push-fold chart
+// — so at any other poker game it hands the decision to the rule bot, which
+// knows them all. The MCP seats styles at any table it is asked to.
 func (learnGame) Styles() map[string]module.Bot {
 	return map[string]module.Bot{
-		"maniac":       maniac{},
-		"rock":         rock{},
-		"station":      station{},
-		"riverbluffer": riverBluffer{},
-		"solid":        solid,
-		"pusher":       pusher,
-		"jamcaller":    jamCaller{},
+		"maniac":       holdemOnly{maniac{}},
+		"rock":         holdemOnly{rock{}},
+		"station":      holdemOnly{station{}},
+		"riverbluffer": holdemOnly{riverBluffer{}},
+		"solid":        holdemOnly{solid},
+		"pusher":       holdemOnly{pusher},
+		"jamcaller":    holdemOnly{jamCaller{}},
 	}
+}
+
+// holdemOnly plays a style at a Hold'em table and the rule bot anywhere else.
+type holdemOnly struct{ style module.Bot }
+
+func (h holdemOnly) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
+	if s, err := decode(raw); err == nil && !s.rules().holdem() {
+		return bot{}.Act(raw, seat, offers)
+	}
+	return h.style.Act(raw, seat, offers)
 }
 
 // solid is a tight-aggressive regular: it plays fewer hands than Hard, bets

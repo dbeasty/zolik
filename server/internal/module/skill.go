@@ -135,7 +135,28 @@ func ParseSkill(s string) (Skill, bool) {
 }
 
 // BotSkillOption is the ready-made spec a module drops into its descriptor.
+//
+// It offers the heuristic ladder only. A game that ships a trained model —
+// one whose Bot() plays SkillAI seats with learn.HardModel — declares
+// BotSkillOptionWithAI instead. Offering "AI" everywhere put a choice on
+// every game's setup screen that most games answered with their Medium bot.
 func BotSkillOption() OptionSpec {
+	return botSkillOption(Skills)
+}
+
+// BotSkillOptionWithAI is BotSkillOption with the trained network as a
+// further choice, for a game that ships one.
+func BotSkillOptionWithAI() OptionSpec {
+	return botSkillOption(AllSkills)
+}
+
+// OffersAI reports whether a game's setup offers the trained network.
+func OffersAI(d ModuleDescriptor) bool {
+	spec := d.Option(OptBotSkill)
+	return spec != nil && spec.Allows(SkillOpt(SkillAI))
+}
+
+func botSkillOption(skills []Skill) OptionSpec {
 	spec := OptionSpec{
 		Name:  OptBotSkill,
 		Type:  OptionEnumInt,
@@ -144,7 +165,7 @@ func BotSkillOption() OptionSpec {
 			"Mixed deals each seat its own strength.",
 		Choices: []OptionChoice{{Value: BotSkillAuto, Label: "Mixed"}},
 	}
-	for _, s := range AllSkills {
+	for _, s := range skills {
 		spec.Choices = append(spec.Choices, OptionChoice{Value: SkillOpt(s), Label: skillLabels[s]})
 	}
 	return spec

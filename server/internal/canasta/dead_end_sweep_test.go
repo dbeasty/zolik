@@ -35,6 +35,7 @@ type sweepConfig struct {
 var sweepConfigs = []sweepConfig{
 	{"classic", 2}, {"classic", 3}, {"classic", 4},
 	{"samba", 4}, {"samba", 6},
+	{variationCanastaX, 2}, {variationCanastaX, 4}, {variationCanastaX, 6},
 }
 
 // sweepSeat is one way of choosing moves: a bot skill, or "" for random.

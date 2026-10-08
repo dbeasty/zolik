@@ -191,3 +191,44 @@ func TestFillingATableNeverSeatsANameTwice(t *testing.T) {
 		}
 	}
 }
+
+// A seat asked to play "ai" at a game that ships no network — an old saved
+// setup, or a hand-built request — sits down as the strongest bot that game
+// has, not as whatever its heuristic makes of a skill it never heard of.
+func TestAnAISeatAtAGameWithNoModelPlaysHard(t *testing.T) {
+	h := NewHandlers(&Manager{registry: module.NewRegistry(lastcard.New(), holdem.New())}, false)
+	m := models.Match{ModuleID: "lastcard", Seed: 1, Players: []models.Player{{ID: "host"}}}
+	if p := h.personaFor(m, "ai"); p.Skill != module.SkillHard {
+		t.Errorf("an ai seat at lastcard plays %s, want hard", p.Skill)
+	}
+	m.ModuleID = "holdem"
+	if p := h.personaFor(m, "ai"); p.Skill != module.SkillAI {
+		t.Errorf("an ai seat at holdem plays %s, want ai", p.Skill)
+	}
+}
+
+// Changing a seated bot's strength draws a new persona of that strength and
+// avoids the other bots, never the seat's own old persona's neighbours.
+func TestReseatingABotDrawsAPersonaOfTheNewStrength(t *testing.T) {
+	h := handlers()
+	m := matchWith(map[string]int{module.OptBotSkill: module.SkillOpt(module.SkillEasy)})
+	var seat models.Player
+	for i := 0; i < 3; i++ {
+		p := h.personaFor(m, "easy")
+		bot := models.Player{ID: "bot:" + string(rune('a'+i)), IsAI: true, Name: p.Name, AIDifficulty: string(p.Skill), AIPersona: p.Key()}
+		m.Players = append(m.Players, bot)
+		seat = bot
+	}
+	got := h.personaForSeat(m, seat, "hard")
+	if got.Skill != module.SkillHard {
+		t.Fatalf("asked for hard, got %q", got.Skill)
+	}
+	for _, p := range m.Players {
+		if p.ID != seat.ID && p.AIPersona == got.Key() {
+			t.Errorf("%s is already seated at this table", got.Name)
+		}
+	}
+	if again := h.personaForSeat(m, seat, "hard"); again.Key() != got.Key() {
+		t.Errorf("the same request drew %s then %s", got.Name, again.Name)
+	}
+}

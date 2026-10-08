@@ -5,7 +5,9 @@ import {
   fits,
   readyWith,
   positionAt,
+  positionAtShare,
   refusalAt,
+  someOfferDroppable,
   someOfferReady,
   sourceSpotsFor,
   spotAt,
@@ -432,6 +434,35 @@ describe('positionAt', () => {
   });
 });
 
+describe('someOfferDroppable', () => {
+  // The hand's hint promises a card can go "onto the board" only when one
+  // can. Poker's draw swaps cards through a button and names no target.
+  const swap: ActionOffer = {
+    id: 'swap',
+    verb: 'swap',
+    enabled: true,
+    source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', minCards: 1, maxCards: 3 },
+  };
+
+  it('is true when an enabled offer takes cards and names where they land', () => {
+    expect(someOfferDroppable([draw, discard])).toBe(true);
+    expect(someOfferDroppable([layOff])).toBe(true);
+  });
+
+  it('is false for a card swap with no target', () => {
+    expect(someOfferDroppable([swap])).toBe(false);
+  });
+
+  it('is false for a draw, which lands in hand but takes no cards', () => {
+    expect(someOfferDroppable([draw])).toBe(false);
+  });
+
+  it('is false when the only droppable offer is disabled, or there are none', () => {
+    expect(someOfferDroppable([{ ...discard, enabled: false }])).toBe(false);
+    expect(someOfferDroppable([])).toBe(false);
+  });
+});
+
 describe('someOfferReady', () => {
   // Regression: a card that just arrived in hand lands pre-selected, and a
   // second tap used to *replace* that pick outright rather than ever join
@@ -776,5 +807,23 @@ describe('readyWith', () => {
         expect([offer.id, cards, submissionFor(offer, { cards })]).not.toEqual([offer.id, cards, null]);
       }
     }
+  });
+});
+
+describe('positionAtShare', () => {
+  // A tap knows how far down its target it landed and nothing about window
+  // coordinates; the top of a run is its first position, the bottom its last.
+  const ends = ['front', 'end'];
+  it('reads the top half as the first position and the bottom half as the last', () => {
+    expect(positionAtShare(ends, 0.05)).toBe('front');
+    expect(positionAtShare(ends, 0.95)).toBe('end');
+  });
+  it('clamps a press on the very edge', () => {
+    expect(positionAtShare(ends, -0.1)).toBe('front');
+    expect(positionAtShare(ends, 1)).toBe('end');
+  });
+  it('falls back to the first position when the share cannot be told', () => {
+    expect(positionAtShare(ends, Number.NaN)).toBe('front');
+    expect(positionAtShare(undefined, 0.5)).toBeUndefined();
   });
 });

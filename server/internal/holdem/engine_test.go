@@ -1,6 +1,7 @@
 package holdem
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"testing"
@@ -490,6 +491,110 @@ func TestOddChipIsNotLost(t *testing.T) {
 	if after != before {
 		t.Errorf("%d chips came out of a %d pot", after, before)
 	}
+}
+
+// TestAFoldedBlindMakesNoSidePot. A small blind that folds leaves its 10 at a
+// level of its own, but the two players who went on to the showdown can both
+// win every chip below and above it: one pot, one line on the match screen.
+func TestAFoldedBlindMakesNoSidePot(t *testing.T) {
+	s := &GameState{
+		Board: []string{"2C", "7D", "9S", "JH", "KC"},
+		Seats: []Seat{
+			{PlayerID: "sb", Committed: 10, Folded: true, Hole: []string{"AC", "AD"}},
+			{PlayerID: "winner", Committed: 150, Hole: []string{"9C", "9D"}},
+			{PlayerID: "loser", Committed: 150, Hole: []string{"3C", "4D"}},
+		},
+	}
+	pots := distributePots(s, []int{1, 2})
+	if len(pots) != 1 {
+		t.Fatalf("expected one pot, got %d: %+v", len(pots), pots)
+	}
+	if pots[0].Amount != 310 || len(pots[0].Winners) != 1 || pots[0].Winners[0] != "winner" {
+		t.Errorf("pot is %+v, want 310 to winner", pots[0])
+	}
+	if pots[0].LabelKey == "" || len(pots[0].Cards) != 5 {
+		t.Errorf("merged pot lost its hand: %+v", pots[0])
+	}
+	if s.seat("winner").Stack != 310 {
+		t.Errorf("winner took %d, want 310", s.seat("winner").Stack)
+	}
+}
+
+// TestMergedPotsKeepTheirOddChips. Folded seats at 1, 2 and 3 make three levels
+// whose amounts (5, 4 and 3) are split between the same two players. Each level
+// is paid as it always was, so the odd chips of the first and third both go to
+// the first winner — 14 and 12, where splitting the merged 26 would give 13
+// each. The result is still one pot.
+func TestMergedPotsKeepTheirOddChips(t *testing.T) {
+	s := &GameState{
+		Board: []string{"AC", "AD", "AH", "KS", "KC"},
+		Seats: []Seat{
+			{PlayerID: "f1", Committed: 1, Folded: true},
+			{PlayerID: "f2", Committed: 2, Folded: true},
+			{PlayerID: "f3", Committed: 3, Folded: true},
+			{PlayerID: "x", Committed: 10, Hole: []string{"2C", "3D"}},
+			{PlayerID: "y", Committed: 10, Hole: []string{"4C", "5D"}},
+		},
+	}
+	pots := distributePots(s, []int{3, 4})
+	if len(pots) != 1 {
+		t.Fatalf("expected one pot, got %d: %+v", len(pots), pots)
+	}
+	if pots[0].Amount != 26 || !slices.Equal(pots[0].Winners, []string{"x", "y"}) {
+		t.Errorf("pot is %+v, want 26 split x, y", pots[0])
+	}
+	if x, y := s.seat("x").Stack, s.seat("y").Stack; x != 14 || y != 12 {
+		t.Errorf("split gave x %d and y %d, want 14 and 12", x, y)
+	}
+}
+
+// TestASidePotStaysSeparate. A folded blind's level merges into the main pot,
+// but the chips the short stack could not match are a real side pot.
+func TestASidePotStaysSeparate(t *testing.T) {
+	t.Run("different winner", func(t *testing.T) {
+		s := &GameState{
+			Board: []string{"2C", "7D", "9S", "JH", "KC"},
+			Seats: []Seat{
+				{PlayerID: "sb", Committed: 10, Folded: true},
+				{PlayerID: "short", Committed: 50, AllIn: true, Hole: []string{"9C", "9D"}},
+				{PlayerID: "middle", Committed: 150, Hole: []string{"JC", "KD"}},
+				{PlayerID: "big", Committed: 150, Hole: []string{"3C", "4D"}},
+			},
+		}
+		pots := distributePots(s, []int{1, 2, 3})
+		if len(pots) != 2 {
+			t.Fatalf("expected a main pot and a side pot, got %d: %+v", len(pots), pots)
+		}
+		if pots[0].Amount != 160 || pots[0].Winners[0] != "short" {
+			t.Errorf("main pot is %+v, want 160 to short", pots[0])
+		}
+		if pots[1].Amount != 200 || pots[1].Winners[0] != "middle" {
+			t.Errorf("side pot is %+v, want 200 to middle", pots[1])
+		}
+	})
+	// The same player winning both is still two pots: the short stack could
+	// win one and not the other, and the screen says so.
+	t.Run("same winner", func(t *testing.T) {
+		s := &GameState{
+			Board: []string{"2C", "7D", "9S", "JH", "KC"},
+			Seats: []Seat{
+				{PlayerID: "sb", Committed: 10, Folded: true},
+				{PlayerID: "short", Committed: 50, AllIn: true, Hole: []string{"3C", "4D"}},
+				{PlayerID: "middle", Committed: 150, Hole: []string{"9C", "9D"}},
+				{PlayerID: "big", Committed: 150, Hole: []string{"JC", "KD"}},
+			},
+		}
+		pots := distributePots(s, []int{1, 2, 3})
+		if len(pots) != 2 {
+			t.Fatalf("expected a main pot and a side pot, got %d: %+v", len(pots), pots)
+		}
+		if pots[0].Amount != 160 || pots[1].Amount != 200 {
+			t.Errorf("pots are %+v, want 160 and 200", pots)
+		}
+		if s.seat("middle").Stack != 360 {
+			t.Errorf("middle took %d, want 360", s.seat("middle").Stack)
+		}
+	})
 }
 
 // TestFoldingToOnePlayerShowsNothing. A pot won without a showdown is won

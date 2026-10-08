@@ -31,7 +31,14 @@ func explainWith(stated map[string]bool, code string) []string {
 func refusalRules(code string) []string {
 	switch code {
 	case ErrNotYourTurn:
-		return []string{"holdem.rules.streets"}
+		// Whichever of the two games is being played states one of these.
+		return []string{"holdem.rules.streets", "holdem.rules.draw.streets", "holdem.rules.draw.draw"}
+
+	// --- the draw ---------------------------------------------------------
+	case ErrDrawing, ErrNotDrawing:
+		return []string{"holdem.rules.draw.streets", "holdem.rules.draw.draw"}
+	case ErrDrawTooMany, ErrDrawEmpty, ErrCardNotInHand:
+		return []string{"holdem.rules.draw.draw"}
 	case ErrSeatNotInHand:
 		return []string{"holdem.rules.foldedOut"}
 
@@ -41,13 +48,15 @@ func refusalRules(code string) []string {
 
 	// --- raising ----------------------------------------------------------
 	case ErrRaiseTooSmall:
-		return []string{"holdem.rules.minRaise", "holdem.rules.allIn"}
+		return []string{"holdem.rules.minRaise", "holdem.rules.allIn", "holdem.rules.omaha.allIn"}
 	case ErrCannotRaise, ErrNotEnoughChips:
-		return []string{"holdem.rules.allIn"}
+		return []string{"holdem.rules.allIn", "holdem.rules.omaha.allIn"}
+	case ErrOverPotLimit:
+		return []string{"holdem.rules.potLimit", "holdem.rules.omaha.allIn"}
 	case ErrAmountRequired:
-		// A no-limit raise is a figure the player names, which is the rule
-		// this refusal is the consequence of.
-		return []string{"holdem.rules.noLimit"}
+		// A raise is a figure the player names, within the limit the table
+		// plays — which is the rule this refusal is the consequence of.
+		return []string{"holdem.rules.noLimit", "holdem.rules.potLimit"}
 
 	// --- showing a hand ---------------------------------------------------
 	//

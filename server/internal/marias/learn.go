@@ -57,10 +57,18 @@ func (learnGame) Outcome(raw module.State, seat string) (float64, error) {
 //	hard-capped  the shipped budget made a hard ceiling: the last sample is
 //	             cut off at two million nodes rather than running past
 //	hard-<n>k    a capped budget of n thousand nodes a decision
+//
+// and seats judging betl and durch as they did before contracts.go, to
+// measure that judgement against:
+//
+//	<skill>-classic  betl only on a hand of low cards, durch never
 func (learnGame) Styles() map[string]module.Bot {
 	capped := defaultLimits
 	capped.capped = true
 	out := map[string]module.Bot{"hard-capped": bot{skill: module.SkillHard, limits: capped}}
+	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+		out[string(skill)+"-classic"] = bot{skill: skill, classicContracts: true}
+	}
 	for _, k := range []int{250, 500, 1000, 1500} {
 		out[fmt.Sprintf("hard-%dk", k)] = bot{skill: module.SkillHard, limits: searchLimits{total: k * 1000, perSample: min(400_000, k*1000), capped: true}}
 	}

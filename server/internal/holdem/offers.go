@@ -15,6 +15,12 @@ const (
 	OfferCall  = "call"
 	OfferRaise = "raise"
 	OfferShow  = "show"
+
+	// Five-Card Draw's draw. The discard is the one offer in this module that
+	// takes cards, and it is composite: one to three of the five, which the
+	// player picks and the offer does not enumerate.
+	OfferDiscard = "discard"
+	OfferStand   = "stand"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -56,6 +62,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			}
 		}
 		return append(on, showOffer(s, playerID)), nil
+	}
+
+	if s.Street == streetDraw {
+		return m.drawOffers(raw, s, playerID), nil
 	}
 
 	if s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
@@ -116,7 +126,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Step:     1,
 			Default:  minTo,
 			Headline: true,
-			Choices:  raiseQuickChoices(s, minTo, maxTo),
+			Choices:  raiseQuickChoices(s, seat, minTo, maxTo),
 		}}
 		// The pot as it stands once this seat's call is in — the base every
 		// pot-sized raise is measured from — and worded as exactly that, "pot
@@ -135,6 +145,42 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	return offers, nil
 }
 
+// drawOffers is the draw, for whoever is asking: the seat drawing gets its two
+// choices, everyone else the same two greyed out with the reason.
+//
+// Stand comes first. A bot or a retry with no opinion takes the first enabled
+// offer, and keeping a hand is the move that can never be a mistake about
+// which cards to throw — the discard is composite, so nothing without an
+// opinion could take it anyway.
+func (m *Module) drawOffers(raw module.State, s *GameState, playerID string) []module.ActionOffer {
+	stand := module.ActionOffer{ID: OfferStand, Verb: VerbStand, LabelKey: "holdem.offer.stand"}
+	discard := module.ActionOffer{
+		ID: OfferDiscard, Verb: VerbDiscard, LabelKey: "holdem.offer.discard", Composite: true,
+	}
+	seat := s.seat(playerID)
+	if seat != nil {
+		discard.Source = &module.Selector{
+			Zone: module.FromHand, OwnerID: playerID, ZoneID: "hole:" + playerID,
+			Cards: append([]string(nil), seat.Hole...), MinCards: 1, MaxCards: s.rules().maxDiscard,
+		}
+	}
+
+	stand.Enabled, stand.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbStand})
+	probeDiscard := module.Action{Verb: VerbDiscard}
+	if seat != nil && len(seat.Hole) > 0 {
+		probeDiscard.Cards = seat.Hole[:1]
+	}
+	discard.Enabled, discard.WhyNot = probe(m, raw, playerID, probeDiscard)
+	if !discard.Enabled {
+		// Nothing to pick from while somebody else is drawing.
+		discard.Source = nil
+	}
+
+	offers := []module.ActionOffer{stand, discard}
+	m.annotate(configOf(s), s, seat, offers)
+	return offers
+}
+
 // raiseRange is the smallest and largest total this seat may raise to.
 //
 // The minimum is the current bet plus the size of the last raise — not plus
@@ -142,7 +188,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 // by accident and which quietly allows an illegal re-raise after a big one.
 // Both ends are capped at the stack, since a player may always move all in.
 func raiseRange(s *GameState, seat *Seat) (int, int) {
-	maxTo := seat.Bet + seat.Stack
+	maxTo := s.raiseCap(seat)
 	minTo := s.CurrentBet + s.MinRaise
 	if minTo > maxTo {
 		minTo = maxTo
@@ -169,7 +215,12 @@ func raiseRange(s *GameState, seat *Seat) (int, int) {
 // invisible to that scan. Insertion order decides the tie: all in goes in
 // first, so a pot or half-pot amount that happens to coincide with it is
 // dropped from the list rather than duplicating the button under another name.
-func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
+//
+// At a pot-limit table the top of the range is usually the pot rather than the
+// stack, and a button reading "All-in" that put in a third of the stack would
+// be a lie — so the top is named "Pot" there, and "All-in" appears only when
+// the stack is what the cap is.
+func raiseQuickChoices(s *GameState, seat *Seat, minTo, maxTo int) []module.ParamChoice {
 	potAfterCall := s.potIfCalled()
 	clamp := func(n int) int {
 		if n < minTo {
@@ -184,9 +235,21 @@ func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
 	allIn := maxTo
 	pot := clamp(s.CurrentBet + potAfterCall)
 	halfPot := clamp(s.CurrentBet + potAfterCall/2)
+	if s.rules().potLimit {
+		// The pot-limit pot — the same figure applyRaise refuses above — and
+		// half of what it adds to the bet.
+		full := s.potLimitTo(seat)
+		pot = clamp(full)
+		halfPot = clamp(s.CurrentBet + (full-s.CurrentBet)/2)
+	}
 
 	seen := map[int]bool{allIn: true}
 	choices := []module.ParamChoice{{Value: strconv.Itoa(allIn), LabelKey: "holdem.quick.allIn"}}
+	if maxTo < seat.Bet+seat.Stack {
+		// The top is the pot limit, not the stack.
+		seen = map[int]bool{maxTo: true}
+		choices = []module.ParamChoice{{Value: strconv.Itoa(maxTo), LabelKey: "holdem.quick.pot"}}
+	}
 	if !seen[pot] {
 		seen[pot] = true
 		choices = append([]module.ParamChoice{{Value: strconv.Itoa(pot), LabelKey: "holdem.quick.pot"}}, choices...)

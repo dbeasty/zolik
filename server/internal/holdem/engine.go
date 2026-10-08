@@ -1,6 +1,7 @@
 package holdem
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 
@@ -17,8 +18,8 @@ var _ module.GameModule = (*Module)(nil)
 
 // NewMatch seats the players and deals the first hand.
 func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
-	if len(players) < 2 || len(players) > 9 {
-		return nil, module.Error{Code: "WRONG_PLAYER_COUNT", Message: "hold'em seats two to nine"}
+	if len(players) < 2 || len(players) > rulesFor(cfg.Variation).maxSeats {
+		return nil, module.Error{Code: "WRONG_PLAYER_COUNT", Message: "too many or too few seats for this poker game"}
 	}
 	v := resolveVariation(cfg)
 
@@ -86,12 +87,14 @@ func dealHand(s *GameState) []module.Event {
 		st.Bet, st.Committed = 0, 0
 		st.Folded, st.AllIn, st.Acted = false, false, false
 		st.Hole = nil
+		st.Drawn, st.Drew, st.Discarded = false, 0, nil
 	}
+	rules := s.rules()
 	s.Board = nil
 	s.Pot = 0
 	s.CurrentBet = 0
 	s.MinRaise = s.BigBlind
-	s.Street = streetPreflop
+	s.Street = rules.firstStreet()
 	s.HandLog = nil
 	s.Aggressor = -1
 
@@ -102,7 +105,7 @@ func dealHand(s *GameState) []module.Event {
 	s.Button = s.nextSeat(s.Button, func(st *Seat) bool { return !st.Out })
 
 	live := s.liveSeats()
-	for i := 0; i < 2; i++ {
+	for i := 0; i < rules.holeCards; i++ {
 		for _, idx := range live {
 			s.Seats[idx].Hole = append(s.Seats[idx].Hole, s.draw())
 		}
@@ -223,6 +226,20 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrNotYourTurn)
 	}
 	seat := &s.Seats[s.Current]
+
+	// The draw is its own turn order and its own two verbs, and nothing else
+	// happens during it. A seat that is all in still draws — it has a hand,
+	// and only its chips are spent — so this is asked before canAct, which
+	// is about chips.
+	if s.Street == streetDraw || a.Verb == VerbDiscard || a.Verb == VerbStand {
+		events, err := applyDraw(s, seat, a)
+		if err != nil {
+			return raw, nil, err
+		}
+		events = append(events, advance(s)...)
+		out, err := encode(s)
+		return out, events, err
+	}
 	if !seat.canAct() {
 		return raw, nil, errCode(ErrSeatNotInHand)
 	}
@@ -307,6 +324,11 @@ func applyRaise(s *GameState, seat *Seat, a module.Action) ([]module.Event, erro
 	if amount > maxTo {
 		return nil, errCode(ErrNotEnoughChips)
 	}
+	if amount > s.raiseCap(seat) {
+		// The chips are there; the pot limit is what stops them. An all-in
+		// is only the always-allowed exception below when it fits the cap.
+		return nil, errCode(ErrOverPotLimit)
+	}
 	if amount <= s.CurrentBet {
 		return nil, errCode(ErrRaiseTooSmall)
 	}
@@ -362,6 +384,20 @@ func advance(s *GameState) []module.Event {
 		if len(s.contenders()) <= 1 {
 			return append(events, endHand(s)...)
 		}
+		if s.Street == streetDraw {
+			// Every seat still in the hand draws once, clockwise from the
+			// button, all-in seats included; the betting starts again only
+			// when the last of them has.
+			if s.Current >= 0 && s.Seats[s.Current].inHand() && !s.Seats[s.Current].Drawn {
+				return events
+			}
+			if next := s.nextSeat(s.Current, func(st *Seat) bool { return st.inHand() && !st.Drawn }); next >= 0 {
+				s.Current = next
+				return events
+			}
+			events = append(events, nextStreet(s)...)
+			continue
+		}
 		if !bettingClosed(s) {
 			// Stay put when the seat already on turn still owes a decision.
 			//
@@ -384,7 +420,7 @@ func advance(s *GameState) []module.Event {
 			s.Current = next
 			return events
 		}
-		if s.Street == streetRiver {
+		if s.Street == s.rules().lastStreet() {
 			return append(events, endHand(s)...)
 		}
 		events = append(events, nextStreet(s)...)
@@ -428,11 +464,21 @@ func nextStreet(s *GameState) []module.Event {
 	case streetTurn:
 		s.Street = streetRiver
 		s.Board = append(s.Board, s.draw())
+	case streetPredraw:
+		s.Street = streetDraw
+	case streetDraw:
+		s.Street = streetPostdraw
 	}
 
 	// After the flop the action starts left of the button, in every game size
-	// including heads-up — which is what makes the button act last.
-	first := s.nextSeat(s.Button, func(st *Seat) bool { return st.canAct() })
+	// including heads-up — which is what makes the button act last. The draw
+	// starts there too, and is the one street a seat with no chips left still
+	// has a turn on.
+	want := func(st *Seat) bool { return st.canAct() }
+	if s.Street == streetDraw {
+		want = func(st *Seat) bool { return st.inHand() }
+	}
+	first := s.nextSeat(s.Button, want)
 	if first >= 0 {
 		s.Current = first
 	}
@@ -536,7 +582,7 @@ func reveal(s *GameState, res *HandResult, contenders []int) {
 			res.Mucked = append(res.Mucked, st.PlayerID)
 			continue
 		}
-		best := Best(append(append([]string(nil), st.Hole...), s.Board...))
+		best := s.bestOf(st)
 		res.Shown = append(res.Shown, ShownHand{
 			PlayerID: st.PlayerID, Hole: append([]string(nil), st.Hole...),
 			Best: best.Cards, LabelKey: categoryKey(best.Category),
@@ -585,8 +631,8 @@ func applyShow(s *GameState, playerID string) ([]module.Event, error) {
 		Hole:      append([]string(nil), st.Hole...),
 		Voluntary: true,
 	}
-	if len(st.Hole)+len(s.Board) >= 5 && !s.LastHand.Uncontested && st.inHand() {
-		best := Best(append(append([]string(nil), st.Hole...), s.Board...))
+	if s.canName(st) && !s.LastHand.Uncontested && st.inHand() {
+		best := s.bestOf(st)
 		shown.Best, shown.LabelKey = best.Cards, categoryKey(best.Category)
 	}
 	s.LastHand.Shown = append(s.LastHand.Shown, shown)
@@ -637,10 +683,13 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 
 	best := map[int]HandRank{}
 	for _, idx := range contenders {
-		best[idx] = Best(append(append([]string(nil), s.Seats[idx].Hole...), s.Board...))
+		best[idx] = s.bestOf(&s.Seats[idx])
 	}
 
 	var out []PotResult
+	// lastEligible is who could win out's last pot, to tell a level that only
+	// exists because a folded seat stopped there from a real side pot.
+	var lastEligible []int
 	prev := 0
 	for _, lvl := range sorted {
 		amount := 0
@@ -670,6 +719,8 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 			}
 		}
 
+		// Chips are paid level by level whether or not the pot merges below,
+		// so the odd chips land exactly where they would in separate pots.
 		share := amount / len(winners)
 		remainder := amount - share*len(winners)
 		ids := make([]string, 0, len(winners))
@@ -683,6 +734,18 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 			}
 			ids = append(ids, s.Seats[idx].PlayerID)
 		}
+		// A level made only by a folded seat's commitment (a small blind that
+		// folded, say) has the same contenders as the level below it, and so
+		// the same winners. It is one pot to the players — two lines saying
+		// the same person won with the same hand reads as two pots that never
+		// existed. Only the same eligible players and the same winners, in the
+		// same order, merge: a real side pot always differs in who can win it.
+		if n := len(out); n > 0 && slices.Equal(lastEligible, eligible) &&
+			slices.Equal(out[n-1].Winners, ids) {
+			out[n-1].Amount += amount
+			continue
+		}
+		lastEligible = eligible
 		pot := PotResult{
 			Amount: amount, Winners: ids,
 			LabelKey: categoryKey(best[winners[0]].Category),
@@ -784,4 +847,70 @@ func order(s *GameState) []string {
 		out = append(out, s.Seats[i].PlayerID)
 	}
 	return out
+}
+
+// --- the draw ------------------------------------------------------------------
+
+// applyDraw is one seat's draw: a discard of one to three cards, replaced from
+// the deck, or standing pat.
+//
+// How many cards a seat took is announced — the event carries the count, and
+// the seat shows it — because that is what a table hears: "two", "one",
+// "I'm good". Which cards went and which came is the seat's own business, and
+// the event says neither.
+func applyDraw(s *GameState, seat *Seat, a module.Action) ([]module.Event, error) {
+	switch {
+	case a.Verb != VerbDiscard && a.Verb != VerbStand:
+		// A bet, a check or a fold while the table is drawing.
+		return nil, errCode(ErrDrawing)
+	case s.Street != streetDraw:
+		return nil, errCode(ErrNotDrawing)
+	case !seat.inHand() || seat.Drawn:
+		return nil, errCode(ErrSeatNotInHand)
+	}
+
+	if a.Verb == VerbStand {
+		seat.Drawn = true
+		return []module.Event{{Type: "stood_pat", Data: map[string]any{"playerId": seat.PlayerID}}}, nil
+	}
+
+	switch {
+	case len(a.Cards) == 0:
+		return nil, errCode(ErrDrawEmpty)
+	case len(a.Cards) > s.rules().maxDiscard:
+		return nil, errCode(ErrDrawTooMany)
+	case len(a.Cards) > len(s.Deck):
+		// Six seats drawing three each cannot get here; a table this engine
+		// does not seat could, and running the deck dry is not a draw.
+		return nil, errCode(ErrDrawTooMany)
+	}
+	keep := append([]string(nil), seat.Hole...)
+	for _, c := range a.Cards {
+		at := indexOf(keep, c)
+		if at < 0 {
+			// Not held — or named twice, which is the same thing the second
+			// time it is looked for.
+			return nil, errCode(ErrCardNotInHand)
+		}
+		keep = append(keep[:at], keep[at+1:]...)
+	}
+	for range a.Cards {
+		keep = append(keep, s.draw())
+	}
+	seat.Hole = keep
+	seat.Discarded = append(seat.Discarded, a.Cards...)
+	seat.Drew = len(a.Cards)
+	seat.Drawn = true
+	return []module.Event{{Type: "drew", Data: map[string]any{
+		"playerId": seat.PlayerID, "count": len(a.Cards),
+	}}}, nil
+}
+
+func indexOf(cards []string, card string) int {
+	for i, c := range cards {
+		if c == card {
+			return i
+		}
+	}
+	return -1
 }

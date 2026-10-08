@@ -461,6 +461,42 @@ func (m *Manager) JoinWith(ctx context.Context, idOrCode string, seat func(model
 	return joined, p, nil
 }
 
+// UpdateBot changes one seated bot under the table's lock, and tells everyone
+// at the table. It is how the host changes a bot's strength at any point in a
+// match: next is handed the table as it is now, so the persona it draws can
+// avoid the ones already sitting down.
+func (m *Manager) UpdateBot(ctx context.Context, idOrCode, botID string, next func(models.Match, models.Player) models.Player) (models.Match, error) {
+	e, err := m.lockMatch(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, err
+	}
+	match := e.match
+	idx := -1
+	for i, p := range match.Players {
+		if p.ID == botID && p.IsAI {
+			idx = i
+		}
+	}
+	if idx < 0 {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "NOT_AT_THIS_TABLE", Message: botID}
+	}
+	if match.Status == "completed" {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "MATCH_MOVED_ON"}
+	}
+	match.Players = append([]models.Player(nil), match.Players...)
+	match.Players[idx] = next(match, match.Players[idx])
+	if err := m.saveLocked(ctx, e, match); err != nil {
+		e.mu.Unlock()
+		return models.Match{}, err
+	}
+	saved := e.match
+	e.mu.Unlock()
+	m.Broadcast(saved)
+	return saved, nil
+}
+
 // joinLocked seats p, and reports whether that filled the table. e must be
 // locked.
 func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player) (models.Match, bool, error) {

@@ -65,6 +65,17 @@ const (
 	// for the verb it reverses, the way the two above are, and matching
 	// Žolíky's rules.ActionUndoLayMeld for the same reason.
 	VerbUndoLayMeld = "undo_lay_meld"
+
+	// The CanastaX verbs. move_cards takes Cards out of the side's meld
+	// Params["from"] and onto its meld Target; poach swaps the natural in
+	// Cards for the wild it stands for in meld Target (Params["wild"] picks
+	// which, in a group holding several); undo_reshape takes the last of
+	// either back.
+	VerbMoveCards = "move_cards"
+	// take_pile_top is take_pile for the top card alone (TopOnlyCapture).
+	VerbTakePileTop = "take_pile_top"
+	VerbPoach       = "poach"
+	VerbUndoReshape = "undo_reshape"
 )
 
 // Turn phases. Two, not three: melding and discarding are the same phase,
@@ -159,6 +170,12 @@ const (
 	// frozen, blocked, the wrong cards — and this one is about the hand: the
 	// same capture would be fine holding one more card.
 	ErrCaptureLeavesNoDiscard = "CAPTURE_LEAVES_NO_DISCARD"
+
+	// The CanastaX refusals.
+	ErrNothingToPoach  = "NOTHING_TO_POACH"
+	ErrRunGap          = "RUN_LEAVES_GAP"
+	ErrSameMeld        = "SAME_MELD"
+	ErrUndoLatestFirst = "UNDO_LATEST_FIRST"
 )
 
 // Meld is one partnership's set of a single rank.
@@ -176,12 +193,20 @@ type Meld struct {
 	Rank  string   `json:"rank"`
 	Suit  string   `json:"suit,omitempty"`
 	Cards []string `json:"cards"`
+
+	// Low is the run position (index into runRanks) of a dirty sequence's
+	// first card. A sequence with wilds in it stores its cards in position
+	// order, and a wild has no rank to say where it stands, so the run says
+	// where it starts. Nil for every clean run, whose naturals say it already.
+	Low *int `json:"low,omitempty"`
 }
 
 // The two kinds of meld. A zero Kind is a set, so nothing has to be migrated.
 const (
 	meldSet = "set"
 	meldRun = "run"
+	// meldWild is CanastaX's meld of 2s, which may hold jokers beside them.
+	meldWild = "wild"
 )
 
 // kind is Kind with the empty-means-set default applied.
@@ -278,6 +303,11 @@ type LaidOff struct {
 	PriorHand         []string `json:"priorHand"`
 	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
 	PriorHasMelded    bool     `json:"priorHasMelded,omitempty"`
+	// PriorLow is a dirty sequence's start before the lay-off — a wild laid
+	// onto the bottom moves it.
+	PriorLow *int `json:"priorLow,omitempty"`
+	// Seq orders this entry against the turn's reshapes; see Reshape.
+	Seq int `json:"seq,omitempty"`
 }
 
 // MeldLaid snapshots one meld laid this turn so it can be taken back.
@@ -315,11 +345,47 @@ type MeldLaid struct {
 	PriorHand         []string `json:"priorHand"`
 	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
 	PriorHasMelded    bool     `json:"priorHasMelded,omitempty"`
+	Seq               int      `json:"seq,omitempty"`
 }
+
+// Reshape is one CanastaX move that changes melds already on the table without
+// laying anything from the hand: a move between a side's own melds, or a wild
+// poached out of anybody's. Undoable within the turn like a lay, and kept in
+// order against the lays by Seq — a reshape and a lay both snapshot a meld, so
+// unwinding them out of order would restore one over the other's cards.
+type Reshape struct {
+	Kind string `json:"kind"` // reshapeMove | reshapePoach
+	Seq  int    `json:"seq"`
+	// Before and After are every meld the reshape touched, as they stood on
+	// either side of it; an undo checks After is still what is there and puts
+	// Before back. A meld a move emptied has no After and is restored at
+	// BeforeIndex in its side's list.
+	Before      []Meld `json:"before"`
+	After       []Meld `json:"after"`
+	BeforeIndex []int  `json:"beforeIndex"`
+	// Cards are what moved; for a poach, the natural that went in and Wild
+	// the card that came out to the hand.
+	Cards     []string `json:"cards,omitempty"`
+	Wild      string   `json:"wild,omitempty"`
+	PriorHand []string `json:"priorHand,omitempty"`
+}
+
+const (
+	reshapeMove  = "move"
+	reshapePoach = "poach"
+)
 
 func (m Meld) naturals() int {
 	n := 0
 	for _, c := range m.Cards {
+		if m.Kind == meldWild {
+			// In a meld of 2s the 2s are its rank, and only the jokers are
+			// wild in it.
+			if rankOf(c) == rankTwo {
+				n++
+			}
+			continue
+		}
 		if !isWild(c) {
 			n++
 		}
@@ -509,6 +575,9 @@ type GameState struct {
 	// first — see MeldLaid. Appended to by applyLayMeld, and emptied alongside
 	// LaidOff by anything that is not one of the table-building verbs.
 	MeldsLaid []MeldLaid `json:"meldsLaid,omitempty"`
+	// Reshapes are this turn's CanastaX moves and poaches, newest last,
+	// ordered against LaidOff and MeldsLaid by their Seq.
+	Reshapes []Reshape `json:"reshapes,omitempty"`
 
 	// Rules resolved at deal time, so a match cannot change shape underneath
 	// a deal in progress.
@@ -595,6 +664,10 @@ type TeamResult struct {
 	Naturals int `json:"naturals,omitempty"`
 	Mixed    int `json:"mixed,omitempty"`
 	Sambas   int `json:"sambas,omitempty"`
+	// CanastaX's: seven-card sequences with wilds in them, and melds of 2s.
+	DirtySambas       int `json:"dirtySambas,omitempty"`
+	WildCanastas      int `json:"wildCanastas,omitempty"`
+	WildMixedCanastas int `json:"wildMixedCanastas,omitempty"`
 	// RedThreeCount is how many red threes RedThrees was paid for; All that
 	// they were every one in the deck, and Short that the side had too few
 	// canastas and they counted against it.

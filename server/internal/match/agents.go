@@ -50,7 +50,11 @@ func (m *Manager) graceFor() time.Duration {
 }
 
 func playerMsg(p models.Player) PlayerMsg {
-	return PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar, IsAgent: p.IsAgent, AgentLabel: p.AgentLabel}
+	msg := PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar, IsAgent: p.IsAgent, AgentLabel: p.AgentLabel}
+	if p.IsAI {
+		msg.Skill = p.AIDifficulty
+	}
+	return msg
 }
 
 // seatHere reports whether the person or agent in a seat is connected now.

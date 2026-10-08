@@ -88,6 +88,22 @@ test.describe('last card', () => {
     );
   });
 
+  test('the setup offers no AI opponent, since the game ships no trained network', async ({ page, request }) => {
+    await loginAsFreshGuest(page, request, 'Last Card setup');
+    await openGame(page, 'lastcard');
+    await openGameSetup(page, 'lastcard', 'bots');
+    await page.getByTestId('bots-lastcard-1').click();
+    // One strength for the whole table; per-seat strength is set at the table.
+    await expect(page.getByTestId('bot-skill-lastcard-0-hard')).toHaveCount(0);
+    await expect(page.getByTestId('option-lastcard-botSkill-3')).toBeVisible();
+    await expect(page.getByTestId('option-lastcard-botSkill-4')).toHaveCount(0);
+
+    // Where a game does ship one, both controls still offer it.
+    await openGame(page, 'holdem');
+    await openGameSetup(page, 'holdem', 'bots');
+    await expect(page.getByTestId('option-holdem-botSkill-4')).toBeVisible();
+  });
+
   test('every seat sees its own hand, in the pack’s own codes, and nobody else’s', async ({ request }) => {
     const { matchId, users } = await startMatch(request, 3);
     for (const viewer of users) {
