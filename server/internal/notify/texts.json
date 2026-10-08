@@ -1,6 +1,7 @@
 {
   "bg": {
     "module.klondike": "Пасианс",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Елате да играете {game} с {host}. Докоснете, за да се присъедините.",
     "notify.push.inviteTitle": "{host} отвори маса",
     "notify.push.rematchBody": "Мястото ви на {game} е запазено. Докоснете, за да се присъедините.",
@@ -8,6 +9,7 @@
   },
   "cs": {
     "module.klondike": "Solitér",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Přijďte si zahrát {game} s hráčem {host}. Klepněte a přisedněte.",
     "notify.push.inviteTitle": "{host} otevřel(a) stůl",
     "notify.push.rematchBody": "Vaše místo u hry {game} je drženo. Klepněte a přisedněte.",
@@ -15,6 +17,7 @@
   },
   "da": {
     "module.klondike": "Kabale",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Kom og spil {game} med {host}. Tryk for at deltage.",
     "notify.push.inviteTitle": "{host} har åbnet et bord",
     "notify.push.rematchBody": "Din plads ved {game} er holdt. Tryk for at deltage.",
@@ -22,6 +25,7 @@
   },
   "de": {
     "module.klondike": "Solitär",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Spiel {game} mit {host}. Tippe zum Beitreten.",
     "notify.push.inviteTitle": "{host} hat einen Tisch eröffnet",
     "notify.push.rematchBody": "Dein Platz bei {game} ist freigehalten. Tippe zum Beitreten.",
@@ -29,6 +33,7 @@
   },
   "el": {
     "module.klondike": "Πασιέντζα",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Ελάτε να παίξετε {game} με {host}. Αγγίξτε για συμμετοχή.",
     "notify.push.inviteTitle": "{host} άνοιξε τραπέζι",
     "notify.push.rematchBody": "Η θέση σας στο {game} κρατιέται. Αγγίξτε για συμμετοχή.",
@@ -36,6 +41,7 @@
   },
   "en": {
     "module.klondike": "Solitaire",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Come and play {game} with {host}. Tap to join.",
     "notify.push.inviteTitle": "{host} opened a table",
     "notify.push.rematchBody": "Your seat at {game} is being held. Tap to join.",
@@ -43,6 +49,7 @@
   },
   "es": {
     "module.klondike": "Solitario",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Ven a jugar a {game} con {host}. Toca para unirte.",
     "notify.push.inviteTitle": "{host} abrió una mesa",
     "notify.push.rematchBody": "Tu sitio en {game} está reservado. Toca para unirte.",
@@ -50,6 +57,7 @@
   },
   "et": {
     "module.klondike": "Pasjanss",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Tule mängima {game} koos mängijaga {host}. Puuduta liitumiseks.",
     "notify.push.inviteTitle": "{host} avas laua",
     "notify.push.rematchBody": "Sinu koht mängus {game} on hoitud. Puuduta, et liituda.",
@@ -57,6 +65,7 @@
   },
   "fi": {
     "module.klondike": "Pasianssi",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Tule pelaamaan {game} pelaajan {host} kanssa. Napauta liittyäksesi.",
     "notify.push.inviteTitle": "{host} avasi pöydän",
     "notify.push.rematchBody": "Paikkasi pelissä {game} on varattu. Liity napauttamalla.",
@@ -64,6 +73,7 @@
   },
   "fr": {
     "module.klondike": "Solitaire",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Venez jouer à {game} avec {host}. Touchez pour rejoindre.",
     "notify.push.inviteTitle": "{host} a ouvert une table",
     "notify.push.rematchBody": "Votre place à {game} vous attend. Touchez pour rejoindre.",
@@ -71,6 +81,7 @@
   },
   "ga": {
     "module.klondike": "Foighne",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Tar agus imir {game} le {host}. Tapáil chun páirt a ghlacadh.",
     "notify.push.inviteTitle": "D’oscail {host} bord",
     "notify.push.rematchBody": "Tá do shuíochán ag {game} á choinneáil. Tapáil le páirt a ghlacadh.",
@@ -78,6 +89,7 @@
   },
   "hr": {
     "module.klondike": "Pasijans",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Dođite igrati {game} s igračem {host}. Dodirnite za pridruživanje.",
     "notify.push.inviteTitle": "{host} je otvorio stol",
     "notify.push.rematchBody": "Vaše mjesto u igri {game} čeka vas. Dodirnite za pridruživanje.",
@@ -85,6 +97,7 @@
   },
   "hu": {
     "module.klondike": "Pasziánsz",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Gyere, játssz {game} játékot vele: {host}. Koppints a csatlakozáshoz.",
     "notify.push.inviteTitle": "{host} asztalt nyitott",
     "notify.push.rematchBody": "A helyed a(z) {game} játékban fenntartva. Koppints a csatlakozáshoz.",
@@ -92,6 +105,7 @@
   },
   "it": {
     "module.klondike": "Solitario",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Vieni a giocare a {game} con {host}. Tocca per unirti.",
     "notify.push.inviteTitle": "{host} ha aperto un tavolo",
     "notify.push.rematchBody": "Il tuo posto a {game} è tenuto per te. Tocca per unirti.",
@@ -99,6 +113,7 @@
   },
   "lt": {
     "module.klondike": "Pasjansas",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Ateikite žaisti {game} su {host}. Palieskite, kad prisijungtumėte.",
     "notify.push.inviteTitle": "{host} atidarė stalą",
     "notify.push.rematchBody": "Jūsų vieta žaidime {game} laikoma. Palieskite, kad prisijungtumėte.",
@@ -106,6 +121,7 @@
   },
   "lv": {
     "module.klondike": "Pasjanss",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Nāc spēlēt {game} kopā ar {host}. Pieskaries, lai pievienotos.",
     "notify.push.inviteTitle": "{host} atvēra galdu",
     "notify.push.rematchBody": "Jūsu vieta spēlē {game} ir rezervēta. Pieskarieties, lai pievienotos.",
@@ -113,6 +129,7 @@
   },
   "mt": {
     "module.klondike": "Solitarju",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Ejja ilgħab {game} ma’ {host}. Agħfas biex tingħaqad.",
     "notify.push.inviteTitle": "{host} fetaħ mejda",
     "notify.push.rematchBody": "Il-post tiegħek f'{game} miżmum. Agħfas biex tingħaqad.",
@@ -120,6 +137,7 @@
   },
   "nl": {
     "module.klondike": "Patience",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Kom {game} spelen met {host}. Tik om mee te doen.",
     "notify.push.inviteTitle": "{host} heeft een tafel geopend",
     "notify.push.rematchBody": "Je plaats bij {game} wordt vrijgehouden. Tik om mee te doen.",
@@ -127,6 +145,7 @@
   },
   "pl": {
     "module.klondike": "Pasjans",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Zagraj w {game} z: {host}. Dotknij, aby dołączyć.",
     "notify.push.inviteTitle": "{host} otwiera stół",
     "notify.push.rematchBody": "Twoje miejsce w grze {game} czeka. Dotknij, aby dołączyć.",
@@ -134,6 +153,7 @@
   },
   "pt": {
     "module.klondike": "Paciência",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Venha jogar {game} com {host}. Toque para se juntar.",
     "notify.push.inviteTitle": "{host} abriu uma mesa",
     "notify.push.rematchBody": "O seu lugar em {game} está guardado. Toque para entrar.",
@@ -141,6 +161,7 @@
   },
   "ro": {
     "module.klondike": "Pasiență",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Vino să joci {game} cu {host}. Atinge pentru a te alătura.",
     "notify.push.inviteTitle": "{host} a deschis o masă",
     "notify.push.rematchBody": "Locul tău la {game} este păstrat. Atinge pentru a intra.",
@@ -148,6 +169,7 @@
   },
   "sk": {
     "module.klondike": "Solitér",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Príďte si zahrať {game} s hráčom {host}. Ťuknite a prisadnite.",
     "notify.push.inviteTitle": "{host} otvoril(a) stôl",
     "notify.push.rematchBody": "Vaše miesto v hre {game} je držané. Ťuknite a prisadnite si.",
@@ -155,6 +177,7 @@
   },
   "sl": {
     "module.klondike": "Pasjansa",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Pridite igrat {game} z igralcem {host}. Dotaknite se za pridružitev.",
     "notify.push.inviteTitle": "{host} je odprl mizo",
     "notify.push.rematchBody": "Vaše mesto pri igri {game} je zadržano. Tapnite za pridružitev.",
@@ -162,6 +185,7 @@
   },
   "sv": {
     "module.klondike": "Patiens",
+    "module.sedma": "Sedma",
     "notify.push.inviteBody": "Kom och spela {game} med {host}. Tryck för att gå med.",
     "notify.push.inviteTitle": "{host} har öppnat ett bord",
     "notify.push.rematchBody": "Din plats i {game} hålls åt dig. Tryck för att gå med.",

@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/sedma"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -81,6 +82,23 @@ func allModules() []hosted {
 			mod:      prsi.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"play_card", "pass", "draw"},
+			finishes: true,
+		},
+		{
+			name:     "sedma",
+			rounds:   true,
+			mod:      sedma.New(),
+			players:  refs("p1", "p2", "p3", "p4"),
+			prefer:   []string{"continue", "end_trick", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "sedma-3",
+			rounds:   true,
+			mod:      sedma.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: "classic"},
+			prefer:   []string{"continue", "end_trick", "play_card"},
 			finishes: true,
 		},
 		{
