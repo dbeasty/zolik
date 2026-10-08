@@ -309,6 +309,7 @@ export const nl: Record<string, string> = {
   'flash.matchWon': '{winners} wint',
   'flash.matchWonYou': 'Jij wint',
   'flash.matchDrawn': 'Niemand wint',
+  'flash.notSolved': 'Niet opgelost',
   'flash.nowOn': 'nu {total}',
 
   'zolik.round.deal': 'Ronde',
@@ -1280,6 +1281,7 @@ export const nl: Record<string, string> = {
   'match.waitingForTable': 'Wachten op de tafel…',
   'match.waitingForPlayer': 'Wachten op een andere speler…',
   'match.nobodyWon': 'Niemand heeft gewonnen.',
+  'match.notSolved': 'Niet opgelost.',
   'match.youWon': 'Je hebt gewonnen.',
   'match.finished': 'Deze partij is afgelopen.',
   'match.inProgress': 'Partij bezig — alles is verbonden en loopt normaal.',

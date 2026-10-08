@@ -306,6 +306,7 @@ export const ro: Record<string, string> = {
   'flash.matchWon': '{winners} a câștigat',
   'flash.matchWonYou': 'Ai câștigat',
   'flash.matchDrawn': 'Nu a câștigat nimeni',
+  'flash.notSolved': 'Nerezolvată',
   'flash.nowOn': 'acum {total}',
 
   'zolik.round.deal': 'Mână',
@@ -1272,6 +1273,7 @@ export const ro: Record<string, string> = {
   'match.waitingForTable': 'Așteptăm masa…',
   'match.waitingForPlayer': 'Așteptăm alt jucător…',
   'match.nobodyWon': 'Nu a câștigat nimeni.',
+  'match.notSolved': 'Nerezolvată.',
   'match.youWon': 'Ai câștigat.',
   'match.finished': 'Acest meci s-a încheiat.',
   'match.inProgress': 'Meci în desfășurare — totul e conectat și merge normal.',

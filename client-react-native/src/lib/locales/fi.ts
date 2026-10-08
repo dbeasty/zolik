@@ -305,6 +305,7 @@ export const fi: Record<string, string> = {
   'flash.matchWon': '{winners} voitti',
   'flash.matchWonYou': 'Voitit',
   'flash.matchDrawn': 'Kukaan ei voittanut',
+  'flash.notSolved': 'Ei ratkaistu',
   'flash.nowOn': 'nyt {total}',
 
   'zolik.round.deal': 'Jako',
@@ -1264,6 +1265,7 @@ export const fi: Record<string, string> = {
   'match.waitingForTable': 'Odotetaan pöytää…',
   'match.waitingForPlayer': 'Odotetaan toista pelaajaa…',
   'match.nobodyWon': 'Kukaan ei voittanut.',
+  'match.notSolved': 'Ei ratkaistu.',
   'match.youWon': 'Voitit.',
   'match.finished': 'Tämä ottelu on päättynyt.',
   'match.inProgress': 'Ottelu käynnissä — kaikki on yhteydessä ja etenee normaalisti.',

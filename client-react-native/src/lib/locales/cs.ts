@@ -302,6 +302,7 @@ export const cs: Record<string, string> = {
   'flash.matchWon': 'Zápas bere {winners}',
   'flash.matchWonYou': 'Zápas bereš ty',
   'flash.matchDrawn': 'Nikdo nevyhrál',
+  'flash.notSolved': 'Nevyřešeno',
   'flash.nowOn': 'nyní {total}',
 
   'zolik.round.deal': 'Rozdání',
@@ -1246,6 +1247,7 @@ export const cs: Record<string, string> = {
   'match.waitingForTable': 'Čekáme na stůl…',
   'match.waitingForPlayer': 'Čekáme na dalšího hráče…',
   'match.nobodyWon': 'Nikdo nevyhrál.',
+  'match.notSolved': 'Nevyřešeno.',
   'match.youWon': 'Vyhrál jsi.',
   'match.finished': 'Tenhle zápas skončil.',
   'match.inProgress': 'Zápas běží — všechno je připojené a funguje normálně.',

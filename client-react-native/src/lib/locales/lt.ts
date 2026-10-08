@@ -303,6 +303,7 @@ export const lt: Record<string, string> = {
   'flash.matchWon': '{winners} laimėjo',
   'flash.matchWonYou': 'Tu laimėjai',
   'flash.matchDrawn': 'Niekas nelaimėjo',
+  'flash.notSolved': 'Neišspręsta',
   'flash.nowOn': 'dabar {total}',
 
   'zolik.round.deal': 'Dalijimas',
@@ -1255,6 +1256,7 @@ export const lt: Record<string, string> = {
   'match.waitingForTable': 'Laukiame stalo…',
   'match.waitingForPlayer': 'Laukiame kito žaidėjo…',
   'match.nobodyWon': 'Niekas nelaimėjo.',
+  'match.notSolved': 'Neišspręsta.',
   'match.youWon': 'Tu laimėjai.',
   'match.finished': 'Šios rungtynės baigėsi.',
   'match.inProgress': 'Rungtynės vyksta — viskas prijungta ir juda įprastai.',

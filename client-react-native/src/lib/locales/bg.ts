@@ -307,6 +307,7 @@ export const bg: Record<string, string> = {
   'flash.matchWon': '{winners} печели',
   'flash.matchWonYou': 'Ти печелиш',
   'flash.matchDrawn': 'Никой не печели',
+  'flash.notSolved': 'Не е решено',
   'flash.nowOn': 'сега {total}',
 
   'zolik.round.deal': 'Раздаване',
@@ -1266,6 +1267,7 @@ export const bg: Record<string, string> = {
   'match.waitingForTable': 'Чакаме масата…',
   'match.waitingForPlayer': 'Чакаме друг играч…',
   'match.nobodyWon': 'Никой не спечели.',
+  'match.notSolved': 'Не е решено.',
   'match.youWon': 'Ти спечели.',
   'match.finished': 'Този мач приключи.',
   'match.inProgress': 'Мачът тече — всичко е свързано и работи нормално.',

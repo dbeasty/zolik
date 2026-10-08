@@ -314,6 +314,7 @@ export const el: Record<string, string> = {
   'flash.matchWon': 'Ο {winners} κέρδισε',
   'flash.matchWonYou': 'Κέρδισες',
   'flash.matchDrawn': 'Δεν κέρδισε κανείς',
+  'flash.notSolved': 'Δεν λύθηκε',
   'flash.nowOn': 'τώρα {total}',
 
   'zolik.round.deal': 'Μοιρασιά',
@@ -1295,6 +1296,7 @@ export const el: Record<string, string> = {
   'match.waitingForTable': 'Αναμονή για το τραπέζι…',
   'match.waitingForPlayer': 'Αναμονή για άλλον παίκτη…',
   'match.nobodyWon': 'Δεν κέρδισε κανείς.',
+  'match.notSolved': 'Δεν λύθηκε.',
   'match.youWon': 'Κέρδισες.',
   'match.finished': 'Αυτός ο αγώνας τελείωσε.',
   'match.inProgress': 'Ο αγώνας είναι σε εξέλιξη — όλα είναι συνδεδεμένα και κυλούν κανονικά.',

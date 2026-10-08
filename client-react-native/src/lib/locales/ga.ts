@@ -317,6 +317,7 @@ export const ga: Record<string, string> = {
   'flash.matchWon': 'Bhuaigh {winners}',
   'flash.matchWonYou': 'Bhuaigh tú',
   'flash.matchDrawn': 'Níor bhuaigh aon duine',
+  'flash.notSolved': 'Gan réiteach',
   'flash.nowOn': 'anois {total}',
 
   'zolik.round.deal': 'Dáileadh',
@@ -1289,6 +1290,7 @@ export const ga: Record<string, string> = {
   'match.waitingForTable': 'Ag fanacht leis an mbord…',
   'match.waitingForPlayer': 'Ag fanacht le himreoir eile…',
   'match.nobodyWon': 'Níor bhuaigh éinne.',
+  'match.notSolved': 'Gan réiteach.',
   'match.youWon': 'Bhuaigh tú.',
   'match.finished': 'Tá an cluiche seo críochnaithe.',
   'match.inProgress': 'Cluiche ar siúl — tá gach rud ceangailte agus ag bogadh mar is gnách.',
