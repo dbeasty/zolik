@@ -87,6 +87,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/deal-again", h.dealAgain)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/deal-link", h.dealLink)
+	r.With(auth.AuthMiddleware).Get("/matches/{id}/same-deal", h.sameDeal)
 	r.Get("/deals/{token}", h.sentDeal)
 	r.With(auth.AuthMiddleware).Post("/deals/{token}/play", h.playSentDeal)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/decline", h.declineRematch)
@@ -671,6 +672,22 @@ func (h *Handlers) dealLink(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"token": token})
+}
+
+// sameDeal is how everybody who played this deal got on, for a player who
+// has finished it. See Manager.SameDeal.
+func (h *Handlers) sameDeal(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	results, err := h.manager.SameDeal(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"results": results})
 }
 
 // sentDeal says what a deal link offers — which game, which settings — so a

@@ -1,6 +1,6 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
-import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
+import type { DealResult, MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -585,6 +585,14 @@ export class ZolikClient {
   /** What a deal link offers: which game, which settings. Needs no session. */
   async sentDeal(token: string): Promise<{ moduleId: string; variation?: string; options?: Record<string, number> }> {
     return this.get(`/deals/${encodeURIComponent(token)}`, false);
+  }
+
+  /**
+   * How everybody who played this deal got on, for a player who has finished
+   * it. Names no match — see `DealResult`.
+   */
+  async sameDeal(idOrCode: string): Promise<{ results: DealResult[] }> {
+    return this.get(`/matches/${encodeURIComponent(idOrCode)}/same-deal`, true);
   }
 
   /** Deal a sent game to this player, at a table of their own, already dealt. */

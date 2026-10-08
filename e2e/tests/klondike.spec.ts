@@ -206,6 +206,14 @@ test.describe('solitaire', () => {
     await friendPage.getByTestId('offer-giveup').click();
     await expect(friendPage.getByTestId('match-over')).toBeVisible({ timeout: 15_000 });
     await expect(friendPage.getByTestId('match-over-repeat')).toHaveCount(0);
+
+    // And they see how the sender got on with the same cards, beside their own.
+    await expect(friendPage.getByTestId('same-deal')).toBeVisible({ timeout: 15_000 });
+    await expect(friendPage.locator('[data-testid^="same-deal-row-"]')).toHaveCount(2);
+    await expect(friendPage.getByTestId('same-deal')).toContainText('(you)');
+    await friendPage.getByTestId('same-deal').scrollIntoViewIfNeeded();
+    await friendPage.waitForTimeout(4000); // past the results flash, for the picture
+    await friendPage.screenshot({ path: 'test-results/klondike-same-deal.png' });
     await theirs.close();
   });
 

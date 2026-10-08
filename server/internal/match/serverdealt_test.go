@@ -271,3 +271,101 @@ func TestASentDealIsTheSameDealAndNamesNoMatch(t *testing.T) {
 		t.Fatalf("a mangled link: %v", err)
 	}
 }
+
+// Everybody who played one deal, side by side: the original, a friend it was
+// sent to, and the original player's own second go.
+func TestSameDealComparesEveryAttemptAndNamesNoMatch(t *testing.T) {
+	m, _, _ := soloManager(t)
+	ctx := context.Background()
+	sender := models.Player{ID: "p1", Name: "Sender", UserID: soloUser}
+	first, err := m.Create(ctx, "klondike", module.MatchConfig{}, sender)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Start(ctx, first.ID.Hex()); err != nil {
+		t.Fatal(err)
+	}
+	// Not before you have finished it: the others' results would be a hint.
+	if _, err := m.SameDeal(ctx, first.ID.Hex(), "p1"); module.CodeOf(err) != "MATCH_NOT_OVER" {
+		t.Fatalf("compared mid-game: %v", err)
+	}
+	// One move, so the two attempts differ, then give up.
+	if err := m.HandleAction(ctx, first.ID.Hex(), "p1", module.Action{Verb: "draw"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.HandleAction(ctx, first.ID.Hex(), "p1", module.Action{Verb: "giveup"}); err != nil {
+		t.Fatal(err)
+	}
+
+	token, err := m.DealLink(ctx, first.ID.Hex(), "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	friend := models.Player{ID: "p2", Name: "Friend", UserID: "fedcba9876543210fedcba98"}
+	theirs, err := m.PlaySentDeal(ctx, token, friend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.HandleAction(ctx, theirs.ID.Hex(), "p2", module.Action{Verb: "giveup"}); err != nil {
+		t.Fatal(err)
+	}
+	again, err := m.DealAgain(ctx, first.ID.Hex(), "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.HandleAction(ctx, again.ID.Hex(), "p1", module.Action{Verb: "giveup"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Seen from the friend's table: three attempts, one of them theirs.
+	results, err := m.SameDeal(ctx, theirs.ID.Hex(), "p2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("%d attempts: %+v", len(results), results)
+	}
+	mine, repeats := 0, 0
+	for _, r := range results {
+		if r.You {
+			mine++
+			if r.Name != "Friend" {
+				t.Fatalf("the friend is shown %q as theirs", r.Name)
+			}
+		}
+		if r.Repeat {
+			repeats++
+		}
+		if len(r.Facts) == 0 {
+			t.Fatalf("%s's attempt has no numbers", r.Name)
+		}
+	}
+	if mine != 1 || repeats != 1 {
+		t.Fatalf("%d marked yours, %d repeats", mine, repeats)
+	}
+	// Seen from the sender's: both of theirs are theirs.
+	fromSender, err := m.SameDeal(ctx, again.ID.Hex(), "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	own := 0
+	for _, r := range fromSender {
+		if r.You {
+			own++
+		}
+	}
+	if own != 2 {
+		t.Fatalf("the sender sees %d of their attempts as theirs", own)
+	}
+	// No match is named, theirs or anybody else's.
+	blob, _ := json.Marshal(results)
+	for _, id := range []string{first.ID.Hex(), theirs.ID.Hex(), again.ID.Hex()} {
+		if strings.Contains(string(blob), id) {
+			t.Fatal("the comparison names a match")
+		}
+	}
+	// And somebody who played none of it sees none of it.
+	if _, err := m.SameDeal(ctx, theirs.ID.Hex(), "p1"); module.CodeOf(err) != "NOT_AT_THIS_TABLE" {
+		t.Fatalf("read another player's table: %v", err)
+	}
+}
