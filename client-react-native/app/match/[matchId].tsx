@@ -80,6 +80,7 @@ import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
+import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -1714,6 +1715,17 @@ export default function MatchScreen() {
             ) : null}
             {state.status === 'completed' && !offline ? (
               <AddToCircle players={state.players} viewerId={viewerId} palette={skin.colors} />
+            ) : null}
+            {/* A game at a table on a phone stays there unless its players
+                say otherwise, each for their own seat. */}
+            {state.status === 'completed' && offline && seatedHere ? (
+              <SaveGamePrompt
+                client={client}
+                matchId={String(matchId)}
+                host={offline.role === 'host'}
+                session={session}
+                servedByTable={own.servedByTable}
+              />
             ) : null}
           </Animated.View>
         ) : null}

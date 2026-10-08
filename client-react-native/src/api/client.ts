@@ -8,6 +8,8 @@ import type {
   CapacitySnapshot,
   CircleEntry,
   ClaimedSeat,
+  LocalSave,
+  SaveConsent,
   CircleLists,
   CircleSuggestion,
   FriendPreview,
@@ -169,6 +171,7 @@ export class ZolikClient {
       guestKey?: string;
       userId: string;
       claimableMatches?: number;
+      seatReceipt?: string;
       // A name is sent only when there is one. An empty field means "you
       // pick", and the server picks from the device's guest id — see
       // src/lib/guestName.ts for why neither side answers "Player".
@@ -195,6 +198,7 @@ export class ZolikClient {
       guestId: data.guestId,
       guestKey: data.guestKey,
       claimableMatches: data.claimableMatches ?? 0,
+      seatReceipt: data.seatReceipt,
     };
   }
 
@@ -312,6 +316,34 @@ export class ZolikClient {
   async claimOfflineSeats(receipts: string[]): Promise<ClaimedSeat[]> {
     const data = await this.post<{ seats: ClaimedSeat[] }>('/auth/claim-offline', { receipts }, true);
     return data.seats ?? [];
+  }
+
+  /** This player's answer, so far, for their seat in a finished game a phone is keeping. */
+  async getSaveConsent(matchId: string): Promise<SaveConsent> {
+    return this.get(`/matches/${encodeURIComponent(matchId)}/save-consent`, true);
+  }
+
+  /** Says yes or no for this player's own seat. */
+  async setSaveConsent(matchId: string, save: boolean): Promise<SaveConsent> {
+    return this.post(`/matches/${encodeURIComponent(matchId)}/save-consent`, { save }, true);
+  }
+
+  /**
+   * The finished games this phone is keeping. Only the phone's own server
+   * answers, and only to the phone's own app.
+   */
+  async listLocalSaves(): Promise<{ enrolled: boolean; games: LocalSave[] }> {
+    return this.get('/local/saves', false);
+  }
+
+  /** The phone's owner saying yes: the game goes to their account. */
+  async saveLocalGame(matchId: string): Promise<LocalSave> {
+    return this.post(`/local/saves/${encodeURIComponent(matchId)}/save`, {}, false);
+  }
+
+  /** Forgets a game: it will not be offered again. */
+  async discardLocalGame(matchId: string): Promise<void> {
+    await this.request('POST', `/local/saves/${encodeURIComponent(matchId)}/discard`, {}, false);
   }
 
   /** What this guest session stands to keep by signing in. */

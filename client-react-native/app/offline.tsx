@@ -417,9 +417,17 @@ function Hosting() {
               </Text>
             ))}
             {first ? (
-              <View style={{ alignSelf: 'flex-start', padding: 8, backgroundColor: '#fff', marginVertical: 8 }}>
-                <QRCode value={`clientreactnative://offline?h=${encodeURIComponent(first)}`} size={168} />
-              </View>
+              <>
+                {/* A plain web address: any phone's camera opens it in the
+                    browser, where this phone serves the game itself. A guest
+                    with the app is offered it from that page. */}
+                <View style={{ alignSelf: 'flex-start', padding: 8, backgroundColor: '#fff', marginVertical: 8 }}>
+                  <QRCode value={`http://${first}/`} size={168} />
+                </View>
+                <Text style={shared.status} testID="offline-qr-hint">
+                  {t('offline.qrBrowser')}
+                </Text>
+              </>
             ) : null}
             <Pressable style={[shared.button, shared.buttonSecondary]} onPress={close} testID="offline-room-close">
               <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.roomClose')}</Text>
@@ -442,6 +450,14 @@ function Hosting() {
       </View>
 
       <BluetoothRoom name={session?.username ?? ''} />
+
+      <Pressable
+        style={[shared.button, shared.buttonSecondary]}
+        onPress={() => router.push('/local-games')}
+        testID="offline-local-games"
+      >
+        <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('localGames.title')}</Text>
+      </Pressable>
 
       <Pressable
         style={[shared.button, shared.buttonSecondary]}

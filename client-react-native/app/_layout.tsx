@@ -98,6 +98,10 @@ export default function RootLayout() {
                       route here. */}
                   {/* A table this phone hosts itself, with no internet. */}
                   <Stack.Screen name="offline" options={{ title: t('offline.title') }} />
+                  {/* The games it hosted, waiting for its owner to save them. */}
+                  <Stack.Screen name="local-games" options={{ title: t('localGames.title') }} />
+                  {/* Where a guest's "keep this game" link lands, on the cloud. */}
+                  <Stack.Screen name="claim" options={{ title: t('claim.title') }} />
                   <Stack.Screen name="lobby/games" options={{ title: t('nav.games') }} />
                   <Stack.Screen name="lobby/setup" options={{ title: t('nav.games') }} />
                   <Stack.Screen name="lobby/table" options={{ title: t('nav.table') }} />
