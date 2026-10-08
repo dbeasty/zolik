@@ -9,6 +9,7 @@ import (
 
 	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/klondike"
@@ -126,6 +127,14 @@ func allModules() []hosted {
 			mod:      okobere.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"continue", "bet", "stand"},
+			finishes: true,
+		},
+		{
+			name:     "ferbl",
+			rounds:   true,
+			mod:      ferbl.New(),
+			players:  refs("p1", "p2", "p3"),
+			prefer:   []string{"continue", "check", "call"},
 			finishes: true,
 		},
 		{

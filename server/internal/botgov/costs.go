@@ -35,6 +35,9 @@ func DefaultCosts() map[Class]time.Duration {
 		// Sedma Hard plays every choice out over 24 sampled deals; the
 		// two-seat table, with the longest stock, is the dearest.
 		{"sedma", "hard", EngineRule}: 1220 * time.Microsecond,
+		// Ferbl Hard samples the hidden cards, weighted by how each player
+		// has bet; six seats is the dearest table.
+		{"ferbl", "hard", EngineRule}: 1310 * time.Microsecond,
 	}
 }
 
