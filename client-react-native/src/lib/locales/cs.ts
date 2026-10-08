@@ -1871,6 +1871,7 @@ export const cs: Record<string, string> = {
   'rummytiles.move.committed': '{player} ukončil tah',
   'rummytiles.move.drew': '{player} si lízl kámen',
   'moves.title': 'Poslední tahy',
+  'choice.cancel': 'Zrušit',
   'hint.button': 'Nápověda',
   'hint.line': 'Návrh: {move} {cards}',
   'hint.lineNoCards': 'Návrh: {move}',

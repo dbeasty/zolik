@@ -1,8 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
-import { selectOnly } from '../helpers/hand';
-import { seedIntroSeen } from '../helpers/login';
+import { Seat, guest, move, newTable, watchAs, type Ctx, type User } from '../helpers/seats';
 
 /**
  * The status box between the board and the hand, end to end, for the games
@@ -20,119 +18,6 @@ import { seedIntroSeen } from '../helpers/login';
  * Every expectation is the English line a player reads, built from the move
  * that was sent — not from anything the server sent back.
  */
-
-type Ctx = import('@playwright/test').APIRequestContext;
-type User = { userId: string; accessToken: string; refreshToken: string; guestId: string; guestKey: string; name: string };
-
-async function guest(request: Ctx, name: string): Promise<User> {
-  const res = await request.post(`${API_BASE}/auth/guest`, { data: { guestName: name } });
-  expect(res.ok(), await res.text()).toBeTruthy();
-  const g = await res.json();
-  return { ...g, name: g.guestName ?? name };
-}
-
-async function newTable(request: Ctx, moduleId: string, users: User[], options: Record<string, number>) {
-  const auth = { Authorization: `Bearer ${users[0].accessToken}` };
-  const created = await request.post(`${API_BASE}/matches`, { headers: auth, data: { moduleId, options } });
-  expect(created.ok(), await created.text()).toBeTruthy();
-  const { matchId } = await created.json();
-  for (const u of users.slice(1)) {
-    const joined = await request.post(`${API_BASE}/matches/${matchId}/join`, {
-      headers: { Authorization: `Bearer ${u.accessToken}` },
-    });
-    expect(joined.ok(), await joined.text()).toBeTruthy();
-  }
-  const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
-  expect(started.ok(), await started.text()).toBeTruthy();
-  return matchId as string;
-}
-
-/** One seat's socket, keeping the latest state the server sent it. */
-class Seat {
-  latest: any = null;
-  /** How many states this seat has received: a move has landed once every seat's has moved on. */
-  received = 0;
-  errors: string[] = [];
-  private ws?: WebSocket;
-  constructor(
-    readonly matchId: string,
-    readonly user: User,
-    /** Played in the browser rather than over a socket of its own; see `refresh`. */
-    readonly page?: Page,
-    private request?: Ctx,
-  ) {
-    if (page) return;
-    const base = API_BASE.replace(/^http/, 'ws');
-    this.ws = new WebSocket(`${base}/ws/matches/${matchId}?token=${encodeURIComponent(user.accessToken)}`);
-    this.ws.onmessage = (ev) => {
-      const msg = JSON.parse(String(ev.data));
-      if (msg.type === 'match_state') {
-        this.latest = msg;
-        this.received++;
-      }
-      if (msg.type === 'error') this.errors.push(`${msg.code}: ${msg.message}`);
-    };
-  }
-  /** The browser seat's state, read over HTTP since its socket is the page's. */
-  async refresh() {
-    if (!this.page) return;
-    const r = await this.request!.get(`${API_BASE}/matches/${this.matchId}`, {
-      headers: { Authorization: `Bearer ${this.user.accessToken}` },
-    });
-    this.latest = await r.json();
-  }
-  async ready() {
-    await this.refresh();
-    for (let i = 0; i < 200 && !this.latest; i++) await sleep(50);
-    expect(this.latest, `${this.user.name} never got a state`).toBeTruthy();
-  }
-  enabled(id: string) {
-    return (this.latest?.legalActions ?? []).find((o: any) => o.id === id && o.enabled);
-  }
-  async send(action: any) {
-    if (!this.page) {
-      this.ws!.send(JSON.stringify(action));
-      return;
-    }
-    // The way a player does it: pick the card, press the control.
-    if (action.cards?.length) await selectOnly(this.page, action.cards);
-    await this.page.getByTestId(`offer-${action.offerId}`).click();
-  }
-  close() {
-    this.ws?.close();
-  }
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** Opens A's own view of the match in the browser. */
-async function watchAs(page: Page, user: User, matchId: string) {
-  await page.addInitScript((s) => {
-    window.localStorage.setItem('zolik_session', JSON.stringify(s));
-  }, {
-    accessToken: user.accessToken,
-    refreshToken: user.refreshToken,
-    userId: user.userId,
-    username: user.name,
-    isGuest: true,
-    guestId: user.guestId,
-    guestKey: user.guestKey,
-    claimableMatches: 0,
-  });
-  await seedIntroSeen(page);
-  await page.goto(`/match/${matchId}`);
-  await expect(page.locator('[data-testid^="card-hand:"]').first()).toBeVisible({ timeout: 30_000 });
-}
-
-/** Sends one move and waits until every socket seat has the state after it. */
-async function move(seats: Seat[], seat: Seat, action: any) {
-  const sockets = seats.filter((s) => !s.page);
-  const before = sockets.map((s) => s.received);
-  await seat.send(action);
-  for (let i = 0; i < 250 && sockets.some((s, k) => s.received <= before[k]); i++) await sleep(20);
-  expect(seat.errors, `the server refused ${JSON.stringify(action)}`).toEqual([]);
-  for (const s of seats) await s.refresh();
-}
 
 /** The box sits under the pile and over the hand: where the eye goes. */
 async function expectBoxBetweenTableAndHand(page: Page, viewerId: string) {
@@ -257,8 +142,9 @@ test('every Last Card move is said, with what it did, between the pile and the h
 
       await move(seats, seat, action);
 
-      // A reads every other seat's move, in words, between the pile and the hand.
-      if (watched && expected) {
+      // A reads every other seat's move, in words, between the pile and the
+      // hand — and her own catch, which stays on show until somebody moves.
+      if ((watched || action.verb === 'catch') && expected) {
         await expect(page.getByTestId('move-announcements'), `after ${me.name} ${JSON.stringify(action)}`).toContainText(
           expected.text,
           { timeout: 10_000 },

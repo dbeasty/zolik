@@ -1883,6 +1883,7 @@ export const et: Record<string, string> = {
   'rummytiles.move.committed': '{player} lõpetas käigu',
   'rummytiles.move.drew': '{player} võttis kivi',
   'moves.title': 'Viimased käigud',
+  'choice.cancel': 'Tühista',
   'hint.button': 'Vihje',
   'hint.line': 'Soovitus: {move} {cards}',
   'hint.lineNoCards': 'Soovitus: {move}',

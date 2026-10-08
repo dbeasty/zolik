@@ -1905,6 +1905,7 @@ export const de: Record<string, string> = {
   'rummytiles.move.committed': '{player} hat den Zug beendet',
   'rummytiles.move.drew': '{player} hat einen Stein gezogen',
   'moves.title': 'Letzte Züge',
+  'choice.cancel': 'Abbrechen',
   'hint.button': 'Tipp',
   'hint.line': 'Vorschlag: {move} {cards}',
   'hint.lineNoCards': 'Vorschlag: {move}',

@@ -204,7 +204,7 @@ test.describe('last card', () => {
 
     expect(result.errors, `socket errors: ${result.errors.join('; ')}`).toEqual([]);
     expect(result.status).toBe('completed');
-    for (const verb of ['play_card', 'draw', 'continue', 'call']) {
+    for (const verb of ['play_card', 'draw', 'call']) {
       expect(result.verbs[verb] ?? 0, `${verb} was never played`).toBeGreaterThan(0);
     }
 
@@ -212,6 +212,11 @@ test.describe('last card', () => {
     // scored, and a match winner past the target.
     const persisted = await stateFor(request, matchId, users[0]);
     const rounds = persisted.rounds?.rounds ?? [];
+    // Every deal but the last ended in the pause, and the table went on from
+    // it. (One big deal can reach the target on its own, with no pause at all.)
+    if (rounds.length > 1) {
+      expect(result.verbs['continue'] ?? 0, 'continue was never played').toBeGreaterThan(0);
+    }
     expect(rounds.length).toBeGreaterThan(0);
     for (const r of rounds) {
       expect(r.winners).toHaveLength(1);

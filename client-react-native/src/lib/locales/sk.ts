@@ -1879,6 +1879,7 @@ export const sk: Record<string, string> = {
   'rummytiles.move.committed': '{player}: ukončil ťah',
   'rummytiles.move.drew': '{player}: ťahal kameň',
   'moves.title': 'Posledné ťahy',
+  'choice.cancel': 'Zrušiť',
   'hint.button': 'Nápoveda',
   'hint.line': 'Návrh: {move} {cards}',
   'hint.lineNoCards': 'Návrh: {move}',

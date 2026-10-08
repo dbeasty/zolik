@@ -1878,6 +1878,7 @@ export const hr: Record<string, string> = {
   'rummytiles.move.committed': '{player}: završio potez',
   'rummytiles.move.drew': '{player}: vukao pločicu',
   'moves.title': 'Nedavni potezi',
+  'choice.cancel': 'Odustani',
   'hint.button': 'Savjet',
   'hint.line': 'Prijedlog: {move} {cards}',
   'hint.lineNoCards': 'Prijedlog: {move}',

@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActionOffer, MatchAction, Zone } from '@/src/api/matchTypes';
-import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import { POSITION_PARAM, choicesToAsk, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import type { ParamSpec } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { DeckProvider } from '@/src/lib/deck';
@@ -70,6 +71,7 @@ import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { moduleName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
+import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
@@ -153,7 +155,35 @@ export default function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, send, clearError } = useMatchSocket(url, client);
+  const { state, error, connected, send: sendNow, clearError } = useMatchSocket(url, client);
+
+  // Every move leaves through here. A move that plays a card the offer says
+  // a question is for — the colour a wild names — waits for the answer
+  // (`ChoiceSheet`), however the card was played: a dragged card has no
+  // control beside it to answer on.
+  const [asking, setAsking] = useState<{ action: MatchAction; ask: ParamSpec[] } | null>(null);
+  const send = useCallback(
+    (action: MatchAction) => {
+      const offer = state?.legalActions?.find((o) => o.id === action.offerId);
+      const next = choicesToAsk(offer, action);
+      if (next.ask.length) setAsking(next);
+      else sendNow(next.action);
+    },
+    [state?.legalActions, sendNow],
+  );
+  const answer = useCallback(
+    (name: string, value: string) => {
+      if (!asking) return;
+      const action = { ...asking.action, params: { ...(asking.action.params ?? {}), [name]: value } };
+      const ask = asking.ask.filter((p) => p.name !== name);
+      if (ask.length) setAsking({ action, ask });
+      else {
+        setAsking(null);
+        sendNow(action);
+      }
+    },
+    [asking, sendNow],
+  );
   // The table's own written rules, by id — what a refusal's `ruleIds` point
   // into. Fetched once per table and cached; empty until it lands, which
   // only means a sheet shows its reason and remedy with no rule behind it.
@@ -190,12 +220,25 @@ export default function MatchScreen() {
   // Flagged as the app's pick rather than the player's, which is what lets
   // the next card they touch replace it instead of joining it — see
   // `toggleSlot`.
+  // Only while the table is waiting on this player. A card drawn on a turn
+  // that the draw itself ended — nothing playable came — has nowhere to go
+  // until the next turn, and a card left picked then is a pick nobody made.
+  const myTurn = (state?.legalActions ?? []).some((o) => o.enabled);
   useEffect(() => {
-    if (autoSelectIds.length) {
+    if (autoSelectIds.length && myTurn) {
       setSelected(new Set(autoSelectIds));
       setSelectionIsAuto(true);
     }
   }, [autoSelectIds]);
+
+  // The app's pick is dropped when the turn ends — a card drawn and kept, or
+  // a draw that ended the turn by itself. The player's own picks stay.
+  useEffect(() => {
+    if (!myTurn && selectionIsAuto) {
+      setSelected(new Set());
+      setSelectionIsAuto(false);
+    }
+  }, [myTurn, selectionIsAuto]);
 
   // Dragging a card somewhere. `drag` renders the highlights; `dragRef` is the
   // same thing readable synchronously, because the first pointer move can
@@ -1750,6 +1793,8 @@ export default function MatchScreen() {
           players={state.players.filter((p) => !p.isAI && p.id !== viewerId)}
         />
       ) : null}
+
+      <ChoiceSheet spec={asking?.ask[0] ?? null} onPick={answer} onCancel={() => setAsking(null)} />
 
       <WhySheet
         refusal={explaining}

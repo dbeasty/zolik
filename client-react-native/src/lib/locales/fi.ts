@@ -1889,6 +1889,7 @@ export const fi: Record<string, string> = {
   'rummytiles.move.committed': '{player} päätti vuoronsa',
   'rummytiles.move.drew': '{player} nosti laatan',
   'moves.title': 'Viimeisimmät siirrot',
+  'choice.cancel': 'Peruuta',
   'hint.button': 'Vihje',
   'hint.line': 'Ehdotus: {move} {cards}',
   'hint.lineNoCards': 'Ehdotus: {move}',

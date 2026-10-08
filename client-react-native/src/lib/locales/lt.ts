@@ -1880,6 +1880,7 @@ export const lt: Record<string, string> = {
   'rummytiles.move.committed': '{player}: baigė ėjimą',
   'rummytiles.move.drew': '{player}: traukė plytelę',
   'moves.title': 'Paskutiniai ėjimai',
+  'choice.cancel': 'Atšaukti',
   'hint.button': 'Patarimas',
   'hint.line': 'Pasiūlymas: {move} {cards}',
   'hint.lineNoCards': 'Pasiūlymas: {move}',

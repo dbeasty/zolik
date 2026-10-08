@@ -1876,6 +1876,7 @@ export const sv: Record<string, string> = {
   'rummytiles.move.committed': '{player} avslutade sin tur',
   'rummytiles.move.drew': '{player} drog en bricka',
   'moves.title': 'Senaste dragen',
+  'choice.cancel': 'Avbryt',
   'hint.button': 'Tips',
   'hint.line': 'Förslag: {move} {cards}',
   'hint.lineNoCards': 'Förslag: {move}',

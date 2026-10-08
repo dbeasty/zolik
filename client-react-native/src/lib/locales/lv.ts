@@ -1879,6 +1879,7 @@ export const lv: Record<string, string> = {
   'rummytiles.move.committed': '{player}: pabeidza gājienu',
   'rummytiles.move.drew': '{player}: vilka kauliņu',
   'moves.title': 'Pēdējie gājieni',
+  'choice.cancel': 'Atcelt',
   'hint.button': 'Padoms',
   'hint.line': 'Ieteikums: {move} {cards}',
   'hint.lineNoCards': 'Ieteikums: {move}',

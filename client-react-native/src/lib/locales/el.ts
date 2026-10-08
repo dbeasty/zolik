@@ -1921,6 +1921,7 @@ export const el: Record<string, string> = {
   'rummytiles.move.committed': '{player}: τελείωσε τον γύρο του',
   'rummytiles.move.drew': '{player}: τράβηξε ένα πλακίδιο',
   'moves.title': 'Πρόσφατες κινήσεις',
+  'choice.cancel': 'Ακύρωση',
   'hint.button': 'Βοήθεια',
   'hint.line': 'Πρόταση: {move} {cards}',
   'hint.lineNoCards': 'Πρόταση: {move}',

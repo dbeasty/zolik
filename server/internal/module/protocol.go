@@ -540,6 +540,12 @@ type ParamSpec struct {
 	// list happens to begin with. Empty, or not one of Choices, means the
 	// first choice.
 	DefaultChoice string `json:"defaultChoice,omitempty"`
+	// Cards are the cards this parameter is about, where it is not every card
+	// the offer sends: the colour a wild names is a question only a wild asks.
+	// A client asks for the value when a submission carries one of these —
+	// whichever way the card was played, dragged or pressed — and leaves the
+	// parameter out otherwise. Empty means it goes with every submission.
+	Cards []string `json:"cards,omitempty"`
 	// Headline says this parameter's current value is what pressing the offer
 	// sends, and belongs on the offer's own control: the prompt and the figure
 	// as it moves — "Raise to 483", not "Raise" above a slider the button never

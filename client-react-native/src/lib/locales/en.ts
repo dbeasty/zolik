@@ -1900,6 +1900,7 @@ export const en: Record<string, string> = {
   'rummytiles.move.committed': '{player} ended their turn',
   'rummytiles.move.drew': '{player} drew a tile',
   'moves.title': 'Recent moves',
+  'choice.cancel': 'Cancel',
   'hint.button': 'Hint',
   'hint.line': 'Suggested: {move} {cards}',
   'hint.lineNoCards': 'Suggested: {move}',

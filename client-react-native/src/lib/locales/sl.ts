@@ -1874,6 +1874,7 @@ export const sl: Record<string, string> = {
   'rummytiles.move.committed': '{player}: končal potezo',
   'rummytiles.move.drew': '{player}: vzel ploščico',
   'moves.title': 'Zadnje poteze',
+  'choice.cancel': 'Prekliči',
   'hint.button': 'Namig',
   'hint.line': 'Predlog: {move} {cards}',
   'hint.lineNoCards': 'Predlog: {move}',

@@ -1,4 +1,4 @@
-import { defaultParam, submissionFor, type ActionOffer, type ParamSpec } from '@/src/api/matchTypes';
+import { choicesToAsk, defaultParam, submissionFor, type ActionOffer, type ParamSpec } from '@/src/api/matchTypes';
 
 const choices = [
   { value: 'C', labelKey: 'a' },
@@ -26,5 +26,39 @@ describe('a choice parameter’s starting value', () => {
       params: [spec],
     };
     expect(submissionFor(offer, { cards: ['W'] })?.params).toEqual({ colour: 'T' });
+  });
+});
+
+describe('the questions a move asks before it goes', () => {
+  const colour: ParamSpec = { name: 'colour', labelKey: 'k', choices, cards: ['W', 'W4'] };
+  const offer: ActionOffer = {
+    id: 'play_card',
+    verb: 'play_card',
+    enabled: true,
+    source: { zone: 'hand', cards: ['W', 'C-7'], minCards: 1, maxCards: 1 },
+    params: [colour],
+  };
+
+  test('a card the question is for asks it, whichever way it was played', () => {
+    const { ask } = choicesToAsk(offer, { offerId: 'play_card', verb: 'play_card', cards: ['W'], params: { colour: 'C' } });
+    expect(ask.map((p) => p.name)).toEqual(['colour']);
+  });
+
+  test('a card it is not for asks nothing, and sends no answer', () => {
+    const { ask, action } = choicesToAsk(offer, {
+      offerId: 'play_card',
+      verb: 'play_card',
+      cards: ['C-7'],
+      params: { colour: 'C' },
+    });
+    expect(ask).toEqual([]);
+    expect(action.params).toBeUndefined();
+  });
+
+  test('a question for every card is never asked here — its control sets it', () => {
+    const always: ActionOffer = { ...offer, params: [{ name: 'n', labelKey: 'k', choices }] };
+    const { ask, action } = choicesToAsk(always, { offerId: 'play_card', verb: 'play_card', cards: ['W'], params: { n: 'T' } });
+    expect(ask).toEqual([]);
+    expect(action.params).toEqual({ n: 'T' });
   });
 });

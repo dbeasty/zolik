@@ -1891,6 +1891,7 @@ export const bg: Record<string, string> = {
   'rummytiles.move.committed': '{player} приключи хода си',
   'rummytiles.move.drew': '{player} изтегли плочка',
   'moves.title': 'Последни ходове',
+  'choice.cancel': 'Отказ',
   'hint.button': 'Подсказка',
   'hint.line': 'Предложение: {move} {cards}',
   'hint.lineNoCards': 'Предложение: {move}',

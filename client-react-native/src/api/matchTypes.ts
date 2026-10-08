@@ -192,6 +192,13 @@ export type ParamSpec = {
    */
   defaultChoice?: string;
   /**
+   * The cards this choice is asked for, where it is not every card the offer
+   * sends — the colour a wild names. A submission carrying one of them asks
+   * the player first, whichever way the card was played; one carrying none
+   * leaves the choice out. See {@link choicesToAsk}.
+   */
+  cards?: string[];
+  /**
    * This value is what pressing the offer sends, so the offer's own control
    * names it — "Raise to 483" — and follows it as the slider, stepper, typed
    * field or a quick choice moves it. See {@link offerHeadline}.
@@ -943,3 +950,30 @@ export type DealResult = {
   repeat?: boolean;
   finishedAt: string;
 };
+
+/**
+ * The choices to ask the player before `action` goes, and the action with
+ * every choice that is not its business taken out.
+ *
+ * A choice that names its cards (`ParamSpec.cards`) is asked whenever the
+ * action plays one of them — a dragged card and a pressed one alike, since
+ * a drop has no control beside it to set the choice on — and dropped from
+ * an action that plays none of them.
+ */
+export function choicesToAsk(
+  offer: ActionOffer | undefined,
+  action: MatchAction,
+): { action: MatchAction; ask: ParamSpec[] } {
+  const ask: ParamSpec[] = [];
+  if (!offer) return { action, ask };
+  const params = { ...(action.params ?? {}) };
+  for (const p of offer.params ?? []) {
+    if (!p.cards?.length) continue;
+    if ((action.cards ?? []).some((c) => p.cards!.includes(c))) ask.push(p);
+    else delete params[p.name];
+  }
+  const out: MatchAction = { ...action };
+  if (Object.keys(params).length) out.params = params;
+  else delete out.params;
+  return { action: out, ask };
+}

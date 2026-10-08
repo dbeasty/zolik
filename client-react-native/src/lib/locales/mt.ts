@@ -1902,6 +1902,7 @@ export const mt: Record<string, string> = {
   'rummytiles.move.committed': '{player} temm id-dawra tiegħu',
   'rummytiles.move.drew': '{player} ġibed biċċa',
   'moves.title': 'L-aħħar mossi',
+  'choice.cancel': 'Ikkanċella',
   'hint.button': 'Ħjiel',
   'hint.line': 'Suġġeriment: {move} {cards}',
   'hint.lineNoCards': 'Suġġeriment: {move}',
