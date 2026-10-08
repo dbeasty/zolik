@@ -37,6 +37,10 @@ type GameState struct {
 	// FirstChooser is the seat that chose trumps in the first deal; the role
 	// moves one seat clockwise every deal.
 	FirstChooser int `json:"firstChooser"`
+	// Sitter is the dealer at a table of four, who sits the deal out
+	// (pauzíruje): dealt no cards, never on turn, neither paying nor paid.
+	// Empty at a table of three.
+	Sitter string `json:"sitter,omitempty"`
 
 	Phase   string `json:"phase"`
 	Current string `json:"current"`
@@ -102,6 +106,7 @@ type GameState struct {
 // it names games, suits and players, never a card.
 type DealRecord struct {
 	Number   int            `json:"number"` // 1-based
+	Sitter   string         `json:"sitter,omitempty"`
 	Declarer string         `json:"declarer"`
 	Game     string         `json:"game"`
 	Trump    string         `json:"trump,omitempty"`
@@ -296,13 +301,44 @@ func (s *GameState) seat(id string) int {
 	return -1
 }
 
+// next is the player after id, clockwise, passing over a sitter.
 func (s *GameState) next(id string) string {
-	return s.Players[(s.seat(id)+1)%len(s.Players)]
+	n := len(s.Players)
+	for i := s.seat(id) + 1; ; i++ {
+		if p := s.Players[i%n]; p != s.Sitter {
+			return p
+		}
+	}
 }
 
-// chooser is the seat naming trumps this deal.
+// active is the players in this deal, clockwise: everyone but a sitter.
+func (s *GameState) active() []string {
+	if s.Sitter == "" {
+		return s.Players
+	}
+	out := make([]string, 0, len(s.Players)-1)
+	for _, p := range s.Players {
+		if p != s.Sitter {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// chooser is the seat naming trumps this deal. The role goes round every
+// seat, a fourth player's included.
 func (s *GameState) chooser() string {
 	return s.Players[(s.FirstChooser+s.Deal)%len(s.Players)]
+}
+
+// sitter is who sits this deal out: at a table of four, the dealer, on the
+// chooser's right; nobody at a table of three.
+func (s *GameState) sitter() string {
+	n := len(s.Players)
+	if n < 4 {
+		return ""
+	}
+	return s.Players[(s.FirstChooser+s.Deal+n-1)%n]
 }
 
 func (s *GameState) licit() bool { return s.Variation == variationLicit }
@@ -368,7 +404,9 @@ func (s *GameState) sevenHolder() string {
 	return ""
 }
 
-func (s *GameState) defender(id string) bool { return id != s.Declarer && s.seat(id) >= 0 }
+func (s *GameState) defender(id string) bool {
+	return id != s.Declarer && id != s.Sitter && s.seat(id) >= 0
+}
 
 // gameRank orders games for a take-over: betl beats any trump game, durch
 // beats everything.

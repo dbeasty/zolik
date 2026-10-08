@@ -382,7 +382,7 @@ func (b bot) playCard(s *GameState, me string, skill module.Skill, legal []strin
 	win, _ := tricks.Trick{Plays: s.Trick}.Winning(trump, order)
 	winner := s.Players[win.Seat]
 	friendly := (winner == s.Declarer) == (me == s.Declarer)
-	last := len(s.Trick) == len(s.Players)-1
+	last := len(s.Trick) == len(s.active())-1
 
 	if friendly {
 		if last {

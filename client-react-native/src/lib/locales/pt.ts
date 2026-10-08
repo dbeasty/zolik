@@ -2031,6 +2031,9 @@ export const pt: Record<string, string> = {
   'marias.rules.score.flek': 'Cada dobra duplica essa parte.',
   'marias.rules.score.red': 'Com copas como trunfo, todos os pagamentos são a dobrar.',
   'marias.rules.end': 'A partida tem {n} mãos.',
+  'marias.rules.section.four': 'A quatro',
+  'marias.rules.four.sitOut': 'Com quatro jogadores, quem dá as cartas fica de fora de cada mão e não paga nem recebe; escolhe o jogador à sua esquerda.',
+  'marias.rules.four.deals': 'Com quatro jogadores, a partida é arredondada para cima até um múltiplo de quatro mãos, para que todos descansem igualmente.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2094,6 +2097,7 @@ export const pt: Record<string, string> = {
   'marias.rules.score.limit': 'Nenhuma mão paga mais de {n} entre o declarante e um mesmo defensor.',
   'marias.seat.bidder': 'Licita',
   'marias.seat.holder': 'Mantém',
+  'marias.seat.sittingOut': 'Descansa',
   'err.MARIAS_YOU_HOLD': 'Seguras o lance: diz mám ou passa',
   'err.MARIAS_YOU_BID': 'Estás a licitar: sobe o lance ou passa',
   // --- end Mariáš ---

@@ -2037,6 +2037,9 @@ export const nl: Record<string, string> = {
   'marias.rules.score.flek': 'Elke verdubbeling verdubbelt dat onderdeel.',
   'marias.rules.score.red': 'Met harten als troef wordt elke betaling verdubbeld.',
   'marias.rules.end': 'De partij duurt {n} rondes.',
+  'marias.rules.section.four': 'Met z\'n vieren',
+  'marias.rules.four.sitOut': 'Met vier spelers zit de gever elk spel uit en betaalt noch ontvangt iets; de speler links van hem kiest.',
+  'marias.rules.four.deals': 'Met vier spelers wordt de partij naar boven afgerond op een veelvoud van vier spellen, zodat iedereen even vaak uitzit.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2100,6 +2103,7 @@ export const nl: Record<string, string> = {
   'marias.rules.score.limit': 'Geen ronde betaalt meer dan {n} tussen de leider en één tegenspeler.',
   'marias.seat.bidder': 'Biedt',
   'marias.seat.holder': 'Houdt',
+  'marias.seat.sittingOut': 'Zit uit',
   'err.MARIAS_YOU_HOLD': 'Jij houdt het bod: zeg mám of pas',
   'err.MARIAS_YOU_BID': 'Jij biedt: bied hoger of pas',
   // --- end Mariáš ---

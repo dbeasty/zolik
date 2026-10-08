@@ -22,12 +22,13 @@ func buildDeck() []string {
 	return out
 }
 
-// NewMatch seats three players and deals the first hand.
+// NewMatch seats three or four players and deals the first hand.
 func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
-	if len(players) != 3 {
-		return nil, module.Error{Code: "TOO_FEW_PLAYERS", Message: "mariáš is played by three"}
+	if len(players) != 3 && len(players) != 4 {
+		return nil, module.Error{Code: "TOO_FEW_PLAYERS", Message: "mariáš is played by three or four"}
 	}
 	c := resolve(cfg)
+	c.deals = dealsFor(c.deals, len(players))
 	s := &GameState{
 		Status:         "active",
 		Variation:      c.variation,
@@ -50,12 +51,21 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	return encode(s)
 }
 
+// dealsFor is a match's length at a table of n: at four it is rounded up
+// to a multiple of four, so everyone sits out — and chooses — equally often.
+func dealsFor(deals, n int) int {
+	if n == 4 {
+		return (deals + 3) / 4 * 4
+	}
+	return deals
+}
+
 // startDeal shuffles and deals the deal numbered s.Deal.
 //
 // The chooser gets seven cards to name trumps from and five more they may
 // not look at yet; the other two get ten each (ČSM B/4). The packets a real
 // dealer gives make no difference to a shuffled deck, so only the counts
-// are kept.
+// are kept. At a table of four the dealer sits out and is dealt nothing.
 func startDeal(s *GameState) {
 	deck := buildDeck()
 	r := rand.New(rand.NewSource(s.Seed + int64(s.Deal)*7919))
@@ -64,6 +74,7 @@ func startDeal(s *GameState) {
 	s.TrumpCard, s.Trump, s.Helper, s.WithSto = "", "", "", false
 	s.Rung, s.Holder, s.Bidder, s.Waiting = 0, "", "", ""
 	s.PrevTrick, s.Announced, s.History = nil, nil, nil
+	s.Sitter = s.sitter()
 	if s.licit() {
 		dealLicit(s, deck)
 		return
@@ -432,7 +443,7 @@ func (s *GameState) pass() error {
 		return err
 	}
 	s.Quiet++
-	if s.Quiet >= len(s.Players) {
+	if s.Quiet >= len(s.active()) {
 		s.Phase, s.Current = phasePlay, s.firstLeader()
 		return nil
 	}
@@ -512,7 +523,7 @@ func (s *GameState) play(p string, cards []string) ([]module.Event, error) {
 	s.Trick = append(s.Trick, tricks.Play{Seat: s.seat(p), Card: card})
 	events := []module.Event{{Type: "card_played", Data: map[string]any{"playerId": p, "card": card}}}
 
-	if len(s.Trick) < len(s.Players) {
+	if len(s.Trick) < len(s.active()) {
 		s.Current = s.next(p)
 		return events, nil
 	}

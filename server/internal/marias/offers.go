@@ -20,8 +20,8 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if s.Intermission.Open {
 		return s.Intermission.Offers(s.Players, playerID), nil
 	}
-	if s.Status != "active" {
-		return nil, nil
+	if s.Status != "active" || playerID == s.Sitter {
+		return nil, nil // a sitter has no say in the deal they sit out
 	}
 
 	var offers []module.ActionOffer

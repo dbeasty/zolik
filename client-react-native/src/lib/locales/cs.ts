@@ -2003,6 +2003,9 @@ export const cs: Record<string, string> = {
   'marias.rules.score.flek': 'Každý flek danou část zdvojí.',
   'marias.rules.score.red': 'Jsou-li trumfy červené, platí se vše dvojnásob.',
   'marias.rules.end': 'Partie má {n} her.',
+  'marias.rules.section.four': 'Ve čtyřech',
+  'marias.rules.four.sitOut': 'Hrají-li čtyři, rozdávající pauzíruje: nehraje, neplatí a nic nedostává; volí hráč po jeho levici.',
+  'marias.rules.four.deals': 'Hrají-li čtyři, počet her se zaokrouhlí nahoru na násobek čtyř, aby každý pauzíroval stejně často.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2066,6 +2069,7 @@ export const cs: Record<string, string> = {
   'marias.rules.score.limit': 'Žádná hra neplatí mezi aktérem a jedním protihráčem víc než {n}.',
   'marias.seat.bidder': 'Licituje',
   'marias.seat.holder': 'Drží',
+  'marias.seat.sittingOut': 'Pauzíruje',
   'err.MARIAS_YOU_HOLD': 'Držíš nabídku: řekni mám, nebo pasuj',
   'err.MARIAS_YOU_BID': 'Licituješ: nabídni víc, nebo pasuj',
   // --- end Mariáš ---

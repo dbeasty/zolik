@@ -65,8 +65,8 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		vm.Zones = append(vm.Zones, z)
 	}
 	for _, p := range s.Players {
-		if p == viewerID {
-			continue
+		if p == viewerID || p == s.Sitter {
+			continue // a sitter holds no cards to show the back of
 		}
 		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
@@ -123,6 +123,8 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		}
 		if playing {
 			switch {
+			case p == s.Sitter:
+				seat.LabelKeys = append(seat.LabelKeys, "marias.seat.sittingOut")
 			case s.Phase == phaseAuction && p == s.Holder:
 				seat.LabelKeys = append(seat.LabelKeys, "marias.seat.holder")
 			case s.Phase == phaseAuction && p == s.Bidder:
@@ -132,7 +134,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			case p == s.Declarer:
 				seat.LabelKeys = append(seat.LabelKeys, "marias.seat.declarer")
 			}
-			if s.Phase == phasePlay {
+			if s.Phase == phasePlay && p != s.Sitter {
 				seat.Facts = append(seat.Facts, module.Fact{
 					LabelKey: "marias.seat.tricks", Params: map[string]any{"n": s.TricksWon[p]},
 				})

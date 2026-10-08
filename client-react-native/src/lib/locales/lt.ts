@@ -2012,6 +2012,9 @@ export const lt: Record<string, string> = {
   'marias.rules.score.flek': 'Kiekvienas dvigubinimas padvigubina tą dalį.',
   'marias.rules.score.red': 'Kai koziris – širdys, kiekvienas mokėjimas dvigubinamas.',
   'marias.rules.end': 'Rungtynes sudaro {n} dalijimų.',
+  'marias.rules.section.four': 'Keturiese',
+  'marias.rules.four.sitOut': 'Kai žaidžia keturi, dalytojas praleidžia kiekvieną dalijimą ir nei moka, nei gauna; renkasi žaidėjas į kairę nuo jo.',
+  'marias.rules.four.deals': 'Kai žaidžia keturi, partija suapvalinama aukštyn iki keturių dalijimų kartotinio, kad visi praleistų vienodai dažnai.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2075,6 +2078,7 @@ export const lt: Record<string, string> = {
   'marias.rules.score.limit': 'Nė vienas dalijimas tarp lošėjo ir kurio nors vieno gynėjo nemoka daugiau nei {n}.',
   'marias.seat.bidder': 'Siūlo',
   'marias.seat.holder': 'Laiko',
+  'marias.seat.sittingOut': 'Praleidžia',
   'err.MARIAS_YOU_HOLD': 'Tu laikai pasiūlymą: sakyk mám arba pas',
   'err.MARIAS_YOU_BID': 'Tu siūlai: siūlyk daugiau arba pas',
   // --- end Mariáš ---

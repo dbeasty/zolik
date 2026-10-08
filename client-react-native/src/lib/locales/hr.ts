@@ -2010,6 +2010,9 @@ export const hr: Record<string, string> = {
   'marias.rules.score.flek': 'Svako udvostručavanje udvostručuje taj dio.',
   'marias.rules.score.red': 'Kad je herc adut, svaka se isplata udvostručuje.',
   'marias.rules.end': 'Partija ima {n} dijeljenja.',
+  'marias.rules.section.four': 'U četvero',
+  'marias.rules.four.sitOut': 'Kad igraju četvorica, djelitelj pauzira u svakom dijeljenju te niti plaća niti prima; bira igrač s njegove lijeve strane.',
+  'marias.rules.four.deals': 'Kad igraju četvorica, partija se zaokružuje naviše na višekratnik od četiri dijeljenja, kako bi svatko jednako često pauzirao.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2073,6 +2076,7 @@ export const hr: Record<string, string> = {
   'marias.rules.score.limit': 'Nijedno dijeljenje ne plaća više od {n} između nositelja igre i jednog protivnika.',
   'marias.seat.bidder': 'Licitira',
   'marias.seat.holder': 'Drži',
+  'marias.seat.sittingOut': 'Pauzira',
   'err.MARIAS_YOU_HOLD': 'Držiš ponudu: reci mám ili dalje',
   'err.MARIAS_YOU_BID': 'Ti licitiraš: ponudi više ili dalje',
   // --- end Mariáš ---

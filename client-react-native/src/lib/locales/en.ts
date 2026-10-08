@@ -2029,6 +2029,9 @@ export const en: Record<string, string> = {
   'marias.rules.score.flek': 'Each doubling doubles that part.',
   'marias.rules.score.red': 'With hearts as trumps, every payment is doubled.',
   'marias.rules.end': 'The match is {n} deals.',
+  'marias.rules.section.four': 'Four at the table',
+  'marias.rules.four.sitOut': 'With four players, the dealer sits each deal out and neither pays nor is paid; the player on their left chooses.',
+  'marias.rules.four.deals': 'With four players, the match is rounded up to a multiple of four deals, so everyone sits out equally often.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2092,6 +2095,7 @@ export const en: Record<string, string> = {
   'marias.rules.score.limit': 'No deal pays more than {n} between the declarer and any one defender.',
   'marias.seat.bidder': 'Bidding',
   'marias.seat.holder': 'Holding',
+  'marias.seat.sittingOut': 'Sitting out',
   'err.MARIAS_YOU_HOLD': 'You hold the bid: say mám, or pass',
   'err.MARIAS_YOU_BID': 'You are bidding: bid higher, or pass',
   // --- end Mariáš ---

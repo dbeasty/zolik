@@ -2015,6 +2015,9 @@ export const et: Record<string, string> = {
   'marias.rules.score.flek': 'Iga kahekordistamine kahekordistab selle osa.',
   'marias.rules.score.red': 'Kui trumbiks on südamed, makstakse kõik topelt.',
   'marias.rules.end': 'Matšis on {n} jagamist.',
+  'marias.rules.section.four': 'Neljakesi',
+  'marias.rules.four.sitOut': 'Nelja mängijaga jääb jagaja igast jaost välja ega maksa ega saa midagi; valib temast vasakul istuv mängija.',
+  'marias.rules.four.deals': 'Nelja mängijaga ümardatakse partii üles nelja jao kordseks, et igaüks jääks vahele sama tihti.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2078,6 +2081,7 @@ export const et: Record<string, string> = {
   'marias.rules.score.limit': 'Ükski jagamine ei maksa mängujuhi ja ühe kaitsja vahel rohkem kui {n}.',
   'marias.seat.bidder': 'Pakub',
   'marias.seat.holder': 'Hoiab',
+  'marias.seat.sittingOut': 'Jääb vahele',
   'err.MARIAS_YOU_HOLD': 'Sina hoiad pakkumist: ütle mám või pass',
   'err.MARIAS_YOU_BID': 'Sina pakud: paku kõrgemalt või pass',
   // --- end Mariáš ---

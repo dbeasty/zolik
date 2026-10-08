@@ -2006,6 +2006,9 @@ export const sl: Record<string, string> = {
   'marias.rules.score.flek': 'Vsaka podvojitev podvoji ta del.',
   'marias.rules.score.red': 'Ko je srce adut, se vsako plačilo podvoji.',
   'marias.rules.end': 'Partija ima {n} deljenj.',
+  'marias.rules.section.four': 'V štirih',
+  'marias.rules.four.sitOut': 'Pri štirih igralcih delivec vsako deljenje počiva in ne plača ničesar ne prejme; izbira igralec na njegovi levi.',
+  'marias.rules.four.deals': 'Pri štirih igralcih se partija zaokroži navzgor na večkratnik štirih deljenj, da vsak enako pogosto počiva.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2069,6 +2072,7 @@ export const sl: Record<string, string> = {
   'marias.rules.score.limit': 'Nobeno deljenje ne plača več kot {n} med nosilcem igre in enim nasprotnikom.',
   'marias.seat.bidder': 'Licitira',
   'marias.seat.holder': 'Drži',
+  'marias.seat.sittingOut': 'Počiva',
   'err.MARIAS_YOU_HOLD': 'Držiš ponudbo: reci mám ali naprej',
   'err.MARIAS_YOU_BID': 'Ti licitiraš: ponudi več ali naprej',
   // --- end Mariáš ---

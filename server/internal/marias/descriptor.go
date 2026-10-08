@@ -12,7 +12,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		ID:         "marias",
 		Label:      "Mariáš",
 		MinPlayers: 3,
-		MaxPlayers: 3,
+		MaxPlayers: 4,
 		Deck:       module.DeckGerman,
 		Variations: []module.VariationSpec{
 			{
@@ -41,7 +41,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				Name:  OptDeals,
 				Type:  module.OptionEnumInt,
 				Label: "Deals",
-				Help:  "How many deals a match lasts. A multiple of three, so everyone chooses trumps equally often.",
+				Help:  "How many deals a match lasts. A multiple of three, so everyone chooses trumps equally often; with four players it is rounded up to a multiple of four.",
 				Choices: []module.OptionChoice{
 					{Value: 9, Label: "9"},
 					{Value: 12, Label: "12"},

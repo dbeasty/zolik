@@ -10,7 +10,6 @@
   package and the trick area. It is not a variation of Mariáš.
 - **Non-goals, this plan:**
   - Křížový mariáš (four players in partnerships);
-  - four at the table with the dealer sitting out;
   - "hra v barvě" house scoring variants beyond the tariff option;
   - tournaments and ELO;
   - offline play.
@@ -348,7 +347,8 @@ partnership-stats decision early, which is a cheap rehearsal for Bridge.
 ## 9. Follow-ups (out of scope)
 
 - Křížový mariáš (four players, partnerships).
-- Four at a three-player table, with the dealer sitting out each deal.
+- ~~Four at a three-player table, with the dealer sitting out each deal.~~ Done: a Mariáš table
+  seats three or four in both variations (marias-rules.md, difference 4).
 - Showing the declarer's hand in Betl or Durch after the first trick (a house rule in some
   places).
 - Mariáš leaderboards by units won.
