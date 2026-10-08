@@ -93,8 +93,8 @@ test.describe('last card', () => {
     await openGame(page, 'lastcard');
     await openGameSetup(page, 'lastcard', 'bots');
     await page.getByTestId('bots-lastcard-1').click();
-    await expect(page.getByTestId('bot-skill-lastcard-0-hard')).toBeVisible();
-    await expect(page.getByTestId('bot-skill-lastcard-0-ai')).toHaveCount(0);
+    // One strength for the whole table; per-seat strength is set at the table.
+    await expect(page.getByTestId('bot-skill-lastcard-0-hard')).toHaveCount(0);
     await expect(page.getByTestId('option-lastcard-botSkill-3')).toBeVisible();
     await expect(page.getByTestId('option-lastcard-botSkill-4')).toHaveCount(0);
 
