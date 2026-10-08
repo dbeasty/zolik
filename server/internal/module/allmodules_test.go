@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -81,6 +82,23 @@ func allModules() []hosted {
 			mod:      prsi.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"play_card", "pass", "draw"},
+			finishes: true,
+		},
+		{
+			name:     "snaps",
+			rounds:   true,
+			mod:      snaps.New(),
+			players:  refs("p1", "p2"),
+			prefer:   []string{"continue", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "snaps-66",
+			rounds:   true,
+			mod:      snaps.New(),
+			players:  refs("p1", "p2"),
+			cfg:      module.MatchConfig{Variation: "sedesatSest"},
+			prefer:   []string{"continue", "play_card"},
 			finishes: true,
 		},
 		{

@@ -29,6 +29,9 @@ func DefaultCosts() map[Class]time.Duration {
 		{"zolik", "hard", EngineRule}:   890 * time.Microsecond,
 		{"zolik", "medium", EngineRule}: 750 * time.Microsecond,
 		{"zolik", "easy", EngineRule}:   700 * time.Microsecond,
+		// Šnaps Hard solves the endgame over sampled hands; Šedesát šest,
+		// with six cards a hand, is the dearer variation (p99 6 ms).
+		{"snaps", "hard", EngineRule}: 990 * time.Microsecond,
 	}
 }
 
