@@ -220,7 +220,7 @@ export default function MatchScreen() {
   const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
   // The host may change any bot's strength at any point: tapping its face
   // opens the picker. Nobody else's taps do anything.
-  const botStrength = useBotStrength(client, String(matchId ?? ''), !!state?.hostId && state.hostId === viewerId);
+  const botStrength = useBotStrength(client, String(matchId ?? ''), state?.moduleId, !!state?.hostId && state.hostId === viewerId);
   // Amounts dialled into the controls and not yet sent. Held here, not in the
   // bar, because the bar unmounts when its panel collapses and the collapsed
   // rail's pills send the same offers — both read this one store.

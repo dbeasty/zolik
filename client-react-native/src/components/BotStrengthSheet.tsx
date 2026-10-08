@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ZolikClient } from '@/src/api/client';
@@ -6,8 +6,11 @@ import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
-/** The strengths a host can give a bot. 'ai' is shown only to a bot already playing it. */
+/** The strengths a host can give a bot, before AI — which only some games ship. */
 const SKILLS = ['easy', 'medium', 'hard'] as const;
+
+/** The value of AI in a game's Opponents (botSkill) option — the server's module.SkillOpt. */
+const AI_OPTION_VALUE = 4;
 
 export type BotTarget = { id: string; name: string; skill?: string };
 
@@ -23,9 +26,34 @@ export type BotTarget = { id: string; name: string; skill?: string };
  * is not the host, so a caller can pass it straight through as "not
  * tappable".
  */
-export function useBotStrength(client: ZolikClient, matchId: string, isHost: boolean, onChanged?: () => void) {
+export function useBotStrength(
+  client: ZolikClient,
+  matchId: string,
+  moduleId: string | undefined,
+  isHost: boolean,
+  onChanged?: () => void,
+) {
   const [target, setTarget] = useState<BotTarget | null>(null);
   const [error, setError] = useState('');
+  // Whether this game ships a trained network, read off the same Opponents
+  // option the setup screen offers: AI is a choice only where it is one there.
+  const [offersAI, setOffersAI] = useState(false);
+  useEffect(() => {
+    if (!isHost || !moduleId) return;
+    let live = true;
+    client
+      .modules()
+      .then((mods) => {
+        const opt = mods.find((m) => m.id === moduleId)?.options?.find((o) => o.name === 'botSkill');
+        if (live) setOffersAI(!!opt?.choices.some((c) => c.value === AI_OPTION_VALUE));
+      })
+      .catch(() => {
+        /* without the list the picker offers the ladder it always can */
+      });
+    return () => {
+      live = false;
+    };
+  }, [client, moduleId, isHost]);
 
   const pick = useCallback(
     async (skill: string) => {
@@ -44,23 +72,25 @@ export function useBotStrength(client: ZolikClient, matchId: string, isHost: boo
   );
 
   const sheet: ReactNode = (
-    <BotStrengthSheet target={target} error={error} onPick={pick} onClose={() => setTarget(null)} />
+    <BotStrengthSheet target={target} offersAI={offersAI} error={error} onPick={pick} onClose={() => setTarget(null)} />
   );
-  return { open: isHost ? (bot: BotTarget) => setTarget(bot) : undefined, sheet };
+  return { open: isHost ? (bot: BotTarget) => setTarget(bot) : undefined, sheet, offersAI };
 }
 
 function BotStrengthSheet({
   target,
+  offersAI,
   error,
   onPick,
   onClose,
 }: {
   target: BotTarget | null;
+  offersAI: boolean;
   error: string;
   onPick: (skill: string) => void;
   onClose: () => void;
 }) {
-  const skills: readonly string[] = target?.skill === 'ai' ? [...SKILLS, 'ai'] : SKILLS;
+  const skills: readonly string[] = offersAI || target?.skill === 'ai' ? [...SKILLS, 'ai'] : SKILLS;
   return (
     <>
       {error ? (
