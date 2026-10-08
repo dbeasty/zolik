@@ -167,7 +167,7 @@ test.describe('no screen can reach a key it has no words for', () => {
     // The sweep reads what is on screen, and the option and choice labels —
     // the exact strings this test exists to catch — are only on each game's
     // settings screen. So visit every game's page, and its settings.
-    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack', 'lastcard', 'sedma', 'snaps']) {
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack', 'lastcard', 'okobere', 'sedma', 'snaps']) {
       await page.getByTestId(`game-${id}`).click();
       await expect(page.getByTestId(`module-${id}`)).toBeVisible();
       collect(await page.evaluate(() => document.body.innerText), missing);
@@ -195,6 +195,7 @@ test.describe('no screen can reach a key it has no words for', () => {
     ['lastcard', 2],
     ['snaps', 2],
     ['sedma', 4],
+    ['okobere', 2],
   ] as const) {
     test(`a table of ${moduleId}`, async ({ page, request }) => {
       const missing = new Set<string>();

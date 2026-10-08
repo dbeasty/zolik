@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/marias"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
@@ -95,6 +96,8 @@ func replayables() []replayable {
 			[]string{"continue", "play_card"}, nil},
 		{"sedma", sedma.New(), refs("p1", "p2", "p3", "p4"), module.MatchConfig{},
 			[]string{"continue", "end_trick", "play_card"}, nil},
+		{"okobere", okobere.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
+			[]string{"continue", "bet", "stand"}, nil},
 	}
 }
 
@@ -176,7 +179,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 func replayManager() *Manager {
 	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), sedma.New(), snaps.New(),
+		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), okobere.New(), sedma.New(), snaps.New(),
 	)}
 }
 

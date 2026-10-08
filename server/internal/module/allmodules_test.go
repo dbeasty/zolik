@@ -15,6 +15,7 @@ import (
 	"zolik/server/internal/lastcard"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
@@ -117,6 +118,14 @@ func allModules() []hosted {
 			players:  refs("p1", "p2", "p3"),
 			cfg:      module.MatchConfig{Variation: "classic"},
 			prefer:   []string{"continue", "end_trick", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "okobere",
+			rounds:   true,
+			mod:      okobere.New(),
+			players:  refs("p1", "p2", "p3"),
+			prefer:   []string{"continue", "bet", "stand"},
 			finishes: true,
 		},
 		{

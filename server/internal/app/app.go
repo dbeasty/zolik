@@ -39,6 +39,7 @@ import (
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
 	"zolik/server/internal/notify"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/scoring"
@@ -657,7 +658,7 @@ func (a *App) matchManager() *match.Manager {
 func (a *App) hostedModules() []module.GameModule {
 	all := []module.GameModule{
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(),
-		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), sedma.New(), snaps.New(),
+		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), okobere.New(), sedma.New(), snaps.New(),
 	}
 	if a.outbox() == nil {
 		return all

@@ -140,6 +140,13 @@
     "NO_SUCH_CARD",
     "NO_SUCH_MELD",
     "NO_SUCH_SET",
+    "OKO_ALREADY_BET",
+    "OKO_BET_ABOVE_BANK",
+    "OKO_BET_ABOVE_STACK",
+    "OKO_BET_BELOW_MINIMUM",
+    "OKO_BET_FIRST",
+    "OKO_BET_NOT_A_NUMBER",
+    "OKO_DECK_EMPTY",
     "OPTION_NOT_ALLOWED",
     "OVER_POT_LIMIT",
     "PILE_BLOCKED",
@@ -827,6 +834,61 @@
     "marias.zone.lastTrick",
     "marias.zone.talon",
     "marias.zone.trick",
+    "okobere.fact.bankFree",
+    "okobere.header.bankFree",
+    "okobere.header.bankRound",
+    "okobere.header.banker",
+    "okobere.header.round",
+    "okobere.offer.bet",
+    "okobere.offer.card",
+    "okobere.offer.stand",
+    "okobere.param.stake",
+    "okobere.prompt.bank",
+    "okobere.prompt.bet",
+    "okobere.prompt.draw",
+    "okobere.quick.allIn",
+    "okobere.quick.double",
+    "okobere.quick.vaBanque",
+    "okobere.round.banker",
+    "okobere.round.bankerOko",
+    "okobere.round.broken",
+    "okobere.round.punter",
+    "okobere.round.round",
+    "okobere.rules.bank",
+    "okobere.rules.banker",
+    "okobere.rules.bankerOko",
+    "okobere.rules.bust",
+    "okobere.rules.deal",
+    "okobere.rules.deck",
+    "okobere.rules.end",
+    "okobere.rules.goal",
+    "okobere.rules.oko",
+    "okobere.rules.okoPays1",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.section.bank",
+    "okobere.rules.section.cards",
+    "okobere.rules.section.end",
+    "okobere.rules.section.goal",
+    "okobere.rules.section.play",
+    "okobere.rules.section.settle",
+    "okobere.rules.settle",
+    "okobere.rules.stake",
+    "okobere.rules.turn",
+    "okobere.rules.values",
+    "okobere.seat.bank",
+    "okobere.seat.banker",
+    "okobere.seat.bust",
+    "okobere.seat.chips",
+    "okobere.seat.lost",
+    "okobere.seat.oko",
+    "okobere.seat.satOut",
+    "okobere.seat.stake",
+    "okobere.seat.total",
+    "okobere.seat.won",
+    "okobere.zone.bankerHand",
+    "okobere.zone.deck",
+    "okobere.zone.hand",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -1403,6 +1465,28 @@
     "marias.rules.section.goal",
     "marias.rules.section.play",
     "marias.rules.section.scoring",
+    "okobere.rules.bank",
+    "okobere.rules.banker",
+    "okobere.rules.bankerOko",
+    "okobere.rules.bust",
+    "okobere.rules.deal",
+    "okobere.rules.deck",
+    "okobere.rules.end",
+    "okobere.rules.goal",
+    "okobere.rules.oko",
+    "okobere.rules.okoPays1",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.section.bank",
+    "okobere.rules.section.cards",
+    "okobere.rules.section.end",
+    "okobere.rules.section.goal",
+    "okobere.rules.section.play",
+    "okobere.rules.section.settle",
+    "okobere.rules.settle",
+    "okobere.rules.stake",
+    "okobere.rules.turn",
+    "okobere.rules.values",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.nameASuit",
@@ -2345,6 +2429,81 @@
     "marias.seat.tricks": [
       "n"
     ],
+    "okobere.fact.bankFree": [
+      "n"
+    ],
+    "okobere.header.bankFree": [
+      "n"
+    ],
+    "okobere.header.bankRound": [
+      "n",
+      "of"
+    ],
+    "okobere.header.banker": [
+      "player"
+    ],
+    "okobere.header.round": [
+      "n"
+    ],
+    "okobere.prompt.bank": [
+      "n"
+    ],
+    "okobere.prompt.bet": [
+      "n"
+    ],
+    "okobere.prompt.draw": [
+      "n"
+    ],
+    "okobere.quick.allIn": [
+      "value"
+    ],
+    "okobere.quick.double": [
+      "value"
+    ],
+    "okobere.quick.vaBanque": [
+      "value"
+    ],
+    "okobere.round.banker": [
+      "n",
+      "player"
+    ],
+    "okobere.round.bankerOko": [
+      "player"
+    ],
+    "okobere.round.punter": [
+      "player",
+      "result"
+    ],
+    "okobere.rules.bank": [
+      "bank"
+    ],
+    "okobere.rules.end": [
+      "chips",
+      "n"
+    ],
+    "okobere.rules.okoPays3": [
+      "n"
+    ],
+    "okobere.rules.rotation": [
+      "n"
+    ],
+    "okobere.rules.stake": [
+      "n"
+    ],
+    "okobere.seat.bank": [
+      "n",
+      "value"
+    ],
+    "okobere.seat.chips": [
+      "n",
+      "value"
+    ],
+    "okobere.seat.stake": [
+      "n"
+    ],
+    "okobere.seat.total": [
+      "n"
+    ],
     "prompt.canastasNeeded": [
       "n"
     ],
@@ -2866,6 +3025,29 @@
     "marias.seat.marriage",
     "marias.seat.points",
     "marias.seat.tricks",
+    "okobere.fact.bankFree",
+    "okobere.header.bankFree",
+    "okobere.header.bankRound",
+    "okobere.header.banker",
+    "okobere.header.round",
+    "okobere.prompt.bank",
+    "okobere.prompt.bet",
+    "okobere.prompt.draw",
+    "okobere.quick.allIn",
+    "okobere.quick.double",
+    "okobere.quick.vaBanque",
+    "okobere.round.banker",
+    "okobere.round.bankerOko",
+    "okobere.round.punter",
+    "okobere.rules.bank",
+    "okobere.rules.end",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.stake",
+    "okobere.seat.bank",
+    "okobere.seat.chips",
+    "okobere.seat.stake",
+    "okobere.seat.total",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
