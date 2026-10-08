@@ -36,6 +36,7 @@ import (
 	_ "zolik/server/internal/holdem"
 	_ "zolik/server/internal/lastcard"
 	_ "zolik/server/internal/marias"
+	_ "zolik/server/internal/okobere"
 	_ "zolik/server/internal/zolikmod"
 )
 
