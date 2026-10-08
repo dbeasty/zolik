@@ -2,6 +2,8 @@
   "bg": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Пасианс",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Елате да играете {game} с {host}. Докоснете, за да се присъедините.",
     "notify.push.inviteTitle": "{host} отвори маса",
@@ -11,6 +13,8 @@
   "cs": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Přijďte si zahrát {game} s hráčem {host}. Klepněte a přisedněte.",
     "notify.push.inviteTitle": "{host} otevřel(a) stůl",
@@ -20,6 +24,8 @@
   "da": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Kabale",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom og spil {game} med {host}. Tryk for at deltage.",
     "notify.push.inviteTitle": "{host} har åbnet et bord",
@@ -29,6 +35,8 @@
   "de": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitär",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Spiel {game} mit {host}. Tippe zum Beitreten.",
     "notify.push.inviteTitle": "{host} hat einen Tisch eröffnet",
@@ -38,6 +46,8 @@
   "el": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Πασιέντζα",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ελάτε να παίξετε {game} με {host}. Αγγίξτε για συμμετοχή.",
     "notify.push.inviteTitle": "{host} άνοιξε τραπέζι",
@@ -47,6 +57,8 @@
   "en": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Come and play {game} with {host}. Tap to join.",
     "notify.push.inviteTitle": "{host} opened a table",
@@ -56,6 +68,8 @@
   "es": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ven a jugar a {game} con {host}. Toca para unirte.",
     "notify.push.inviteTitle": "{host} abrió una mesa",
@@ -65,6 +79,8 @@
   "et": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tule mängima {game} koos mängijaga {host}. Puuduta liitumiseks.",
     "notify.push.inviteTitle": "{host} avas laua",
@@ -74,6 +90,8 @@
   "fi": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasianssi",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tule pelaamaan {game} pelaajan {host} kanssa. Napauta liittyäksesi.",
     "notify.push.inviteTitle": "{host} avasi pöydän",
@@ -83,6 +101,8 @@
   "fr": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Venez jouer à {game} avec {host}. Touchez pour rejoindre.",
     "notify.push.inviteTitle": "{host} a ouvert une table",
@@ -92,6 +112,8 @@
   "ga": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Foighne",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tar agus imir {game} le {host}. Tapáil chun páirt a ghlacadh.",
     "notify.push.inviteTitle": "D’oscail {host} bord",
@@ -101,6 +123,8 @@
   "hr": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasijans",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Dođite igrati {game} s igračem {host}. Dodirnite za pridruživanje.",
     "notify.push.inviteTitle": "{host} je otvorio stol",
@@ -110,6 +134,8 @@
   "hu": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasziánsz",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Gyere, játssz {game} játékot vele: {host}. Koppints a csatlakozáshoz.",
     "notify.push.inviteTitle": "{host} asztalt nyitott",
@@ -119,6 +145,8 @@
   "it": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Vieni a giocare a {game} con {host}. Tocca per unirti.",
     "notify.push.inviteTitle": "{host} ha aperto un tavolo",
@@ -128,6 +156,8 @@
   "lt": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansas",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ateikite žaisti {game} su {host}. Palieskite, kad prisijungtumėte.",
     "notify.push.inviteTitle": "{host} atidarė stalą",
@@ -137,6 +167,8 @@
   "lv": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Nāc spēlēt {game} kopā ar {host}. Pieskaries, lai pievienotos.",
     "notify.push.inviteTitle": "{host} atvēra galdu",
@@ -146,6 +178,8 @@
   "mt": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitarju",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ejja ilgħab {game} ma’ {host}. Agħfas biex tingħaqad.",
     "notify.push.inviteTitle": "{host} fetaħ mejda",
@@ -155,6 +189,8 @@
   "nl": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Patience",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom {game} spelen met {host}. Tik om mee te doen.",
     "notify.push.inviteTitle": "{host} heeft een tafel geopend",
@@ -164,6 +200,8 @@
   "pl": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjans",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Zagraj w {game} z: {host}. Dotknij, aby dołączyć.",
     "notify.push.inviteTitle": "{host} otwiera stół",
@@ -173,6 +211,8 @@
   "pt": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Paciência",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Venha jogar {game} com {host}. Toque para se juntar.",
     "notify.push.inviteTitle": "{host} abriu uma mesa",
@@ -182,6 +222,8 @@
   "ro": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasiență",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Vino să joci {game} cu {host}. Atinge pentru a te alătura.",
     "notify.push.inviteTitle": "{host} a deschis o masă",
@@ -191,6 +233,8 @@
   "sk": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Príďte si zahrať {game} s hráčom {host}. Ťuknite a prisadnite.",
     "notify.push.inviteTitle": "{host} otvoril(a) stôl",
@@ -200,6 +244,8 @@
   "sl": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansa",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Pridite igrat {game} z igralcem {host}. Dotaknite se za pridružitev.",
     "notify.push.inviteTitle": "{host} je odprl mizo",
@@ -209,6 +255,8 @@
   "sv": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Patiens",
+    "module.okobere": "Oko bere",
+    "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom och spela {game} med {host}. Tryck för att gå med.",
     "notify.push.inviteTitle": "{host} har öppnat ett bord",
