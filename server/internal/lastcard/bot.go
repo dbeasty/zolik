@@ -196,6 +196,11 @@ var profiles = map[module.Skill]profile{
 }
 
 func profileFor(s module.Skill) profile {
+	// This game ships no trained network, so an AI seat — from a table set
+	// up before that choice was withdrawn — plays the strongest it has.
+	if s == module.SkillAI {
+		s = module.SkillHard
+	}
 	if p, ok := profiles[s]; ok {
 		return p
 	}
@@ -285,14 +290,7 @@ func colourCounts(hand []string) map[string]int {
 // hand holds most of. Ties go by the fixed colour order rather than map
 // iteration, so a replayed match makes the same choice.
 func (b bot) declare(s *GameState, playerID, playing string) string {
-	counts := colourCounts(removeCard(s.Hands[playerID], playing))
-	best, bestN := colours[0], -1
-	for _, c := range colours {
-		if counts[c] > bestN {
-			best, bestN = c, counts[c]
-		}
-	}
-	return best
+	return longestColour(removeCard(s.Hands[playerID], playing))
 }
 
 func findOffer(offers []module.ActionOffer, id string) *module.ActionOffer {

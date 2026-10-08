@@ -191,3 +191,18 @@ func TestFillingATableNeverSeatsANameTwice(t *testing.T) {
 		}
 	}
 }
+
+// A seat asked to play "ai" at a game that ships no network — an old saved
+// setup, or a hand-built request — sits down as the strongest bot that game
+// has, not as whatever its heuristic makes of a skill it never heard of.
+func TestAnAISeatAtAGameWithNoModelPlaysHard(t *testing.T) {
+	h := NewHandlers(&Manager{registry: module.NewRegistry(lastcard.New(), holdem.New())}, false)
+	m := models.Match{ModuleID: "lastcard", Seed: 1, Players: []models.Player{{ID: "host"}}}
+	if p := h.personaFor(m, "ai"); p.Skill != module.SkillHard {
+		t.Errorf("an ai seat at lastcard plays %s, want hard", p.Skill)
+	}
+	m.ModuleID = "holdem"
+	if p := h.personaFor(m, "ai"); p.Skill != module.SkillAI {
+		t.Errorf("an ai seat at holdem plays %s, want ai", p.Skill)
+	}
+}

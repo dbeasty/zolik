@@ -15,6 +15,9 @@ func RenderCard(card string, highlighted, faceDown bool) string {
 	if strings.HasPrefix(card, "JOKER") {
 		return renderJoker(highlighted)
 	}
+	if lc, ok := parseLastCard(card); ok {
+		return renderLastCard(lc, highlighted)
+	}
 	rank := displayRank(card)
 	suit := cardSuit(card)
 	sym := suitSymbol[suit]
@@ -153,9 +156,12 @@ func numberLabels(n int) string {
 // threading it through each render call would teach all of them about decks.
 var germanDeck bool
 
-// SetDeck says which pack the cards being drawn belong to: "german", or
-// anything else for the French one.
-func SetDeck(deck string) { germanDeck = deck == "german" }
+// SetDeck says which pack the cards being drawn belong to: "german",
+// "lastcard", or anything else for the French one.
+func SetDeck(deck string) {
+	germanDeck = deck == "german"
+	lastCardDeck = deck == "lastcard"
+}
 
 // germanColors are the German pack's own suit colours. The symbols stay the
 // French ones, which is where those came from — spades are leaves, clubs
@@ -277,6 +283,9 @@ func visibleLen(s string) int {
 func compactToken(card string) string {
 	if strings.HasPrefix(card, "JOKER") {
 		return "[JOKER]"
+	}
+	if lc, ok := parseLastCard(card); ok {
+		return lc.style.Render("[" + lc.face + lc.shape + "]")
 	}
 	r := displayRank(card)
 	s := cardSuit(card)
