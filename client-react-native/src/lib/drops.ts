@@ -67,6 +67,12 @@ export type DropSpot = {
 
 export const zoneElementId = (zoneId: string) => `zone-${zoneId}`;
 export const groupElementId = (meldId: string) => `group-${meldId}`;
+/**
+ * How a table card a player may pick up is named: the group or zone it lies
+ * in, and the card. Scoped by where, because a two-deck game can show the same
+ * card in two places.
+ */
+export const liftKey = (where: string, card: string) => `${where}|${card}`;
 
 /** Placements live on whichever selector the module put them on. */
 function placementsOf(offer: ActionOffer): Placement[] {
@@ -284,6 +290,26 @@ function placementForSelection(placements: Placement[], cards: string[]): Placem
 }
 
 /**
+ * Whether any card in hand can be played by dropping it on the board right
+ * now — some enabled offer that takes cards and says where it lands, the same
+ * test `dropSpotsFor` uses to list a spot at all.
+ *
+ * What the hand's hint asks before telling a player they may drag a card
+ * "onto the board to play it". In a game that never plays a card to the
+ * board — poker swaps cards through a button, blackjack takes none — no offer
+ * ever names a target, and the hint says only what is true: the fan can be
+ * rearranged.
+ */
+export function someOfferDroppable(offers: ActionOffer[]): boolean {
+  return offers.some(
+    (o) =>
+      o.enabled &&
+      (o.source?.minCards ?? 0) > 0 &&
+      !!(o.target?.meldId || o.target?.zoneId),
+  );
+}
+
+/**
  * The spots a drop would actually be taken by — what lights up, and what a
  * release sends.
  *
@@ -327,8 +353,18 @@ export function positionAt(
   if (!positions?.length) return undefined;
   if (positions.length === 1) return positions[0];
   if (rect.height <= 0) return positions[0];
+  return positionAtShare(positions, (y - rect.y) / rect.height);
+}
 
-  const share = (y - rect.y) / rect.height;
+/**
+ * The same answer for a press that already knows how far down the target it
+ * landed — 0 at the top edge, 1 at the bottom — which a tap does, from the
+ * target's own layout. A tap has no drag behind it to have measured the
+ * target in window coordinates, and its page coordinate is not one.
+ */
+export function positionAtShare(positions: string[] | undefined, share: number): string | undefined {
+  if (!positions?.length) return undefined;
+  if (!Number.isFinite(share)) return positions[0];
   const index = Math.floor(share * positions.length);
   return positions[Math.max(0, Math.min(index, positions.length - 1))];
 }
@@ -397,6 +433,13 @@ export function someOfferReady(offers: ActionOffer[], cards: string[]): boolean 
  *     undo of a capture names the discard pile too, and undoing is not what a
  *     player tapping the pile means).
  *
+ * The last condition has one other way to be met: a one-tap move between the
+ * table's own piles — a stack and a pile that belong to nobody, as solitaire's
+ * stock and waste do. Turning the stock over onto the waste is a draw that
+ * lands on the table rather than in a hand, and turning the waste back over
+ * is the same move the other way round. Either way the pile a player points
+ * at is the stack, which is where the press is offered.
+ *
  * Where two such offers name the same pile, neither is offered: a press has
  * exactly one meaning, and guessing which of two moves was meant is the
  * mistake this whole protocol exists to avoid. The control bar still lists
@@ -419,10 +462,19 @@ export function sourceSpotsFor(offers: ActionOffer[], zones: Zone[], viewerId: s
     if (!from || (from.kind !== 'pile' && from.kind !== 'stack')) continue;
 
     const to = offer.target?.zoneId ? byId.get(offer.target.zoneId) : undefined;
-    if (!to || to.kind !== 'hand' || to.ownerId !== viewerId) continue;
+    if (!to) continue;
+    let at: Zone | undefined;
+    if (to.kind === 'hand' && to.ownerId === viewerId) {
+      at = from;
+    } else if (!offer.undo && !from.ownerId && !to.ownerId) {
+      // Between the table's own piles: the stack is what gets pressed.
+      if (from.kind === 'stack' && to.kind === 'pile') at = from;
+      else if (from.kind === 'pile' && to.kind === 'stack') at = to;
+    }
+    if (!at) continue;
 
-    const spot: DropSpot = { offerId: offer.id, elementId: zoneElementId(from.id), ready: true };
-    claims.set(from.id, [...(claims.get(from.id) ?? []), spot]);
+    const spot: DropSpot = { offerId: offer.id, elementId: zoneElementId(at.id), ready: true };
+    claims.set(at.id, [...(claims.get(at.id) ?? []), spot]);
   }
 
   return [...claims.values()].filter((s) => s.length === 1).map((s) => s[0]!);

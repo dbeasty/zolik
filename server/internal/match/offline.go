@@ -181,6 +181,11 @@ func (i *Importer) ImportBundle(ctx context.Context, b zsync.Bundle) error {
 	if mod == nil {
 		return fmt.Errorf("match %s: this server has no %q", b.Match, b.Module)
 	}
+	// The seed in a bundle is the one the device chose. For a game played
+	// against the deck that is the whole game, so it is never accepted.
+	if module.IsServerDealt(mod) {
+		return fmt.Errorf("match %s: %q is dealt on the server only and cannot be played offline", b.Match, b.Module)
+	}
 
 	moves := make([]models.MatchAction, 0, len(b.Moves))
 	for n, raw := range b.Moves {

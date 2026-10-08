@@ -19,6 +19,22 @@ type Mode = 'table' | 'bots';
 const SEAT_SKILLS = ['', 'easy', 'medium', 'hard', 'ai'] as const;
 
 /**
+ * Each skill's value in the table's Opponents option — the server's
+ * module.SkillOpt, which counts the ladder up from one.
+ */
+const SKILL_OPT: Record<string, number> = { easy: 1, medium: 2, hard: 3, ai: 4 };
+
+/**
+ * The skills a seat may be given at this game: the ones its Opponents option
+ * offers. "AI" is offered only by a game that ships a trained network, and a
+ * seat at any other game must not be able to ask for it.
+ */
+function seatSkillsFor(mod: MatchModule): readonly string[] {
+  const choices = (mod.options ?? []).find((o) => o.name === 'botSkill')?.choices ?? [];
+  return SEAT_SKILLS.filter((s) => s === '' || choices.some((c) => c.value === SKILL_OPT[s]));
+}
+
+/**
  * One game's settings, all of them open, and the button that starts it.
  *
  * Rendered entirely from `/modules`: this screen has no list of options in
@@ -39,7 +55,7 @@ const SEAT_SKILLS = ['', 'easy', 'medium', 'hard', 'ai'] as const;
 export default function GameSetupScreen() {
   const params = useLocalSearchParams<{ moduleId?: string; mode?: string }>();
   const moduleId = String(params.moduleId ?? '');
-  const mode: Mode = params.mode === 'bots' ? 'bots' : 'table';
+  const asked: Mode = params.mode === 'bots' ? 'bots' : 'table';
   const { client, session } = useSession();
   useLocale();
 
@@ -79,7 +95,11 @@ export default function GameSetupScreen() {
         const spec = m.variations?.find((x) => x.id === variationId);
         const o: Record<string, number> = { ...(spec?.defaults ?? {}) };
         for (const opt of m.options ?? []) {
-          if (saved?.options && opt.name in saved.options) o[opt.name] = saved.options[opt.name];
+          // A saved value the option no longer offers is as stale as a
+          // dropped option: "AI" saved against a game that has since stopped
+          // offering it would otherwise be sent back and refused.
+          const v = saved?.options?.[opt.name];
+          if (v !== undefined && (opt.choices ?? []).some((c) => c.value === v)) o[opt.name] = v;
         }
         setVariation(variationId);
         setOptions(o);
@@ -100,6 +120,10 @@ export default function GameSetupScreen() {
     const spec = m.variations?.find((x) => x.id === id);
     setOptions({ ...(spec?.defaults ?? {}) });
   };
+
+  // A one-seat game has no table to fill and nobody to invite: it is always
+  // dealt straight away, with no bots.
+  const mode: Mode = mod && mod.maxPlayers === 1 ? 'bots' : asked;
 
   const start = useCallback(async () => {
     if (!mod) return;
@@ -164,9 +188,11 @@ export default function GameSetupScreen() {
         <View testID={`module-${mod.id}`}>
           <View style={styles.header}>
             <Text style={[shared.title, { flexShrink: 1 }]}>
-              {mode === 'bots'
-                ? t('setup.titleBots', { game: moduleLabel(mod) })
-                : t('setup.titleTable', { game: moduleLabel(mod) })}
+              {mod.maxPlayers === 1
+                ? moduleLabel(mod)
+                : mode === 'bots'
+                  ? t('setup.titleBots', { game: moduleLabel(mod) })
+                  : t('setup.titleTable', { game: moduleLabel(mod) })}
             </Text>
             {/* The rules as these settings make them: a ruleset and its
                 options change what the written rules say. One template
@@ -231,7 +257,7 @@ export default function GameSetupScreen() {
                 <View key={i} testID={`setup-section-${mod.id}-bot-${i}`} style={styles.option}>
                   <Text style={styles.optionLabel}>{t('setup.botSeat', { n: i + 1 })}</Text>
                   <View style={styles.row}>
-                    {SEAT_SKILLS.map((s) => (
+                    {seatSkillsFor(mod).map((s) => (
                       <Pressable
                         key={s || 'table'}
                         testID={`bot-skill-${mod.id}-${i}-${s || 'table'}`}
@@ -306,9 +332,11 @@ export default function GameSetupScreen() {
 /**
  * The bot counts a module can be opened with: enough to reach its minimum
  * table at the low end, one short of its maximum at the high end — because
- * one of the seats is the host's.
+ * one of the seats is the host's. A one-seat game has exactly one answer:
+ * none.
  */
 function botChoices(mod: MatchModule): number[] {
+  if (mod.maxPlayers <= 1) return [0];
   const out: number[] = [];
   for (let n = Math.max(1, mod.minPlayers - 1); n <= Math.max(1, mod.maxPlayers - 1); n++) {
     out.push(n);

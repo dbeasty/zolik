@@ -48,7 +48,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// The wild's suit choice. Declared only when a wild is actually among the
 	// playable cards, so a client never renders a suit picker it cannot use.
 	if containsWild(playable) {
-		play.Params = []module.ParamSpec{suitParam()}
+		play.Params = []module.ParamSpec{suitParam(s.Hands[playerID])}
 	}
 	offers = append(offers, play)
 
@@ -141,10 +141,33 @@ func containsWild(cards []string) bool {
 // This is the field Prší added to the module protocol. Rummy has no action
 // whose input is anything but cards, so nothing in Žolíky would ever have
 // asked for it.
-func suitParam() module.ParamSpec {
+//
+// It starts on the suit the hand holds most of, not counting the queens
+// themselves — the suit the player will usually name, and the one a queen
+// played without a second thought should name rather than hearts.
+func suitParam(hand []string) module.ParamSpec {
 	choices := make([]module.ParamChoice, 0, len(suits))
 	for _, s := range suits {
 		choices = append(choices, module.ParamChoice{Value: s, LabelKey: module.GermanSuitKey(s)})
 	}
-	return module.ParamSpec{Name: "suit", LabelKey: "prompt.chooseSuit", Choices: choices}
+	return module.ParamSpec{Name: "suit", LabelKey: "prompt.chooseSuit", DefaultChoice: longestSuit(hand), Choices: choices}
+}
+
+// longestSuit is the suit a hand holds most of, leaving out the wild queens,
+// by the fixed suit order on a tie — the same hand always starts on the same
+// choice, and a replayed match on the same suit.
+func longestSuit(hand []string) string {
+	counts := map[string]int{}
+	for _, c := range hand {
+		if rankOf(c) != rankWild {
+			counts[suitOf(c)]++
+		}
+	}
+	best, bestN := suits[0], -1
+	for _, suit := range suits {
+		if counts[suit] > bestN {
+			best, bestN = suit, counts[suit]
+		}
+	}
+	return best
 }

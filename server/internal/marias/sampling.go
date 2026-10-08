@@ -54,7 +54,7 @@ type knowledge struct {
 // infer reads the history of the deal for voids, can't-beats and promises.
 func (s *GameState) infer() knowledge {
 	k := knowledge{forbidden: map[string]map[string]bool{}, required: map[string][]string{}}
-	for _, p := range s.Players {
+	for _, p := range s.active() {
 		k.forbidden[p] = map[string]bool{}
 	}
 	trump := s.trump()
@@ -161,7 +161,7 @@ func (s *GameState) sample(me string, k knowledge, r *rand.Rand) (map[string][]s
 		forbid map[string]bool
 	}
 	var slots []*slot
-	for _, p := range s.Players {
+	for _, p := range s.active() {
 		if p != me {
 			slots = append(slots, &slot{name: p, need: len(s.Hands[p]), forbid: k.forbidden[p]})
 		}
@@ -259,6 +259,19 @@ func (s *GameState) sample(me string, k knowledge, r *rand.Rand) (map[string][]s
 	return nil, false
 }
 
+// solverSeats are the players of this deal as the solver numbers them:
+// clockwise from zero, a sitter left out, since the solver plays a trick to
+// as many cards as it has hands. At a table of three they are the table's
+// own seats.
+func (s *GameState) solverSeats() (seats []string, seatOf func(string) int) {
+	seats = s.active()
+	index := make(map[string]int, len(seats))
+	for i, p := range seats {
+		index[p] = i
+	}
+	return seats, func(id string) int { return index[id] }
+}
+
 // searchPlay is the hard bot's card: the legal card with the best average
 // over sampled deals, or ok false if no sample could be solved. nodes is the
 // search it took.
@@ -267,19 +280,24 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand, lim sear
 		return legal[0], 0, true
 	}
 	k := s.infer()
-	decl := s.seat(s.Declarer)
-	maximizer := make([]bool, len(s.Players))
+	seats, seatOf := s.solverSeats()
+	trick := make([]tricks.Play, len(s.Trick))
+	for i, pl := range s.Trick {
+		trick[i] = tricks.Play{Seat: seatOf(s.Players[pl.Seat]), Card: pl.Card}
+	}
+	decl := seatOf(s.Declarer)
+	maximizer := make([]bool, len(seats))
 	maximizer[decl] = true
 	var reserves []search.Reserve
 	if h := s.sevenHolder(); h != "" && s.trumpSeven() != "" {
-		reserves = append(reserves, search.Reserve{Seat: s.seat(h), Card: s.trumpSeven(), UntilLeft: 1})
+		reserves = append(reserves, search.Reserve{Seat: seatOf(h), Card: s.trumpSeven(), UntilLeft: 1})
 	}
 	if hs := s.helperSeven(); hs != "" {
 		reserves = append(reserves, search.Reserve{Seat: decl, Card: hs, UntilLeft: 2})
 	}
-	leader := s.seat(me)
-	if len(s.Trick) > 0 {
-		leader = s.Trick[0].Seat
+	leader := seatOf(me)
+	if len(trick) > 0 {
+		leader = trick[0].Seat
 	}
 
 	// Marriages score as the svršek goes down with its král still in hand.
@@ -301,8 +319,8 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand, lim sear
 		if lim.capped {
 			limit = min(limit, lim.total-nodes)
 		}
-		hands := make([][]string, len(s.Players))
-		for seat, p := range s.Players {
+		hands := make([][]string, len(seats))
+		for seat, p := range seats {
 			if p == me {
 				hands[seat] = append([]string(nil), s.Hands[me]...)
 			} else {
@@ -311,7 +329,7 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand, lim sear
 		}
 		res := search.Solve(search.Problem{
 			Hands:      hands,
-			Trick:      s.Trick,
+			Trick:      trick,
 			Leader:     leader,
 			Trump:      s.trump(),
 			Order:      s.order(),
@@ -319,7 +337,7 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand, lim sear
 			Maximizer:  maximizer,
 			Reserves:   reserves,
 			Pairs:      marriages,
-			TrickValue: s.trickValue(),
+			TrickValue: s.trickValue(seatOf),
 			CardClass:  s.cardClass(),
 			NodeLimit:  limit,
 		})
@@ -358,8 +376,8 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand, lim sear
 // trickValue is what a trick is worth to the declarer's side, for the
 // search: the card points of each trick it takes, and a large weight on the
 // contract's own conditions — a betl or durch broken, a seven won or lost.
-func (s *GameState) trickValue() func([]tricks.Play, int, int) (int, bool) {
-	decl := s.seat(s.Declarer)
+func (s *GameState) trickValue(seatOf func(string) int) func([]tricks.Play, int, int) (int, bool) {
+	decl := seatOf(s.Declarer)
 	trumpSeven, helperSeven := s.trumpSeven(), s.helperSeven()
 	sevenBy := func(plays []tricks.Play, card string, winner int) (played, won bool, by int) {
 		for _, pl := range plays {
@@ -371,7 +389,7 @@ func (s *GameState) trickValue() func([]tricks.Play, int, int) (int, bool) {
 	}
 	protiSeat := -1
 	if s.ProtiSedma != "" {
-		protiSeat = s.seat(s.ProtiSedma)
+		protiSeat = seatOf(s.ProtiSedma)
 	}
 	return func(plays []tricks.Play, winner, left int) (int, bool) {
 		switch s.Game {

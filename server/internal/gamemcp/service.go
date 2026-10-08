@@ -148,6 +148,8 @@ func (svc *Service) NewTable(in NewTableIn) (NewTableOut, error) {
 	others := in.Seats - len(claude)
 	specs := in.Opponents
 	switch {
+	case len(specs) == 0 && others == 0:
+		// A one-seat game (solitaire) has nobody else to seat.
 	case len(specs) == 0:
 		specs = []string{string(module.SkillHard)}
 		fallthrough

@@ -87,6 +87,8 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 | `score.flek` | Each doubling doubles that part. | ČSM, Pagat |
 | `score.red` 🔧 | With hearts as trumps, every payment is doubled. | ČSM A |
 | `score.limit` | No deal pays more than {n} between the declarer and any one defender. | ČSM general V/9 |
+| `four.sitOut` | With four players, the dealer sits each deal out and neither pays nor is paid; the player on their left chooses. | pub custom (čtyřhranný) |
+| `four.deals` | With four players, the match is rounded up to a multiple of four deals, so everyone sits out equally often. | ours |
 | `end` 🔧 | The match is {n} deals. | option |
 
 ## Options
@@ -111,7 +113,11 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
    could become an option later.
 3. **"Flekovaná hra se bez re nehraje" (B/19)** is left out. In a tournament an un-re'd double
    ends the game; online it would just be a trap.
-4. **No pauzírovaný table.** Three seats only; the fourth player sitting out is plan §9.
+4. **Four at the table (čtyřhranný) is played with the dealer sitting out.** The dealer is dealt
+   nothing, is never on turn, and takes no part in that deal's payments. The chooser still moves
+   one seat clockwise every deal, so the sitter rotates with it. The deals option is rounded up to
+   a multiple of four at a table of four (9→12, 18→20). The sitter sees only what a spectator
+   sees.
 5. **No open (ložené) betl or durch**, and no laid-down game (B/16-18). Play simply runs out.
 6. **Betl and durch end early** once they are decided (`play.earlyEnd`). The result is the same,
    and nobody has to play out nine dead tricks.

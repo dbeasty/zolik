@@ -109,7 +109,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		// you may pick a buried card out of is a pile you have to be able to
 		// read. A table that plays Continental's top-card draw can fold it.
 		module.OpenDiscardPileOption(),
-		module.BotSkillOption(),
+		module.BotSkillOptionWithAI(),
 		module.HintsOption(),
 	)
 	for _, o := range d.Options {

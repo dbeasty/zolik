@@ -26,6 +26,7 @@
  * and a submission still travels as card strings.
  */
 
+import { isLastCardCode } from '@/src/components/cards/lastCardArt';
 import { cardSuit, displayRank } from '@/src/lib/cards';
 
 export type Slot = {
@@ -158,6 +159,7 @@ function rankOrder(card: string): number {
  * should undo the same way a manual drag does.
  */
 export function arrangeAuto(slots: Slot[]): Slot[] {
+  if (slots.length > 0 && slots.every((s) => isLastCardCode(s.card))) return arrangeByColour(slots);
   const jokers = slots.filter((s) => s.card.startsWith('JOKER'));
   const nonJokers = slots.filter((s) => !s.card.startsWith('JOKER'));
 
@@ -589,4 +591,23 @@ export function slotsForCards(slots: Slot[], cards: string[]): Set<string> {
     }
   }
   return out;
+}
+
+/**
+ * Last Card's tidy: colour by colour in the pack's order, numbers low to high
+ * then the action cards, and the two kinds of card that carry no colour at
+ * the end. Nothing in that game is laid in sets or runs, so there is no
+ * material to cluster — a player looking for a card wants it by colour.
+ */
+const COLOUR_ORDER = ['C', 'T', 'V', 'A'];
+const FACE_ORDER = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'R', 'D'];
+
+function arrangeByColour(slots: Slot[]): Slot[] {
+  const key = (card: string): number => {
+    if (card === 'W') return 1000;
+    if (card === 'W4') return 1001;
+    const [colour, face] = card.split('-');
+    return COLOUR_ORDER.indexOf(colour) * 100 + FACE_ORDER.indexOf(face);
+  };
+  return [...slots].sort((a, b) => key(a.card) - key(b.card));
 }

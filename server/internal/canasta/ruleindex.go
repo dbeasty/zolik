@@ -52,6 +52,11 @@ func (m *Module) statedRules(s *GameState) map[string]bool {
 			OptHandSize:        s.HandSize,
 			OptTargetScore:     s.TargetScore,
 			OptCanastasToGoOut: s.CanastasToGoOut,
+			OptDirtySequences:  module.BoolOpt(s.rules().DirtySequences),
+			OptWildMeld:        module.BoolOpt(s.rules().WildMeld),
+			OptRearrange:       module.BoolOpt(s.rules().Rearrange),
+			OptPoach:           module.BoolOpt(s.rules().Poach),
+			OptTopOnlyCapture:  module.BoolOpt(s.rules().TopOnlyCapture),
 		},
 	})
 }
@@ -116,7 +121,13 @@ func refusalRules(v ruleset, code string) []string {
 	case ErrRankAlreadyMelded:
 		return []string{"canasta.rules.oneMeldPerRank"}
 	case ErrSequenceNoWilds, ErrSequenceNeedsOneSuit, ErrRunNotConsecutive:
-		return []string{"canasta.rules.sequences"}
+		return []string{"canasta.rules.sequences", "canasta.rules.dirtySequences"}
+
+	// --- the CanastaX house rules -------------------------------------------
+	case ErrRunGap, ErrSameMeld:
+		return []string{"canasta.rules.rearrange"}
+	case ErrNothingToPoach:
+		return []string{"canasta.rules.poach"}
 
 	// --- threes -----------------------------------------------------------
 	//
@@ -169,7 +180,7 @@ func refusalRules(v ruleset, code string) []string {
 	// no rule to offer. Taking a move back is this implementation's affordance
 	// rather than a rule of Canasta, so the order the moves come back off in is
 	// not one either.
-	case ErrCardNotInHand, ErrNoSuchMeld, ErrNothingToUndo, ErrUndoMeldsFirst,
+	case ErrCardNotInHand, ErrNoSuchMeld, ErrNothingToUndo, ErrUndoMeldsFirst, ErrUndoLatestFirst,
 		ErrGameNotActive, ErrUnknownAction, "WRONG_PLAYER_COUNT",
 		ErrNothingFitsHere:
 		return nil

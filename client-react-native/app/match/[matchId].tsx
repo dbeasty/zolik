@@ -41,9 +41,12 @@ import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import {
   dropSpotsFor,
   groupElementId,
+  liftKey,
   positionAt,
+  positionAtShare,
   readyWith,
   refusalAt,
+  someOfferDroppable,
   someOfferReady,
   sourceSpotsFor,
   takeableSpots,
@@ -63,6 +66,8 @@ import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
+import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
+import { moduleName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
@@ -71,6 +76,7 @@ import { factText, label, playerName } from '@/src/lib/labels';
 import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
+import { SameDeal } from '@/src/components/match/SameDeal';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -195,9 +201,16 @@ export default function MatchScreen() {
   // arrive before the state that started the drag has been committed, and a
   // drag whose first frames land nowhere reads as an unresponsive one.
   const drops = useDropRegistry();
-  const dragRef = useRef<{ slotIds: string[]; cards: string[] } | null>(null);
-  const [drag, setDrag] = useState<{ cards: string[] } | null>(null);
+  const dragRef = useRef<{ slotIds: string[]; cards: string[]; fromTable?: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ cards: string[]; fromTable?: boolean } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
+  // Cards picked up off a meld on the table rather than out of the hand — the
+  // source of a move between melds (Canasta's rearranging). Kept apart from
+  // the hand's selection on purpose: the same card string can be in a hand
+  // and on a meld at once with two decks in play, and an offer that takes
+  // cards *from a meld* must never be satisfied by hand cards, nor the other
+  // way round. By position in the group, so two copies of a card are two picks.
+  const [meldPick, setMeldPick] = useState<{ meldId: string; indices: number[]; cards: string[] } | null>(null);
   // The refusal currently being explained, if any. One at a time: a sheet is
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
@@ -237,6 +250,10 @@ export default function MatchScreen() {
   // the *target* was pointed at first, before any control or any card. See
   // `onAimGroup` below for how it is set and cleared.
   const [armedMeldId, setArmedMeldId] = useState<string | null>(null);
+  // A run picked up off the table by a press — solitaire's cards are on the
+  // table, not in a hand — and waiting for the player to say where it goes.
+  // The cards are the offer's own `source.submit`, never worked out here.
+  const [tablePick, setTablePick] = useState<string[] | null>(null);
   // Whether a tap on the status dot has opened its explanation — declared
   // before the `!state` early return below so hook order stays fixed
   // whether or not the socket has delivered a state yet.
@@ -245,6 +262,10 @@ export default function MatchScreen() {
   // Setting up the same table again, and whatever went wrong trying — declared
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
+  // A finished game's deal, sent on: the link, and whether it got as far as a
+  // share sheet or the clipboard. When it did not, the link is shown to copy.
+  const [sentDeal, setSentDeal] = useState<{ url: string; handedOver: boolean } | null>(null);
+  const [sendingDeal, setSendingDeal] = useState(false);
   const [againError, setAgainError] = useState('');
   // "No thanks" to somebody else's rematch: the banner goes back to its own
   // offers. Held here rather than on the server's answer, because the
@@ -339,6 +360,9 @@ export default function MatchScreen() {
   useEffect(() => {
     setHint(null);
     setHintRefusal(null);
+    // A pick belongs to the board it was made on.
+    setTablePick(null);
+    setMeldPick(null);
   }, [state]);
   useEffect(() => {
     setIdle(false);
@@ -449,6 +473,7 @@ export default function MatchScreen() {
     setSelected(new Set());
     setSelectionIsAuto(false);
     setArmedMeldId(null);
+    setMeldPick(null);
   };
 
   // Whether a card in hand carries a mark the module put there — Žolíky's
@@ -467,6 +492,7 @@ export default function MatchScreen() {
     // that choice over rather than resolving it against a selection that has
     // since moved on.
     setPendingGroupKey(null);
+    setMeldPick(null);
     setSelected((prev) => {
       // `provisional` is what makes a tap on some *other* card replace the
       // app's own pick rather than join it — see `toggleSelection` — but
@@ -496,6 +522,59 @@ export default function MatchScreen() {
 
   const selectedCards = cardsForSelection(heldSlots, selected);
 
+  // Which offers take their cards out of a meld rather than out of a hand.
+  // Read off the offer's own source zone — the server says where a move's
+  // cards come from — so no game is named here.
+  // A move whose cards the module has already named (`submit`) is a lift —
+  // solitaire's, below — not a choice made card by card.
+  const fromMeld = (o: ActionOffer) => o.source?.zone === 'from_meld' && !o.source?.submit?.length;
+  // Everything a hand selection could be for: the whole list, less the moves
+  // that start on the table.
+  const handOffers = state.legalActions.filter((o) => !fromMeld(o));
+  // Melds whose cards may be picked up right now, by meld id.
+  const pickableGroups = new Set(
+    state.legalActions
+      .filter((o) => o.enabled && fromMeld(o) && o.source?.meldId)
+      .map((o) => o.source!.meldId!),
+  );
+  const meldPickLive = meldPick && pickableGroups.has(meldPick.meldId) ? meldPick : null;
+  const onPickGroupCard = (meldId: string, index: number, card: string) => {
+    if (!pickableGroups.has(meldId)) return;
+    // A card off the table and a card out of the hand are never one
+    // submission; picking one starts over on the other.
+    setSelected(new Set());
+    setSelectionIsAuto(false);
+    setPendingGroupKey(null);
+    setArmedMeldId(null);
+    setTablePick(null);
+    setMeldPick((prev) => {
+      const base = prev && prev.meldId === meldId ? prev : { meldId, indices: [], cards: [] };
+      const at = base.indices.indexOf(index);
+      if (at >= 0) {
+        const indices = base.indices.filter((_, i) => i !== at);
+        const cards = base.cards.filter((_, i) => i !== at);
+        return indices.length ? { meldId, indices, cards } : null;
+      }
+      return { meldId, indices: [...base.indices, index], cards: [...base.cards, card] };
+    });
+  };
+
+  // Cards an offer lifts straight off the table: the head of the run it names
+  // as `source.submit`, in a group or a pile that is nobody's hand. Read off
+  // the offers and nothing else — which card heads a movable run is a rule,
+  // and the module has already answered it by offering the move.
+  const handIds = new Set(myHands.map((z) => z.id));
+  const liftOffers = state.legalActions.filter(
+    (o) =>
+      o.enabled &&
+      !!o.source?.submit?.length &&
+      (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))),
+  );
+  const liftable = new Set(
+    liftOffers.map((o) => liftKey(o.source!.meldId ?? o.source!.zoneId!, o.source!.submit![0]!)),
+  );
+  const liftsOf = (card: string) => liftOffers.filter((o) => o.source!.submit![0] === card);
+
   const canAct = state.legalActions.some((o) => o.enabled);
   const step = turnStep(state.legalActions);
   // Whose turn it is when it is somebody else's: the first thing a player
@@ -512,7 +591,9 @@ export default function MatchScreen() {
       const { action } = await client.hint(String(matchId));
       setHint(action);
       const offer = state.legalActions.find((o) => o.id === action.offerId);
-      if (action.cards?.length) {
+      if (offer && liftOffers.includes(offer) && action.cards?.length) {
+        setTablePick(action.cards);
+      } else if (action.cards?.length) {
         const slots = slotsForCards(heldSlots, action.cards);
         if (slots.size) {
           setSelected(slots);
@@ -542,8 +623,12 @@ export default function MatchScreen() {
   // refuse them, which now carry the reason instead of being dropped from the
   // list. `takeableSpots` is what lights up and what a release sends;
   // `refusalAt` is what a release anywhere else says.
-  const spotsFor = (cards: string[]) => dropSpotsFor(state.legalActions, cards);
-  const liveSpots = drag ? spotsFor(drag.cards) : [];
+  // A run lifted off the table goes only where an offer for that very run
+  // says: every other offer names other cards, and would only light up as
+  // refusing.
+  const spotsFor = (cards: string[], fromTable?: boolean) =>
+    dropSpotsFor(fromTable ? liftsOf(cards[0] ?? '') : handOffers, cards);
+  const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable) : [];
   const liveTakeable = takeableSpots(liveSpots);
 
   // A card in hand is a card looking for somewhere to go. Every enabled offer
@@ -568,12 +653,12 @@ export default function MatchScreen() {
   // whenever it was tapped, so a meld played away by a bot while armed does
   // not leave the screen pointed at nothing.
   const meldsWithOffers = new Set(
-    state.legalActions
+    handOffers
       .filter((o) => o.enabled && o.target?.meldId && (o.source?.minCards ?? 0) > 0)
       .map((o) => o.target!.meldId!),
   );
   const armedMeldIdLive = armedMeldId && meldsWithOffers.has(armedMeldId) ? armedMeldId : null;
-  const pendingCandidates = state.legalActions.filter(
+  const pendingCandidates = handOffers.filter(
     (o) =>
       o.enabled &&
       (!pendingGroupKey || (o.target?.meldId && offerGroupKey(o) === pendingGroupKey)) &&
@@ -584,8 +669,16 @@ export default function MatchScreen() {
   // enabled, already-one-tap-ready offers is still a live target then, cards
   // or no cards, the same as a lone offer of the same shape would be. With
   // nothing selected and no folded control pressed, nothing is pending.
-  const pendingSpots: DropSpot[] =
-    selectedCards.length > 0
+  // Cards picked up off a meld light the melds they may be moved to — the
+  // same spots, from the offers that start on that meld.
+  const moveCandidates = meldPickLive
+    ? state.legalActions.filter((o) => o.enabled && fromMeld(o) && o.source?.meldId === meldPickLive.meldId)
+    : [];
+  const pendingSpots: DropSpot[] = tablePick
+    ? dropSpotsFor(liftsOf(tablePick[0] ?? ''), tablePick)
+    : meldPickLive
+      ? dropSpotsFor(moveCandidates, meldPickLive.cards)
+    : selectedCards.length > 0
       ? dropSpotsFor(pendingCandidates, selectedCards)
       : pendingGroupKey
         ? pendingCandidates.flatMap((o) =>
@@ -605,7 +698,7 @@ export default function MatchScreen() {
   // chosen means "put these here" — the discard pile is both, one phase apart
   // — and a press has to mean one thing. What is picked is what says which.
   const sourceSpots =
-    !drag && selectedCards.length === 0 && !pendingGroupKey
+    !drag && selectedCards.length === 0 && !pendingGroupKey && !tablePick && !meldPickLive
       ? sourceSpotsFor(state.legalActions, zones, viewerId)
       : [];
 
@@ -626,12 +719,44 @@ export default function MatchScreen() {
   // chosen, a fitting target is already live and pressable above, and aiming
   // has nothing left to add. Tapping one arms it (see `onAimGroup`); tapping
   // the armed one again clears it.
-  const armableGroups = selectedCards.length === 0 ? meldsWithOffers : new Set<string>();
+  const armableGroups = selectedCards.length === 0 && !meldPickLive ? meldsWithOffers : new Set<string>();
   const onAimGroup = (meldId: string) => {
     if (!meldsWithOffers.has(meldId)) return;
     setArmedMeldId((prev) => (prev === meldId ? null : meldId));
   };
 
+
+  // A card on the table pressed: with one place to go it goes there, the way
+  // a solitaire player expects a tap to play; with several, they light up and
+  // the next press says which. A target aimed at first decides it outright.
+  const liftCard = (card: string) => {
+    const offers = liftsOf(card);
+    if (!offers.length) return;
+    const aimed = armedMeldIdLive ? offers.filter((o) => o.target?.meldId === armedMeldIdLive) : [];
+    const only = aimed.length === 1 ? aimed[0] : offers.length === 1 ? offers[0] : undefined;
+    if (only) {
+      const action = submissionFor(only, { cards: only.source!.submit });
+      if (!action) return;
+      send(action);
+      clearSelection();
+      setTablePick(null);
+      return;
+    }
+    clearSelection();
+    setPendingGroupKey(null);
+    setTablePick((was) => (was?.[0] === card ? null : offers[0]!.source!.submit!));
+  };
+
+  // The same run carried by hand rather than picked by a press.
+  const beginTableDrag = (card: string) => {
+    const offer = liftsOf(card)[0];
+    if (!offer) return;
+    const cards = offer.source!.submit!;
+    setTablePick(null);
+    dragRef.current = { slotIds: [], cards, fromTable: true };
+    setDrag({ cards, fromTable: true });
+    drops.measure();
+  };
 
   const beginDrag = (zoneId: string, index: number) => {
     const slots = slotsFor(zoneId);
@@ -668,7 +793,7 @@ export default function MatchScreen() {
   const moveDrag = (x: number, y: number) => {
     const current = dragRef.current;
     if (!current) return;
-    const spots = takeableSpots(spotsFor(current.cards));
+    const spots = takeableSpots(spotsFor(current.cards, current.fromTable));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     setHoveredDrop((prev) => (prev === over ? prev : over));
 
@@ -707,7 +832,7 @@ export default function MatchScreen() {
     setHoveredPosition(null);
     if (!current) return false;
 
-    const spots = spotsFor(current.cards);
+    const spots = spotsFor(current.cards, current.fromTable);
     const takeable = takeableSpots(spots);
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     const spot = takeable.find((s) => s.elementId === over);
@@ -760,7 +885,7 @@ export default function MatchScreen() {
   // y — the one thing a tap still supplies that a plain press otherwise
   // would not — so a target with a choice of two positions reads a press on
   // its top half the same way it would read a drop there.
-  const pressDrop = (elementId: string, pageY: number) => {
+  const pressDrop = (elementId: string, pageY: number, share?: number) => {
     // A target chosen by what is picked wins over a pile that would be taken
     // from, for the same reason `sourceSpots` is empty while anything is
     // picked: with cards in hand a pile is somewhere to put them.
@@ -779,8 +904,11 @@ export default function MatchScreen() {
     // with `submissionFor` refusing the short submission two lines later and
     // the press dying on `if (!action) return`. Say what the control beside it
     // says instead, in the same words.
+    // The cards this press sends: those picked off a meld, for a move that
+    // starts on one, and the hand's selection for everything else.
+    const pressCards = fromMeld(offer) ? (meldPickLive?.cards ?? []) : (tablePick ?? selectedCards);
     if (!spot.ready) {
-      const fit = readyWith(offer, selectedCards);
+      const fit = readyWith(offer, pressCards);
       if (!fit.ok) setExplaining({ labelKey: fit.labelKey, params: fit.params });
       return;
     }
@@ -789,16 +917,25 @@ export default function MatchScreen() {
     // built with no cards named falls back to its own one-tap default, the
     // same way a bare press on a lone offer of the same shape already does;
     // an empty array is a *chosen* zero, and settles on nothing at all.
-    const action = submissionFor(offer, { cards: selectedCards.length ? selectedCards : undefined });
+    const action = submissionFor(offer, { cards: pressCards.length ? pressCards : undefined });
     if (!action) return;
 
+    // Which end, when there is a choice: from how far down the target the
+    // press landed where the target said, and only otherwise from a rect a
+    // drag measured — in window coordinates, and possibly long ago.
     const rect = drops.rectFor(elementId);
-    const position = rect ? positionAt(spot.positions, pageY, rect) : spot.positions?.[0];
+    const position =
+      share !== undefined
+        ? positionAtShare(spot.positions, share)
+        : rect
+          ? positionAt(spot.positions, pageY, rect)
+          : spot.positions?.[0];
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
     clearSelection();
     setPendingGroupKey(null);
+    setTablePick(null);
   };
 
   // Which cards the module marked, by card value. A mark is something true
@@ -825,8 +962,17 @@ export default function MatchScreen() {
     armableGroups,
     armedGroupId: armedMeldIdLive,
     onAimGroup,
+    pickableGroups,
+    pickedInGroup: meldPickLive ? { groupId: meldPickLive.meldId, indices: meldPickLive.indices } : null,
+    onPickGroupCard,
     entranceDelays: flightPlan.holds,
     changedGroups: changeMarks,
+    liftable,
+    picked: tablePick?.[0] ?? null,
+    onLift: liftCard,
+    onLiftDragStart: beginTableDrag,
+    onDragMove: moveDrag,
+    onDragEnd: endDrag,
   };
 
   // The same table again, with the same people: same game, variation and
@@ -845,6 +991,42 @@ export default function MatchScreen() {
       const code = e instanceof ApiError ? e.code : undefined;
       setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
       setStartingAgain(false);
+    }
+  };
+
+  // The same cards again, at a new table — offered where the server says a
+  // game may be (`canDealAgain`), which is a game played alone.
+  const dealAgain = async () => {
+    setStartingAgain(true);
+    setAgainError('');
+    try {
+      const next = await client.dealAgain(String(matchId));
+      router.replace(routeForMatch(next.status, next.hostId === viewerId, next.matchId));
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
+      setStartingAgain(false);
+    }
+  };
+
+  // The same cards for somebody else. The server mints the link and seals the
+  // game it came from inside it, so nothing here — or in the link — says
+  // which game that was.
+  const sendDeal = async () => {
+    setSendingDeal(true);
+    setAgainError('');
+    try {
+      const { token } = await client.dealLink(String(matchId));
+      const url = dealUrlFor(token);
+      const handedOver = url
+        ? await shareInviteLink(url, t('match.sendDealMessage', { game: moduleName(state.moduleId) }))
+        : false;
+      setSentDeal({ url, handedOver });
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSendingDeal(false);
     }
   };
 
@@ -911,9 +1093,14 @@ export default function MatchScreen() {
   const winners = state.winners ?? (state.winnerId ? [state.winnerId] : []);
   const iWon = winners.includes(viewerId);
   const winnerNames = winners.map((id) => (id === viewerId ? t('match.you') : playerName(state.players, id)));
+  // A game played alone that nobody won was not lost to anybody: it was not
+  // solved. Told apart by the table having one seat — a fact about the table,
+  // not about which game is on it.
   const outcome =
     winners.length === 0
-      ? t('match.nobodyWon')
+      ? state.players.length === 1
+        ? t('match.notSolved')
+        : t('match.nobodyWon')
       : winners.length === 1
         ? iWon
           ? t('match.youWon')
@@ -1015,7 +1202,7 @@ export default function MatchScreen() {
       testID="controls-panel"
       summary={
         <OfferGlance
-          offers={state.legalActions}
+          offers={handOffers}
           selectedCards={selectedCards}
           armedGroupId={armedMeldIdLive}
           onSend={send}
@@ -1090,8 +1277,15 @@ export default function MatchScreen() {
           that vanished when it became illegal would be
           indistinguishable from a bug, which is why the server sends
           the whole set every time. */}
+      {/* Moving cards between melds is driven from the melds themselves, not
+          from a button, so say where it lives while it is possible. */}
+      {pickableGroups.size > 0 ? (
+        <Text style={styles.muted} testID="move-hint">
+          {meldPickLive ? t('match.moveHintPicked') : t('match.moveHint')}
+        </Text>
+      ) : null}
       <OfferBar
-        offers={state.legalActions}
+        offers={handOffers}
         selectedCards={selectedCards}
         armedGroupId={armedMeldIdLive}
         onSend={send}
@@ -1130,6 +1324,11 @@ export default function MatchScreen() {
   // than sliced in half by the first panel edge it crosses. The hand keeps
   // hold of the card it is carrying (moving its node would lose the gesture),
   // so lifting the card means lifting the hand — see `dragLayer`.
+  // Whether the hint may say a card goes "onto the board" — true only while
+  // some offer would take one dropped there. Read from the offers, never the
+  // game: a game whose cards only ever leave through a button gets a hint
+  // about rearranging and nothing more.
+  const canDropOnBoard = someOfferDroppable(state.legalActions);
   const handPanel = (
   <View style={[styles.mine, !!drag && dragLayer]} {...opening.anchor('hand')}>
     {myHands.map((z) => (
@@ -1167,6 +1366,7 @@ export default function MatchScreen() {
         externalTarget={hoveredDrop}
         registerSpot={dropProps.registerDrop}
         entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
+        canDropOnBoard={canDropOnBoard}
         badges={badgesFor(z)}
         onPressBadge={(card, badgeKeys) =>
           setExplaining({
@@ -1343,6 +1543,13 @@ export default function MatchScreen() {
                 </Pressable>
               </>
             ) : null}
+            {/* A deal played again says so: a score made on cards already
+                seen is not a first attempt. */}
+            {state.repeatDeal && !wasAbandoned ? (
+              <Text testID="match-over-repeat" style={styles.overOutcome}>
+                {t('match.repeatDeal')}
+              </Text>
+            ) : null}
             {rematchOffer ? (
               <Text testID="match-over-rematch-offer" style={styles.overOutcome}>
                 {t('match.rematchOffer', { name: playerName(state.players, rematchOffer.hostId) })}
@@ -1391,6 +1598,28 @@ export default function MatchScreen() {
                   </Text>
                 </Pressable>
               ) : null}
+              {seatedHere && state.canDealAgain ? (
+                <Pressable
+                  testID="match-over-deal-again"
+                  accessibilityState={{ disabled: startingAgain }}
+                  disabled={startingAgain}
+                  onPress={dealAgain}
+                  style={[styles.overButton, startingAgain && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>{t('match.dealAgain')}</Text>
+                </Pressable>
+              ) : null}
+              {seatedHere && state.canDealAgain ? (
+                <Pressable
+                  testID="match-over-send-deal"
+                  accessibilityState={{ disabled: sendingDeal }}
+                  disabled={sendingDeal}
+                  onPress={sendDeal}
+                  style={[styles.overButton, sendingDeal && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>{t('match.sendDeal')}</Text>
+                </Pressable>
+              ) : null}
               {rematchOffer ? (
                 <Pressable
                   testID="match-over-decline-rematch"
@@ -1408,6 +1637,21 @@ export default function MatchScreen() {
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
               </Pressable>
             </View>
+            {/* What became of the link — handed to a share sheet or copied,
+                or neither — and the link itself, either way: "copied" is
+                invisible, and people like to see what they are about to paste. */}
+            {sentDeal ? (
+              <View testID="match-over-deal-link">
+                <Text style={styles.overOutcome}>
+                  {sentDeal.handedOver ? t('match.sendDealDone') : t('match.sendDealCopy')}
+                </Text>
+                {sentDeal.url ? (
+                  <Text selectable testID="match-over-deal-url" style={styles.overOutcome}>
+                    {sentDeal.url}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             {againError || resumeError ? (
               <Text testID="match-over-error" style={styles.overError}>
                 {againError || resumeError}
@@ -1417,6 +1661,10 @@ export default function MatchScreen() {
                 circle while the game is still warm. Online tables only —
                 the players at a table on a phone in the room are that
                 phone's guests, not accounts the online circle knows. */}
+            {/* Everybody else who played these cards, once this player has. */}
+            {state.status === 'completed' && state.canDealAgain && seatedHere && !offline ? (
+              <SameDeal client={client} matchId={String(matchId)} palette={skin.colors} />
+            ) : null}
             {state.status === 'completed' && !offline ? (
               <AddToCircle players={state.players} viewerId={viewerId} palette={skin.colors} />
             ) : null}

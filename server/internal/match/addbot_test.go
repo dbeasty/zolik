@@ -7,6 +7,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/lastcard"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -159,7 +160,7 @@ func TestEveryModuleOffersTheOption(t *testing.T) {
 func TestFillingATableNeverSeatsANameTwice(t *testing.T) {
 	// Every module the product ships, not the test registry: the largest
 	// table (Hold'em, nine seats) is the one that sizes the roster.
-	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New())
+	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), lastcard.New())
 	h := NewHandlers(&Manager{registry: reg}, false)
 	settings := []int{module.BotSkillAuto}
 	for _, s := range module.Skills {
@@ -188,5 +189,20 @@ func TestFillingATableNeverSeatsANameTwice(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// A seat asked to play "ai" at a game that ships no network — an old saved
+// setup, or a hand-built request — sits down as the strongest bot that game
+// has, not as whatever its heuristic makes of a skill it never heard of.
+func TestAnAISeatAtAGameWithNoModelPlaysHard(t *testing.T) {
+	h := NewHandlers(&Manager{registry: module.NewRegistry(lastcard.New(), holdem.New())}, false)
+	m := models.Match{ModuleID: "lastcard", Seed: 1, Players: []models.Player{{ID: "host"}}}
+	if p := h.personaFor(m, "ai"); p.Skill != module.SkillHard {
+		t.Errorf("an ai seat at lastcard plays %s, want hard", p.Skill)
+	}
+	m.ModuleID = "holdem"
+	if p := h.personaFor(m, "ai"); p.Skill != module.SkillAI {
+		t.Errorf("an ai seat at holdem plays %s, want ai", p.Skill)
 	}
 }

@@ -49,6 +49,9 @@ async function seatBot(request: Ctx, matchId: string, auth: Record<string, strin
   return res.json();
 }
 
+/** The games that ship a trained network (server/internal/learn/models). */
+const GAMES_WITH_A_MODEL = ['zolik', 'canasta', 'holdem'];
+
 test('the lobby offers a strength for the opponents', async ({ request }) => {
   const res = await request.get(`${API_BASE}/modules`);
   expect(res.ok(), await res.text()).toBeTruthy();
@@ -56,12 +59,21 @@ test('the lobby offers a strength for the opponents', async ({ request }) => {
   const modules = body.modules ?? body;
 
   for (const mod of modules) {
+    // A one-seat game has no opponents to set a strength for, and says so by
+    // declaring no such option rather than one that configures nothing.
+    if (mod.maxPlayers <= 1) {
+      expect((mod.options ?? []).some((o: { name: string }) => o.name === 'botSkill')).toBe(false);
+      continue;
+    }
     const opt = (mod.options ?? []).find((o: { name: string }) => o.name === 'botSkill');
     expect(opt, `${mod.id} does not offer botSkill`).toBeTruthy();
     const labels = opt.choices.map((c: { label: string }) => c.label);
     // Mixed first, then the ladder weakest-first: the order the control is
-    // rendered in is the order the server declares.
-    expect(labels).toEqual(['Mixed', 'Easy', 'Medium', 'Hard', 'AI']);
+    // rendered in is the order the server declares. "AI" only where the game
+    // ships a trained network to play it; elsewhere it was a choice the
+    // game's own bot answered as Medium.
+    const ladder = ['Mixed', 'Easy', 'Medium', 'Hard'];
+    expect(labels).toEqual(GAMES_WITH_A_MODEL.includes(mod.id) ? [...ladder, 'AI'] : ladder);
   }
 });
 

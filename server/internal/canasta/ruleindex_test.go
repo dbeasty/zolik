@@ -18,6 +18,7 @@ func TestRuleIndex(t *testing.T) {
 			"NOTHING_TO_UNDO":    "not a rule — there is simply nothing to take back",
 			"NOTHING_FITS_HERE":  "not a rule — none of the player's cards match that meld",
 			"UNDO_MELDS_FIRST":   "not a rule — the order an undo unwinds a turn in, not a rule of play",
+			"UNDO_LATEST_FIRST":  "not a rule — the order an undo unwinds a turn in, not a rule of play",
 			"GAME_NOT_ACTIVE":    "not a rule — the deal is over or has not started",
 			"UNKNOWN_ACTION":     "not a rule — a verb this module does not have",
 			"WRONG_PLAYER_COUNT": "not a rule of play — the table could not be seated",

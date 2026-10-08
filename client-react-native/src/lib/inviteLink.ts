@@ -103,6 +103,22 @@ export function seatUrlFor(
  * straight from the server is a worse guess than a rewritten one, never a
  * broken one.
  */
+/** Where a sent deal is opened: `/deal/<token>`. */
+export const DEAL_PATH = '/deal/';
+
+/**
+ * The link that sends a finished game's deal to somebody else. The token is
+ * opaque — sealed by the server — so the link says which deal only to the
+ * server, and nothing to whoever it is sent to.
+ */
+export function dealUrlFor(token: string, origin: string = currentOrigin()): string {
+  if (!token) return '';
+  const path = DEAL_PATH + encodeURIComponent(token);
+  if (origin) return origin.replace(/\/$/, '') + path;
+  if (ZOLIK_BASE_URL) return ZOLIK_BASE_URL.replace(/\/$/, '') + path;
+  return '';
+}
+
 function swapOrigin(url: string, origin: string): string {
   const match = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]*/i.exec(url);
   if (!match) return url;

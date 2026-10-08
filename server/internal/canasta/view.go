@@ -13,6 +13,13 @@ const (
 	OptHandSize        = "handSize"
 	OptTargetScore     = "targetScore"
 	OptCanastasToGoOut = "canastasToGoOut"
+
+	// The CanastaX house rules, each on/off (ruleset.go).
+	OptDirtySequences = "dirtySequences"
+	OptWildMeld       = "wildMeld"
+	OptRearrange      = "rearrange"
+	OptPoach          = "poach"
+	OptTopOnlyCapture = "topOnlyCapture"
 )
 
 // Descriptor is Canasta's self-description.
@@ -22,6 +29,22 @@ const (
 // deals. Declaring it rather than hard-coding a shortcut keeps the descriptor
 // the only place a match's shape is decided.
 func (m *Module) Descriptor() module.ModuleDescriptor {
+	d := m.descriptor()
+	// Every variation states a starting value for every option, the house
+	// rules included — off everywhere but CanastaX.
+	for i := range d.Variations {
+		v := variations[d.Variations[i].ID]
+		for name, on := range map[string]bool{
+			OptDirtySequences: v.DirtySequences, OptWildMeld: v.WildMeld,
+			OptRearrange: v.Rearrange, OptPoach: v.Poach, OptTopOnlyCapture: v.TopOnlyCapture,
+		} {
+			d.Variations[i].Defaults[name] = module.BoolOpt(on)
+		}
+	}
+	return d
+}
+
+func (m *Module) descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
 		ID:         "canasta",
 		Label:      "Canasta",
@@ -95,6 +118,30 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
+			{
+				ID:    variationCanastaX,
+				Label: "CanastaX",
+				// Samba's table with the house rules on: wilds in sequences, a
+				// meld of 2s, a table you can rearrange, wilds anybody can
+				// poach, and the top card or the whole pile.
+				MaxPlayers: variations[variationCanastaX].MaxSeats,
+				Summary: []module.Fact{
+					{LabelKey: "canasta.rules.deck", Value: "162", Params: map[string]any{"decks": variations[variationCanastaX].Decks}},
+					{LabelKey: "canasta.rules.dirtySequences", Params: map[string]any{"n": variations[variationCanastaX].DirtySambaBonus}},
+					{LabelKey: "canasta.rules.wildMeld", Params: map[string]any{"n": variations[variationCanastaX].WildCanastaBonus, "mixed": variations[variationCanastaX].WildMixedCanastaBonus}},
+					{LabelKey: "canasta.rules.rearrange"},
+					{LabelKey: "canasta.rules.poach"},
+					{LabelKey: "canasta.rules.topOnlyCapture"},
+				},
+				Defaults: map[string]int{
+					OptHandSize:                  variations[variationCanastaX].HandSize,
+					OptTargetScore:               variations[variationCanastaX].TargetScore,
+					OptCanastasToGoOut:           variations[variationCanastaX].CanastasToGoOut,
+					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+				},
+			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
@@ -103,7 +150,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// the thing the deal is played over, and a table that wants it
 			// readable says so.
 			module.OpenDiscardPileOption(),
-			module.BotSkillOption(),
+			module.BotSkillOptionWithAI(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,
@@ -139,6 +186,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: 2, Label: "2"},
 				},
 			},
+			houseOption(OptDirtySequences, "Dirty sequences",
+				"Sequences may hold wild cards, up to two and never more than half as many as the naturals. Needs a variation with sequences."),
+			houseOption(OptWildMeld, "Meld of 2s",
+				"Each side may lay one meld of 2s (jokers allowed beside them) once it has opened; seven of them is a canasta."),
+			houseOption(OptRearrange, "Rearrange melds",
+				"On your turn, once your side has opened, move cards between your side's melds as long as every meld stays legal."),
+			houseOption(OptPoach, "Poach wilds",
+				"On your turn, once your side has opened, swap a natural card from your hand for the wild it stands for in any meld on the table, and keep the wild."),
+			houseOption(OptTopOnlyCapture, "Top card or whole pile",
+				"Whenever you could take the discard pile, you may take just its top card instead, melded the same way."),
 		},
 	}
 }
@@ -226,12 +283,16 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			if mm.isCanasta() {
 				g.Complete = true
 				g.Face = foldedFace(mm.Cards)
-				switch {
-				case mm.kind() == meldRun:
+				switch canastaKind(mm) {
+				case "samba":
 					// Seven in a suit is a samba, and worth saying so: it is the
 					// biggest single number on a Samba scoresheet.
 					g.BadgeKeys = append(g.BadgeKeys, "badge.samba")
-				case mm.isNatural():
+				case "dirtySamba":
+					g.BadgeKeys = append(g.BadgeKeys, "badge.dirtySamba")
+				case "wild", "wildMixed":
+					g.BadgeKeys = append(g.BadgeKeys, "badge.wildCanasta")
+				case "natural":
 					g.BadgeKeys = append(g.BadgeKeys, "badge.naturalCanasta")
 				default:
 					g.BadgeKeys = append(g.BadgeKeys, "badge.mixedCanasta")
@@ -513,4 +574,15 @@ func foldedFace(cards []string) *int {
 		}
 	}
 	return nil
+}
+
+// houseOption is one of the CanastaX rules as an on/off table option.
+func houseOption(name, label, help string) module.OptionSpec {
+	return module.OptionSpec{
+		Name: name, Type: module.OptionEnumInt, Label: label, Help: help,
+		Choices: []module.OptionChoice{
+			{Value: module.OptOff, Label: "Off"},
+			{Value: module.OptOn, Label: "On"},
+		},
+	}
 }

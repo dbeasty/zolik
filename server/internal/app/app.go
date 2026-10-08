@@ -30,6 +30,8 @@ import (
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/identity"
+	"zolik/server/internal/klondike"
+	"zolik/server/internal/lastcard"
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/match"
@@ -636,10 +638,35 @@ func (a *App) matchManager() *match.Manager {
 		// One runtime, hosting every game. The registry is the only place a
 		// game is named: register a module and it appears in /modules, in the
 		// lobby's picker, and on the one screen that plays all of them.
-		modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New())
+		modules := module.NewRegistry(a.hostedModules()...)
 		a.matchMgr = a.configureManager(match.NewManager(a.matchRepo, modules, a.hub))
 	})
 	return a.matchMgr
+}
+
+// hostedModules is every game this node deals.
+//
+// A node that hands its matches up to the cloud — a phone playing offline —
+// leaves out the games whose deal must never leave the server
+// (module.ServerDealt): it would be dealing them itself, from a seed it chose,
+// and the cloud refuses the result anyway. Left out here, they are absent
+// from its /modules, so the game is never offered rather than failing at the
+// end of it.
+func (a *App) hostedModules() []module.GameModule {
+	all := []module.GameModule{
+		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(),
+		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(),
+	}
+	if a.outbox() == nil {
+		return all
+	}
+	out := all[:0]
+	for _, m := range all {
+		if !module.IsServerDealt(m) {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {

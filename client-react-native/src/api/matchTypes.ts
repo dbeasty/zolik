@@ -72,6 +72,12 @@ export type Group = {
    * Absent means the last card.
    */
   face?: number;
+  /**
+   * How many cards lie face-down *beneath* `cards`, never sent — a Klondike
+   * column's unturned cards under its face-up run. The group's own
+   * counterpart of `Zone.count`: a secret stays secret by not being sent.
+   */
+  hidden?: number;
 };
 
 /**
@@ -129,6 +135,12 @@ export type Zone = {
    * drawn by its kind.
    */
   arrange?: ZoneArrange;
+  /**
+   * On a `pile`: how many of the top cards to show overlapped rather than
+   * folded down to one — a waste turned three at a time. Presentational; a
+   * client that ignores it shows the top card and loses nothing it needs.
+   */
+  fan?: number;
 };
 
 export type ZoneArrange = 'bySeat';
@@ -168,6 +180,12 @@ export type ParamSpec = {
   max?: number;
   step?: number;
   default?: number;
+  /**
+   * The choice a choice control starts on, where the server names one —
+   * the colour a player holds most of rather than the first in the list.
+   * Absent, or not among `choices`, means the first.
+   */
+  defaultChoice?: string;
   /**
    * This value is what pressing the offer sends, so the offer's own control
    * names it — "Raise to 483" — and follows it as the slider, stepper, typed
@@ -455,10 +473,11 @@ export type MatchPlayer = {
  * The pack a game is dealt from, when it is not the French one: `german` is
  * the German-suited 32 (mariášky) — hearts, bells, acorns and leaves, with a
  * spodek and a svršek where the French pack has a jack and a queen. The card
- * codes are the same; only how they are drawn and named changes. See
- * `src/lib/deck.ts`.
+ * codes are the same; only how they are drawn and named changes. `lastcard`
+ * is a pack of its own, with codes of its own ("C-7", "T-S", "W4"), drawn by
+ * `LastCardFace`. See `src/lib/deck.ts`.
  */
-export type CardDeck = 'german';
+export type CardDeck = 'german' | 'lastcard';
 
 export type MatchState = {
   type: 'match_state';
@@ -501,6 +520,17 @@ export type MatchState = {
    * Everybody else from here has a seat held at it.
    */
   rematch?: { matchId: string; hostId: string };
+  /**
+   * This finished game may be dealt again, card for card, at a new table — a
+   * one-seat game the server decides is replayable. See `client.dealAgain`.
+   */
+  canDealAgain?: boolean;
+  /**
+   * The player at this table had seen this deal before — dealt it again, or
+   * were sent one they had played — so a score here is not a first attempt.
+   * A flag, never the game it came from: that game's board would show the deal.
+   */
+  repeatDeal?: boolean;
   /** Who a rematch lobby is still holding seats for, in seat order. */
   reserved?: { playerId: string; name: string; avatar?: string }[];
   /**
@@ -664,7 +694,8 @@ export function defaultParam(p: ParamSpec): string | undefined {
     const d = p.default ?? min;
     return String(Math.min(Math.max(d, min), max));
   }
-  return p.choices?.[0]?.value;
+  const named = p.defaultChoice ? p.choices?.find((c) => c.value === p.defaultChoice) : undefined;
+  return (named ?? p.choices?.[0])?.value;
 }
 
 /**
@@ -887,4 +918,21 @@ export type StoredTable = {
   /** Whether the table is waiting on the caller. Only present when the list
    *  was asked for it — see `listMyTables`' `turns`. */
   yourTurn?: boolean;
+};
+
+/**
+ * One finished attempt at a deal, for the same-deal comparison. Mirrors
+ * `server/internal/match/samedeal.go`'s `DealResult`: who, whether they won,
+ * and the module's own numbers for the seat — never which match it was.
+ */
+export type DealResult = {
+  name: string;
+  avatar?: string;
+  you?: boolean;
+  won: boolean;
+  score: number;
+  scoreLabelKey?: string;
+  facts?: Fact[];
+  repeat?: boolean;
+  finishedAt: string;
 };

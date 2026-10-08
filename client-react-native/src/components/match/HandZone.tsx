@@ -101,6 +101,12 @@ type Props = {
    * Never touches the deal's own stagger.
    */
   entranceDelay?: number;
+  /**
+   * Whether some offer right now takes a card dropped on the board — see
+   * `someOfferDroppable`. Only changes what the hint promises: without one,
+   * a drag can still rearrange the fan, and that is all the hint says.
+   */
+  canDropOnBoard?: boolean;
 };
 
 type Measurable = {
@@ -225,6 +231,7 @@ export function HandZone({
   onToggleMinimized,
   registerSpot,
   entranceDelay,
+  canDropOnBoard,
 }: Props) {
   const rowRef = useRef<Measurable | null>(null);
   const cardRefs = useRef<(Measurable | null)[]>([]);
@@ -698,7 +705,7 @@ export function HandZone({
 
       {slots.length > 1 ? (
         <Text style={styles.hint} testID={`hand-hint-${zone.id}`}>
-          {t('hand.dragHint')}
+          {t(canDropOnBoard ? 'hand.dragHint' : 'hand.dragHintRearrange')}
         </Text>
       ) : null}
     </Panel>

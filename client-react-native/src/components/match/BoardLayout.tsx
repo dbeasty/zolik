@@ -44,13 +44,23 @@ type DropProps = {
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  pickableGroups?: ReadonlySet<string>;
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
   entranceDelays?: ReadonlyMap<string, number>;
   /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
   changedGroups?: ChangeMarks;
+  /** Table cards a press or drag may lift — see `ZoneView`. */
+  liftable?: ReadonlySet<string>;
+  picked?: string | null;
+  onLift?: (card: string) => void;
+  onLiftDragStart?: (card: string) => void;
+  onDragMove?: (x: number, y: number) => void;
+  onDragEnd?: (x: number, y: number) => boolean;
 };
 
 type PanelProps = { panelId: string; minimized: boolean; onToggleMinimized: () => void };
@@ -266,10 +276,13 @@ export function Section({
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
+  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
   armableGroups?: ReadonlySet<string>;
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  pickableGroups?: ReadonlySet<string>;
+  pickedInGroup?: { groupId: string; indices: number[] } | null;
+  onPickGroupCard?: (groupId: string, index: number, card: string) => void;
 }) {
   if (!zones.length) return null;
 

@@ -586,6 +586,21 @@ func (b bot) build(raw module.State, s *GameState, playerID string, p profile, t
 		return openingMove(raw, s, playerID, mn)
 	}
 
+	// A card moved between the side's own melds, but only where it finishes a
+	// canasta without taking one apart — so every move a bot makes adds a
+	// canasta, and no two of them can undo each other.
+	if o, card, ok := bestCanastaMove(s, t, mn); ok {
+		return module.Action{OfferID: o.ID, Verb: VerbMoveCards, Target: o.Target.MeldID, Cards: []string{card},
+			Params: map[string]string{"from": o.Source.MeldID}}, true
+	}
+
+	// A wild bought off the other side's table: it costs them the wild and
+	// costs this side a natural it was holding anyway. See bestPoach for the
+	// one poach that is a gift instead.
+	if o, card, ok := bestPoach(s, t, mn); ok {
+		return module.Action{OfferID: o.ID, Verb: VerbPoach, Target: o.Target.MeldID, Cards: []string{card}}, true
+	}
+
 	// Lay-offs first. A lay-off grows a meld the side already owns, which is
 	// the only way a canasta ever gets finished, and unlike a new meld it can
 	// never split the hand's material across two ranks that each then stall at
@@ -1086,4 +1101,69 @@ func betterShed(x, y discardCandidate) bool {
 		return x.value > y.value
 	}
 	return x.ordinal < y.ordinal
+}
+
+// bestPoach is the poach worth making, if any (CanastaX).
+//
+// Only off the other sides' melds — a poach off its own table gains a side a
+// wild by spending a natural it could have laid off, which is a wash at best —
+// and never the poach that hands them a bonus: the last wild out of a canasta
+// turns it natural, 300 to 500 or a dirty samba to a samba, which pays them
+// more than the wild costs them. Jokers before 2s, for the fifty points.
+func bestPoach(s *GameState, t *Team, mn menu) (module.ActionOffer, string, bool) {
+	var best module.ActionOffer
+	bestCard, bestValue := "", 0
+	for _, o := range mn.byVerb(VerbPoach) {
+		if o.Target == nil || o.Source == nil || len(o.Source.Cards) == 0 {
+			continue
+		}
+		owner, m := s.findMeld(o.Target.MeldID)
+		if m == nil || t == nil || owner.ID == t.ID {
+			continue
+		}
+		if m.isCanasta() && m.wilds() == 1 {
+			continue
+		}
+		card := o.Source.Cards[0]
+		slot := poachSlot(*m, card, "")
+		if slot < 0 {
+			continue
+		}
+		if v := cardValue(m.Cards[slot]); v > bestValue {
+			best, bestCard, bestValue = o, card, v
+		}
+	}
+	return best, bestCard, bestCard != ""
+}
+
+// bestCanastaMove is a move between the side's own melds that completes a
+// canasta and breaks none (CanastaX's rearranging), if there is one. Wilds
+// last: a natural moved costs the source nothing a wild would not.
+func bestCanastaMove(s *GameState, t *Team, mn menu) (module.ActionOffer, string, bool) {
+	if t == nil {
+		return module.ActionOffer{}, "", false
+	}
+	r := s.rules()
+	for _, wild := range []bool{false, true} {
+		for _, o := range mn.byVerb(VerbMoveCards) {
+			if o.Source == nil || o.Target == nil {
+				continue
+			}
+			from, to := t.meldByID(o.Source.MeldID), t.meldByID(o.Target.MeldID)
+			if from == nil || to == nil || to.isCanasta() || len(to.Cards) != canastaSize-1 {
+				continue
+			}
+			for _, c := range o.Source.Cards {
+				if isWild(c) != wild {
+					continue
+				}
+				shrunk, gone, err := shrunkMeld(r, *from, []string{c})
+				if err != nil || gone || (from.isCanasta() && !shrunk.isCanasta()) {
+					continue
+				}
+				return o, c, true
+			}
+		}
+	}
+	return module.ActionOffer{}, "", false
 }

@@ -163,9 +163,13 @@ The tariff in units (ČSM-L I, on its 0,20 base):
    cards for every part. Agree to allow it?
 6. **The 500-unit limit** (§7). It applies to Licitovaný. Should it also apply to Volený, which
    has no cap today?
-7. **Left out:** the renonc penalties, the ložená-hra rulings, pauzírovaný four-seat tables, and
+7. **Left out:** the renonc penalties, the ložená-hra rulings, and
    Čl. III (a defender showing four "pomocné" in dvě sedmy). These are tournament bookkeeping, as
    in Volený. Agree?
+
+Four at the table is played as in Volený (marias-rules.md, difference 4): the dealer sits each
+deal out and takes no part in its payments; the forhont is the player on the dealer's left, and
+the zadák the third player of the deal.
 
 ## 9. Options (Licitovaný defaults)
 
