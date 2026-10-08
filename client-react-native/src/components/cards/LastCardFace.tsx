@@ -1,4 +1,6 @@
 import { useId } from 'react';
+
+import type { Skin } from '@/src/skins/types';
 import { Platform, StyleSheet, View } from 'react-native';
 import Svg, { ClipPath, Defs, G, Path, Text as SvgText } from 'react-native-svg';
 
@@ -22,19 +24,35 @@ import {
   type LastCard,
   type Piece,
 } from '@/src/components/cards/lastCardArt';
+import {
+  HEIRLOOM,
+  hatching,
+  heirloomBack,
+  heirloomBackdrop,
+  medallionRing,
+  ornateFrame,
+} from '@/src/components/cards/lastCardHeirloomArt';
 
 /**
  * A Last Card face.
  *
- * Two of them, chosen by `CardView` the way it chooses between a skin's faces:
+ * One set of cards a skin, chosen by `CardView` from the skin's face style,
+ * the way the French pack has a face a skin:
  *
- *  - `full`, for the skins that print a whole card: a panel carrying its
- *    colour's picture (a sunburst, the sea, a night sky, a honeycomb), a
- *    medallion in the colour's own shape with the number or the action in
- *    it, and an index on a cream tab in two corners.
- *  - `plain`, for the classic skin and a phone's fanned hand: the colour's
- *    frame and pale field, one big index down the left edge — which is all a
- *    closed hand shows of a card — and the shape in the corner.
+ *  - `classic`, the condensed set (the classic skin): flat and quick to read —
+ *    the colour's frame, its shape large with the number in it, an index in
+ *    two corners, nothing behind.
+ *  - `full`, the casino set: a panel carrying its colour's picture (a
+ *    sunburst, the sea, a night sky, a honeycomb), a medallion in the colour's
+ *    shape with the number or the action in it, an index on a cream tab.
+ *  - `heirloom`, the heirloom set: engraved — ivory stock, a gilt double rule
+ *    with corner scrolls, hatched shading, detailed pictures (a sun of
+ *    straight and wavy rays over clouds, curling waves and gulls, a cratered
+ *    moon over hills and pines, a honeycomb with honey and bees), ringed
+ *    medallions and serif numerals.
+ *  - `plain`, every set's small card — a phone's fanned hand, a compact
+ *    board: the colour's frame and pale field, one big index down the left
+ *    edge (all a closed hand shows of a card), and the shape in the corner.
  *
  * Drawn in a field 100 units wide and as tall as the card's own proportions
  * make it, so a circle stays round on every card size.
@@ -43,11 +61,32 @@ import {
 /** On native the system face is already sans; a CSS stack means nothing there. */
 const FONT = Platform.OS === 'web' ? LAST_CARD_FONT : undefined;
 
+/** The heirloom set's type: an old-style serif, as an engraved card has. */
+const SERIF = Platform.OS === 'web' ? "Georgia, 'Times New Roman', 'Iowan Old Style', serif" : 'Georgia';
+
+/** Which set of cards a skin draws — see `CardView`. */
+export type LastCardSet = 'classic' | 'casino' | 'heirloom';
+
+/**
+ * A skin's set of the pack, by the face style it already declares for the
+ * French one: the classic skin's plain faces get the condensed set, the
+ * heirloom skin's engraved deck the engraved set, and the rest the casino's.
+ */
+export function lastCardSetFor(skin: Skin): LastCardSet {
+  switch (skin.card.face) {
+    case 'plain':
+      return 'classic';
+    case 'vector':
+      return 'heirloom';
+  }
+  return 'casino';
+}
+
 type Props = {
   card: string;
   width: number;
   height: number;
-  variant: 'full' | 'plain';
+  variant: 'full' | 'plain' | 'classic' | 'heirloom';
   /** The plain index's size in pixels, from the layout metrics. */
   indexFont?: number;
   /** The colour a wild on the table was named, to draw on its face. */
@@ -64,6 +103,10 @@ export function LastCardFace({ card, width, height, variant, indexFont, as }: Pr
       <Svg width={width} height={height} viewBox={`0 0 100 ${h}`}>
         {variant === 'full' ? (
           <Full card={parsed} h={h} clipId={`lc${clip}`} named={namedColour(parsed, as)} />
+        ) : variant === 'classic' ? (
+          <Classic card={parsed} h={h} named={namedColour(parsed, as)} />
+        ) : variant === 'heirloom' ? (
+          <Heirloom card={parsed} h={h} clipId={`lc${clip}`} named={namedColour(parsed, as)} />
         ) : (
           <Plain card={parsed} h={h} font={indexFont ? (indexFont * 100) / width : 40} named={namedColour(parsed, as)} />
         )}
@@ -83,6 +126,8 @@ function Lettering({
   fill,
   outline,
   underline,
+  font = FONT,
+  weight = '900',
   children,
 }: {
   x: number;
@@ -91,14 +136,16 @@ function Lettering({
   fill: string;
   outline?: string;
   underline?: boolean;
+  font?: string;
+  weight?: '700' | '900';
   children: string;
 }) {
   const common = {
     x,
     y,
     fontSize: size,
-    fontWeight: '900' as const,
-    fontFamily: FONT,
+    fontWeight: weight,
+    fontFamily: font,
     textAnchor: 'middle' as const,
   };
   return (
@@ -290,6 +337,191 @@ function WildTab({ card }: { card: LastCard }) {
 }
 
 /**
+ * The classic set: condensed. The colour's frame, its shape large with the
+ * number or action in it, an index in two corners — nothing behind, nothing
+ * to read past.
+ */
+function Classic({ card, h, named }: { card: LastCard; h: number; named?: Colour }) {
+  const cx = 50;
+  const cy = h / 2;
+  const frame = roundedRect(3, 3, 94, h - 6, 7);
+  if (card.colour === null) {
+    const four = card.kind === 'wildDrawFour';
+    const label = four ? '+4' : 'W';
+    return (
+      <>
+        <Path d={frame} fill={DUSK.field} stroke={named ? INKS[named].main : DUSK.glow} strokeWidth={named ? 6 : 3} />
+        <Pieces pieces={pinwheel(cx, cy, 56, named)} />
+        <ClassicIndex text={label} colour={CREAM} />
+        <G transform={`rotate(180 ${cx} ${cy})`}>
+          <ClassicIndex text={label} colour={CREAM} />
+        </G>
+      </>
+    );
+  }
+  const ink = INKS[card.colour];
+  const medal = 60;
+  const ny = numeralCentre(card.colour, cy, medal);
+  return (
+    <>
+      <Path d={frame} fill="#FFFFFF" stroke={ink.main} strokeWidth={5} />
+      <Path d={shapePath(card.colour, cx, cy, medal)} fill={ink.main} />
+      {card.kind === 'number' || card.kind === 'drawTwo' ? (
+        <Lettering
+          x={cx}
+          y={ny + (card.kind === 'number' ? 13 : 9)}
+          size={card.kind === 'number' ? 38 : 26}
+          fill="#FFFFFF"
+          underline={card.face === '6' || card.face === '9'}
+        >
+          {card.face}
+        </Lettering>
+      ) : (
+        <Emblem card={card} cx={cx} cy={ny} size={32} ink="#FFFFFF" />
+      )}
+      <ClassicIndex card={card} />
+      <G transform={`rotate(180 ${cx} ${cy})`}>
+        <ClassicIndex card={card} />
+      </G>
+    </>
+  );
+}
+
+/** A classic corner: the index printed straight on the card, and the shape. */
+function ClassicIndex({ card, text, colour }: { card?: LastCard; text?: string; colour?: string }) {
+  const x = 15;
+  if (!card || card.colour === null) {
+    return (
+      <SvgText fontFamily={FONT} x={x} y={24} fontSize={15} fontWeight="900" textAnchor="middle" fill={colour}>
+        {text}
+      </SvgText>
+    );
+  }
+  const ink = INKS[card.colour];
+  return (
+    <>
+      {card.kind === 'number' || card.kind === 'drawTwo' ? (
+        <SvgText fontFamily={FONT} x={x} y={23} fontSize={card.kind === 'number' ? 18 : 12} fontWeight="900" textAnchor="middle" fill={ink.deep}>
+          {card.face}
+        </SvgText>
+      ) : (
+        <Emblem card={card} cx={x} cy={17} size={15} ink={ink.deep} />
+      )}
+      <Path d={shapePath(card.colour, x, 31, 8)} fill={ink.main} />
+    </>
+  );
+}
+
+/**
+ * The heirloom set: engraved. Ivory stock, a gilt double rule with corner
+ * scrolls, the colour's picture in line and hatching, a ringed medallion
+ * and serif numerals.
+ */
+function Heirloom({ card, h, clipId, named }: { card: LastCard; h: number; clipId: string; named?: Colour }) {
+  const cx = 50;
+  const cy = h / 2;
+  const panel = roundedRect(9, 9, 82, h - 18, 3);
+  if (card.colour === null) {
+    const four = card.kind === 'wildDrawFour';
+    return (
+      <>
+        <Path d={roundedRect(0, 0, 100, h, 6)} fill={HEIRLOOM.navy} />
+        <Defs>
+          <ClipPath id={clipId}>
+            <Path d={panel} />
+          </ClipPath>
+        </Defs>
+        <G clipPath={`url(#${clipId})`}>
+          {named ? <Path d={panel} fill={INKS[named].main} opacity={0.3} /> : null}
+          <Pieces pieces={[hatching(h, HEIRLOOM.navyLight, 2.6)]} />
+          <Pieces pieces={duskStars(h)} />
+        </G>
+        <Pieces pieces={ornateFrame(h, named ? INKS[named].main : HEIRLOOM.giltLight)} />
+        <Path d={shapePath('C', cx, four ? cy - 8 : cy, 62)} fill={HEIRLOOM.navy} stroke={HEIRLOOM.gilt} strokeWidth={1.2} />
+        <Pieces pieces={pinwheel(cx, four ? cy - 8 : cy, four ? 46 : 56, named)} />
+        {four ? (
+          <Lettering x={cx} y={cy + 36} size={26} fill={HEIRLOOM.giltLight} outline={HEIRLOOM.navy} font={SERIF} weight="700">
+            +4
+          </Lettering>
+        ) : null}
+        <HeirloomIndex text={four ? '+4' : 'W'} ink={HEIRLOOM.giltLight} />
+        <G transform={`rotate(180 ${cx} ${cy})`}>
+          <HeirloomIndex text={four ? '+4' : 'W'} ink={HEIRLOOM.giltLight} />
+        </G>
+      </>
+    );
+  }
+  const ink = INKS[card.colour];
+  const medal = 46;
+  const ny = numeralCentre(card.colour, cy, medal);
+  return (
+    <>
+      <Path d={roundedRect(0, 0, 100, h, 6)} fill={HEIRLOOM.stock} />
+      <Defs>
+        <ClipPath id={clipId}>
+          <Path d={panel} />
+        </ClipPath>
+      </Defs>
+      <Path d={panel} fill={ink.pale} />
+      <G clipPath={`url(#${clipId})`}>
+        <Pieces pieces={[hatching(h, ink.tint)]} />
+        <Pieces pieces={heirloomBackdrop(card.colour, h)} />
+      </G>
+      <Pieces pieces={ornateFrame(h, ink.deep)} />
+      <Path d={shapePath(card.colour, cx, cy, medal + 16)} fill={HEIRLOOM.stock} opacity={0.94} />
+      <Pieces pieces={medallionRing(card.colour, cx, cy, medal)} />
+      <Path d={shapePath(card.colour, cx, cy, medal)} fill={ink.main} stroke={HEIRLOOM.gilt} strokeWidth={1.8} />
+      {card.kind === 'number' || card.kind === 'drawTwo' ? (
+        <Lettering
+          x={cx}
+          y={ny + (card.kind === 'number' ? 11 : 8)}
+          size={card.kind === 'number' ? 32 : 22}
+          fill={HEIRLOOM.stock}
+          outline={ink.deep}
+          font={SERIF}
+          weight="700"
+          underline={card.face === '6' || card.face === '9'}
+        >
+          {card.face}
+        </Lettering>
+      ) : (
+        <Emblem card={card} cx={cx} cy={ny} size={26} ink={HEIRLOOM.stock} />
+      )}
+      <HeirloomIndex card={card} ink={ink.deep} />
+      <G transform={`rotate(180 ${cx} ${cy})`}>
+        <HeirloomIndex card={card} ink={ink.deep} />
+      </G>
+    </>
+  );
+}
+
+/** An heirloom corner: a serif index and the shape, on a small cartouche. */
+function HeirloomIndex({ card, text, ink }: { card?: LastCard; text?: string; ink: string }) {
+  const x = 17;
+  const plate = roundedRect(10.5, 11, 13, 25, 3);
+  if (!card || card.colour === null) {
+    return (
+      <SvgText fontFamily={SERIF} x={x} y={25} fontSize={13} fontWeight="700" textAnchor="middle" fill={ink}>
+        {text}
+      </SvgText>
+    );
+  }
+  return (
+    <>
+      <Path d={plate} fill={HEIRLOOM.stock} stroke={HEIRLOOM.gilt} strokeWidth={0.7} />
+      {card.kind === 'number' || card.kind === 'drawTwo' ? (
+        <SvgText fontFamily={SERIF} x={x} y={23} fontSize={card.kind === 'number' ? 14 : 9} fontWeight="700" textAnchor="middle" fill={ink}>
+          {card.face}
+        </SvgText>
+      ) : (
+        <Emblem card={card} cx={x} cy={18.5} size={11} ink={ink} />
+      )}
+      <Path d={shapePath(card.colour, x, 30, 6)} fill={INKS[card.colour].main} />
+    </>
+  );
+}
+
+/**
  * The plain face: frame, field, and one index sized for the strip a closed
  * hand shows. The index is left-aligned at the card's edge, because that
  * strip is all of the card a fanned hand lets you read.
@@ -353,11 +585,48 @@ function Plain({ card, h, font, named }: { card: LastCard; h: number; font: numb
   );
 }
 
-/** The back of a Last Card: dusk, the four shapes in a quiet repeat, and the pinwheel. */
-export function LastCardBack({ width, height }: { width: number; height: number }) {
+/**
+ * The back of a Last Card, in the skin's set: classic is dusk and the four
+ * shapes; casino adds the shapes in a quiet repeat and the colour wheel;
+ * heirloom is navy and gilt filigree, a rosette and a ribboned wordmark.
+ */
+export function LastCardBack({ width, height, set = 'casino' }: { width: number; height: number; set?: LastCardSet }) {
   const clip = useId().replace(/:/g, '');
   if (width <= 0 || height <= 0) return null;
   const h = Math.round((height / width) * 1000) / 10;
+  if (set === 'heirloom') {
+    const { pieces, ribbonY } = heirloomBack(h);
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.back]} pointerEvents="none">
+        <Svg width={width} height={height} viewBox={`0 0 100 ${h}`}>
+          <Pieces pieces={pieces} />
+          <SvgText
+            fontFamily={SERIF}
+            x={50}
+            y={ribbonY + 2.6}
+            fontSize={7.5}
+            fontWeight="700"
+            textAnchor="middle"
+            fill={HEIRLOOM.giltLight}
+            letterSpacing={0.6}
+          >
+            Last Card
+          </SvgText>
+        </Svg>
+      </View>
+    );
+  }
+  if (set === 'classic') {
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.back]} pointerEvents="none">
+        <Svg width={width} height={height} viewBox={`0 0 100 ${h}`}>
+          <Path d={roundedRect(0, 0, 100, h, 8)} fill={DUSK.field} />
+          <Path d={roundedRect(5, 5, 90, h - 10, 5)} fill="none" stroke={DUSK.glow} strokeWidth={2} />
+          <Pieces pieces={shapeBlock(50, h / 2, 40)} />
+        </Svg>
+      </View>
+    );
+  }
   const panel = roundedRect(4, 4, 92, h - 8, 6);
   const repeat: Piece[] = [];
   const order = ['C', 'T', 'V', 'A'] as const;
