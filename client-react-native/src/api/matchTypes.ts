@@ -181,6 +181,12 @@ export type ParamSpec = {
   step?: number;
   default?: number;
   /**
+   * The choice a choice control starts on, where the server names one —
+   * the colour a player holds most of rather than the first in the list.
+   * Absent, or not among `choices`, means the first.
+   */
+  defaultChoice?: string;
+  /**
    * This value is what pressing the offer sends, so the offer's own control
    * names it — "Raise to 483" — and follows it as the slider, stepper, typed
    * field or a quick choice moves it. See {@link offerHeadline}.
@@ -688,7 +694,8 @@ export function defaultParam(p: ParamSpec): string | undefined {
     const d = p.default ?? min;
     return String(Math.min(Math.max(d, min), max));
   }
-  return p.choices?.[0]?.value;
+  const named = p.defaultChoice ? p.choices?.find((c) => c.value === p.defaultChoice) : undefined;
+  return (named ?? p.choices?.[0])?.value;
 }
 
 /**

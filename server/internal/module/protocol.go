@@ -529,6 +529,12 @@ type ParamSpec struct {
 	// Default is the value a control should start on — the minimum legal
 	// raise, say, rather than an arbitrary end of the range.
 	Default int `json:"default,omitempty"`
+	// DefaultChoice is the choice a ParamKindChoice control should start on,
+	// where the first one would be a poor guess — the colour a wild names
+	// starting on the colour the player holds most of, not on whichever the
+	// list happens to begin with. Empty, or not one of Choices, means the
+	// first choice.
+	DefaultChoice string `json:"defaultChoice,omitempty"`
 	// Headline says this parameter's current value is what pressing the offer
 	// sends, and belongs on the offer's own control: the prompt and the figure
 	// as it moves — "Raise to 483", not "Raise" above a slider the button never

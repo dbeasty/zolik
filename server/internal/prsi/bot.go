@@ -130,6 +130,11 @@ var profiles = map[module.Skill]profile{
 const attackHandSize = 2
 
 func profileFor(s module.Skill) profile {
+	// This game ships no trained network, so an AI seat — from a table set
+	// up before that choice was withdrawn — plays the strongest it has.
+	if s == module.SkillAI {
+		s = module.SkillHard
+	}
 	if p, ok := profiles[s]; ok {
 		return p
 	}
@@ -219,19 +224,7 @@ func nextHandSize(s *GameState, playerID string) int {
 // Go randomises the latter and the same hand would otherwise name a different
 // suit on a re-read — which would make a replayed match diverge.
 func (b bot) declare(s *GameState, playerID string) string {
-	counts := map[string]int{}
-	for _, c := range s.Hands[playerID] {
-		if rankOf(c) != rankWild {
-			counts[suitOf(c)]++
-		}
-	}
-	best, bestN := suits[0], -1
-	for _, suit := range suits {
-		if counts[suit] > bestN {
-			best, bestN = suit, counts[suit]
-		}
-	}
-	return best
+	return longestSuit(s.Hands[playerID])
 }
 
 func findOffer(offers []module.ActionOffer, id string) *module.ActionOffer {

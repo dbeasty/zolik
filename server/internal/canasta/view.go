@@ -103,7 +103,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// the thing the deal is played over, and a table that wants it
 			// readable says so.
 			module.OpenDiscardPileOption(),
-			module.BotSkillOption(),
+			module.BotSkillOptionWithAI(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,

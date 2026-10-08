@@ -451,6 +451,15 @@ func (h *Handlers) personaFor(m models.Match, want string) module.Persona {
 		// which is itself allowed to be Mixed.
 		skill, auto = module.MatchConfig{Options: m.Options}.BotSkill(h.defaultSkill(m.ModuleID))
 	}
+	// A seat asked to play the network at a game that ships none — an old
+	// saved setup, or a request built by hand — gets the strongest player the
+	// game does have, rather than whatever its heuristic makes of a skill it
+	// never heard of.
+	if skill == module.SkillAI {
+		if mod := h.manager.Registry().Get(m.ModuleID); mod != nil && !module.OffersAI(mod.Descriptor()) {
+			skill = module.SkillHard
+		}
+	}
 	seed := module.SeatSeed(m.Seed, strconv.Itoa(len(m.Players)), "seat")
 
 	taken := make([]string, 0, len(m.Players))
