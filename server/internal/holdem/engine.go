@@ -1,6 +1,7 @@
 package holdem
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 
@@ -686,6 +687,9 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 	}
 
 	var out []PotResult
+	// lastEligible is who could win out's last pot, to tell a level that only
+	// exists because a folded seat stopped there from a real side pot.
+	var lastEligible []int
 	prev := 0
 	for _, lvl := range sorted {
 		amount := 0
@@ -715,6 +719,8 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 			}
 		}
 
+		// Chips are paid level by level whether or not the pot merges below,
+		// so the odd chips land exactly where they would in separate pots.
 		share := amount / len(winners)
 		remainder := amount - share*len(winners)
 		ids := make([]string, 0, len(winners))
@@ -728,6 +734,18 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 			}
 			ids = append(ids, s.Seats[idx].PlayerID)
 		}
+		// A level made only by a folded seat's commitment (a small blind that
+		// folded, say) has the same contenders as the level below it, and so
+		// the same winners. It is one pot to the players — two lines saying
+		// the same person won with the same hand reads as two pots that never
+		// existed. Only the same eligible players and the same winners, in the
+		// same order, merge: a real side pot always differs in who can win it.
+		if n := len(out); n > 0 && slices.Equal(lastEligible, eligible) &&
+			slices.Equal(out[n-1].Winners, ids) {
+			out[n-1].Amount += amount
+			continue
+		}
+		lastEligible = eligible
 		pot := PotResult{
 			Amount: amount, Winners: ids,
 			LabelKey: categoryKey(best[winners[0]].Category),
