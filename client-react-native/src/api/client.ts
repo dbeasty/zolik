@@ -495,6 +495,19 @@ export class ZolikClient {
     );
   }
 
+  /** Change how well a seated bot plays — the host's, at any point in a match. */
+  async setBotSkill(
+    idOrCode: string,
+    playerId: string,
+    skill: string,
+  ): Promise<{ playerId: string; name?: string; skill?: string; aiPersona?: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(idOrCode)}/bots/${encodeURIComponent(playerId)}/skill`,
+      { skill },
+      true,
+    );
+  }
+
   /**
    * Mint what an AI client needs to play: the MCP endpoint, a key that can do
    * nothing but play, and the commands that install them. With a match id the

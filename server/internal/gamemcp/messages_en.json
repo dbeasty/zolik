@@ -147,6 +147,7 @@
  "blackjack.zone.dealer": "Dealer",
  "blackjack.zone.shoe": "Shoe",
  "blackjack.zone.yourBox": "Your hand",
+ "bot.strength.title": "{name}'s strength",
  "build.app": "app",
  "build.server": "server",
  "canasta.line.canastas": "Canasta bonuses",

@@ -1919,6 +1919,7 @@ export const mt: Record<string, string> = {
   'setup.dealMeIn': 'Qassamli',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Issettjar tal-mejda',
+  'bot.strength.title': 'Is-saħħa ta’ {name}',
   'setup.botSkill.easy': 'Faċli',
   'setup.botSkill.medium': 'Medju',
   'setup.botSkill.hard': 'Diffiċli',

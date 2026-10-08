@@ -206,3 +206,29 @@ func TestAnAISeatAtAGameWithNoModelPlaysHard(t *testing.T) {
 		t.Errorf("an ai seat at holdem plays %s, want ai", p.Skill)
 	}
 }
+
+// Changing a seated bot's strength draws a new persona of that strength and
+// avoids the other bots, never the seat's own old persona's neighbours.
+func TestReseatingABotDrawsAPersonaOfTheNewStrength(t *testing.T) {
+	h := handlers()
+	m := matchWith(map[string]int{module.OptBotSkill: module.SkillOpt(module.SkillEasy)})
+	var seat models.Player
+	for i := 0; i < 3; i++ {
+		p := h.personaFor(m, "easy")
+		bot := models.Player{ID: "bot:" + string(rune('a'+i)), IsAI: true, Name: p.Name, AIDifficulty: string(p.Skill), AIPersona: p.Key()}
+		m.Players = append(m.Players, bot)
+		seat = bot
+	}
+	got := h.personaForSeat(m, seat, "hard")
+	if got.Skill != module.SkillHard {
+		t.Fatalf("asked for hard, got %q", got.Skill)
+	}
+	for _, p := range m.Players {
+		if p.ID != seat.ID && p.AIPersona == got.Key() {
+			t.Errorf("%s is already seated at this table", got.Name)
+		}
+	}
+	if again := h.personaForSeat(m, seat, "hard"); again.Key() != got.Key() {
+		t.Errorf("the same request drew %s then %s", got.Name, again.Name)
+	}
+}

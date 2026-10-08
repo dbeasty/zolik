@@ -1931,6 +1931,7 @@ export const ga: Record<string, string> = {
   'setup.dealMeIn': 'Roinn orm',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Socrú an tábla',
+  'bot.strength.title': 'Neart {name}',
   'setup.botSkill.easy': 'Éasca',
   'setup.botSkill.medium': 'Measartha',
   'setup.botSkill.hard': 'Deacair',

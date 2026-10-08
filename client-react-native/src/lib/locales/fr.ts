@@ -1922,6 +1922,7 @@ export const fr: Record<string, string> = {
   'setup.dealMeIn': 'Distribue-moi',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Réglage de la table',
+  'bot.strength.title': 'Niveau de {name}',
   'setup.botSkill.easy': 'Facile',
   'setup.botSkill.medium': 'Moyen',
   'setup.botSkill.hard': 'Difficile',

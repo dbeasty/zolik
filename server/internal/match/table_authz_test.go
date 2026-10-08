@@ -2,6 +2,7 @@ package match_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -110,4 +111,67 @@ func TestTheHostGateHoldsWhenTheTableIsNamedByItsJoinCode(t *testing.T) {
 	if r := h.do(http.MethodPost, "/matches/"+code+"/start", stranger, nil); r.status != http.StatusForbidden {
 		t.Errorf("start by code: status %d, want 403 (body %s)", r.status, r.raw)
 	}
+}
+
+// The host may change a seated bot's strength at any point in the match —
+// before the deal and during it — and nobody else may.
+func TestOnlyTheHostMayChangeABotsStrength(t *testing.T) {
+	h := newInviteHarness(t)
+	hostToken := token(t, "host-1", "Host", false)
+	matchID := h.createMatch(t, hostToken)
+
+	added := h.do(http.MethodPost, "/matches/"+matchID+"/add-bot", hostToken, map[string]string{"skill": "easy"})
+	if added.status != http.StatusOK {
+		t.Fatalf("add-bot: status %d body %s", added.status, added.raw)
+	}
+	botID := added.str("playerId")
+	// Encoded as the client's encodeURIComponent sends it: a bot id has a
+	// colon in it, and Go's own PathEscape would leave that alone.
+	path := "/matches/" + matchID + "/bots/" + strings.ReplaceAll(botID, ":", "%3A") + "/skill"
+
+	stranger := token(t, "stranger", "Nobody", true)
+	if res := h.do(http.MethodPost, path, stranger, map[string]string{"skill": "hard"}); res.status != http.StatusForbidden {
+		t.Fatalf("a stranger changed the bot: status %d body %s", res.status, res.raw)
+	}
+	if res := h.do(http.MethodPost, path, hostToken, map[string]string{"skill": "superb"}); res.status != http.StatusBadRequest {
+		t.Fatalf("an unknown skill: status %d, want 400 (body %s)", res.status, res.raw)
+	}
+	if res := h.do(http.MethodPost, "/matches/"+matchID+"/bots/host-1/skill", hostToken, map[string]string{"skill": "hard"}); res.str("code") != "NOT_AT_THIS_TABLE" {
+		t.Fatalf("a person's seat was treated as a bot: status %d body %s", res.status, res.raw)
+	}
+
+	res := h.do(http.MethodPost, path, hostToken, map[string]string{"skill": "hard"})
+	if res.status != http.StatusOK || res.str("skill") != "hard" {
+		t.Fatalf("before the deal: status %d body %s", res.status, res.raw)
+	}
+	if res.str("name") == added.str("name") {
+		t.Errorf("the bot kept the name %q of its old strength", res.str("name"))
+	}
+	if got := botSkillOnTable(t, h, matchID, botID); got != "hard" {
+		t.Errorf("the table shows the bot at %q, want hard", got)
+	}
+
+	if res := h.do(http.MethodPost, "/matches/"+matchID+"/start", hostToken, nil); res.status != http.StatusOK {
+		t.Fatalf("start: status %d body %s", res.status, res.raw)
+	}
+	if res := h.do(http.MethodPost, path, hostToken, map[string]string{"skill": "medium"}); res.status != http.StatusOK || res.str("skill") != "medium" {
+		t.Fatalf("during the match: status %d body %s", res.status, res.raw)
+	}
+	if got := botSkillOnTable(t, h, matchID, botID); got != "medium" {
+		t.Errorf("the table shows the bot at %q, want medium", got)
+	}
+}
+
+func botSkillOnTable(t *testing.T, h *inviteHarness, matchID, botID string) string {
+	t.Helper()
+	res := h.do(http.MethodGet, "/matches/"+matchID, "", nil)
+	players, _ := res.body["players"].([]any)
+	for _, p := range players {
+		if pm, _ := p.(map[string]any); pm["id"] == botID {
+			s, _ := pm["skill"].(string)
+			return s
+		}
+	}
+	t.Fatalf("bot %s is not at the table: %s", botID, res.raw)
+	return ""
 }

@@ -1906,6 +1906,7 @@ export const fi: Record<string, string> = {
   'setup.dealMeIn': 'Jaa minulle',
   'setup.botSeat': 'Botti {n}',
   'setup.botSkillTable': 'Pöydän asetus',
+  'bot.strength.title': '{name}: taso',
   'setup.botSkill.easy': 'Helppo',
   'setup.botSkill.medium': 'Keskitaso',
   'setup.botSkill.hard': 'Vaikea',

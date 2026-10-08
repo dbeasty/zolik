@@ -1893,6 +1893,7 @@ export const sv: Record<string, string> = {
   'setup.dealMeIn': 'Ge mig kort',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Bordets inställning',
+  'bot.strength.title': 'Styrka för {name}',
   'setup.botSkill.easy': 'Lätt',
   'setup.botSkill.medium': 'Medel',
   'setup.botSkill.hard': 'Svår',

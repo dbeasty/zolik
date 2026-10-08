@@ -1922,6 +1922,7 @@ export const nl: Record<string, string> = {
   'setup.dealMeIn': 'Deel me in',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Tafelinstelling',
+  'bot.strength.title': 'Sterkte van {name}',
   'setup.botSkill.easy': 'Makkelijk',
   'setup.botSkill.medium': 'Gemiddeld',
   'setup.botSkill.hard': 'Moeilijk',

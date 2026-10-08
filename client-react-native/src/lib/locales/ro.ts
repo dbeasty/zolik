@@ -1915,6 +1915,7 @@ export const ro: Record<string, string> = {
   'setup.dealMeIn': 'Împarte-mi',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Setarea mesei',
+  'bot.strength.title': 'Nivelul lui {name}',
   'setup.botSkill.easy': 'Ușor',
   'setup.botSkill.medium': 'Mediu',
   'setup.botSkill.hard': 'Greu',
