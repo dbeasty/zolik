@@ -2035,6 +2035,9 @@ export const es: Record<string, string> = {
   'marias.rules.score.flek': 'Cada doblaje duplica esa parte.',
   'marias.rules.score.red': 'Si el triunfo es corazones, todos los pagos se duplican.',
   'marias.rules.end': 'La partida dura {n} manos.',
+  'marias.rules.section.four': 'A cuatro',
+  'marias.rules.four.sitOut': 'Con cuatro jugadores, el que reparte descansa en cada mano y ni paga ni cobra; elige el jugador a su izquierda.',
+  'marias.rules.four.deals': 'Con cuatro jugadores, la partida se redondea al alza a un múltiplo de cuatro manos, para que todos descansen igual.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2098,6 +2101,7 @@ export const es: Record<string, string> = {
   'marias.rules.score.limit': 'Ninguna mano paga más de {n} entre el declarante y un mismo defensor.',
   'marias.seat.bidder': 'Puja',
   'marias.seat.holder': 'Sostiene',
+  'marias.seat.sittingOut': 'Descansa',
   'err.MARIAS_YOU_HOLD': 'Mantienes la puja: di mám o pasa',
   'err.MARIAS_YOU_BID': 'Estás pujando: puja más alto o pasa',
   // --- end Mariáš ---

@@ -2031,6 +2031,9 @@ export const hu: Record<string, string> = {
   'marias.rules.score.flek': 'Minden duplázás megduplázza az adott részt.',
   'marias.rules.score.red': 'Ha a piros az adu, minden kifizetés duplán jár.',
   'marias.rules.end': 'A parti {n} leosztásból áll.',
+  'marias.rules.section.four': 'Négyen',
+  'marias.rules.four.sitOut': 'Négy játékosnál az osztó minden leosztásból kimarad, nem fizet és nem is kap; a bal oldali szomszédja választ.',
+  'marias.rules.four.deals': 'Négy játékosnál a parti a leosztások számát négy többszörösére kerekíti fel, így mindenki ugyanannyiszor marad ki.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2094,6 +2097,7 @@ export const hu: Record<string, string> = {
   'marias.rules.score.limit': 'Egy leosztásban sem fizetnek többet {n} egységnél a felvevő és egy ellenfél között.',
   'marias.seat.bidder': 'Licitál',
   'marias.seat.holder': 'Tart',
+  'marias.seat.sittingOut': 'Kimarad',
   'err.MARIAS_YOU_HOLD': 'Tiéd a tartás: mondd, hogy mám, vagy passzolj',
   'err.MARIAS_YOU_BID': 'Te licitálsz: licitálj magasabbat, vagy passzolj',
   // --- end Mariáš ---

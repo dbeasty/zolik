@@ -2056,6 +2056,9 @@ export const el: Record<string, string> = {
   'marias.rules.score.flek': 'Κάθε διπλασιασμός διπλασιάζει εκείνο το μέρος.',
   'marias.rules.score.red': 'Όταν ατού είναι οι καρδιές, κάθε πληρωμή διπλασιάζεται.',
   'marias.rules.end': 'Ο αγώνας έχει {n} μοιρασιές.',
+  'marias.rules.section.four': 'Τέσσερις στο τραπέζι',
+  'marias.rules.four.sitOut': 'Με τέσσερις παίκτες, ο μοιραστής κάθεται έξω από κάθε μοιρασιά και ούτε πληρώνει ούτε πληρώνεται· επιλέγει ο παίκτης στα αριστερά του.',
+  'marias.rules.four.deals': 'Με τέσσερις παίκτες, η παρτίδα στρογγυλεύεται προς τα πάνω σε πολλαπλάσιο των τεσσάρων μοιρασιών, ώστε όλοι να κάθονται έξω εξίσου συχνά.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2119,6 +2122,7 @@ export const el: Record<string, string> = {
   'marias.rules.score.limit': 'Καμία μοιρασιά δεν πληρώνει περισσότερα από {n} ανάμεσα στον εκτελεστή και οποιονδήποτε αμυνόμενο.',
   'marias.seat.bidder': 'Πλειοδοτεί',
   'marias.seat.holder': 'Κρατά',
+  'marias.seat.sittingOut': 'Κάθεται έξω',
   'err.MARIAS_YOU_HOLD': 'Κρατάς την προσφορά: πες mám ή πάσο',
   'err.MARIAS_YOU_BID': 'Εσύ πλειοδοτείς: προσφέρε ψηλότερα ή πάσο',
   // --- end Mariáš ---

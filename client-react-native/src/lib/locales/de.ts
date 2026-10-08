@@ -2040,6 +2040,9 @@ export const de: Record<string, string> = {
   'marias.rules.score.flek': 'Jedes Verdoppeln verdoppelt diesen Teil.',
   'marias.rules.score.red': 'Ist Herz Trumpf, wird jede Zahlung verdoppelt.',
   'marias.rules.end': 'Die Partie hat {n} Runden.',
+  'marias.rules.section.four': 'Zu viert',
+  'marias.rules.four.sitOut': 'Zu viert setzt der Geber jede Runde aus und zahlt weder noch erhält er etwas; sein linker Nachbar wählt.',
+  'marias.rules.four.deals': 'Zu viert wird die Partie auf ein Vielfaches von vier Runden aufgerundet, damit jeder gleich oft aussetzt.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2103,6 +2106,7 @@ export const de: Record<string, string> = {
   'marias.rules.score.limit': 'Keine Runde bringt zwischen dem Alleinspieler und einem Gegenspieler mehr als {n}.',
   'marias.seat.bidder': 'Reizt',
   'marias.seat.holder': 'Hält',
+  'marias.seat.sittingOut': 'Setzt aus',
   'err.MARIAS_YOU_HOLD': 'Du hältst das Gebot: sag Mám oder passe',
   'err.MARIAS_YOU_BID': 'Du reizt: biete höher oder passe',
   // --- end Mariáš ---

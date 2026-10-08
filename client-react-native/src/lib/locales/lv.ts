@@ -2014,6 +2014,9 @@ export const lv: Record<string, string> = {
   'marias.rules.score.flek': 'Katra dubultošana dubulto attiecīgo daļu.',
   'marias.rules.score.red': 'Ja trumpji ir sirdis, katrs maksājums tiek dubultots.',
   'marias.rules.end': 'Mačā ir {n} dalījumi.',
+  'marias.rules.section.four': 'Četratā',
+  'marias.rules.four.sitOut': 'Ja spēlē četri, dalītājs katrā dalījumā izlaiž un ne maksā, ne saņem; izvēlas spēlētājs pa kreisi no viņa.',
+  'marias.rules.four.deals': 'Ja spēlē četri, partiju noapaļo uz augšu līdz četru dalījumu daudzkārtnim, lai katrs izlaistu vienlīdz bieži.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2077,6 +2080,7 @@ export const lv: Record<string, string> = {
   'marias.rules.score.limit': 'Neviens dalījums starp lielo un kādu vienu pretspēlētāju nemaksā vairāk par {n}.',
   'marias.seat.bidder': 'Sola',
   'marias.seat.holder': 'Tur',
+  'marias.seat.sittingOut': 'Izlaiž',
   'err.MARIAS_YOU_HOLD': 'Tu turi solījumu: saki mám vai pas',
   'err.MARIAS_YOU_BID': 'Tu solī: solī vairāk vai pas',
   // --- end Mariáš ---

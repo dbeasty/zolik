@@ -2033,6 +2033,9 @@ export const ro: Record<string, string> = {
   'marias.rules.score.flek': 'Fiecare dublare dublează partea respectivă.',
   'marias.rules.score.red': 'Când roșu e atu, fiecare plată se dublează.',
   'marias.rules.end': 'Partida are {n} împărțiri.',
+  'marias.rules.section.four': 'În patru',
+  'marias.rules.four.sitOut': 'În patru jucători, cel care împarte stă pe tușă la fiecare mână și nici nu plătește, nici nu primește; alege jucătorul din stânga lui.',
+  'marias.rules.four.deals': 'În patru jucători, partida se rotunjește în sus la un multiplu de patru mâini, ca fiecare să stea pe tușă la fel de des.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2096,6 +2099,7 @@ export const ro: Record<string, string> = {
   'marias.rules.score.limit': 'Nicio împărțire nu plătește mai mult de {n} între declarant și oricare adversar.',
   'marias.seat.bidder': 'Licitează',
   'marias.seat.holder': 'Ține',
+  'marias.seat.sittingOut': 'Stă pe tușă',
   'err.MARIAS_YOU_HOLD': 'Tu ții licitația: spune mám sau pas',
   'err.MARIAS_YOU_BID': 'Tu licitezi: licitează mai sus sau pas',
   // --- end Mariáš ---

@@ -2040,6 +2040,9 @@ export const fr: Record<string, string> = {
   'marias.rules.score.flek': 'Chaque contre double cette partie.',
   'marias.rules.score.red': "Quand l'atout est cœur, chaque paiement est doublé.",
   'marias.rules.end': 'La partie se joue en {n} donnes.',
+  'marias.rules.section.four': 'À quatre',
+  'marias.rules.four.sitOut': 'À quatre joueurs, le donneur ne joue pas la donne et ne paie ni ne reçoit rien ; son voisin de gauche choisit.',
+  'marias.rules.four.deals': 'À quatre joueurs, la partie est arrondie au multiple de quatre donnes supérieur, pour que chacun passe son tour aussi souvent.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2103,6 +2106,7 @@ export const fr: Record<string, string> = {
   'marias.rules.score.limit': 'Aucune donne ne paie plus de {n} entre le déclarant et un même défenseur.',
   'marias.seat.bidder': 'Enchérit',
   'marias.seat.holder': 'Tient',
+  'marias.seat.sittingOut': 'Ne joue pas',
   'err.MARIAS_YOU_HOLD': "Tu tiens l'enchère : dis mám ou passe",
   'err.MARIAS_YOU_BID': "Tu enchéris : monte l'enchère ou passe",
   // --- end Mariáš ---

@@ -2011,6 +2011,9 @@ export const sv: Record<string, string> = {
   'marias.rules.score.flek': 'Varje dubbling dubblar den delen.',
   'marias.rules.score.red': 'Med hjärter som trumf dubblas varje betalning.',
   'marias.rules.end': 'Matchen består av {n} givar.',
+  'marias.rules.section.four': 'Fyra vid bordet',
+  'marias.rules.four.sitOut': 'Med fyra spelare står given över varje giv och varken betalar eller får betalt; spelaren till vänster väljer.',
+  'marias.rules.four.deals': 'Med fyra spelare avrundas matchen uppåt till en multipel av fyra givar, så att alla står över lika ofta.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2074,6 +2077,7 @@ export const sv: Record<string, string> = {
   'marias.rules.score.limit': 'Ingen giv betalar mer än {n} mellan spelföraren och en enskild motspelare.',
   'marias.seat.bidder': 'Bjuder',
   'marias.seat.holder': 'Håller',
+  'marias.seat.sittingOut': 'Står över',
   'err.MARIAS_YOU_HOLD': 'Du håller budet: säg mám eller passa',
   'err.MARIAS_YOU_BID': 'Du bjuder: bjud högre eller passa',
   // --- end Mariáš ---

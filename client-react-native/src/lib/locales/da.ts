@@ -2012,6 +2012,9 @@ export const da: Record<string, string> = {
   'marias.rules.score.flek': 'Hver fordobling fordobler den del.',
   'marias.rules.score.red': 'Med hjerter som trumf fordobles alle betalinger.',
   'marias.rules.end': 'Matchen består af {n} give.',
+  'marias.rules.section.four': 'Fire ved bordet',
+  'marias.rules.four.sitOut': 'Med fire spillere står giveren over i hvert spil og hverken betaler eller modtager; spilleren til venstre vælger.',
+  'marias.rules.four.deals': 'Med fire spillere rundes kampen op til et multiplum af fire spil, så alle står over lige ofte.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2075,6 +2078,7 @@ export const da: Record<string, string> = {
   'marias.rules.score.limit': 'Intet giv betaler mere end {n} mellem spilføreren og en enkelt modspiller.',
   'marias.seat.bidder': 'Byder',
   'marias.seat.holder': 'Holder',
+  'marias.seat.sittingOut': 'Står over',
   'err.MARIAS_YOU_HOLD': 'Du holder buddet: sig mám eller pas',
   'err.MARIAS_YOU_BID': 'Du byder: byd højere eller pas',
   // --- end Mariáš ---

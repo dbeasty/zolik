@@ -2020,6 +2020,9 @@ export const pl: Record<string, string> = {
   'marias.rules.score.flek': 'Każde podwojenie podwaja daną część.',
   'marias.rules.score.red': 'Gdy atu jest czerwień, każda płatność jest podwojona.',
   'marias.rules.end': 'Partia ma {n} rozdań.',
+  'marias.rules.section.four': 'We czworo',
+  'marias.rules.four.sitOut': 'Przy czterech graczach rozdający pauzuje w każdym rozdaniu: nie płaci i nic nie dostaje; wybiera gracz po jego lewej.',
+  'marias.rules.four.deals': 'Przy czterech graczach liczba rozdań jest zaokrąglana w górę do wielokrotności czterech, aby każdy pauzował równie często.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2083,6 +2086,7 @@ export const pl: Record<string, string> = {
   'marias.rules.score.limit': 'Żadne rozdanie nie płaci więcej niż {n} między rozgrywającym a jednym przeciwnikiem.',
   'marias.seat.bidder': 'Licytuje',
   'marias.seat.holder': 'Trzyma',
+  'marias.seat.sittingOut': 'Pauzuje',
   'err.MARIAS_YOU_HOLD': 'Trzymasz odzywkę: powiedz mám albo pasuj',
   'err.MARIAS_YOU_BID': 'Licytujesz: podbij albo pasuj',
   // --- end Mariáš ---

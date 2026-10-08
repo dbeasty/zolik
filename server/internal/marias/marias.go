@@ -1,10 +1,12 @@
-// Package marias implements Mariáš (volený, three players) as a game module.
+// Package marias implements Mariáš (volený and licitovaný, three players, or
+// four with the dealer sitting out) as a game module.
 //
 // It is Czech pub Mariáš as the Český svaz mariáše writes it down for
 // "bodovaný volený mariáš" (rules in force from 8.5.2007), with the
 // simplifications docs/marias-rules.md lists and a lobby can see: an engine
-// that refuses illegal cards has no use for renonc penalties, and a table of
-// three has no pauzírující player.
+// that refuses illegal cards has no use for renonc penalties. At a table of
+// four the dealer pauzíruje — sits the deal out, and neither pays nor is
+// paid (čtyřhranný mariáš).
 //
 // This file is step 0 of docs/marias-plan.md: the rules pinned as code — the
 // options, the written rules and the payment table — before the engine that

@@ -2037,6 +2037,9 @@ export const mt: Record<string, string> = {
   'marias.rules.score.flek': 'Kull doppju jirdoppja dik il-parti.',
   'marias.rules.score.red': 'Meta l-briskla tkun qlub, kull ħlas jiġi rdoppjat.',
   'marias.rules.end': 'Il-partita fiha {n} tqassimiet.',
+  'marias.rules.section.four': 'Erbgħa mal-mejda',
+  'marias.rules.four.sitOut': 'B\'erba\' plejers, min iqassam joqgħod barra kull tqassima u la jħallas u lanqas jitħallas; jagħżel il-plejer fuq ix-xellug tiegħu.',
+  'marias.rules.four.deals': 'B\'erba\' plejers, il-logħba tiġi arrotondata \'l fuq għal multiplu ta\' erba\' tqassimiet, biex kulħadd joqgħod barra l-istess numru ta\' drabi.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2100,6 +2103,7 @@ export const mt: Record<string, string> = {
   'marias.rules.score.limit': 'L-ebda tqassim ma jħallas aktar minn {n} bejn id-dikjarant u difensur wieħed.',
   'marias.seat.bidder': 'Qed joffri',
   'marias.seat.holder': 'Qed iżomm',
+  'marias.seat.sittingOut': 'Joqgħod barra',
   'err.MARIAS_YOU_HOLD': 'Int iżżomm l-offerta: għid mám jew għaddi',
   'err.MARIAS_YOU_BID': 'Int qed toffri: offri ogħla jew għaddi',
   // --- end Mariáš ---

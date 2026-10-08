@@ -2030,6 +2030,9 @@ export const it: Record<string, string> = {
   'marias.rules.score.flek': 'Ogni raddoppio raddoppia quella parte.',
   'marias.rules.score.red': 'Quando la briscola è cuori, ogni pagamento è raddoppiato.',
   'marias.rules.end': 'La partita dura {n} mani.',
+  'marias.rules.section.four': 'In quattro',
+  'marias.rules.four.sitOut': 'In quattro, il mazziere salta ogni mano e non paga né riceve nulla; sceglie il giocatore alla sua sinistra.',
+  'marias.rules.four.deals': 'In quattro, la partita viene arrotondata per eccesso a un multiplo di quattro mani, così tutti riposano lo stesso numero di volte.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2093,6 +2096,7 @@ export const it: Record<string, string> = {
   'marias.rules.score.limit': 'Nessuna mano paga più di {n} tra il dichiarante e un singolo difensore.',
   'marias.seat.bidder': 'Offre',
   'marias.seat.holder': 'Tiene',
+  'marias.seat.sittingOut': 'Riposa',
   'err.MARIAS_YOU_HOLD': "Tieni l'offerta: di' mám o passa",
   'err.MARIAS_YOU_BID': 'Stai offrendo: offri di più o passa',
   // --- end Mariáš ---

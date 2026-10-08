@@ -2024,6 +2024,9 @@ export const fi: Record<string, string> = {
   'marias.rules.score.flek': 'Jokainen tuplaus tuplaa kyseisen osan.',
   'marias.rules.score.red': 'Kun valttina ovat sydämet, jokainen maksu tuplataan.',
   'marias.rules.end': 'Ottelussa on {n} jakoa.',
+  'marias.rules.section.four': 'Neljän pelaajan pöytä',
+  'marias.rules.four.sitOut': 'Neljällä pelaajalla jakaja jää pois jokaisesta jaosta eikä maksa eikä saa mitään; hänen vasemmalla puolellaan oleva valitsee.',
+  'marias.rules.four.deals': 'Neljällä pelaajalla ottelu pyöristetään ylöspäin neljällä jaolliseen jakomäärään, jotta jokainen on pois yhtä usein.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2087,6 +2090,7 @@ export const fi: Record<string, string> = {
   'marias.rules.score.limit': 'Mikään jako ei maksa pelinviejän ja yksittäisen puolustajan välillä enempää kuin {n}.',
   'marias.seat.bidder': 'Tarjoaa',
   'marias.seat.holder': 'Pitää',
+  'marias.seat.sittingOut': 'Pitää taukoa',
   'err.MARIAS_YOU_HOLD': 'Sinä pidät tarjouksen: sano mám tai passaa',
   'err.MARIAS_YOU_BID': 'Sinä tarjoat: tarjoa korkeammalle tai passaa',
   // --- end Mariáš ---

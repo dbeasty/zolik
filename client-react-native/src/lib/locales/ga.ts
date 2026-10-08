@@ -2049,6 +2049,9 @@ export const ga: Record<string, string> = {
   'marias.rules.score.flek': 'Dúblálann gach dúbailt an chuid sin.',
   'marias.rules.score.red': 'Nuair is croíthe an mámh, dúbailtear gach íocaíocht.',
   'marias.rules.end': 'Tá {n} dáileadh sa chluiche.',
+  'marias.rules.section.four': 'Ceathrar ag an mbord',
+  'marias.rules.four.sitOut': 'Le ceathrar imreoirí, suíonn an déileálaí amach as gach déileáil agus ní íocann ná ní fhaigheann sé aon rud; roghnaíonn an t-imreoir ar a chlé.',
+  'marias.rules.four.deals': 'Le ceathrar imreoirí, slánaítear an cluiche suas go hiolraí de cheithre dhéileáil, ionas go suíonn gach duine amach chomh minic céanna.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2112,6 +2115,7 @@ export const ga: Record<string, string> = {
   'marias.rules.score.limit': 'Ní íocann aon dáileadh níos mó ná {n} idir an fógróir agus aon chosantóir amháin.',
   'marias.seat.bidder': 'Ag tairiscint',
   'marias.seat.holder': 'Ag coinneáil',
+  'marias.seat.sittingOut': 'Ina shuí amach',
   'err.MARIAS_YOU_HOLD': 'Tá an tairiscint agat: abair mám, nó lig thart',
   'err.MARIAS_YOU_BID': 'Tá tú ag tairiscint: tairg níos airde, nó lig thart',
   // --- end Mariáš ---

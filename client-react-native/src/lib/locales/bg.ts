@@ -2026,6 +2026,9 @@ export const bg: Record<string, string> = {
   'marias.rules.score.flek': 'Всяко удвояване удвоява съответната част.',
   'marias.rules.score.red': 'Когато коз са сърцата, всяко плащане се удвоява.',
   'marias.rules.end': 'Мачът е от {n} раздавания.',
+  'marias.rules.section.four': 'Четирима на масата',
+  'marias.rules.four.sitOut': 'При четирима играчи раздаващият почива всяко раздаване и нито плаща, нито получава; избира играчът отляво.',
+  'marias.rules.four.deals': 'При четирима играчи партията се закръгля нагоре до кратно на четири раздавания, за да почива всеки еднакво често.',
   'variation.marias.licitovany': 'Licitovaný',
   'marias.rung.1': 'sedma',
   'marias.rung.2': 'sedma červená',
@@ -2089,6 +2092,7 @@ export const bg: Record<string, string> = {
   'marias.rules.score.limit': 'Никое раздаване не плаща повече от {n} между разиграващия и който и да е защитник.',
   'marias.seat.bidder': 'Наддава',
   'marias.seat.holder': 'Държи',
+  'marias.seat.sittingOut': 'Почива',
   'err.MARIAS_YOU_HOLD': 'Ти държиш наддаването: кажи mám или пас',
   'err.MARIAS_YOU_BID': 'Ти наддаваш: наддай повече или пас',
   // --- end Mariáš ---
