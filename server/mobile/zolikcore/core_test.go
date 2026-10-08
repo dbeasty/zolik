@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -355,5 +357,71 @@ func TestTheEmbeddedHostSeatsTheTrainedModelsForAI(t *testing.T) {
 	}
 	if shipped == 0 {
 		t.Fatal("the build ships no trained model, so there is nothing for AI seats to play")
+	}
+}
+
+// A browser in the room opens the link the host shared and gets the web
+// client from the phone itself: a client route answers with the app, an asset
+// with the file, and the API is still the API. The games waiting to be saved
+// are the phone owner's business, so the room cannot list them.
+func TestTheRoomGetsTheWebClientButNotTheOwnersGames(t *testing.T) {
+	web := t.TempDir()
+	if err := os.WriteFile(filepath.Join(web, "index.html"), []byte("<html>jokerless</html>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(web, "_expo", "static", "js"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(web, "_expo", "static", "js", "entry.js"), []byte("boot()"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	SetWebRoot(web)
+	t.Cleanup(func() { SetWebRoot("") })
+
+	h := startHost(t, t.TempDir())
+	port, err := h.OpenLAN()
+	if err != nil {
+		t.Fatalf("OpenLAN: %v", err)
+	}
+	room := "http://127.0.0.2:" + strconv.Itoa(port)
+	if _, err := net.DialTimeout("tcp", "127.0.0.2:"+strconv.Itoa(port), time.Second); err != nil {
+		// Not every machine routes the whole of 127/8; the room listener
+		// answers on every interface, so loopback still reaches it.
+		room = "http://localhost:" + strconv.Itoa(port)
+	}
+
+	get := func(base, path, accept string) (int, string) {
+		t.Helper()
+		req, _ := http.NewRequest(http.MethodGet, base+path, nil)
+		if accept != "" {
+			req.Header.Set("Accept", accept)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET %s: %v", path, err)
+		}
+		defer res.Body.Close()
+		body, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(body)
+	}
+
+	if code, body := get(room, "/join/ABC123", "text/html"); code != http.StatusOK || !strings.Contains(body, "jokerless") {
+		t.Fatalf("the shared link answered %d %q, want the web client", code, body)
+	}
+	if code, body := get(room, "/_expo/static/js/entry.js", "*/*"); code != http.StatusOK || body != "boot()" {
+		t.Fatalf("the bundle answered %d %q", code, body)
+	}
+	if code, _ := get(room, "/no/such/api", "application/json"); code != http.StatusNotFound {
+		t.Fatalf("an unknown API path answered %d, want 404", code)
+	}
+	if code, _ := get(room, "/nearby/info", ""); code != http.StatusOK {
+		t.Fatalf("/nearby/info answered %d", code)
+	}
+
+	if code, _ := get(room, "/local/saves", "application/json"); code != http.StatusNotFound {
+		t.Fatalf("the room could list the owner's games: %d", code)
+	}
+	if code, body := get(h.BaseURL(), "/local/saves", "application/json"); code != http.StatusOK || !strings.Contains(body, `"games"`) {
+		t.Fatalf("the phone's own app could not list its games: %d %q", code, body)
 	}
 }

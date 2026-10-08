@@ -91,6 +91,9 @@ type Handlers struct {
 	identityAuthority bool
 	credentials       CredentialVersions
 	offlineKeys       PublicKeys
+	// passSeated is told about every pass this host seats somebody with, so
+	// the pass can travel with the match as the evidence for that seat.
+	passSeated func(subject, pass string)
 
 	publicBaseURL     string
 	allowedReturnURLs []string
@@ -111,6 +114,11 @@ type Handlers struct {
 // builds it from its own data directory and hands it over once the server it
 // wraps exists.
 func (h *Handlers) SetOfflineKeys(keys PublicKeys) { h.offlineKeys = keys }
+
+// OnPassSeated registers what to do with a pass that has just seated somebody.
+// An embedded host keeps it, because when the match is later handed up the
+// cloud credits an account only on the strength of its own signature.
+func (h *Handlers) OnPassSeated(fn func(subject, pass string)) { h.passSeated = fn }
 
 // SetMetrics attaches the counter sink, here and on the accounts behind it.
 func (h *Handlers) SetMetrics(s metrics.Sink) {
@@ -421,6 +429,9 @@ func (h *Handlers) offlinePass(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		internalError(w, "offlinePass", err)
 		return
+	}
+	if h.passSeated != nil {
+		h.passSeated(subject, strings.TrimSpace(body.OfflinePass))
 	}
 	writeJSON(w, map[string]any{
 		"accessToken":  accessToken,

@@ -6,6 +6,7 @@ import { ApiError } from '@/src/api/client';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { useSession } from '@/src/context/SessionContext';
+import { roomInviteUrl } from '@/src/lib/roomInvite';
 import { reasonText, t } from '@/src/lib/i18n';
 import { inviteUrlFor, seatUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import type { Metrics } from '@/src/lib/layout';
@@ -58,8 +59,8 @@ export function InviteBackSheet({
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => sheetStyles(metrics, skin), [metrics, skin]);
-  const offline = !!useSession().offline;
-  const tableUrl = offline ? '' : inviteUrlFor({ joinCode, inviteUrl });
+  const { offline: table, servedByTable } = useSession();
+  const tableUrl = table ? roomInviteUrl(table, joinCode, servedByTable) : inviteUrlFor({ joinCode, inviteUrl });
 
   if (!open) return null;
 
@@ -97,7 +98,7 @@ export function InviteBackSheet({
 
             {/* A seat link is an online thing: an offline table lives on one
                 phone, and everybody at it is already there. */}
-            {offline || !players.length ? null : (
+            {table || !players.length ? null : (
               <View style={styles.section}>
                 <Text style={styles.key}>{t('invite.backSeatHeading')}</Text>
                 <Text style={styles.value}>{t('invite.backSeatExplain')}</Text>

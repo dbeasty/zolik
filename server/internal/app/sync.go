@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/match"
+	"zolik/server/internal/module"
 	zsync "zolik/server/internal/sync"
 
 	"github.com/limidus/kdb/go/kdb/syncnode"
@@ -178,6 +180,24 @@ func (a *App) outbox() *zsync.Outbox {
 // On the hub, matches handed up by other nodes are replayed, checked and
 // recorded exactly as a match played here would be.
 func (a *App) configureOfflineFlow(matchMgr *match.Manager, statsRecorder match.Recorder) match.Recorder {
+	if a.cfg.IsMobile() && a.kdb != nil {
+		// A phone keeps every finished match until its players say whether
+		// it goes to the cloud (see match.LocalSaves). One that replicates
+		// keeps no figures of its own; one that does not, keeps the ones it
+		// always did.
+		var inner match.Recorder
+		out := a.outbox()
+		if out == nil {
+			inner = statsRecorder
+		}
+		registry := matchMgr.Registry()
+		a.localSaves = match.NewLocalSaves(a.kdb, a.matchRepo, out, inner, func(moduleID string) bool {
+			mod := registry.Get(moduleID)
+			return mod != nil && !module.IsServerDealt(mod)
+		})
+		a.auth.OnPassSeated(a.localSaves.RememberPass)
+		return a.localSaves
+	}
 	if a.sync == nil {
 		return statsRecorder
 	}
@@ -189,6 +209,62 @@ func (a *App) configureOfflineFlow(matchMgr *match.Manager, statsRecorder match.
 	}
 	claims := auth.NewKDBGuestClaims(a.kdb)
 	importer := match.NewImporter(a.matchRepo, matchMgr.Registry(), statsRecorder, claims)
+	importer.SetPassChecker(cloudPassChecker{nodes: a.nodes})
 	a.importer = zsync.NewImporter(a.kdb, auth.BundleVerifier{Nodes: a.nodes}, importer, time.Minute)
 	return statsRecorder
 }
+
+// cloudPassChecker checks a pass against this cloud's own signing keys, as of
+// when the match was played.
+type cloudPassChecker struct{ nodes auth.NodeRepository }
+
+func (c cloudPassChecker) NodeOwner(ctx context.Context, nodeID string) (string, error) {
+	if c.nodes == nil {
+		return "", errors.New("no node registry")
+	}
+	n, err := c.nodes.FindNode(ctx, nodeID)
+	if err != nil {
+		return "", err
+	}
+	return n.OwnerID, nil
+}
+
+func (cloudPassChecker) CheckSeatPass(pass, userHex string, at time.Time) error {
+	claims, err := auth.VerifyOfflinePassAt(pass, auth.LocalKeys(), at)
+	if err != nil {
+		return err
+	}
+	if claims.Subject != userHex {
+		return fmt.Errorf("the pass is %s's, not %s's", claims.Subject, userHex)
+	}
+	return nil
+}
+
+// reconcileLocalSaves settles a phone's saved games against the history the
+// cloud sends back: a match in the owner's history has arrived, and its
+// bundle can go.
+func (a *App) reconcileLocalSaves(ctx context.Context) {
+	if a.localSaves == nil || !a.localSaves.Enrolled() || a.replicaUser == "" {
+		return
+	}
+	owner := a.replicaUser
+	acked := func(matchHex string) bool {
+		_, err := a.kdb.Get(db.UserReadOnlyNS(owner), "matches/"+matchHex)
+		return err == nil
+	}
+	a.localSaves.Reconcile(ctx, acked)
+	t := time.NewTicker(20 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			a.localSaves.Reconcile(ctx, acked)
+		}
+	}
+}
+
+// LocalSaves is the phone's store of finished games waiting for their
+// players' answers. Nil anywhere but an embedded host.
+func (a *App) LocalSaves() *match.LocalSaves { return a.localSaves }

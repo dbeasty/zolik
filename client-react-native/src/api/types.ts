@@ -93,6 +93,12 @@ export type PlayerSession = {
   /** Matches recorded against this device's guest id that an account could
    *  still absorb. Drives the "sign in to keep your N games" prompt. */
   claimableMatches?: number;
+  /**
+   * What a table with no internet signed to say this guest sat there. Kept so
+   * that, if the player agrees, a game played there can be added to their
+   * account once they are signed in online. See `src/lib/seatReceipts.ts`.
+   */
+  seatReceipt?: string;
 };
 
 /** One way of signing in, as advertised by the server.
@@ -387,4 +393,24 @@ export type ClaimedSeat = {
   claimed: boolean;
   /** Why not, when it was not: the seat belongs to somebody else. */
   reason?: string;
+};
+
+/** A player's answer for their own seat in a game a phone is keeping. */
+export type SaveConsent = {
+  /** Whether this table keeps the game for saving at all. */
+  available: boolean;
+  /** Unset until the player has answered. */
+  consent?: boolean | null;
+  kind?: 'host' | 'account' | 'guest';
+  state?: 'pending' | 'saved' | 'uploaded';
+};
+
+/** One finished game waiting on this phone. */
+export type LocalSave = {
+  matchId: string;
+  moduleId: string;
+  variation?: string;
+  finishedAt: string;
+  state: 'pending' | 'saved' | 'uploaded';
+  seats: { seat: string; name: string; kind: 'host' | 'account' | 'guest' | 'bot'; consent?: boolean | null }[];
 };

@@ -5,6 +5,7 @@ import { inviteUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 import { useSession } from '@/src/context/SessionContext';
+import { roomInviteUrl } from '@/src/lib/roomInvite';
 
 /**
  * The host's "invite people" control: one link, one button.
@@ -37,8 +38,11 @@ export function InvitePanel({
   // the other players are already at this phone's table, one tap from "Join
   // a table". Read here rather than passed in, so that no screen showing the
   // panel can forget.
-  const offline = !!useSession().offline;
-  const url = offline ? '' : inviteUrlFor({ joinCode, inviteUrl });
+  const { offline: table, servedByTable } = useSession();
+  const offline = !!table;
+  // At a table on a phone the link names that phone on this network: it
+  // opens in any browser in the room, and nowhere else.
+  const url = table ? roomInviteUrl(table, joinCode, servedByTable) : inviteUrlFor({ joinCode, inviteUrl });
   const [done, setDone] = useState(false);
 
   // The confirmation is a moment, not a state. Left up permanently it stops
@@ -61,10 +65,14 @@ export function InvitePanel({
         {t('invite.heading')}
       </Text>
       <Text style={shared.status}>
-        {offline ? t('invite.offlineExplain', { menu: t('nav.join') }) : t('invite.explain')}
+        {offline
+          ? url
+            ? t('invite.roomExplain')
+            : t('invite.offlineExplain', { menu: t('nav.join') })
+          : t('invite.explain')}
       </Text>
 
-      {offline ? null : url ? (
+      {url ? (
         <>
           {/*
             Selectable, and wrapping rather than truncated. A host reading the
@@ -97,7 +105,7 @@ export function InvitePanel({
             <Text style={shared.buttonText}>{done ? doneLabel : actionLabel}</Text>
           </Pressable>
         </>
-      ) : (
+      ) : offline ? null : (
         // No link to offer: an older server, or one with no public address
         // configured. Said plainly rather than shown as a dead button — the
         // code below still works, and that is the useful thing to point at.

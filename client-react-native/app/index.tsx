@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { router, useIsFocused, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -67,7 +68,7 @@ function MenuButton({
  * it waiting for you, and people waiting to play it.
  */
 export default function MainMenu() {
-  const { session, loading, offline } = useSession();
+  const { session, loading, offline, servedByTable } = useSession();
   const introChecked = useIntroGate();
   useFollowPendingDestination(!!session && !loading);
   // Nothing else here re-renders once the saved language has loaded.
@@ -102,7 +103,12 @@ export default function MainMenu() {
           behind the face in the top corner, which is where a player looks
           for themselves. See `AccountMenu`. Somebody with no session yet
           gets the two ways to get one. */}
-      {!session ? (
+      {servedByTable ? <ServedByTableNote /> : null}
+      {!session && servedByTable ? (
+        // A phone's table has no accounts to sign in to: a name is all it
+        // asks for.
+        <MenuButton label={t('home.continueAsGuest')} onPress={() => router.push('/auth/guest')} />
+      ) : !session ? (
         <>
           <Text style={[shared.status, { marginTop: 0, marginBottom: 10 }]}>
             {t('home.signInPrompt')}
@@ -554,3 +560,25 @@ const styles = StyleSheet.create({
   codeInput: { flex: 1, marginBottom: 0 },
   codeButton: { marginBottom: 0, paddingVertical: 12 },
 });
+
+/**
+ * What a browser in the room is looking at: a table on somebody's phone, not
+ * the online service. Somebody who has the app can carry on there instead,
+ * which also gets them the phone's Bluetooth and their own name next time.
+ */
+function ServedByTableNote() {
+  const host = typeof window !== 'undefined' ? window.location.host : '';
+  return (
+    <View style={[shared.card, { marginBottom: 12 }]} testID="served-by-table">
+      <Text style={shared.status}>{t('served.note')}</Text>
+      {host ? (
+        <Pressable
+          testID="served-open-in-app"
+          onPress={() => void Linking.openURL(`clientreactnative://offline?h=${encodeURIComponent(host)}`)}
+        >
+          <Text style={[shared.status, { color: colors.accent, marginTop: 6 }]}>{t('served.openInApp')}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
