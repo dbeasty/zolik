@@ -1,5 +1,6 @@
 {
   "bg": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Пасианс",
     "notify.push.inviteBody": "Елате да играете {game} с {host}. Докоснете, за да се присъедините.",
     "notify.push.inviteTitle": "{host} отвори маса",
@@ -7,6 +8,7 @@
     "notify.push.rematchTitle": "{host} иска реванш"
   },
   "cs": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
     "notify.push.inviteBody": "Přijďte si zahrát {game} s hráčem {host}. Klepněte a přisedněte.",
     "notify.push.inviteTitle": "{host} otevřel(a) stůl",
@@ -14,6 +16,7 @@
     "notify.push.rematchTitle": "{host} chce odvetu"
   },
   "da": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Kabale",
     "notify.push.inviteBody": "Kom og spil {game} med {host}. Tryk for at deltage.",
     "notify.push.inviteTitle": "{host} har åbnet et bord",
@@ -21,6 +24,7 @@
     "notify.push.rematchTitle": "{host} vil have en revanche"
   },
   "de": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitär",
     "notify.push.inviteBody": "Spiel {game} mit {host}. Tippe zum Beitreten.",
     "notify.push.inviteTitle": "{host} hat einen Tisch eröffnet",
@@ -28,6 +32,7 @@
     "notify.push.rematchTitle": "{host} möchte eine Revanche"
   },
   "el": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Πασιέντζα",
     "notify.push.inviteBody": "Ελάτε να παίξετε {game} με {host}. Αγγίξτε για συμμετοχή.",
     "notify.push.inviteTitle": "{host} άνοιξε τραπέζι",
@@ -35,6 +40,7 @@
     "notify.push.rematchTitle": "{host} θέλει ρεβάνς"
   },
   "en": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
     "notify.push.inviteBody": "Come and play {game} with {host}. Tap to join.",
     "notify.push.inviteTitle": "{host} opened a table",
@@ -42,6 +48,7 @@
     "notify.push.rematchTitle": "{host} wants a rematch"
   },
   "es": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
     "notify.push.inviteBody": "Ven a jugar a {game} con {host}. Toca para unirte.",
     "notify.push.inviteTitle": "{host} abrió una mesa",
@@ -49,6 +56,7 @@
     "notify.push.rematchTitle": "{host} quiere la revancha"
   },
   "et": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
     "notify.push.inviteBody": "Tule mängima {game} koos mängijaga {host}. Puuduta liitumiseks.",
     "notify.push.inviteTitle": "{host} avas laua",
@@ -56,6 +64,7 @@
     "notify.push.rematchTitle": "{host} tahab revanši"
   },
   "fi": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasianssi",
     "notify.push.inviteBody": "Tule pelaamaan {game} pelaajan {host} kanssa. Napauta liittyäksesi.",
     "notify.push.inviteTitle": "{host} avasi pöydän",
@@ -63,6 +72,7 @@
     "notify.push.rematchTitle": "{host} haluaa uusintaottelun"
   },
   "fr": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
     "notify.push.inviteBody": "Venez jouer à {game} avec {host}. Touchez pour rejoindre.",
     "notify.push.inviteTitle": "{host} a ouvert une table",
@@ -70,6 +80,7 @@
     "notify.push.rematchTitle": "{host} veut une revanche"
   },
   "ga": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Foighne",
     "notify.push.inviteBody": "Tar agus imir {game} le {host}. Tapáil chun páirt a ghlacadh.",
     "notify.push.inviteTitle": "D’oscail {host} bord",
@@ -77,6 +88,7 @@
     "notify.push.rematchTitle": "Tá athchluiche ag teastáil ó {host}"
   },
   "hr": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasijans",
     "notify.push.inviteBody": "Dođite igrati {game} s igračem {host}. Dodirnite za pridruživanje.",
     "notify.push.inviteTitle": "{host} je otvorio stol",
@@ -84,6 +96,7 @@
     "notify.push.rematchTitle": "{host} želi revanš"
   },
   "hu": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasziánsz",
     "notify.push.inviteBody": "Gyere, játssz {game} játékot vele: {host}. Koppints a csatlakozáshoz.",
     "notify.push.inviteTitle": "{host} asztalt nyitott",
@@ -91,6 +104,7 @@
     "notify.push.rematchTitle": "{host} visszavágót szeretne"
   },
   "it": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
     "notify.push.inviteBody": "Vieni a giocare a {game} con {host}. Tocca per unirti.",
     "notify.push.inviteTitle": "{host} ha aperto un tavolo",
@@ -98,6 +112,7 @@
     "notify.push.rematchTitle": "{host} vuole la rivincita"
   },
   "lt": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansas",
     "notify.push.inviteBody": "Ateikite žaisti {game} su {host}. Palieskite, kad prisijungtumėte.",
     "notify.push.inviteTitle": "{host} atidarė stalą",
@@ -105,6 +120,7 @@
     "notify.push.rematchTitle": "{host} nori revanšo"
   },
   "lv": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
     "notify.push.inviteBody": "Nāc spēlēt {game} kopā ar {host}. Pieskaries, lai pievienotos.",
     "notify.push.inviteTitle": "{host} atvēra galdu",
@@ -112,6 +128,7 @@
     "notify.push.rematchTitle": "{host} vēlas revanšu"
   },
   "mt": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitarju",
     "notify.push.inviteBody": "Ejja ilgħab {game} ma’ {host}. Agħfas biex tingħaqad.",
     "notify.push.inviteTitle": "{host} fetaħ mejda",
@@ -119,6 +136,7 @@
     "notify.push.rematchTitle": "{host} irid rivinċita"
   },
   "nl": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Patience",
     "notify.push.inviteBody": "Kom {game} spelen met {host}. Tik om mee te doen.",
     "notify.push.inviteTitle": "{host} heeft een tafel geopend",
@@ -126,6 +144,7 @@
     "notify.push.rematchTitle": "{host} wil een revanche"
   },
   "pl": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjans",
     "notify.push.inviteBody": "Zagraj w {game} z: {host}. Dotknij, aby dołączyć.",
     "notify.push.inviteTitle": "{host} otwiera stół",
@@ -133,6 +152,7 @@
     "notify.push.rematchTitle": "{host} chce rewanżu"
   },
   "pt": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Paciência",
     "notify.push.inviteBody": "Venha jogar {game} com {host}. Toque para se juntar.",
     "notify.push.inviteTitle": "{host} abriu uma mesa",
@@ -140,6 +160,7 @@
     "notify.push.rematchTitle": "{host} quer uma desforra"
   },
   "ro": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasiență",
     "notify.push.inviteBody": "Vino să joci {game} cu {host}. Atinge pentru a te alătura.",
     "notify.push.inviteTitle": "{host} a deschis o masă",
@@ -147,6 +168,7 @@
     "notify.push.rematchTitle": "{host} vrea o revanșă"
   },
   "sk": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
     "notify.push.inviteBody": "Príďte si zahrať {game} s hráčom {host}. Ťuknite a prisadnite.",
     "notify.push.inviteTitle": "{host} otvoril(a) stôl",
@@ -154,6 +176,7 @@
     "notify.push.rematchTitle": "{host} chce odvetu"
   },
   "sl": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansa",
     "notify.push.inviteBody": "Pridite igrat {game} z igralcem {host}. Dotaknite se za pridružitev.",
     "notify.push.inviteTitle": "{host} je odprl mizo",
@@ -161,6 +184,7 @@
     "notify.push.rematchTitle": "{host} želi revanšo"
   },
   "sv": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Patiens",
     "notify.push.inviteBody": "Kom och spela {game} med {host}. Tryck för att gå med.",
     "notify.push.inviteTitle": "{host} har öppnat ett bord",
