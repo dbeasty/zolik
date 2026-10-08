@@ -303,6 +303,7 @@ export const sl: Record<string, string> = {
   'flash.matchWon': '{winners} zmaga',
   'flash.matchWonYou': 'Zmagal si',
   'flash.matchDrawn': 'Nihče ni zmagal',
+  'flash.notSolved': 'Ni rešeno',
   'flash.nowOn': 'zdaj {total}',
 
   'zolik.round.deal': 'Deljenje',
@@ -1248,6 +1249,7 @@ export const sl: Record<string, string> = {
   'match.waitingForTable': 'Čakamo mizo…',
   'match.waitingForPlayer': 'Čakamo drugega igralca…',
   'match.nobodyWon': 'Nihče ni zmagal.',
+  'match.notSolved': 'Ni rešeno.',
   'match.youWon': 'Zmagal si.',
   'match.finished': 'Ta tekma se je končala.',
   'match.inProgress': 'Tekma poteka — vse je povezano in teče normalno.',

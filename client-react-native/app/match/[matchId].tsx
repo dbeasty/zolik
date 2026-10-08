@@ -1024,9 +1024,14 @@ export default function MatchScreen() {
   const winners = state.winners ?? (state.winnerId ? [state.winnerId] : []);
   const iWon = winners.includes(viewerId);
   const winnerNames = winners.map((id) => (id === viewerId ? t('match.you') : playerName(state.players, id)));
+  // A game played alone that nobody won was not lost to anybody: it was not
+  // solved. Told apart by the table having one seat — a fact about the table,
+  // not about which game is on it.
   const outcome =
     winners.length === 0
-      ? t('match.nobodyWon')
+      ? state.players.length === 1
+        ? t('match.notSolved')
+        : t('match.nobodyWon')
       : winners.length === 1
         ? iWon
           ? t('match.youWon')

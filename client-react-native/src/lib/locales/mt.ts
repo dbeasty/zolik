@@ -309,6 +309,7 @@ export const mt: Record<string, string> = {
   'flash.matchWon': '{winners} rebaħ',
   'flash.matchWonYou': 'Int rbaħt',
   'flash.matchDrawn': 'Ħadd ma rebaħ',
+  'flash.notSolved': 'Mhux solvut',
   'flash.nowOn': 'issa {total}',
 
   'zolik.round.deal': 'Tqassim',
@@ -1277,6 +1278,7 @@ export const mt: Record<string, string> = {
   'match.waitingForTable': 'Nistennew il-mejda…',
   'match.waitingForPlayer': 'Nistennew plejer ieħor…',
   'match.nobodyWon': 'Ħadd ma rebaħ.',
+  'match.notSolved': 'Mhux solvut.',
   'match.youWon': 'Rbaħt.',
   'match.finished': 'Din il-partita spiċċat.',
   'match.inProgress': 'Il-partita għaddejja — kollox huwa konness u miexi normali.',

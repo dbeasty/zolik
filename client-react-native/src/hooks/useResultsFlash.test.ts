@@ -285,6 +285,14 @@ describe('compose', () => {
     expect(lines.sub).toBe('Anna & Cy 5230  ·  You & Bo 3120');
   });
 
+  it('says a game played alone and not won was not solved, rather than that nobody won', () => {
+    const alone = [players[0]!];
+    expect(compose({ kind: 'match', players: alone, viewerId: alone[0]!.id, winners: [] }).headline).toBe(
+      'Not solved',
+    );
+    expect(compose({ kind: 'match', players, viewerId: 'p1', winners: [] }).headline).toBe('Nobody won');
+  });
+
   it('congratulates the winner by name only when it is not the reader', () => {
     const lines = compose({ kind: 'match', players, viewerId: 'p2', winners: ['p2'] });
     expect(lines.headline).toBe('You won');

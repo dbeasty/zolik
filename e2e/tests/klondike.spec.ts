@@ -139,6 +139,10 @@ test.describe('solitaire', () => {
 
     await page.getByTestId('offer-giveup').click();
     await expect(page.getByTestId('match-over')).toBeVisible({ timeout: 15_000 });
+    // A game played alone and given up was not solved; nobody else lost it.
+    await expect(page.getByTestId('match-over-outcome')).toHaveText('Not solved.');
+    await page.waitForTimeout(4000); // past the results flash, for the picture
+    await page.screenshot({ path: 'test-results/klondike-not-solved.png' });
     await page.getByTestId('match-over-deal-again').click();
 
     // A new table, dealt the same cards — and saying it is a deal seen before

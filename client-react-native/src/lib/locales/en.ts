@@ -313,6 +313,7 @@ export const en: Record<string, string> = {
   'flash.matchWon': '{winners} won',
   'flash.matchWonYou': 'You won',
   'flash.matchDrawn': 'Nobody won',
+  'flash.notSolved': 'Not solved',
   'flash.nowOn': 'now {total}',
 
   'zolik.round.deal': 'Deal',
@@ -1250,6 +1251,7 @@ export const en: Record<string, string> = {
   'match.waitingForTable': 'Waiting for the table…',
   'match.waitingForPlayer': 'Waiting for another player…',
   'match.nobodyWon': 'Nobody won.',
+  'match.notSolved': 'Not solved.',
   'match.youWon': 'You won.',
   'match.finished': 'This match has finished.',
   'match.inProgress': 'Match in progress — everything is connected and moving normally.',

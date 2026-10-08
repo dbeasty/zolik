@@ -298,6 +298,7 @@ export const sv: Record<string, string> = {
   'flash.matchWon': '{winners} vann',
   'flash.matchWonYou': 'Du vann',
   'flash.matchDrawn': 'Ingen vann',
+  'flash.notSolved': 'Inte löst',
   'flash.nowOn': 'nu {total}',
 
   'zolik.round.deal': 'Giv',
@@ -1250,6 +1251,7 @@ export const sv: Record<string, string> = {
   'match.waitingForTable': 'Väntar på bordet…',
   'match.waitingForPlayer': 'Väntar på en annan spelare…',
   'match.nobodyWon': 'Ingen vann.',
+  'match.notSolved': 'Inte löst.',
   'match.youWon': 'Du vann.',
   'match.finished': 'Den här matchen är slut.',
   'match.inProgress': 'Matchen pågår — allt är anslutet och rullar på normalt.',

@@ -305,6 +305,7 @@ export const lv: Record<string, string> = {
   'flash.matchWon': '{winners} uzvarēja',
   'flash.matchWonYou': 'Tu uzvarēji',
   'flash.matchDrawn': 'Neviens neuzvarēja',
+  'flash.notSolved': 'Nav atrisināts',
   'flash.nowOn': 'tagad {total}',
 
   'zolik.round.deal': 'Dalījums',
@@ -1254,6 +1255,7 @@ export const lv: Record<string, string> = {
   'match.waitingForTable': 'Gaidām galdu…',
   'match.waitingForPlayer': 'Gaidām citu spēlētāju…',
   'match.nobodyWon': 'Neviens neuzvarēja.',
+  'match.notSolved': 'Nav atrisināts.',
   'match.youWon': 'Tu uzvarēji.',
   'match.finished': 'Šis mačs ir beidzies.',
   'match.inProgress': 'Mačs norit — viss ir savienots un darbojas normāli.',

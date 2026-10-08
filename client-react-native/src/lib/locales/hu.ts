@@ -312,6 +312,7 @@ export const hu: Record<string, string> = {
   'flash.matchWon': '{winners} nyert',
   'flash.matchWonYou': 'Nyertél',
   'flash.matchDrawn': 'Senki nem nyert',
+  'flash.notSolved': 'Nincs megoldva',
   'flash.nowOn': 'most {total}',
 
   'zolik.round.deal': 'Leosztás',
@@ -1271,6 +1272,7 @@ export const hu: Record<string, string> = {
   'match.waitingForTable': 'Várunk az asztalra…',
   'match.waitingForPlayer': 'Várunk egy másik játékosra…',
   'match.nobodyWon': 'Senki sem nyert.',
+  'match.notSolved': 'Nincs megoldva.',
   'match.youWon': 'Nyertél.',
   'match.finished': 'Ez a mérkőzés véget ért.',
   'match.inProgress': 'A mérkőzés folyik — minden csatlakozik és rendben halad.',
