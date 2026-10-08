@@ -101,6 +101,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: module.OptOn, Label: "Shown"},
 				},
 			},
+			{
+				Name:  OptOpenBetlDurch,
+				Type:  module.OptionEnumInt,
+				Label: "Open betl and durch",
+				Help:  "After the first trick of a betl or durch, the declarer's cards are laid face up.",
+				Choices: []module.OptionChoice{
+					{Value: module.OptOff, Label: "Played closed"},
+					{Value: module.OptOn, Label: "Declarer's hand shown"},
+				},
+			},
 			module.BotSkillOption(),
 			module.PauseOption(),
 		},
@@ -114,6 +124,7 @@ var variationDefaults = map[string]int{
 	OptFlekLimit:                 FlekUnlimited,
 	OptZLidu:                     module.OptOn,
 	OptShowCardPoints:            module.OptOff,
+	OptOpenBetlDurch:             module.OptOff,
 	module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 	module.OptPauseBetweenRounds: module.OptOn,
 }
@@ -145,5 +156,6 @@ func resolve(cfg module.MatchConfig) config {
 		flekLimit:      opt(OptFlekLimit),
 		zLidu:          opt(OptZLidu) == module.OptOn,
 		showCardPoints: opt(OptShowCardPoints) == module.OptOn,
+		openBetlDurch:  opt(OptOpenBetlDurch) == module.OptOn,
 	}
 }

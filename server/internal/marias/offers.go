@@ -191,6 +191,7 @@ func (s *GameState) config() module.MatchConfig {
 		OptFlekLimit:      s.FlekLimit,
 		OptZLidu:          module.BoolOpt(s.ZLidu),
 		OptShowCardPoints: module.BoolOpt(s.ShowCardPoints),
+		OptOpenBetlDurch:  module.BoolOpt(s.OpenBetlDurch),
 	}}
 }
 
