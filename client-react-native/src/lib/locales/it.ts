@@ -1912,6 +1912,7 @@ export const it: Record<string, string> = {
   'setup.dealMeIn': 'Dai le carte',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Impostazione del tavolo',
+  'bot.strength.title': 'Livello di {name}',
   'setup.botSkill.easy': 'Facile',
   'setup.botSkill.medium': 'Medio',
   'setup.botSkill.hard': 'Difficile',

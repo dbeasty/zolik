@@ -1897,6 +1897,7 @@ export const lt: Record<string, string> = {
   'setup.dealMeIn': 'Dalink man',
   'setup.botSeat': 'Botas {n}',
   'setup.botSkillTable': 'Stalo nustatymas',
+  'bot.strength.title': '{name}: stiprumas',
   'setup.botSkill.easy': 'Lengvas',
   'setup.botSkill.medium': 'Vidutinis',
   'setup.botSkill.hard': 'Sunkus',

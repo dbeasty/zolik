@@ -34,6 +34,7 @@ import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
+import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
@@ -217,6 +218,9 @@ export default function MatchScreen() {
   const [explaining, setExplaining] = useState<Refusal | null>(null);
   // Whose score is being explained, and from which round's cell if any.
   const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
+  // The host may change any bot's strength at any point: tapping its face
+  // opens the picker. Nobody else's taps do anything.
+  const botStrength = useBotStrength(client, String(matchId ?? ''), !!state?.hostId && state.hostId === viewerId);
   // Amounts dialled into the controls and not yet sent. Held here, not in the
   // bar, because the bar unmounts when its panel collapses and the collapsed
   // rail's pills send the same offers — both read this one store.
@@ -1714,6 +1718,7 @@ export default function MatchScreen() {
           // Only where the game keeps rounds: a score with no account behind
           // it — Prší's, which is a card count — has nothing to open.
           onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
+          onPickBot={botStrength.open}
         />
 
       </ScrollView>
@@ -1722,6 +1727,7 @@ export default function MatchScreen() {
           to make instead. Opened from a greyed-out control's reason line, a
           refused drop, or a submission the server turned down — one component
           for all three, because they are one question. */}
+      {botStrength.sheet}
       <ScoreSheet
         subjectId={scoreOf?.playerId ?? null}
         focusRound={scoreOf?.round}

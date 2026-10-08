@@ -1938,6 +1938,7 @@ export const el: Record<string, string> = {
   'setup.dealMeIn': 'Μοίρασέ μου',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Ρύθμιση τραπεζιού',
+  'bot.strength.title': 'Δύναμη: {name}',
   'setup.botSkill.easy': 'Εύκολος',
   'setup.botSkill.medium': 'Μέτριος',
   'setup.botSkill.hard': 'Δύσκολος',

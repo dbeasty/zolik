@@ -1894,6 +1894,7 @@ export const da: Record<string, string> = {
   'setup.dealMeIn': 'Giv mig kort',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Bordets indstilling',
+  'bot.strength.title': 'Styrke for {name}',
   'setup.botSkill.easy': 'Let',
   'setup.botSkill.medium': 'Mellem',
   'setup.botSkill.hard': 'Svær',

@@ -14,6 +14,7 @@ import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
+import { useBotStrength } from '@/src/components/BotStrengthSheet';
 
 /**
  * The host's table before it starts: who is seated, who can be pulled in, and
@@ -77,6 +78,8 @@ export default function TableScreen() {
       /* the waiting room is optional infrastructure */
     }
   }, [client, id, session?.userId, offline]);
+
+  const botStrength = useBotStrength(client, id, isHost, poll);
 
   useEffect(() => {
     if (!id) return;
@@ -270,6 +273,21 @@ export default function TableScreen() {
               {p.id === state?.hostId ? ' ★' : ''}
               {sideOf(p.id) ? ` · ${sideOf(p.id)}` : ''}
             </Text>
+            {/* A bot's strength, which the host can change by tapping it. */}
+            {p.isAI && p.skill ? (
+              <Pressable
+                testID={`bot-strength-open-${p.id}`}
+                disabled={!botStrength.open}
+                onPress={() => botStrength.open?.({ id: p.id, name: p.name, skill: p.skill })}
+                accessibilityRole={botStrength.open ? 'button' : undefined}
+                accessibilityLabel={t('bot.strength.title', { name: p.name })}
+                style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: colors.border, borderRadius: 6 }}
+              >
+                <Text style={{ color: botStrength.open ? colors.accent : colors.muted }}>
+                  {t(`setup.botSkill.${p.skill}`)}
+                </Text>
+              </Pressable>
+            ) : null}
             {/*
               Move a seat rather than name a team. In a game with sides the turn
               alternates between them, so where somebody sits *is* who they play
@@ -354,6 +372,7 @@ export default function TableScreen() {
         ) : null}
 
         {error ? <Text style={shared.error}>{error}</Text> : null}
+        {botStrength.sheet}
 
         {isHost ? (
           <>

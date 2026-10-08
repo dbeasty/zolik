@@ -1916,6 +1916,7 @@ export const pt: Record<string, string> = {
   'setup.dealMeIn': 'Dá-me cartas',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Definição da mesa',
+  'bot.strength.title': 'Nível de {name}',
   'setup.botSkill.easy': 'Fácil',
   'setup.botSkill.medium': 'Médio',
   'setup.botSkill.hard': 'Difícil',

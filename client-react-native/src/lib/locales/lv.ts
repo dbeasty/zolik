@@ -1896,6 +1896,7 @@ export const lv: Record<string, string> = {
   'setup.dealMeIn': 'Izdali man',
   'setup.botSeat': 'Bots {n}',
   'setup.botSkillTable': 'Galda iestatījums',
+  'bot.strength.title': '{name}: stiprums',
   'setup.botSkill.easy': 'Viegls',
   'setup.botSkill.medium': 'Vidējs',
   'setup.botSkill.hard': 'Grūts',

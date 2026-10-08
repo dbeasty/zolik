@@ -1908,6 +1908,7 @@ export const bg: Record<string, string> = {
   'setup.dealMeIn': 'Раздай ми',
   'setup.botSeat': 'Бот {n}',
   'setup.botSkillTable': 'Настройка на масата',
+  'bot.strength.title': 'Сила на {name}',
   'setup.botSkill.easy': 'Лесен',
   'setup.botSkill.medium': 'Среден',
   'setup.botSkill.hard': 'Труден',

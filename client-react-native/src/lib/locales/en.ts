@@ -1916,6 +1916,7 @@ export const en: Record<string, string> = {
   'setup.openTable': 'Open table',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Table setting',
+  'bot.strength.title': '{name}\'s strength',
   'setup.botSkill.easy': 'Easy',
   'setup.botSkill.medium': 'Medium',
   'setup.botSkill.hard': 'Hard',

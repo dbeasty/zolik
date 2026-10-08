@@ -1895,6 +1895,7 @@ export const hr: Record<string, string> = {
   'setup.dealMeIn': 'Podijeli mi',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Postavka stola',
+  'bot.strength.title': 'Snaga igrača {name}',
   'setup.botSkill.easy': 'Lagan',
   'setup.botSkill.medium': 'Srednji',
   'setup.botSkill.hard': 'Težak',

@@ -1888,6 +1888,7 @@ export const cs: Record<string, string> = {
   'setup.dealMeIn': 'Rozdej mi',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Nastavení stolu',
+  'bot.strength.title': 'Síla hráče {name}',
   'setup.botSkill.easy': 'Lehký',
   'setup.botSkill.medium': 'Střední',
   'setup.botSkill.hard': 'Těžký',

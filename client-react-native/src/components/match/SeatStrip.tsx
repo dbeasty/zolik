@@ -51,6 +51,22 @@ import { t } from '@/src/lib/i18n';
  * without being read at all, which is what a glance at a board is.
  */
 
+/** A bot's face or badge, made a control when the viewer may change its strength. */
+function BotPress({ onPress, testID, name, children }: { onPress?: () => void; testID: string; name: string; children: ReactNode }) {
+  if (!onPress || !children) return <>{children}</>;
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={t('bot.strength.title', { name })}
+      testID={testID}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 type Props = {
   seats: Seat[];
   players: MatchPlayer[];
@@ -71,9 +87,14 @@ type Props = {
    * number that jumped by a thousand is the thing a player wants to ask about.
    */
   onOpenScore?: (playerId: string) => void;
+  /**
+   * The host's strength picker for a bot seat. Where it is given, a bot's
+   * avatar and BOT badge are a control that opens it.
+   */
+  onPickBot?: (bot: { id: string; name: string; skill?: string }) => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   // Asked for stillness, the seat on turn keeps its outline and its shadow
@@ -117,6 +138,8 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         ringColor={seat.active ? skin.colors.gold : undefined}
       />
     ) : null;
+    const pickBot =
+      player?.isAI && onPickBot ? () => onPickBot({ id: player.id, name, skill: player.skill }) : undefined;
     const rank = standing ? <Text style={styles.rank}>{standing.rank}</Text> : null;
     // An AI client playing over MCP wears its own mark, and a seat the table
     // is playing on without says so — it checks or folds until its player is
@@ -168,9 +191,13 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           // so the tile is as wide as its longest line rather than both.
           <>
             <View style={styles.nameRow}>
-              {avatar}
+              <BotPress onPress={pickBot} testID={`bot-strength-open-${seat.playerId}`} name={name}>
+                {avatar}
+              </BotPress>
               {rank}
-              {bot}
+              <BotPress onPress={pickBot} testID={`bot-strength-badge-${seat.playerId}`} name={name}>
+                {bot}
+              </BotPress>
               {away}
             </View>
             <Text style={[styles.name, styles.nameCrowded]} numberOfLines={1}>
@@ -179,12 +206,16 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           </>
         ) : (
           <View style={styles.nameRow}>
-            {avatar}
+            <BotPress onPress={pickBot} testID={`bot-strength-open-${seat.playerId}`} name={name}>
+              {avatar}
+            </BotPress>
             {rank}
             <Text style={styles.name} numberOfLines={1}>
               {name}
             </Text>
-            {bot}
+            <BotPress onPress={pickBot} testID={`bot-strength-badge-${seat.playerId}`} name={name}>
+              {bot}
+            </BotPress>
             {away}
           </View>
         )}

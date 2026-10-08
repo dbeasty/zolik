@@ -138,6 +138,9 @@ type PlayerMsg struct {
 	// already here. Deliberately absent from module.PlayerRef: a module
 	// decides rules, and a face is not one.
 	Avatar string `json:"avatar,omitempty"`
+	// Skill is how well a bot seat plays (module.Skill), so the host's
+	// strength picker can show the current choice. Omitted for people.
+	Skill string `json:"skill,omitempty"`
 }
 
 // BuildStateMsg renders one viewer's state.

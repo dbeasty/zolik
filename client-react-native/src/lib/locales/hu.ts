@@ -1913,6 +1913,7 @@ export const hu: Record<string, string> = {
   'setup.dealMeIn': 'Ossz nekem',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Az asztal beállítása',
+  'bot.strength.title': '{name} erőssége',
   'setup.botSkill.easy': 'Könnyű',
   'setup.botSkill.medium': 'Közepes',
   'setup.botSkill.hard': 'Nehéz',

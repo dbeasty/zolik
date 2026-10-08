@@ -77,6 +77,7 @@ export function BoardLayout({
   controls,
   tableAnchor,
   onOpenScore,
+  onPickBot,
 }: {
   state: MatchState;
   viewerId: string;
@@ -97,6 +98,8 @@ export function BoardLayout({
   tableAnchor?: { ref: Ref<View> };
   /** Open the account behind a seat's score. See `ScoreSheet`. */
   onOpenScore?: (playerId: string) => void;
+  /** The host's strength picker for a bot seat — see SeatStrip. */
+  onPickBot?: (bot: { id: string; name: string; skill?: string }) => void;
 }) {
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
@@ -180,6 +183,7 @@ export function BoardLayout({
         standings={state.standings}
         registerSpot={drops.registerDrop}
         onOpenScore={onOpenScore}
+        onPickBot={onPickBot}
         {...zonePanelProps('seats')}
       />
 

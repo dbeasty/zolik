@@ -459,6 +459,8 @@ export type MatchPlayer = {
    * goes back to full strength by itself, at a round boundary.
    */
   simplified?: boolean;
+  /** How well a bot plays — 'easy', 'medium', 'hard' or 'ai'. Absent for people. */
+  skill?: string;
   /**
    * The face this seat wears, as a slug. Absent when the seat never named
    * one, which is not a gap to fill in from somewhere else: every client

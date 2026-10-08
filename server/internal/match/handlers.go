@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -94,6 +95,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// The host not waiting for somebody a rematch is holding a seat for.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/release", h.releaseHeldSeat)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/bots/{playerId}/skill", h.setBotSkill)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/invite", h.invite)
@@ -420,6 +422,88 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 		"skill":     bot.AIDifficulty,
 		"aiPersona": bot.AIPersona,
 	})
+}
+
+// setBotSkillReq names the strength the host wants for a seated bot.
+type setBotSkillReq struct {
+	Skill string `json:"skill"`
+}
+
+// setBotSkill changes how well a seated bot plays, at any point in the match.
+//
+// The host's call, like add-bot. The bot is re-drawn from the roster of the new
+// strength — a Master Miroslav who plays like a rookie would be a lie on the
+// scoreboard and in the lifetime records — so its name changes with it. A bot
+// already at that strength is left exactly as it is. A game in progress picks
+// the change up at the bot's next turn: the move it is already thinking about
+// is not taken back.
+func (h *Handlers) setBotSkill(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	ctx := req.Context()
+	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if err := requireHost(m, uc.UserID); err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	var body setBotSkillReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
+	if _, auto := module.ParseSkill(body.Skill); auto {
+		http.Error(w, "unknown skill", http.StatusBadRequest)
+		return
+	}
+	// A bot's id has a colon in it, which a client encodes and chi hands
+	// back still encoded.
+	botID, err := url.PathUnescape(chi.URLParam(req, "playerId"))
+	if err != nil {
+		http.Error(w, "bad player id", http.StatusBadRequest)
+		return
+	}
+	updated, err := h.manager.UpdateBot(ctx, m.ID.Hex(), botID, func(m models.Match, p models.Player) models.Player {
+		persona := h.personaForSeat(m, p, body.Skill)
+		if persona.Skill == module.Skill(p.AIDifficulty) {
+			return p
+		}
+		p.Name, p.AIDifficulty, p.AIPersona = persona.Name, string(persona.Skill), persona.Key()
+		return p
+	})
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	bot := playerByID(updated.Players, botID)
+	writeJSON(w, map[string]any{
+		"playerId":  bot.ID,
+		"name":      bot.Name,
+		"skill":     bot.AIDifficulty,
+		"aiPersona": bot.AIPersona,
+	})
+}
+
+// personaForSeat is personaFor for a bot that is already sitting down: the
+// personas of the *other* bots are the ones to avoid, and the seed follows the
+// seat rather than how many are seated.
+func (h *Handlers) personaForSeat(m models.Match, seat models.Player, want string) module.Persona {
+	skill, _ := module.ParseSkill(want)
+	if skill == module.SkillAI {
+		if mod := h.manager.Registry().Get(m.ModuleID); mod != nil && !module.OffersAI(mod.Descriptor()) {
+			skill = module.SkillHard
+		}
+	}
+	taken := make([]string, 0, len(m.Players))
+	for _, p := range m.Players {
+		if p.IsAI && p.ID != seat.ID {
+			taken = append(taken, p.AIPersona)
+		}
+	}
+	return module.PickPersona(skill, module.TakenPersonas(taken), module.SeatSeed(m.Seed, seat.ID, "reseat"))
 }
 
 // newBot builds the bot that sits down at a table, from the table as it is

@@ -1900,6 +1900,7 @@ export const et: Record<string, string> = {
   'setup.dealMeIn': 'Jaga mulle',
   'setup.botSeat': 'Bot {n}',
   'setup.botSkillTable': 'Laua seadistus',
+  'bot.strength.title': '{name} – tugevus',
   'setup.botSkill.easy': 'Kerge',
   'setup.botSkill.medium': 'Keskmine',
   'setup.botSkill.hard': 'Raske',
