@@ -1428,6 +1428,7 @@ export const ro: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Trage o carte de-a lungul evantaiului ca să o rearanjezi, sau pe masă ca să o joci',
+  'hand.dragHintRearrange': 'Trage o carte de-a lungul evantaiului ca să o rearanjezi',
   'hand.moveLeft': 'La stânga',
   'hand.moveRight': 'La dreapta',
   'hand.openFan': 'Desfă cărțile',

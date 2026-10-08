@@ -1407,6 +1407,7 @@ export const da: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Træk et kort langs viften for at flytte det, eller ud på bordet for at spille det',
+  'hand.dragHintRearrange': 'Træk et kort langs viften for at flytte det',
   'hand.moveLeft': 'Til venstre',
   'hand.moveRight': 'Til højre',
   'hand.openFan': 'Spred kortene ud',

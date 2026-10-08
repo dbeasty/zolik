@@ -1425,6 +1425,7 @@ export const it: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Trascina una carta lungo il ventaglio per riordinarla, o sul tavolo per giocarla',
+  'hand.dragHintRearrange': 'Trascina una carta lungo il ventaglio per riordinarla',
   'hand.moveLeft': 'Sposta a sinistra',
   'hand.moveRight': 'Sposta a destra',
   'hand.openFan': 'Allarga le carte',

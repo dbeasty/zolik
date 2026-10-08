@@ -1435,6 +1435,7 @@ export const de: Record<string, string> = {
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint':
     'Zieh eine Karte entlang des Fächers, um sie umzusortieren, oder auf das Board, um sie auszuspielen',
+  'hand.dragHintRearrange': 'Zieh eine Karte entlang des Fächers, um sie umzusortieren',
   'hand.moveLeft': 'Nach links',
   'hand.moveRight': 'Nach rechts',
   'hand.openFan': 'Karten auffächern',

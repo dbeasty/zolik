@@ -1429,6 +1429,7 @@ export const pt: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Arrasta uma carta ao longo do leque para a reordenar, ou para a mesa para a jogar',
+  'hand.dragHintRearrange': 'Arrasta uma carta ao longo do leque para a reordenar',
   'hand.moveLeft': 'Mover para a esquerda',
   'hand.moveRight': 'Mover para a direita',
   'hand.openFan': 'Abrir as cartas em leque',

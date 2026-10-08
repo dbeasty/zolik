@@ -6,6 +6,7 @@ import {
   readyWith,
   positionAt,
   refusalAt,
+  someOfferDroppable,
   someOfferReady,
   sourceSpotsFor,
   spotAt,
@@ -429,6 +430,35 @@ describe('positionAt', () => {
     // both ends at once, and naming either is what would be rejected.
     expect(positionAt(undefined, 140, rect)).toBeUndefined();
     expect(positionAt([], 140, rect)).toBeUndefined();
+  });
+});
+
+describe('someOfferDroppable', () => {
+  // The hand's hint promises a card can go "onto the board" only when one
+  // can. Poker's draw swaps cards through a button and names no target.
+  const swap: ActionOffer = {
+    id: 'swap',
+    verb: 'swap',
+    enabled: true,
+    source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', minCards: 1, maxCards: 3 },
+  };
+
+  it('is true when an enabled offer takes cards and names where they land', () => {
+    expect(someOfferDroppable([draw, discard])).toBe(true);
+    expect(someOfferDroppable([layOff])).toBe(true);
+  });
+
+  it('is false for a card swap with no target', () => {
+    expect(someOfferDroppable([swap])).toBe(false);
+  });
+
+  it('is false for a draw, which lands in hand but takes no cards', () => {
+    expect(someOfferDroppable([draw])).toBe(false);
+  });
+
+  it('is false when the only droppable offer is disabled, or there are none', () => {
+    expect(someOfferDroppable([{ ...discard, enabled: false }])).toBe(false);
+    expect(someOfferDroppable([])).toBe(false);
   });
 });
 

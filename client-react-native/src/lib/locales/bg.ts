@@ -1421,6 +1421,7 @@ export const bg: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Влачи карта по ветрилото, за да я пренаредиш, или върху масата, за да я изиграеш',
+  'hand.dragHintRearrange': 'Влачи карта по ветрилото, за да я пренаредиш',
   'hand.moveLeft': 'Наляво',
   'hand.moveRight': 'Надясно',
   'hand.openFan': 'Разгъни картите',

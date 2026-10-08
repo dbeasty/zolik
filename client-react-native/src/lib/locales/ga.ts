@@ -1444,6 +1444,7 @@ export const ga: Record<string, string> = {
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Tarraing cárta feadh an fheanna chun é a atheagrú, nó ar an mbord chun é a imirt',
+  'hand.dragHintRearrange': 'Tarraing cárta feadh an fheanna chun é a atheagrú',
   'hand.moveLeft': 'Ar chlé',
   'hand.moveRight': 'Ar dheis',
   'hand.openFan': 'Leath na cártaí',
