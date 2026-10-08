@@ -2323,5 +2323,17 @@ export const ga: Record<string, string> = {
   'lastcard.move.swapped': 'Mhalartaigh {player} lámha le {target}',
   'lastcard.move.passedHands': "D'imir {player} 0 — bogann gach lámh ar aghaidh",
   'lastcard.move.wentOut': 'Níl cárta ar bith fágtha ag {player}, a scórálann {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Scóráil',
+  'choice.scoring.0': 'Faigheann an buaiteoir na pointí',
+  'choice.scoring.1': 'Buann an t-iomlán is ísle',
+  'lastcard.rules.goal.lowest':
+    "Coinnigh d'iomlán íseal: tar éis gach dáilte íocann tú as na cártaí atá fágtha i do lámh. Nuair a shroicheann duine {target}, buann an t-iomlán is ísle.",
+  'lastcard.rules.end.lowest': 'Críochnaíonn an cluiche nuair a shroicheann iomlán duine éigin {target}, agus buann an t-iomlán is ísle.',
+  'lastcard.rules.scoring.lowest':
+    'Nuair a fholmhaíonn duine a lámh, gearrtar ar gach imreoir eile na pointí atá fágtha ina lámh féin. Nuair a shroicheann iomlán {target}, buann an t-iomlán is ísle.',
+  'lastcard.seat.penalty': 'Pionós',
+  'lastcard.unit.penalty': 'pointí pionóis',
+  'lastcard.move.wentOutLowest': 'Níl cárta ar bith fágtha ag {player} — íocann gach duine eile as na cártaí atá acu',
   // --- end Last Card ---
 };

@@ -2311,5 +2311,17 @@ export const ro: Record<string, string> = {
   'lastcard.move.swapped': '{player} a schimbat mâna cu {target}',
   'lastcard.move.passedHands': '{player} a jucat un 0 — toate mâinile se mută mai departe',
   'lastcard.move.wentOut': '{player} a terminat cărțile și primește {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Punctaj',
+  'choice.scoring.0': 'Câștigătorul ia punctele',
+  'choice.scoring.1': 'Câștigă totalul cel mai mic',
+  'lastcard.rules.goal.lowest':
+    'Ține-ți totalul mic: după fiecare mână plătești pentru cărțile rămase în mâna ta. Când cineva ajunge la {target}, câștigă totalul cel mai mic.',
+  'lastcard.rules.end.lowest': 'Partida se termină când totalul cuiva ajunge la {target}, iar totalul cel mai mic câștigă.',
+  'lastcard.rules.scoring.lowest':
+    'Când cineva rămâne fără cărți, fiecărui alt jucător i se trec punctele cărților rămase în propria mână. Când un total ajunge la {target}, câștigă totalul cel mai mic.',
+  'lastcard.seat.penalty': 'Penalizare',
+  'lastcard.unit.penalty': 'puncte de penalizare',
+  'lastcard.move.wentOutLowest': '{player} rămâne fără cărți — toți ceilalți plătesc pentru cărțile pe care le au',
   // --- end Last Card ---
 };

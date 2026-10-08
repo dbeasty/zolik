@@ -2311,5 +2311,17 @@ export const mt: Record<string, string> = {
   'lastcard.move.swapped': "Skambju ta' idejn bejn {player} u {target}",
   'lastcard.move.passedHands': "Logħba ta' {player}: 0 — kull id tgħaddi għand li jmiss",
   'lastcard.move.wentOut': "{player}: spiċċaw il-karti — punteġġ ta' {n}",
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Punteġġ',
+  'choice.scoring.0': 'Ir-rebbieħ jieħu l-punti',
+  'choice.scoring.1': 'Jirbaħ l-inqas total',
+  'lastcard.rules.goal.lowest':
+    "Żomm it-total tiegħek baxx: wara kull tqassim tħallas għall-karti li fadal f'idek. Meta xi ħadd jilħaq {target}, jirbaħ l-inqas total.",
+  'lastcard.rules.end.lowest': "Il-logħba tispiċċa meta t-total ta' xi ħadd jilħaq {target}, u jirbaħ l-inqas total.",
+  'lastcard.rules.scoring.lowest':
+    "Meta xi ħadd ibattal idu, kull plejer ieħor jitħallas il-punti li fadal f'idu stess. Meta total jilħaq {target}, jirbaħ l-inqas total.",
+  'lastcard.seat.penalty': 'Penali',
+  'lastcard.unit.penalty': "punti ta' penali",
+  'lastcard.move.wentOutLowest': '{player}: spiċċaw il-karti — kulħadd iħallas għall-karti li għandu',
   // --- end Last Card ---
 };

@@ -2289,5 +2289,17 @@ export const lt: Record<string, string> = {
   'lastcard.move.swapped': '{player} apsikeitė kortomis su žaidėju {target}',
   'lastcard.move.passedHands': '{player} sužaidė 0 — visų kortos keliauja toliau',
   'lastcard.move.wentOut': '{player} atsikratė visų kortų ir gauna taškų: {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Taškų skaičiavimas',
+  'choice.scoring.0': 'Laimėtojas pasiima taškus',
+  'choice.scoring.1': 'Laimi mažiausia suma',
+  'lastcard.rules.goal.lowest':
+    'Laikyk savo sumą mažą: po kiekvieno dalijimo moki už kortas, likusias tavo rankoje. Kai kas nors surenka {target}, laimi mažiausia suma.',
+  'lastcard.rules.end.lowest': 'Partija baigiasi, kai kieno nors suma pasiekia {target}, ir laimi mažiausia suma.',
+  'lastcard.rules.scoring.lowest':
+    'Kai kas nors ištuština ranką, kiekvienam kitam žaidėjui priskaičiuojami taškai už kortas, likusias jo paties rankoje. Kai kuri nors suma pasiekia {target}, laimi mažiausia suma.',
+  'lastcard.seat.penalty': 'Bauda',
+  'lastcard.unit.penalty': 'baudos taškų',
+  'lastcard.move.wentOutLowest': '{player} atsikratė visų kortų — visi kiti moka už savo kortas',
   // --- end Last Card ---
 };

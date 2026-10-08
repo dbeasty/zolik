@@ -90,6 +90,11 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 
 	case "deal_ended":
 		winner, _ := ev.Data["winnerId"].(string)
+		if lowest, _ := ev.Data["lowest"].(bool); lowest {
+			return module.Move{PlayerID: winner, Fact: module.Fact{
+				LabelKey: "lastcard.move.wentOutLowest", Params: map[string]any{"player": winner},
+			}}, true
+		}
 		return module.Move{PlayerID: winner, Fact: module.Fact{
 			LabelKey: "lastcard.move.wentOut", Params: map[string]any{"player": winner, "n": ev.Data["points"]},
 		}}, true

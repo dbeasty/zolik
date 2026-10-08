@@ -2304,5 +2304,17 @@ export const bg: Record<string, string> = {
   'lastcard.move.swapped': '{player} размени ръка с {target}',
   'lastcard.move.passedHands': '{player} изигра 0 — всяка ръка се премести нататък',
   'lastcard.move.wentOut': '{player} излезе и получава {n} точки',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Точкуване',
+  'choice.scoring.0': 'Победителят взема точките',
+  'choice.scoring.1': 'Печели най-ниският сбор',
+  'lastcard.rules.goal.lowest':
+    'Дръж сбора си нисък: след всяко раздаване плащаш за картите, останали в ръката ти. Когато някой достигне {target}, печели най-ниският сбор.',
+  'lastcard.rules.end.lowest': 'Играта приключва, когато нечий сбор достигне {target}, и печели най-ниският сбор.',
+  'lastcard.rules.scoring.lowest':
+    'Когато някой изпразни ръката си, на всеки друг играч се начисляват точките на картите, останали в собствената му ръка. Когато сбор достигне {target}, печели най-ниският сбор.',
+  'lastcard.seat.penalty': 'Наказание',
+  'lastcard.unit.penalty': 'наказателни точки',
+  'lastcard.move.wentOutLowest': '{player} излиза — всички останали плащат за картите в ръката си',
   // --- end Last Card ---
 };

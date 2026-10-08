@@ -21,6 +21,10 @@ const (
 	// OptDrawFourChallenge is whether a Wild Draw Four may be challenged.
 	OptDrawFourChallenge = "drawFourChallenge"
 
+	// OptScoring is how points are kept: winner-takes (the default) or
+	// lowest total wins.
+	OptScoring = "scoring"
+
 	// House rules, every one off by default.
 	OptStacking          = "stacking"
 	OptDrawUntilPlayable = "drawUntilPlayable"
@@ -50,6 +54,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				Defaults: map[string]int{
 					OptHandSize:                  defaultHandSize,
 					OptTargetScore:               defaultTargetScore,
+					OptScoring:                   scoreWinnerTakes,
 					OptLastCardCall:              module.OptOn,
 					OptDrawFourChallenge:         module.OptOn,
 					OptStacking:                  stackOff,
@@ -71,6 +76,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: 0, Label: "One deal"},
 					{Value: 200, Label: "200"},
 					{Value: 500, Label: "500"},
+				},
+			},
+			{
+				Name:  OptScoring,
+				Type:  module.OptionEnumInt,
+				Label: "Scoring",
+				Help:  "The winner of each deal scores everyone else's cards — or everyone pays for their own, and the lowest total wins.",
+				Choices: []module.OptionChoice{
+					{Value: scoreWinnerTakes, Label: "Winner takes the points"},
+					{Value: scoreLowest, Label: "Lowest total wins"},
 				},
 			},
 			{
@@ -151,6 +166,7 @@ func configOf(s *GameState) module.MatchConfig {
 	return module.MatchConfig{Options: module.Options{
 		OptHandSize:          s.HandSize,
 		OptTargetScore:       s.TargetScore,
+		OptScoring:           s.Scoring,
 		OptLastCardCall:      module.BoolOpt(s.CallOn),
 		OptDrawFourChallenge: module.BoolOpt(s.ChallengeOn),
 		OptStacking:          s.Stacking,
@@ -222,7 +238,12 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			LabelKey: "seat.cards", Value: strconv.Itoa(len(s.Hands[p])),
 			Params: map[string]any{"n": len(s.Hands[p])},
 		})
-		if s.TargetScore > 0 {
+		if s.TargetScore > 0 && s.Scoring == scoreLowest {
+			seats[i].Facts = append(seats[i].Facts, module.Fact{
+				LabelKey: "lastcard.seat.penalty", Value: strconv.Itoa(s.Scores[p]),
+				Params: map[string]any{"n": s.Scores[p]},
+			})
+		} else if s.TargetScore > 0 {
 			seats[i].Facts = append(seats[i].Facts, module.Fact{
 				LabelKey: "lastcard.seat.points", Value: strconv.Itoa(s.Scores[p]),
 				Params: map[string]any{"n": s.Scores[p]},
@@ -354,6 +375,17 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 	if err != nil {
 		return nil, err
 	}
+	if s.TargetScore > 0 && s.Scoring == scoreLowest {
+		// Lowest wins: ranked on the negated total, shown as the total. The
+		// match's winner is first whatever a tie at the bottom would say.
+		out := module.RankByScore(s.TurnOrder,
+			func(id string) int { return -s.Scores[id] }, "lastcard.unit.penalty")
+		for i := range out {
+			shown := s.Scores[out[i].PlayerID]
+			out[i].Shown = &shown
+		}
+		return out, nil
+	}
 	if s.TargetScore > 0 {
 		return module.RankByScore(s.TurnOrder,
 			func(id string) int { return s.Scores[id] }, "lastcard.unit.points"), nil
@@ -388,6 +420,22 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 		r := module.RoundResult{Number: d.Number, Winners: []string{d.Winner}}
 		for _, p := range s.TurnOrder {
 			rs := module.RoundScore{PlayerID: p, Total: d.Totals[p]}
+			if d.Charged != nil {
+				// Lowest wins: every other player's own hand, charged to them.
+				b := d.Charged[p]
+				rs.Delta = b.Total()
+				if b.Numbers > 0 {
+					rs.Lines = append(rs.Lines, module.ScoreLine{LabelKey: "lastcard.score.numbers", Points: b.Numbers})
+				}
+				if b.Actions > 0 {
+					rs.Lines = append(rs.Lines, module.ScoreLine{LabelKey: "lastcard.score.actions", Points: b.Actions})
+				}
+				if b.Wilds > 0 {
+					rs.Lines = append(rs.Lines, module.ScoreLine{LabelKey: "lastcard.score.wilds", Points: b.Wilds})
+				}
+				r.Scores = append(r.Scores, rs)
+				continue
+			}
 			if p == d.Winner {
 				rs.Delta = d.Points
 				if d.Numbers > 0 {

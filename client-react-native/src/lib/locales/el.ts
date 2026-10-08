@@ -2330,5 +2330,17 @@ export const el: Record<string, string> = {
   'lastcard.move.swapped': '{player} αντάλλαξε χέρια με τον παίκτη {target}',
   'lastcard.move.passedHands': '{player} έπαιξε 0 — όλα τα χέρια περνούν στον επόμενο',
   'lastcard.move.wentOut': '{player} ξεφορτώθηκε όλα τα φύλλα και παίρνει {n} πόντους',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Βαθμολογία',
+  'choice.scoring.0': 'Ο νικητής παίρνει τους πόντους',
+  'choice.scoring.1': 'Κερδίζει το χαμηλότερο σύνολο',
+  'lastcard.rules.goal.lowest':
+    'Κράτα το σύνολό σου χαμηλά: μετά από κάθε μοιρασιά πληρώνεις για τα φύλλα που έμειναν στο χέρι σου. Όταν κάποιος φτάσει τους {target}, κερδίζει το χαμηλότερο σύνολο.',
+  'lastcard.rules.end.lowest': 'Η παρτίδα τελειώνει όταν το σύνολο κάποιου φτάσει τους {target}, και κερδίζει το χαμηλότερο σύνολο.',
+  'lastcard.rules.scoring.lowest':
+    'Όταν κάποιος αδειάσει το χέρι του, κάθε άλλος παίκτης χρεώνεται τους πόντους των φύλλων που έμειναν στο δικό του χέρι. Όταν ένα σύνολο φτάσει τους {target}, κερδίζει το χαμηλότερο σύνολο.',
+  'lastcard.seat.penalty': 'Ποινή',
+  'lastcard.unit.penalty': 'πόντοι ποινής',
+  'lastcard.move.wentOutLowest': '{player} ξεφορτώθηκε όλα τα φύλλα — όλοι οι άλλοι πληρώνουν για τα φύλλα που κρατούν',
   // --- end Last Card ---
 };

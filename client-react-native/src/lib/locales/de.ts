@@ -2318,5 +2318,17 @@ export const de: Record<string, string> = {
   'lastcard.move.swapped': '{player} hat die Hand mit {target} getauscht',
   'lastcard.move.passedHands': '{player} hat eine 0 gespielt — jede Hand wandert weiter',
   'lastcard.move.wentOut': '{player} ist raus und bekommt {n} Punkte',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Wertung',
+  'choice.scoring.0': 'Sieger kassiert die Punkte',
+  'choice.scoring.1': 'Niedrigste Summe gewinnt',
+  'lastcard.rules.goal.lowest':
+    'Halte deine Summe niedrig: Nach jeder Gabe zahlst du für die Karten, die noch in deiner Hand sind. Sobald jemand {target} erreicht, gewinnt die niedrigste Summe.',
+  'lastcard.rules.end.lowest': 'Die Partie endet, sobald jemandes Summe {target} erreicht, und die niedrigste Summe gewinnt.',
+  'lastcard.rules.scoring.lowest':
+    'Wenn jemand ausmacht, werden allen anderen die Punkte der Karten angerechnet, die in ihrer eigenen Hand übrig sind. Sobald eine Summe {target} erreicht, gewinnt die niedrigste Summe.',
+  'lastcard.seat.penalty': 'Strafe',
+  'lastcard.unit.penalty': 'Strafpunkte',
+  'lastcard.move.wentOutLowest': '{player} ist raus — alle anderen zahlen für ihre Karten auf der Hand',
   // --- end Last Card ---
 };

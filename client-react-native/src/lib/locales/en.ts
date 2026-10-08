@@ -2318,5 +2318,17 @@ export const en: Record<string, string> = {
   'lastcard.move.swapped': '{player} swapped hands with {target}',
   'lastcard.move.passedHands': '{player} played a 0 — every hand moves on',
   'lastcard.move.wentOut': '{player} went out and scores {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Scoring',
+  'choice.scoring.0': 'Winner takes the points',
+  'choice.scoring.1': 'Lowest total wins',
+  'lastcard.rules.goal.lowest':
+    'Keep your total low: after every deal you pay for the cards left in your hand. When someone reaches {target}, the lowest total wins.',
+  'lastcard.rules.end.lowest': "The match ends when someone's total reaches {target}, and the lowest total wins.",
+  'lastcard.rules.scoring.lowest':
+    'When someone goes out, every other player is charged the points left in their own hand. When a total reaches {target}, the lowest total wins.',
+  'lastcard.seat.penalty': 'Penalty',
+  'lastcard.unit.penalty': 'penalty points',
+  'lastcard.move.wentOutLowest': '{player} went out — everyone else pays for the cards they hold',
   // --- end Last Card ---
 };

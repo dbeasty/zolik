@@ -2312,5 +2312,17 @@ export const pt: Record<string, string> = {
   'lastcard.move.swapped': '{player} trocou de mão com {target}',
   'lastcard.move.passedHands': '{player} jogou um 0 — todas as mãos passam para o lado',
   'lastcard.move.wentOut': '{player} ficou sem cartas e soma {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Pontuação',
+  'choice.scoring.0': 'O vencedor fica com os pontos',
+  'choice.scoring.1': 'Ganha o total mais baixo',
+  'lastcard.rules.goal.lowest':
+    'Mantém o teu total baixo: depois de cada ronda pagas pelas cartas que te ficam na mão. Quando alguém chega a {target}, ganha o total mais baixo.',
+  'lastcard.rules.end.lowest': 'A partida termina quando o total de alguém chega a {target}, e ganha o total mais baixo.',
+  'lastcard.rules.scoring.lowest':
+    'Quando alguém fica sem cartas, a todos os outros jogadores são cobrados os pontos das cartas que lhes restam na própria mão. Quando um total chega a {target}, ganha o total mais baixo.',
+  'lastcard.seat.penalty': 'Penalização',
+  'lastcard.unit.penalty': 'pontos de penalização',
+  'lastcard.move.wentOutLowest': '{player} fica sem cartas — todos os outros pagam pelas cartas que têm',
   // --- end Last Card ---
 };

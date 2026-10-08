@@ -59,6 +59,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		Stacking:    cfg.Opt(OptStacking, stackOff),
 		DrawUntil:   cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn,
 		SevenZero:   cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn,
+		Scoring:     cfg.Opt(OptScoring, scoreWinnerTakes),
 		Scores:      map[string]int{},
 	}
 	for _, p := range players {
@@ -512,26 +513,30 @@ func (s *GameState) applyAccept(playerID string) ([]module.Event, error) {
 // table to read the score, or deals the next hand.
 func (s *GameState) endDeal(winner string) []module.Event {
 	res := DealResult{Number: s.DealNumber + 1, Winner: winner}
+	if s.Scores == nil {
+		s.Scores = map[string]int{}
+	}
 	for _, p := range s.TurnOrder {
 		if p == winner {
 			continue
 		}
-		for _, c := range s.Hands[p] {
-			switch {
-			case isWild(c):
-				res.Wilds += cardPoints(c)
-			case cardPoints(c) == pointsAction:
-				res.Actions += cardPoints(c)
-			default:
-				res.Numbers += cardPoints(c)
+		b := breakdownOf(s.Hands[p])
+		res.Numbers += b.Numbers
+		res.Actions += b.Actions
+		res.Wilds += b.Wilds
+		if s.Scoring == scoreLowest {
+			// Each player pays for their own hand.
+			if res.Charged == nil {
+				res.Charged = map[string]Breakdown{}
 			}
+			res.Charged[p] = b
+			s.Scores[p] += b.Total()
 		}
 	}
 	res.Points = res.Numbers + res.Actions + res.Wilds
-	if s.Scores == nil {
-		s.Scores = map[string]int{}
+	if s.Scoring != scoreLowest {
+		s.Scores[winner] += res.Points
 	}
-	s.Scores[winner] += res.Points
 	res.Totals = map[string]int{}
 	for _, p := range s.TurnOrder {
 		res.Totals[p] = s.Scores[p]
@@ -541,13 +546,13 @@ func (s *GameState) endDeal(winner string) []module.Event {
 	s.PendingDraw = 0
 
 	events := []module.Event{{Type: "deal_ended", Data: map[string]any{
-		"deal": res.Number, "winnerId": winner, "points": res.Points,
+		"deal": res.Number, "winnerId": winner, "points": res.Points, "lowest": s.Scoring == scoreLowest,
 	}}}
-	if s.TargetScore <= 0 || s.Scores[winner] >= s.TargetScore {
+	if over, champion := s.matchOver(winner); over {
 		s.Status = "completed"
-		s.WinnerID = winner
+		s.WinnerID = champion
 		s.Current = ""
-		return append(events, module.Event{Type: "game_ended", Data: map[string]any{"winnerId": winner}})
+		return append(events, module.Event{Type: "game_ended", Data: map[string]any{"winnerId": champion}})
 	}
 	s.DealNumber++
 	if s.Pause {
@@ -717,4 +722,35 @@ func (s *GameState) sevenZero(playerID, card string) []module.Event {
 		return []module.Event{{Type: "hands_passed", Data: map[string]any{"playerId": playerID}}}
 	}
 	return nil
+}
+
+// matchOver says whether the deal just won ends the match, and who won it.
+//
+// Winner-takes: the deal's winner, once their total reaches the target.
+// Lowest: once anyone's total reaches the target, the lowest total — the
+// deal's winner taking a tie, since they just went out, then the earliest
+// seat. A single deal (no target) ends with the deal's winner either way.
+func (s *GameState) matchOver(dealWinner string) (bool, string) {
+	if s.TargetScore <= 0 {
+		return true, dealWinner
+	}
+	if s.Scoring != scoreLowest {
+		return s.Scores[dealWinner] >= s.TargetScore, dealWinner
+	}
+	reached := false
+	for _, p := range s.TurnOrder {
+		if s.Scores[p] >= s.TargetScore {
+			reached = true
+		}
+	}
+	if !reached {
+		return false, ""
+	}
+	best := dealWinner
+	for _, p := range s.TurnOrder {
+		if s.Scores[p] < s.Scores[best] {
+			best = p
+		}
+	}
+	return true, best
 }

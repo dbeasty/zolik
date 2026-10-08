@@ -2285,5 +2285,17 @@ export const cs: Record<string, string> = {
   'lastcard.move.swapped': '{player} si mění ruku s {target}',
   'lastcard.move.passedHands': '{player} hraje 0 — všechny ruce jdou dál',
   'lastcard.move.wentOut': '{player} se zbavuje všech karet a získává {n} bodů',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Bodování',
+  'choice.scoring.0': 'Vítěz bere body',
+  'choice.scoring.1': 'Vyhrává nejnižší součet',
+  'lastcard.rules.goal.lowest':
+    'Drž svůj součet nízko: po každém rozdání platíš za karty, které ti zůstaly v ruce. Jakmile někdo dosáhne {target}, vyhrává nejnižší součet.',
+  'lastcard.rules.end.lowest': 'Hra končí, jakmile něčí součet dosáhne {target}, a vyhrává nejnižší součet.',
+  'lastcard.rules.scoring.lowest':
+    'Když se někdo zbaví karet, každému dalšímu hráči se připíšou body za karty, které zůstaly v jeho vlastní ruce. Jakmile některý součet dosáhne {target}, vyhrává nejnižší součet.',
+  'lastcard.seat.penalty': 'Trest',
+  'lastcard.unit.penalty': 'trestných bodů',
+  'lastcard.move.wentOutLowest': '{player} se zbavuje všech karet — všichni ostatní platí za karty, které drží',
   // --- end Last Card ---
 };

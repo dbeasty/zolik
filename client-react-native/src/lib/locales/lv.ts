@@ -2288,5 +2288,17 @@ export const lv: Record<string, string> = {
   'lastcard.move.swapped': '{player} samainīja kārtis ar spēlētāju {target}',
   'lastcard.move.passedHands': '{player} izspēlēja 0 — visu spēlētāju kārtis pāriet tālāk',
   'lastcard.move.wentOut': '{player} izspēlēja visas kārtis un iegūst punktus: {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Punktu skaitīšana',
+  'choice.scoring.0': 'Uzvarētājs saņem punktus',
+  'choice.scoring.1': 'Uzvar mazākā summa',
+  'lastcard.rules.goal.lowest':
+    'Turi savu summu zemu: pēc katra dalījuma tu maksā par kārtīm, kas palikušas tavā rokā. Kad kāds sasniedz {target}, uzvar mazākā summa.',
+  'lastcard.rules.end.lowest': 'Spēle beidzas, kad kāda summa sasniedz {target}, un uzvar mazākā summa.',
+  'lastcard.rules.scoring.lowest':
+    'Kad kāds iztukšo roku, katram citam spēlētājam pieskaita punktus par kārtīm, kas palikušas viņa paša rokā. Kad kāda summa sasniedz {target}, uzvar mazākā summa.',
+  'lastcard.seat.penalty': 'Sods',
+  'lastcard.unit.penalty': 'soda punkti',
+  'lastcard.move.wentOutLowest': '{player} izspēlēja visas kārtis — visi pārējie maksā par savām kārtīm',
   // --- end Last Card ---
 };

@@ -2298,5 +2298,17 @@ export const fi: Record<string, string> = {
   'lastcard.move.swapped': '{player} vaihtoi kädet pelaajan {target} kanssa',
   'lastcard.move.passedHands': '{player} pelasi nollan — jokainen käsi siirtyy eteenpäin',
   'lastcard.move.wentOut': '{player} pääsi korteistaan eroon ja saa {n} pistettä',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Pisteytys',
+  'choice.scoring.0': 'Voittaja vie pisteet',
+  'choice.scoring.1': 'Pienin summa voittaa',
+  'lastcard.rules.goal.lowest':
+    'Pidä summasi pienenä: jokaisen jaon jälkeen maksat käteesi jääneistä korteista. Kun joku saavuttaa {target} pistettä, pienin summa voittaa.',
+  'lastcard.rules.end.lowest': 'Ottelu päättyy, kun jonkun summa saavuttaa {target} pistettä, ja pienin summa voittaa.',
+  'lastcard.rules.scoring.lowest':
+    'Kun joku pelaa kätensä tyhjäksi, jokainen muu pelaaja saa pisteet omaan käteensä jääneistä korteista. Kun jokin summa saavuttaa {target} pistettä, pienin summa voittaa.',
+  'lastcard.seat.penalty': 'Rangaistus',
+  'lastcard.unit.penalty': 'rangaistuspistettä',
+  'lastcard.move.wentOutLowest': '{player} pääsi korteistaan eroon — kaikki muut maksavat kädessään olevista korteista',
   // --- end Last Card ---
 };

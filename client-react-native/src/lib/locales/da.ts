@@ -2290,5 +2290,17 @@ export const da: Record<string, string> = {
   'lastcard.move.swapped': '{player} byttede hånd med {target}',
   'lastcard.move.passedHands': '{player} spillede et 0 — alle hænder går videre',
   'lastcard.move.wentOut': '{player} gik ud og scorer {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Pointgivning',
+  'choice.scoring.0': 'Vinderen tager pointene',
+  'choice.scoring.1': 'Laveste total vinder',
+  'lastcard.rules.goal.lowest':
+    'Hold din total lav: efter hvert giv betaler du for de kort, der er tilbage på din hånd. Når nogen når {target}, vinder den laveste total.',
+  'lastcard.rules.end.lowest': 'Spillet slutter, når nogens total når {target}, og den laveste total vinder.',
+  'lastcard.rules.scoring.lowest':
+    'Når nogen går ud, får hver anden spiller pointene for de kort, der er tilbage på deres egen hånd. Når en total når {target}, vinder den laveste total.',
+  'lastcard.seat.penalty': 'Straf',
+  'lastcard.unit.penalty': 'strafpoint',
+  'lastcard.move.wentOutLowest': '{player} gik ud — alle andre betaler for de kort, de har på hånden',
   // --- end Last Card ---
 };

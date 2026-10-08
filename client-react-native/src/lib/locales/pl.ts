@@ -2299,5 +2299,17 @@ export const pl: Record<string, string> = {
   'lastcard.move.swapped': '{player} zamienia się ręką z {target}',
   'lastcard.move.passedHands': '{player} zagrywa 0 — każda ręka idzie dalej',
   'lastcard.move.wentOut': '{player} pozbywa się wszystkich kart i zdobywa {n} pkt',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Punktacja',
+  'choice.scoring.0': 'Zwycięzca bierze punkty',
+  'choice.scoring.1': 'Wygrywa najniższa suma',
+  'lastcard.rules.goal.lowest':
+    'Trzymaj swoją sumę nisko: po każdym rozdaniu płacisz za karty, które zostały ci w ręce. Gdy ktoś osiągnie {target}, wygrywa najniższa suma.',
+  'lastcard.rules.end.lowest': 'Gra kończy się, gdy czyjaś suma osiągnie {target}, a wygrywa najniższa suma.',
+  'lastcard.rules.scoring.lowest':
+    'Gdy ktoś pozbędzie się kart, każdemu innemu graczowi naliczane są punkty za karty pozostałe w jego własnej ręce. Gdy któraś suma osiągnie {target}, wygrywa najniższa suma.',
+  'lastcard.seat.penalty': 'Kara',
+  'lastcard.unit.penalty': 'punktów karnych',
+  'lastcard.move.wentOutLowest': '{player} pozbywa się wszystkich kart — wszyscy pozostali płacą za karty, które trzymają',
   // --- end Last Card ---
 };

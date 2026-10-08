@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import type { Fact, MatchPlayer, MoveLine } from '@/src/api/matchTypes';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -35,7 +35,13 @@ export function MoveAnnouncements({
   viewerId: string;
 }) {
   const skin = useSkin();
-  const styles = useMemo(() => announceStyles(skin), [skin]);
+  // Four lines' room where the window has it; two on a short one, so the
+  // pile, the hand and its controls still fit together. Fixed by the window,
+  // never by what is in the box — see below.
+  const { height } = useWindowDimensions();
+  const short = height < SHORT_WINDOW;
+  const linesHeight = short ? LINE * 2 : LINE * 4;
+  const styles = useMemo(() => announceStyles(skin, linesHeight, short), [skin, linesHeight, short]);
 
   // Everything after the viewer's own last move. When their move was the
   // last one, that move alone, dimmed — so the box says what the table is
@@ -55,7 +61,8 @@ export function MoveAnnouncements({
   // goes last, where nothing pushes it out of sight.
   return (
     <View style={styles.box} testID="move-announcements" accessibilityLiveRegion="polite">
-      <Text style={styles.title}>{t('moves.title')}</Text>
+      {/* On a short window the lines speak for themselves; the room goes to the hand. */}
+      {short ? null : <Text style={styles.title}>{t('moves.title')}</Text>}
       <View style={styles.lines}>
         {shown.map((m, i) => {
           const newest = !settled && i === shown.length - 1;
@@ -80,10 +87,13 @@ export function MoveAnnouncements({
 /** About a round at a full table; older moves are in the strip's own history. */
 const MAX_LINES = 8;
 
-/** The box's fixed room for lines: about four of them. */
-const LINES_HEIGHT = 96;
+/** One line's room in the box. */
+const LINE = 24;
 
-function announceStyles(s: Skin) {
+/** Below this window height the box keeps two lines' room rather than four. */
+const SHORT_WINDOW = 760;
+
+function announceStyles(s: Skin, linesHeight: number, short: boolean) {
   const colors = s.colors;
   return StyleSheet.create({
     box: {
@@ -92,13 +102,13 @@ function announceStyles(s: Skin) {
       backgroundColor: colors.surface,
       borderRadius: 10,
       paddingHorizontal: 12,
-      paddingVertical: 8,
-      marginTop: 10,
+      paddingVertical: short ? 4 : 8,
+      marginTop: short ? 6 : 10,
       gap: 3,
     },
     prompt: { color: colors.gold, fontSize: 16, fontWeight: '700', marginTop: 2 },
     // Room for about four lines; see the render for why it never grows.
-    lines: { height: LINES_HEIGHT, overflow: 'hidden', justifyContent: 'flex-end', gap: 3 },
+    lines: { height: linesHeight, overflow: 'hidden', justifyContent: 'flex-end', gap: 3 },
     title: {
       color: colors.muted,
       fontSize: 11,

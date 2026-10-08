@@ -2292,5 +2292,17 @@ export const et: Record<string, string> = {
   'lastcard.move.swapped': '{player} vahetas käed mängijaga {target}',
   'lastcard.move.passedHands': '{player} mängis 0 — kõik käed liiguvad edasi',
   'lastcard.move.wentOut': '{player} sai kaartidest lahti ja saab {n} punkti',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Punktiarvestus',
+  'choice.scoring.0': 'Võitja saab punktid',
+  'choice.scoring.1': 'Väikseim summa võidab',
+  'lastcard.rules.goal.lowest':
+    'Hoia oma summa väike: pärast iga jagamist maksad kätte jäänud kaartide eest. Kui keegi jõuab {target} punktini, võidab väikseim summa.',
+  'lastcard.rules.end.lowest': 'Mäng lõpeb, kui kellegi summa jõuab {target} punktini, ja võidab väikseim summa.',
+  'lastcard.rules.scoring.lowest':
+    'Kui keegi käe tühjaks teeb, saab iga teine mängija punktid oma kätte jäänud kaartide eest. Kui mõni summa jõuab {target} punktini, võidab väikseim summa.',
+  'lastcard.seat.penalty': 'Karistus',
+  'lastcard.unit.penalty': 'karistuspunkti',
+  'lastcard.move.wentOutLowest': '{player} sai kaartidest lahti — kõik teised maksavad oma kaartide eest',
   // --- end Last Card ---
 };

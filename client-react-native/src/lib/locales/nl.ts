@@ -2318,5 +2318,17 @@ export const nl: Record<string, string> = {
   'lastcard.move.swapped': '{player} ruilde van hand met {target}',
   'lastcard.move.passedHands': '{player} speelde een 0 — elke hand schuift door',
   'lastcard.move.wentOut': '{player} is uit en scoort {n}',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Puntentelling',
+  'choice.scoring.0': 'Winnaar krijgt de punten',
+  'choice.scoring.1': 'Laagste totaal wint',
+  'lastcard.rules.goal.lowest':
+    'Houd je totaal laag: na elke ronde betaal je voor de kaarten die nog in je hand zitten. Zodra iemand {target} haalt, wint het laagste totaal.',
+  'lastcard.rules.end.lowest': 'De partij eindigt zodra iemands totaal {target} haalt, en het laagste totaal wint.',
+  'lastcard.rules.scoring.lowest':
+    'Wanneer iemand uitgaat, krijgt elke andere speler de punten van de kaarten in zijn eigen hand aangerekend. Zodra een totaal {target} haalt, wint het laagste totaal.',
+  'lastcard.seat.penalty': 'Straf',
+  'lastcard.unit.penalty': 'strafpunten',
+  'lastcard.move.wentOutLowest': '{player} is uit — alle anderen betalen voor de kaarten die ze nog hebben',
   // --- end Last Card ---
 };

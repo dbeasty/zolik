@@ -2287,5 +2287,17 @@ export const sl: Record<string, string> = {
   'lastcard.move.swapped': '{player} in {target} zamenjata roki',
   'lastcard.move.passedHands': '{player} odigra 0 — vse roke gredo naprej',
   'lastcard.move.wentOut': '{player} se znebi vseh kart in dobi {n} točk',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Točkovanje',
+  'choice.scoring.0': 'Zmagovalec pobere točke',
+  'choice.scoring.1': 'Zmaga najnižji seštevek',
+  'lastcard.rules.goal.lowest':
+    'Ohranjaj svoj seštevek nizek: po vsakem deljenju plačaš za karte, ki so ti ostale v roki. Ko nekdo doseže {target}, zmaga najnižji seštevek.',
+  'lastcard.rules.end.lowest': 'Igra se konča, ko nečij seštevek doseže {target}, in zmaga najnižji seštevek.',
+  'lastcard.rules.scoring.lowest':
+    'Ko se nekdo znebi vseh kart, se vsakemu drugemu igralcu zaračunajo točke za karte, ki so ostale v njegovi roki. Ko kateri seštevek doseže {target}, zmaga najnižji seštevek.',
+  'lastcard.seat.penalty': 'Kazen',
+  'lastcard.unit.penalty': 'kazenskih točk',
+  'lastcard.move.wentOutLowest': '{player} se znebi vseh kart — vsi drugi plačajo za karte, ki jih držijo',
   // --- end Last Card ---
 };

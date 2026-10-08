@@ -649,6 +649,7 @@
     "lastcard.move.swapped",
     "lastcard.move.tookStack",
     "lastcard.move.wentOut",
+    "lastcard.move.wentOutLowest",
     "lastcard.offer.accept",
     "lastcard.offer.call",
     "lastcard.offer.catch",
@@ -678,11 +679,14 @@
     "lastcard.rules.deck",
     "lastcard.rules.drawTwo",
     "lastcard.rules.end",
+    "lastcard.rules.end.lowest",
     "lastcard.rules.end.points",
     "lastcard.rules.goal",
+    "lastcard.rules.goal.lowest",
     "lastcard.rules.goal.points",
     "lastcard.rules.reverse",
     "lastcard.rules.scoring",
+    "lastcard.rules.scoring.lowest",
     "lastcard.rules.section.call",
     "lastcard.rules.section.challenge",
     "lastcard.rules.section.end",
@@ -708,6 +712,7 @@
     "lastcard.score.numbers",
     "lastcard.score.wilds",
     "lastcard.seat.lastCard",
+    "lastcard.seat.penalty",
     "lastcard.seat.points",
     "marias.badge.trumpCard",
     "marias.fact.rung",
@@ -1280,11 +1285,14 @@
     "lastcard.rules.deck",
     "lastcard.rules.drawTwo",
     "lastcard.rules.end",
+    "lastcard.rules.end.lowest",
     "lastcard.rules.end.points",
     "lastcard.rules.goal",
+    "lastcard.rules.goal.lowest",
     "lastcard.rules.goal.points",
     "lastcard.rules.reverse",
     "lastcard.rules.scoring",
+    "lastcard.rules.scoring.lowest",
     "lastcard.rules.section.call",
     "lastcard.rules.section.challenge",
     "lastcard.rules.section.end",
@@ -2211,6 +2219,9 @@
       "n",
       "player"
     ],
+    "lastcard.move.wentOutLowest": [
+      "player"
+    ],
     "lastcard.prompt.bluffCaught": [
       "cards",
       "player"
@@ -2253,7 +2264,13 @@
     "lastcard.rules.deck": [
       "value"
     ],
+    "lastcard.rules.end.lowest": [
+      "target"
+    ],
     "lastcard.rules.end.points": [
+      "target"
+    ],
+    "lastcard.rules.goal.lowest": [
       "target"
     ],
     "lastcard.rules.goal.points": [
@@ -2261,6 +2278,13 @@
     ],
     "lastcard.rules.scoring": [
       "target"
+    ],
+    "lastcard.rules.scoring.lowest": [
+      "target"
+    ],
+    "lastcard.seat.penalty": [
+      "n",
+      "value"
     ],
     "lastcard.seat.points": [
       "n",
@@ -2862,6 +2886,7 @@
     "lastcard.move.swapped",
     "lastcard.move.tookStack",
     "lastcard.move.wentOut",
+    "lastcard.move.wentOutLowest",
     "lastcard.prompt.bluffCaught",
     "lastcard.prompt.catch",
     "lastcard.prompt.drawFour",
@@ -2875,9 +2900,13 @@
     "lastcard.remedy.stackOrTake",
     "lastcard.rules.deal",
     "lastcard.rules.deck",
+    "lastcard.rules.end.lowest",
     "lastcard.rules.end.points",
+    "lastcard.rules.goal.lowest",
     "lastcard.rules.goal.points",
     "lastcard.rules.scoring",
+    "lastcard.rules.scoring.lowest",
+    "lastcard.seat.penalty",
     "lastcard.seat.points",
     "marias.fact.rung",
     "marias.fact.times",

@@ -2311,5 +2311,17 @@ export const hu: Record<string, string> = {
   'lastcard.move.swapped': '{player} kezet cserélt vele: {target}',
   'lastcard.move.passedHands': '{player} 0-t játszott ki — minden kéz továbbvándorol',
   'lastcard.move.wentOut': '{player} kifogyott a lapokból, és {n} pontot kap',
+  // Scoring: winner takes the points, or lowest total wins.
+  'option.scoring': 'Pontozás',
+  'choice.scoring.0': 'A győztes viszi a pontokat',
+  'choice.scoring.1': 'A legkisebb összeg nyer',
+  'lastcard.rules.goal.lowest':
+    'Tartsd alacsonyan az összegedet: minden leosztás után fizetsz a kezedben maradt lapokért. Amikor valakinek {target} pontja lesz, a legkisebb összeg nyer.',
+  'lastcard.rules.end.lowest': 'A játszma akkor ér véget, amikor valakinek {target} pontja lesz, és a legkisebb összeg nyer.',
+  'lastcard.rules.scoring.lowest':
+    'Amikor valaki kiüríti a kezét, minden más játékos megkapja a saját kezében maradt lapok pontjait. Amikor valakinek {target} pontja lesz, a legkisebb összeg nyer.',
+  'lastcard.seat.penalty': 'Büntetés',
+  'lastcard.unit.penalty': 'büntetőpont',
+  'lastcard.move.wentOutLowest': '{player} kifogyott a lapokból — mindenki más fizet a kezében lévő lapokért',
   // --- end Last Card ---
 };
