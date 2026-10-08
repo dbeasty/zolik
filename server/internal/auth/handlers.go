@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -10,7 +12,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-chi/chi/v5"
+	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"zolik/server/internal/geo"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
@@ -688,6 +692,45 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 
 type refreshReq struct {
 	RefreshToken string `json:"refreshToken"`
+	// TimeZone is the device's IANA zone. Optional; see noteSeen.
+	TimeZone string `json:"timeZone,omitempty"`
+}
+
+// seenEvery is how stale an account's lastSeenAt may get before a refresh
+// rewrites it. Refreshes come every quarter hour from every open client, and
+// "seen within the hour" is all the console asks of the field.
+const seenEvery = time.Hour
+
+// noteSeen keeps an account's lastSeenAt and time zone current from its
+// session refreshes, which are the one request every signed-in client makes
+// regularly. Before this, lastSeenAt moved only at a fresh sign-in, so an
+// account that stayed signed in for a month looked a month gone.
+//
+// Writes only when something changed, or the stamp is over seenEvery old: a
+// write per refresh would be four writes an hour per open client, for a field
+// nothing reads at that resolution. Best-effort — a failure here must never
+// cost anybody their session.
+func (h *Handlers) noteSeen(ctx context.Context, userID, tz string, now time.Time) {
+	if strings.HasPrefix(userID, OfflineSeatPrefix) {
+		return
+	}
+	u, err := h.store.FindUserByID(ctx, userID)
+	if err != nil {
+		return
+	}
+	set := bson.M{}
+	if tz != "" && geo.SaneTimeZone(tz) && tz != u.TimeZone {
+		set["timeZone"] = tz
+	}
+	if len(set) > 0 || now.Sub(u.LastSeenAt) > seenEvery {
+		set["lastSeenAt"] = now
+	}
+	if len(set) == 0 {
+		return
+	}
+	if err := h.store.UpdateUser(ctx, u.ID, set); err != nil {
+		slog.Warn("auth: noting a refresh on the account failed", "user", userID, "error", err)
+	}
 }
 
 func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
@@ -793,6 +836,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 	// carries a pass much older than the session it came with, and one who
 	// opens the app before a trip leaves with a full thirty days.
 	if !isGuest {
+		h.noteSeen(ctx, subject, body.TimeZone, now)
 		if pass := h.offlinePassFor(ctx, subject, s.GuestName); pass != "" {
 			out["offlinePass"] = pass
 		}
