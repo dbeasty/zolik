@@ -24,6 +24,7 @@ import (
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/klondike"
 	"zolik/server/internal/lastcard"
+	"zolik/server/internal/lora"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -33,10 +34,10 @@ import (
 
 func main() {
 	keys, err := module.CollectKeys(
-		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New()),
+		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), lora.New()),
 		"internal/admission", "internal/rules", "internal/prsi", "internal/canasta", "internal/holdem",
 		"internal/zolikmod", "internal/match", "internal/module", "internal/lobby", "internal/ginrummy",
-		"internal/rummytiles", "internal/blackjack", "internal/klondike", "internal/notify", "internal/marias", "internal/lastcard",
+		"internal/rummytiles", "internal/blackjack", "internal/klondike", "internal/notify", "internal/marias", "internal/lastcard", "internal/lora",
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "dump-keys:", err)
