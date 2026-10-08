@@ -14,6 +14,7 @@ import (
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/klondike"
 	"zolik/server/internal/lastcard"
+	"zolik/server/internal/lora"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/okobere"
@@ -143,6 +144,15 @@ func allModules() []hosted {
 			mod:      lastcard.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"continue", "accept", "catch", "call", "play_card", "pass", "draw"},
+			finishes: true,
+		},
+		{
+			name:     "lora",
+			rounds:   true,
+			mod:      lora.New(),
+			players:  refs("p1", "p2", "p3", "p4"),
+			cfg:      module.MatchConfig{Options: module.Options{"talie": 1}},
+			prefer:   []string{"continue", "choose_game", "play_card", "tuk", "end_turn"},
 			finishes: true,
 		},
 		{

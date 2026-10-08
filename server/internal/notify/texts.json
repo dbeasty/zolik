@@ -2,6 +2,7 @@
   "bg": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Пасианс",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -13,6 +14,7 @@
   "cs": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -24,6 +26,7 @@
   "da": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Kabale",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -35,6 +38,7 @@
   "de": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitär",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -46,6 +50,7 @@
   "el": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Πασιέντζα",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -57,6 +62,7 @@
   "en": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -68,6 +74,7 @@
   "es": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -79,6 +86,7 @@
   "et": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -90,6 +98,7 @@
   "fi": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasianssi",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -101,6 +110,7 @@
   "fr": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -112,6 +122,7 @@
   "ga": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Foighne",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -123,6 +134,7 @@
   "hr": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasijans",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -134,6 +146,7 @@
   "hu": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasziánsz",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -145,6 +158,7 @@
   "it": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -156,6 +170,7 @@
   "lt": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansas",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -167,6 +182,7 @@
   "lv": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -178,6 +194,7 @@
   "mt": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitarju",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -189,6 +206,7 @@
   "nl": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Patience",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -200,6 +218,7 @@
   "pl": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjans",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -211,6 +230,7 @@
   "pt": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Paciência",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -222,6 +242,7 @@
   "ro": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasiență",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -233,6 +254,7 @@
   "sk": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -244,6 +266,7 @@
   "sl": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansa",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
@@ -255,6 +278,7 @@
   "sv": {
     "module.ferbl": "Ferbl",
     "module.klondike": "Patiens",
+    "module.lora": "Lóra",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
