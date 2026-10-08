@@ -43,6 +43,14 @@ func TestOfferDrivenPlayFinishesAMatch(t *testing.T) {
 			cfg:     module.MatchConfig{Variation: "timed"},
 		},
 		{
+			name:    "four handed hold'em, fixed hands",
+			players: refs("p1", "p2", "p3", "p4"),
+			cfg: module.MatchConfig{
+				Variation: VarHoldem,
+				Options:   module.Options{OptHandLimit: 10},
+			},
+		},
+		{
 			name:    "heads up freezeout, short stacks",
 			players: refs("p1", "p2"),
 			cfg: module.MatchConfig{
@@ -206,9 +214,46 @@ func TestModuleSatisfiesTheContract(t *testing.T) {
 		if _, ok := variations[v.ID]; !ok {
 			t.Errorf("variation %q is declared but not implemented", v.ID)
 		}
+		for _, old := range v.Formerly {
+			if _, ok := variations[old]; !ok {
+				t.Errorf("variation %q answers to %q, which nothing resolves", v.ID, old)
+			}
+		}
 	}
 
 	if _, err := m.NewMatch(module.MatchConfig{}, refs("solo"), 1); err == nil {
 		t.Error("a one-player hold'em should be refused")
+	}
+}
+
+// TestRetiredVariationsStillDeal pins the rename to Poker: a match stored as
+// Hold'em's old "freezeout" or "timed" — and the rematch that copies its
+// variation — is accepted and keeps the hand limit it was created with, while
+// the lobby offers only the current variation.
+func TestRetiredVariationsStillDeal(t *testing.T) {
+	m := New()
+	d := m.Descriptor()
+	if d.Label != "Poker" {
+		t.Errorf("the module is shown as %q, want Poker", d.Label)
+	}
+	for _, v := range d.Variations {
+		if v.ID == "freezeout" || v.ID == "timed" {
+			t.Errorf("retired variation %q is still offered", v.ID)
+		}
+	}
+
+	for id, want := range map[string]int{"freezeout": 0, "timed": 10, VarHoldem: 0, "": 0} {
+		if id != "" {
+			if spec := d.Variation(id); spec == nil || spec.ID != VarHoldem {
+				t.Errorf("variation %q does not resolve to %q", id, VarHoldem)
+			}
+		}
+		raw, err := m.NewMatch(module.MatchConfig{Variation: id}, refs("p1", "p2"), 1)
+		if err != nil {
+			t.Fatalf("variation %q: %v", id, err)
+		}
+		if got := mustDecode(t, raw).HandLimit; got != want {
+			t.Errorf("variation %q deals with a hand limit of %d, want %d", id, got, want)
+		}
 	}
 }

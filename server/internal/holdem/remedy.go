@@ -75,6 +75,13 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, seat *Seat, offe
 			}
 			o.RemedyOfferID = enabled(OfferRaise)
 
+		case ErrOverPotLimit:
+			o.Remedy = &module.Fact{
+				LabelKey: "holdem.remedy.raiseAtMostPot",
+				Params:   map[string]any{"n": maxTo},
+			}
+			o.RemedyOfferID = enabled(OfferRaise)
+
 		case ErrAmountRequired:
 			o.Remedy = &module.Fact{
 				LabelKey: "holdem.remedy.nameAnAmount",
@@ -84,6 +91,14 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, seat *Seat, offe
 
 		case ErrSeatNotInHand:
 			o.Remedy = &module.Fact{LabelKey: "holdem.remedy.waitForNextHand"}
+
+		// --- the draw ------------------------------------------------------
+		case ErrDrawing:
+			o.Remedy = &module.Fact{
+				LabelKey: "holdem.remedy.discardOrStand",
+				Params:   map[string]any{"n": s.rules().maxDiscard},
+			}
+			o.RemedyOfferID = enabled(OfferDiscard, OfferStand)
 
 		// --- showing -------------------------------------------------------
 		//
@@ -100,13 +115,18 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, seat *Seat, offe
 // state's own resolved numbers rather than read back from the lobby — a match
 // keeps the rules it was dealt under, so the rules a refusal points at have to
 // be those same ones.
+//
+// The reveal setting included, which it once was not: a table playing "the
+// winner only" had its rules written out as "everyone who was called". A
+// state stored before the setting existed has none, and keeps the default.
 func configOf(s *GameState) module.MatchConfig {
-	return module.MatchConfig{
-		Variation: s.Variation,
-		Options: module.Options{
-			OptStartingStack: s.StartingStack,
-			OptBigBlind:      s.BigBlind,
-			OptHandLimit:     s.HandLimit,
-		},
+	opts := module.Options{
+		OptStartingStack: s.StartingStack,
+		OptBigBlind:      s.BigBlind,
+		OptHandLimit:     s.HandLimit,
 	}
+	if s.Reveal != 0 {
+		opts[OptShowdownReveal] = s.Reveal
+	}
+	return module.MatchConfig{Variation: s.Variation, Options: opts}
 }

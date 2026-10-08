@@ -2110,6 +2110,33 @@ export const sv: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Du håller budet: säg mám eller passa',
   'err.MARIAS_YOU_BID': 'Du bjuder: bjud högre eller passa',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Varje spelare får fem kort med baksidan upp. Det finns inga gemensamma kort: din hand är de fem kort du håller.',
+  'holdem.rules.draw.streets': 'Det satsas i två rundor — en på de utdelade korten och en efter bytet.',
+  'holdem.rules.draw.draw': 'Vid bytet slänger varje spelare som fortfarande är med i handen, med början till vänster om utdelaren, ett till {n} kort och får lika många nya — eller behåller alla fem. Spelare som är all-in byter också.',
+  'holdem.rules.draw.public': 'Alla får veta hur många kort varje spelare bytte, men aldrig vilka.',
+  'holdem.offer.discard': 'Byt kort',
+  'holdem.offer.stand': 'Behåll alla',
+  'holdem.seat.drew': 'Bytte',
+  'holdem.seat.stoodPat': 'Behöll alla',
+  'holdem.street.predraw': 'Före bytet',
+  'holdem.street.draw': 'Bytet',
+  'holdem.street.postdraw': 'Efter bytet',
+  'holdem.prompt.draw': 'Välj upp till {n} kort att byta, eller behåll alla',
+  'holdem.remedy.discardOrStand': 'Det är dags att byta — välj ett till {n} kort att byta, eller behåll alla.',
+  'err.DRAW_NOT_NOW': 'Du kan bara byta kort under bytet',
+  'err.DRAW_PENDING': 'Bordet byter kort — byt kort eller behåll alla först',
+  'err.DRAW_TOO_MANY': 'Du kan byta högst tre kort',
+  'err.DRAW_EMPTY': 'Välj minst ett kort att byta, eller behåll alla',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit — en höjning får vara högst lika stor som potten efter att du har synat.',
+  'holdem.rules.omaha.deal': 'Varje spelare får fyra kort med baksidan upp.',
+  'holdem.rules.omaha.useTwo': 'Din hand måste använda exakt två av dina fyra kort och exakt tre från bordet.',
+  'holdem.rules.omaha.allIn': 'Du kan aldrig satsa mer än du har, eller mer än potten tillåter. All-in är tillåtet när din stack ryms under den gränsen — även för mindre än en full höjning.',
+  'holdem.remedy.raiseAtMostPot': 'Höj till högst {n} — det är pottens storlek.',
+  'err.OVER_POT_LIMIT': 'Den höjningen är större än potten',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Mål',
   'lastcard.rules.section.setup': 'Uppställning',

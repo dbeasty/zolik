@@ -2108,6 +2108,33 @@ export const sl: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Držiš ponudbo: reci mám ali naprej',
   'err.MARIAS_YOU_BID': 'Ti licitiraš: ponudi več ali naprej',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Vsak igralec dobi pet kart s hrbtom navzgor. Skupnih kart ni: tvoja roka je tistih pet kart, ki jih držiš.',
+  'holdem.rules.draw.streets': 'Stavi se v dveh krogih — enkrat na razdeljene karte in enkrat po menjavi.',
+  'holdem.rules.draw.draw': 'Pri menjavi vsak igralec, ki je še v igri, začenši levo od delivca, odvrže eno do {n} karte in dobi enako število novih — ali obdrži vseh pet. Menjajo tudi igralci, ki so all-in.',
+  'holdem.rules.draw.public': 'Vsi izvejo, koliko kart je kdo zamenjal, nikoli pa katere.',
+  'holdem.offer.discard': 'Zamenjaj karte',
+  'holdem.offer.stand': 'Obdrži vse',
+  'holdem.seat.drew': 'Zamenjal',
+  'holdem.seat.stoodPat': 'Obdržal vse',
+  'holdem.street.predraw': 'Pred menjavo',
+  'holdem.street.draw': 'Menjava',
+  'holdem.street.postdraw': 'Po menjavi',
+  'holdem.prompt.draw': 'Izberi do {n} karte za menjavo ali obdrži vse',
+  'holdem.remedy.discardOrStand': 'Zdaj je menjava — izberi eno do {n} karte za menjavo ali obdrži vse.',
+  'err.DRAW_NOT_NOW': 'Karte lahko menjaš samo med menjavo',
+  'err.DRAW_PENDING': 'Za mizo poteka menjava — najprej zamenjaj karte ali obdrži vse',
+  'err.DRAW_TOO_MANY': 'Zamenjaš lahko največ tri karte',
+  'err.DRAW_EMPTY': 'Izberi vsaj eno karto za menjavo ali obdrži vse',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Stave z omejitvijo pota — dvig je lahko največ tolikšen, kot je pot, ko izenačiš.',
+  'holdem.rules.omaha.deal': 'Vsak igralec dobi štiri karte s hrbtom navzgor.',
+  'holdem.rules.omaha.useTwo': 'Tvoja roka mora uporabiti natanko dve od tvojih štirih kart in natanko tri z mize.',
+  'holdem.rules.omaha.allIn': 'Nikoli ne moreš staviti več, kot imaš, ali več, kot dovoli pot. All-in je dovoljen, kadar koli tvoji žetoni ustrezajo tej meji — tudi za manj kot poln dvig.',
+  'holdem.remedy.raiseAtMostPot': 'Zvišaj največ na {n} — tolikšen je pot.',
+  'err.OVER_POT_LIMIT': 'Ta dvig je večji od pota',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Cilj',
   'lastcard.rules.section.setup': 'Priprava',

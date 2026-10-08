@@ -2113,6 +2113,33 @@ export const lv: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Tu turi solījumu: saki mám vai pas',
   'err.MARIAS_YOU_BID': 'Tu solī: solī vairāk vai pas',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Katrs spēlētājs saņem piecas kārtis ar attēlu uz leju. Kopīgo kāršu nav: tava roka ir tās piecas kārtis, kas tev ir.',
+  'holdem.rules.draw.streets': 'Likmes liek divās kārtās — vienreiz ar izdalītajām kārtīm un vienreiz pēc maiņas.',
+  'holdem.rules.draw.draw': 'Maiņā katrs spēlētājs, kas vēl ir izspēlē, sākot no dalītāja kreisās puses, nomet no vienas līdz {n} kārtīm un saņem tikpat jaunu — vai patur visas piecas. Arī spēlētāji, kas ir all-in, maina kārtis.',
+  'holdem.rules.draw.public': 'Visiem pasaka, cik kārtis katrs spēlētājs nomainīja, bet nekad — kuras.',
+  'holdem.offer.discard': 'Mainīt kārtis',
+  'holdem.offer.stand': 'Paturēt visas',
+  'holdem.seat.drew': 'Nomainīja',
+  'holdem.seat.stoodPat': 'Paturēja visas',
+  'holdem.street.predraw': 'Pirms maiņas',
+  'holdem.street.draw': 'Maiņa',
+  'holdem.street.postdraw': 'Pēc maiņas',
+  'holdem.prompt.draw': 'Izvēlies līdz {n} kārtīm maiņai vai paturi visas',
+  'holdem.remedy.discardOrStand': 'Tagad maina — izvēlies no vienas līdz {n} kārtīm maiņai vai paturi visas.',
+  'err.DRAW_NOT_NOW': 'Kārtis var mainīt tikai maiņas laikā',
+  'err.DRAW_PENDING': 'Pie galda notiek maiņa — vispirms nomaini kārtis vai paturi visas',
+  'err.DRAW_TOO_MANY': 'Vari nomainīt ne vairāk kā trīs kārtis',
+  'err.DRAW_EMPTY': 'Izvēlies vismaz vienu kārti maiņai vai paturi visas',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Likmes ar bankas limitu — paaugstinājums var būt ne lielāks par banku pēc tava izlīdzinājuma.',
+  'holdem.rules.omaha.deal': 'Katrs spēlētājs saņem četras kārtis ar attēlu uz leju.',
+  'holdem.rules.omaha.useTwo': 'Tavā kombinācijā jāizmanto tieši divas no tavām četrām kārtīm un tieši trīs no galda.',
+  'holdem.rules.omaha.allIn': 'Tu nekad nevari likt vairāk, nekā tev ir, vai vairāk, nekā atļauj banka. All-in ir atļauts vienmēr, kad tavi žetoni iekļaujas šajā limitā — pat par mazāk nekā pilnu paaugstinājumu.',
+  'holdem.remedy.raiseAtMostPot': 'Paaugstini ne vairāk kā līdz {n} — tik liela ir banka.',
+  'err.OVER_POT_LIMIT': 'Šis paaugstinājums ir lielāks par banku',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Mērķis',
   'lastcard.rules.section.setup': 'Sagatavošana',

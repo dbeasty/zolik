@@ -2133,6 +2133,33 @@ export const pt: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Seguras o lance: diz mám ou passa',
   'err.MARIAS_YOU_BID': 'Estás a licitar: sobe o lance ou passa',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Cada jogador recebe cinco cartas viradas para baixo. Não há cartas comunitárias: a tua mão são as cinco cartas que tens.',
+  'holdem.rules.draw.streets': 'Aposta-se em duas rondas — uma com as cartas distribuídas e outra depois da troca.',
+  'holdem.rules.draw.draw': 'Na troca, cada jogador ainda na mão, começando à esquerda de quem dá, descarta de uma a {n} cartas e recebe outras tantas novas — ou fica servido e guarda as cinco. Os jogadores em all-in também trocam.',
+  'holdem.rules.draw.public': 'Todos sabem quantas cartas cada jogador trocou, mas nunca quais.',
+  'holdem.offer.discard': 'Trocar cartas',
+  'holdem.offer.stand': 'Ficar servido',
+  'holdem.seat.drew': 'Trocou',
+  'holdem.seat.stoodPat': 'Servido',
+  'holdem.street.predraw': 'Antes da troca',
+  'holdem.street.draw': 'A troca',
+  'holdem.street.postdraw': 'Depois da troca',
+  'holdem.prompt.draw': 'Escolhe até {n} cartas para trocar, ou fica servido',
+  'holdem.remedy.discardOrStand': 'É a troca — escolhe de uma a {n} cartas para trocar, ou fica servido.',
+  'err.DRAW_NOT_NOW': 'Só podes trocar cartas durante a troca',
+  'err.DRAW_PENDING': 'A mesa está a trocar — troca cartas ou fica servido primeiro',
+  'err.DRAW_TOO_MANY': 'Podes trocar no máximo três cartas',
+  'err.DRAW_EMPTY': 'Escolhe pelo menos uma carta para trocar, ou fica servido',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Apostas com limite do pote — um aumento pode ser no máximo do tamanho do pote depois de pagares.',
+  'holdem.rules.omaha.deal': 'Cada jogador recebe quatro cartas viradas para baixo.',
+  'holdem.rules.omaha.useTwo': 'A tua mão tem de usar exatamente duas das tuas quatro cartas e exatamente três da mesa.',
+  'holdem.rules.omaha.allIn': 'Nunca podes apostar mais do que tens, nem mais do que o pote permite. Ir all-in é permitido sempre que as tuas fichas cabem nesse limite — mesmo por menos do que um aumento completo.',
+  'holdem.remedy.raiseAtMostPot': 'Sobe no máximo para {n} — é o tamanho do pote.',
+  'err.OVER_POT_LIMIT': 'Esse aumento é maior do que o pote',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Objetivo',
   'lastcard.rules.section.setup': 'Preparação',

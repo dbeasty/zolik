@@ -2136,6 +2136,33 @@ export const mt: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Int iżżomm l-offerta: għid mám jew għaddi',
   'err.MARIAS_YOU_BID': 'Int qed toffri: offri ogħla jew għaddi',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Kull plejer jingħata ħames karti wiċċhom \'l isfel. M\'hemmx karti komuni: idek huma l-ħames karti li għandek.',
+  'holdem.rules.draw.streets': 'L-imħatri jsiru f\'żewġ rawnds — wieħed fuq il-karti kif tqassmu u wieħed wara l-bdil.',
+  'holdem.rules.draw.draw': 'Fil-bdil, kull plejer li għadu fl-idejn, jibda mix-xellug tad-dealer, jarmi minn karta waħda sa {n} karti u jingħata l-istess numru ta\' karti ġodda — jew iżomm il-ħamsa kollha. Anke l-plejers all-in jibdlu.',
+  'holdem.rules.draw.public': 'Kulħadd jiġi mgħarraf kemm-il karta biddel kull plejer, imma qatt liema.',
+  'holdem.offer.discard': 'Ibdel il-karti',
+  'holdem.offer.stand': 'Żomm kollox',
+  'holdem.seat.drew': 'Biddel',
+  'holdem.seat.stoodPat': 'Żamm kollox',
+  'holdem.street.predraw': 'Qabel il-bdil',
+  'holdem.street.draw': 'Il-bdil',
+  'holdem.street.postdraw': 'Wara l-bdil',
+  'holdem.prompt.draw': 'Agħżel sa {n} karti biex tibdel, jew żomm kollox',
+  'holdem.remedy.discardOrStand': 'Wasal il-bdil — agħżel minn karta waħda sa {n} karti biex tibdel, jew żomm kollox.',
+  'err.DRAW_NOT_NOW': 'Tista\' tibdel il-karti biss waqt il-bdil',
+  'err.DRAW_PENDING': 'Il-mejda qed tibdel — l-ewwel ibdel il-karti jew żomm kollox',
+  'err.DRAW_TOO_MANY': 'Tista\' tibdel l-aktar tliet karti',
+  'err.DRAW_EMPTY': 'Agħżel mill-inqas karta waħda biex tibdel, jew żomm kollox',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Imħatri pot-limit — għolla tista\' tkun l-aktar daqs il-pot wara li ssejjaħ.',
+  'holdem.rules.omaha.deal': 'Kull plejer jingħata erba\' karti wiċċhom \'l isfel.',
+  'holdem.rules.omaha.useTwo': 'Idek trid tuża eżatt tnejn mill-erba\' karti tiegħek u eżatt tlieta mill-mejda.',
+  'holdem.rules.omaha.allIn': 'Qatt ma tista\' tpoġġi aktar milli għandek, jew aktar milli jippermetti l-pot. All-in huwa permess kull meta ċ-ċipep tiegħek joqogħdu taħt dak il-limitu — anke għal inqas minn għolla sħiħa.',
+  'holdem.remedy.raiseAtMostPot': 'Għolli għal l-aktar {n} — dak huwa d-daqs tal-pot.',
+  'err.OVER_POT_LIMIT': 'Dik l-għolla hija akbar mill-pot',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Għan',
   'lastcard.rules.section.setup': 'Tħejjija',

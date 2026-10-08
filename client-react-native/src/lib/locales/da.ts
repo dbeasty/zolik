@@ -2111,6 +2111,33 @@ export const da: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Du holder buddet: sig mám eller pas',
   'err.MARIAS_YOU_BID': 'Du byder: byd højere eller pas',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Hver spiller får fem kort med bagsiden opad. Der er ingen fælleskort: din hånd er de fem kort, du har.',
+  'holdem.rules.draw.streets': 'Der satses i to runder — én på de uddelte kort og én efter byttet.',
+  'holdem.rules.draw.draw': 'I byttet smider hver spiller, der stadig er med i hånden, begyndende til venstre for giveren, ét til {n} kort og får lige så mange nye — eller beholder alle fem. Spillere, der er all-in, bytter også.',
+  'holdem.rules.draw.public': 'Alle får at vide, hvor mange kort hver spiller byttede, men aldrig hvilke.',
+  'holdem.offer.discard': 'Byt kort',
+  'holdem.offer.stand': 'Behold alle',
+  'holdem.seat.drew': 'Byttede',
+  'holdem.seat.stoodPat': 'Beholdt alle',
+  'holdem.street.predraw': 'Før byttet',
+  'holdem.street.draw': 'Byttet',
+  'holdem.street.postdraw': 'Efter byttet',
+  'holdem.prompt.draw': 'Vælg op til {n} kort at bytte, eller behold alle',
+  'holdem.remedy.discardOrStand': 'Det er byttet — vælg ét til {n} kort at bytte, eller behold alle.',
+  'err.DRAW_NOT_NOW': 'Du kan kun bytte kort under byttet',
+  'err.DRAW_PENDING': 'Bordet bytter — byt kort eller behold alle først',
+  'err.DRAW_TOO_MANY': 'Du kan højst bytte tre kort',
+  'err.DRAW_EMPTY': 'Vælg mindst ét kort at bytte, eller behold alle',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit — en forhøjelse må højst være på størrelse med puljen, efter du har syn.',
+  'holdem.rules.omaha.deal': 'Hver spiller får fire kort med bagsiden opad.',
+  'holdem.rules.omaha.useTwo': 'Din hånd skal bruge præcis to af dine fire kort og præcis tre fra bordet.',
+  'holdem.rules.omaha.allIn': 'Du kan aldrig satse mere, end du har, eller mere, end puljen tillader. All-in er tilladt, når din stak kan være under den grænse — også for mindre end en fuld forhøjelse.',
+  'holdem.remedy.raiseAtMostPot': 'Hæv til højst {n} — det er puljens størrelse.',
+  'err.OVER_POT_LIMIT': 'Den forhøjelse er større end puljen',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Mål',
   'lastcard.rules.section.setup': 'Opstilling',

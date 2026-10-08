@@ -33,6 +33,10 @@
     "DISCARD_PILE_EMPTY",
     "DISCARD_TAKEN_CARD_FORBIDDEN",
     "DOES_NOT_BUILD",
+    "DRAW_EMPTY",
+    "DRAW_NOT_NOW",
+    "DRAW_PENDING",
+    "DRAW_TOO_MANY",
     "FOUNDATION_ORDER",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
@@ -137,6 +141,7 @@
     "NO_SUCH_MELD",
     "NO_SUCH_SET",
     "OPTION_NOT_ALLOWED",
+    "OVER_POT_LIMIT",
     "PILE_BLOCKED",
     "PILE_EMPTY",
     "PILE_FROZEN",
@@ -485,8 +490,11 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.offer.discard",
     "holdem.offer.finish",
     "holdem.offer.show",
+    "holdem.offer.stand",
+    "holdem.prompt.draw",
     "holdem.prompt.raiseTo",
     "holdem.prompt.waitingFor",
     "holdem.prompt.yourAction",
@@ -496,10 +504,12 @@
     "holdem.remedy.callAllInOrFold",
     "holdem.remedy.callOrFold",
     "holdem.remedy.checkOrRaise",
+    "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.nothingToShow",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.remedy.waitForNextHand",
     "holdem.round.hand",
     "holdem.round.pot",
@@ -507,6 +517,10 @@
     "holdem.rules.allIn",
     "holdem.rules.blinds",
     "holdem.rules.checkOrCall",
+    "holdem.rules.draw.deal",
+    "holdem.rules.draw.draw",
+    "holdem.rules.draw.public",
+    "holdem.rules.draw.streets",
     "holdem.rules.foldedOut",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
@@ -514,6 +528,10 @@
     "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.omaha.allIn",
+    "holdem.rules.omaha.deal",
+    "holdem.rules.omaha.useTwo",
+    "holdem.rules.potLimit",
     "holdem.rules.revealEveryone",
     "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
@@ -530,10 +548,12 @@
     "holdem.seat.allIn",
     "holdem.seat.bet",
     "holdem.seat.dealer",
+    "holdem.seat.drew",
     "holdem.seat.folded",
     "holdem.seat.mucked",
     "holdem.seat.out",
     "holdem.seat.stack",
+    "holdem.seat.stoodPat",
     "holdem.seat.won",
     "holdem.status.mucked",
     "holdem.status.pot",
@@ -541,6 +561,9 @@
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
+    "holdem.street.draw",
+    "holdem.street.postdraw",
+    "holdem.street.predraw",
     "klondike.fact.card",
     "klondike.fact.count",
     "klondike.fact.moves",
@@ -1139,14 +1162,20 @@
     "holdem.remedy.callAllInOrFold",
     "holdem.remedy.callOrFold",
     "holdem.remedy.checkOrRaise",
+    "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.nothingToShow",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.remedy.waitForNextHand",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
     "holdem.rules.checkOrCall",
+    "holdem.rules.draw.deal",
+    "holdem.rules.draw.draw",
+    "holdem.rules.draw.public",
+    "holdem.rules.draw.streets",
     "holdem.rules.foldedOut",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
@@ -1154,6 +1183,10 @@
     "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.omaha.allIn",
+    "holdem.rules.omaha.deal",
+    "holdem.rules.omaha.useTwo",
+    "holdem.rules.potLimit",
     "holdem.rules.revealEveryone",
     "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
@@ -1903,6 +1936,9 @@
     "holdem.header.street": [
       "value"
     ],
+    "holdem.prompt.draw": [
+      "n"
+    ],
     "holdem.prompt.waitingFor": [
       "playerId"
     ],
@@ -1921,6 +1957,9 @@
     "holdem.remedy.callOrFold": [
       "n"
     ],
+    "holdem.remedy.discardOrStand": [
+      "n"
+    ],
     "holdem.remedy.nameAnAmount": [
       "max",
       "min"
@@ -1931,12 +1970,18 @@
     "holdem.remedy.raiseAtMost": [
       "n"
     ],
+    "holdem.remedy.raiseAtMostPot": [
+      "n"
+    ],
     "holdem.round.pot": [
       "n"
     ],
     "holdem.rules.blinds": [
       "bb",
       "sb"
+    ],
+    "holdem.rules.draw.draw": [
+      "n"
     ],
     "holdem.rules.handLimit": [
       "n"
@@ -1946,6 +1991,10 @@
     ],
     "holdem.seat.bet": [
       "chips",
+      "value"
+    ],
+    "holdem.seat.drew": [
+      "n",
       "value"
     ],
     "holdem.seat.stack": [
@@ -2581,20 +2630,25 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.prompt.draw",
     "holdem.prompt.waitingFor",
     "holdem.quick.allIn",
     "holdem.quick.halfPot",
     "holdem.quick.pot",
     "holdem.remedy.callAllInOrFold",
     "holdem.remedy.callOrFold",
+    "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
     "holdem.remedy.raiseAtLeast",
     "holdem.remedy.raiseAtMost",
+    "holdem.remedy.raiseAtMostPot",
     "holdem.round.pot",
     "holdem.rules.blinds",
+    "holdem.rules.draw.draw",
     "holdem.rules.handLimit",
     "holdem.rules.stack",
     "holdem.seat.bet",
+    "holdem.seat.drew",
     "holdem.seat.stack",
     "holdem.status.mucked",
     "holdem.status.pot",

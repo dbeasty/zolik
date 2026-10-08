@@ -2132,6 +2132,33 @@ export const ro: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Tu ții licitația: spune mám sau pas',
   'err.MARIAS_YOU_BID': 'Tu licitezi: licitează mai sus sau pas',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Fiecare jucător primește cinci cărți cu fața în jos. Nu există cărți comune: mâna ta sunt cele cinci cărți pe care le ții.',
+  'holdem.rules.draw.streets': 'Se pariază în două runde — una pe cărțile împărțite și una după schimb.',
+  'holdem.rules.draw.draw': 'La schimb, fiecare jucător încă în mână, începând din stânga dealerului, aruncă între una și {n} cărți și primește tot atâtea noi — sau rămâne servit și le păstrează pe toate cinci. Schimbă și jucătorii all-in.',
+  'holdem.rules.draw.public': 'Toată lumea află câte cărți a schimbat fiecare jucător, dar niciodată care.',
+  'holdem.offer.discard': 'Schimbă cărți',
+  'holdem.offer.stand': 'Păstrează-le pe toate',
+  'holdem.seat.drew': 'A schimbat',
+  'holdem.seat.stoodPat': 'Servit',
+  'holdem.street.predraw': 'Înainte de schimb',
+  'holdem.street.draw': 'Schimbul',
+  'holdem.street.postdraw': 'După schimb',
+  'holdem.prompt.draw': 'Alege până la {n} cărți de schimbat sau păstrează-le pe toate',
+  'holdem.remedy.discardOrStand': 'E rândul schimbului — alege între una și {n} cărți de schimbat sau păstrează-le pe toate.',
+  'err.DRAW_NOT_NOW': 'Poți schimba cărți doar la schimb',
+  'err.DRAW_PENDING': 'La masă se schimbă cărți — mai întâi schimbă cărți sau păstrează-le pe toate',
+  'err.DRAW_TOO_MANY': 'Poți schimba cel mult trei cărți',
+  'err.DRAW_EMPTY': 'Alege cel puțin o carte de schimbat sau păstrează-le pe toate',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pariuri pot-limit — o ridicare poate fi cel mult cât potul după ce ai plătit.',
+  'holdem.rules.omaha.deal': 'Fiecare jucător primește patru cărți cu fața în jos.',
+  'holdem.rules.omaha.useTwo': 'Mâna ta trebuie să folosească exact două dintre cele patru cărți ale tale și exact trei de pe masă.',
+  'holdem.rules.omaha.allIn': 'Nu poți pune niciodată mai mult decât ai, nici mai mult decât permite potul. All-in-ul e permis ori de câte ori jetoanele tale încap sub această limită — chiar și pentru mai puțin decât o ridicare întreagă.',
+  'holdem.remedy.raiseAtMostPot': 'Ridică la cel mult {n} — aceasta e mărimea potului.',
+  'err.OVER_POT_LIMIT': 'Ridicarea aceasta e mai mare decât potul',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Scop',
   'lastcard.rules.section.setup': 'Pregătire',

@@ -2113,6 +2113,33 @@ export const sk: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Držíš ponuku: povedz mám, alebo pasuj',
   'err.MARIAS_YOU_BID': 'Licituješ: ponúkni viac, alebo pasuj',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Každý hráč dostane päť kariet lícom nadol. Na stole nie sú žiadne spoločné karty: tvoja kombinácia je tých päť kariet, ktoré držíš.',
+  'holdem.rules.draw.streets': 'Stávkuje sa v dvoch kolách — raz na rozdané karty a raz po výmene.',
+  'holdem.rules.draw.draw': 'Pri výmene každý hráč, ktorý je ešte v hre, počnúc vľavo od rozdávajúceho, odhodí jednu až {n} karty a dostane rovnaký počet nových — alebo si nechá všetkých päť. Meniť môžu aj hráči, ktorí sú all-in.',
+  'holdem.rules.draw.public': 'Všetci sa dozvedia, koľko kariet kto vymenil, ale nikdy ktoré.',
+  'holdem.offer.discard': 'Vymeniť karty',
+  'holdem.offer.stand': 'Nechať si všetky',
+  'holdem.seat.drew': 'Vymenil',
+  'holdem.seat.stoodPat': 'Bez výmeny',
+  'holdem.street.predraw': 'Pred výmenou',
+  'holdem.street.draw': 'Výmena',
+  'holdem.street.postdraw': 'Po výmene',
+  'holdem.prompt.draw': 'Vyber až {n} karty na výmenu, alebo si nechaj všetky',
+  'holdem.remedy.discardOrStand': 'Teraz sa mení — vyber jednu až {n} karty na výmenu, alebo si nechaj všetky.',
+  'err.DRAW_NOT_NOW': 'Karty sa dajú meniť len pri výmene',
+  'err.DRAW_PENDING': 'Pri stole sa práve mení — najprv vymeň karty, alebo si nechaj všetky',
+  'err.DRAW_TOO_MANY': 'Vymeniť môžeš najviac tri karty',
+  'err.DRAW_EMPTY': 'Vyber aspoň jednu kartu na výmenu, alebo si nechaj všetky',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Stávky s limitom banku — zvýšiť môžeš najviac o toľko, koľko je v banku po tvojom dorovnaní.',
+  'holdem.rules.omaha.deal': 'Každý hráč dostane štyri karty lícom nadol.',
+  'holdem.rules.omaha.useTwo': 'Tvoja kombinácia musí použiť presne dve zo tvojich štyroch kariet a presne tri zo stola.',
+  'holdem.rules.omaha.allIn': 'Nikdy nemôžeš staviť viac, než máš, ani viac, než dovolí bank. All-in je povolený vždy, keď sa tvoje žetóny do tohto limitu zmestia — aj za menej ako celé zvýšenie.',
+  'holdem.remedy.raiseAtMostPot': 'Zvýš najviac na {n} — to je veľkosť banku.',
+  'err.OVER_POT_LIMIT': 'Také zvýšenie je väčšie ako bank',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Cieľ',
   'lastcard.rules.section.setup': 'Príprava',

@@ -35,3 +35,20 @@ func TestSeatRangeFallsBackToTheModule(t *testing.T) {
 		}
 	}
 }
+
+func TestVariationAnswersToItsFormerIDs(t *testing.T) {
+	d := ModuleDescriptor{Variations: []VariationSpec{
+		{ID: "a"},
+		{ID: "b", Formerly: []string{"old-b", "a"}},
+	}}
+	if v := d.Variation("old-b"); v == nil || v.ID != "b" {
+		t.Errorf("a retired ID should resolve to the variation that took it over, got %+v", v)
+	}
+	// A current ID always wins over somebody's history.
+	if v := d.Variation("a"); v == nil || v.ID != "a" {
+		t.Errorf("a current ID should resolve to itself, got %+v", v)
+	}
+	if d.Variation("never") != nil {
+		t.Error("an unknown ID should not resolve")
+	}
+}

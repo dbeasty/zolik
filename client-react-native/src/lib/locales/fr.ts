@@ -2139,6 +2139,33 @@ export const fr: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': "Tu tiens l'enchère : dis mám ou passe",
   'err.MARIAS_YOU_BID': "Tu enchéris : monte l'enchère ou passe",
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Chaque joueur reçoit cinq cartes face cachée. Il n\'y a pas de cartes communes : ta main, ce sont les cinq cartes que tu tiens.',
+  'holdem.rules.draw.streets': 'Les mises se font en deux tours — un sur les cartes distribuées, un après l\'échange.',
+  'holdem.rules.draw.draw': 'Pendant l\'échange, chaque joueur encore dans le coup, en commençant à gauche du donneur, jette d\'une à {n} cartes et en reçoit autant de nouvelles — ou se déclare servi et garde ses cinq cartes. Les joueurs à tapis échangent aussi.',
+  'holdem.rules.draw.public': 'Tout le monde sait combien de cartes chacun a échangées, mais jamais lesquelles.',
+  'holdem.offer.discard': 'Échanger des cartes',
+  'holdem.offer.stand': 'Garder les cinq',
+  'holdem.seat.drew': 'A échangé',
+  'holdem.seat.stoodPat': 'Servi',
+  'holdem.street.predraw': 'Avant l\'échange',
+  'holdem.street.draw': 'L\'échange',
+  'holdem.street.postdraw': 'Après l\'échange',
+  'holdem.prompt.draw': 'Choisis jusqu\'à {n} cartes à échanger, ou garde les cinq',
+  'holdem.remedy.discardOrStand': 'C\'est l\'échange — choisis d\'une à {n} cartes à échanger, ou garde les cinq.',
+  'err.DRAW_NOT_NOW': 'Tu ne peux échanger des cartes que pendant l\'échange',
+  'err.DRAW_PENDING': 'La table échange — échange d\'abord des cartes ou garde les cinq',
+  'err.DRAW_TOO_MANY': 'Tu peux échanger trois cartes au plus',
+  'err.DRAW_EMPTY': 'Choisis au moins une carte à échanger, ou garde les cinq',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Mises pot-limit — une relance ne peut pas dépasser le pot une fois que tu as suivi.',
+  'holdem.rules.omaha.deal': 'Chaque joueur reçoit quatre cartes face cachée.',
+  'holdem.rules.omaha.useTwo': 'Ta main doit utiliser exactement deux de tes quatre cartes et exactement trois du tableau.',
+  'holdem.rules.omaha.allIn': 'Tu ne peux jamais miser plus que ton tapis, ni plus que ce que le pot autorise. Le tapis est permis chaque fois que ton tapis tient sous cette limite — même pour moins qu\'une relance complète.',
+  'holdem.remedy.raiseAtMostPot': 'Relance à {n} au plus — c\'est la taille du pot.',
+  'err.OVER_POT_LIMIT': 'Cette relance dépasse le pot',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'But',
   'lastcard.rules.section.setup': 'Mise en place',

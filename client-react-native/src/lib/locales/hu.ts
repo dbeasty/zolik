@@ -2130,6 +2130,33 @@ export const hu: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Tiéd a tartás: mondd, hogy mám, vagy passzolj',
   'err.MARIAS_YOU_BID': 'Te licitálsz: licitálj magasabbat, vagy passzolj',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Minden játékos öt lapot kap képpel lefelé. Nincsenek közös lapok: a kezed az az öt lap, ami nálad van.',
+  'holdem.rules.draw.streets': 'Két körben lehet tétet tenni — egyszer a kiosztott lapokra, egyszer a csere után.',
+  'holdem.rules.draw.draw': 'A cserénél minden még játékban lévő játékos, az osztótól balra kezdve, eldob egy–{n} lapot, és ugyanannyi újat kap — vagy megtartja mind az ötöt. Az all-in játékosok is cserélnek.',
+  'holdem.rules.draw.public': 'Mindenki megtudja, ki hány lapot cserélt, de azt soha, hogy melyeket.',
+  'holdem.offer.discard': 'Lapcsere',
+  'holdem.offer.stand': 'Mindet megtartom',
+  'holdem.seat.drew': 'Cserélt',
+  'holdem.seat.stoodPat': 'Nem cserélt',
+  'holdem.street.predraw': 'Csere előtt',
+  'holdem.street.draw': 'A csere',
+  'holdem.street.postdraw': 'Csere után',
+  'holdem.prompt.draw': 'Válassz legfeljebb {n} lapot cserére, vagy tartsd meg mindet',
+  'holdem.remedy.discardOrStand': 'Most cserélünk — válassz egy–{n} lapot cserére, vagy tartsd meg mindet.',
+  'err.DRAW_NOT_NOW': 'Lapot csak a cserénél cserélhetsz',
+  'err.DRAW_PENDING': 'Az asztalnál most cserélnek — előbb cserélj lapot, vagy tartsd meg mindet',
+  'err.DRAW_TOO_MANY': 'Legfeljebb három lapot cserélhetsz',
+  'err.DRAW_EMPTY': 'Válassz legalább egy lapot cserére, vagy tartsd meg mindet',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Pot-limit tétek — egy emelés legfeljebb akkora lehet, mint a kassza a megadásod után.',
+  'holdem.rules.omaha.deal': 'Minden játékos négy lapot kap képpel lefelé.',
+  'holdem.rules.omaha.useTwo': 'A kezednek pontosan kettőt kell használnia a négy lapodból, és pontosan hármat az asztalról.',
+  'holdem.rules.omaha.allIn': 'Soha nem tehetsz be többet, mint amennyid van, vagy amennyit a kassza enged. Az all-in mindig megengedett, ha a zsetonjaid beleférnek ebbe a határba — akkor is, ha kevesebb egy teljes emelésnél.',
+  'holdem.remedy.raiseAtMostPot': 'Emelj legfeljebb {n}-ra — ekkora a kassza.',
+  'err.OVER_POT_LIMIT': 'Ez az emelés nagyobb a kasszánál',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Cél',
   'lastcard.rules.section.setup': 'Előkészítés',

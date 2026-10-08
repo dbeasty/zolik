@@ -2112,6 +2112,33 @@ export const hr: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Držiš ponudu: reci mám ili dalje',
   'err.MARIAS_YOU_BID': 'Ti licitiraš: ponudi više ili dalje',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Svaki igrač dobiva pet karata licem prema dolje. Nema zajedničkih karata: tvoja ruka je onih pet karata koje držiš.',
+  'holdem.rules.draw.streets': 'Ulaže se u dva kruga — jednom na podijeljene karte i jednom nakon zamjene.',
+  'holdem.rules.draw.draw': 'U zamjeni svaki igrač koji je još u ruci, počevši lijevo od djelitelja, odbacuje jednu do {n} karte i dobiva isto toliko novih — ili zadržava svih pet. Mijenjaju i igrači koji su all-in.',
+  'holdem.rules.draw.public': 'Svi saznaju koliko je karata koji igrač zamijenio, ali nikad koje.',
+  'holdem.offer.discard': 'Zamijeni karte',
+  'holdem.offer.stand': 'Zadrži sve',
+  'holdem.seat.drew': 'Zamijenio',
+  'holdem.seat.stoodPat': 'Zadržao sve',
+  'holdem.street.predraw': 'Prije zamjene',
+  'holdem.street.draw': 'Zamjena',
+  'holdem.street.postdraw': 'Nakon zamjene',
+  'holdem.prompt.draw': 'Odaberi do {n} karte za zamjenu ili zadrži sve',
+  'holdem.remedy.discardOrStand': 'Sad je zamjena — odaberi jednu do {n} karte za zamjenu ili zadrži sve.',
+  'err.DRAW_NOT_NOW': 'Karte možeš mijenjati samo tijekom zamjene',
+  'err.DRAW_PENDING': 'Za stolom je zamjena — prvo zamijeni karte ili zadrži sve',
+  'err.DRAW_TOO_MANY': 'Možeš zamijeniti najviše tri karte',
+  'err.DRAW_EMPTY': 'Odaberi barem jednu kartu za zamjenu ili zadrži sve',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Ulozi s limitom pota — povišica smije biti najviše veličine pota nakon što izjednačiš.',
+  'holdem.rules.omaha.deal': 'Svaki igrač dobiva četiri karte licem prema dolje.',
+  'holdem.rules.omaha.useTwo': 'Tvoja ruka mora koristiti točno dvije od tvoje četiri karte i točno tri sa stola.',
+  'holdem.rules.omaha.allIn': 'Nikad ne možeš uložiti više nego što imaš, ni više nego što pot dopušta. All-in je dopušten kad god tvoji žetoni stanu ispod te granice — čak i za manje od pune povišice.',
+  'holdem.remedy.raiseAtMostPot': 'Podigni najviše na {n} — tolika je veličina pota.',
+  'err.OVER_POT_LIMIT': 'Ta povišica je veća od pota',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Cilj',
   'lastcard.rules.section.setup': 'Priprema',

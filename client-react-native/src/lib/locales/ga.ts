@@ -2148,6 +2148,33 @@ export const ga: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Tá an tairiscint agat: abair mám, nó lig thart',
   'err.MARIAS_YOU_BID': 'Tá tú ag tairiscint: tairg níos airde, nó lig thart',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Faigheann gach imreoir cúig chárta béal faoi. Níl aon chártaí comhroinnte ann: is iad do lámh na cúig chárta atá agat.',
+  'holdem.rules.draw.streets': 'Bítear ag geallchur in dhá bhabhta — ceann ar na cártaí mar a roinneadh iad, agus ceann i ndiaidh an mhalartaithe.',
+  'holdem.rules.draw.draw': 'Sa mhalartú, caitheann gach imreoir atá fós sa lámh, ag tosú ar chlé ón déileálaí, idir cárta amháin agus {n} cárta uaidh agus faigheann sé an oiread céanna cártaí nua — nó coinníonn sé na cúig cinn ar fad. Malartaíonn imreoirí atá all-in freisin.',
+  'holdem.rules.draw.public': 'Insítear do chách cé mhéad cárta a mhalartaigh gach imreoir, ach ní insítear riamh cé na cinn.',
+  'holdem.offer.discard': 'Malartaigh cártaí',
+  'holdem.offer.stand': 'Coinnigh iad ar fad',
+  'holdem.seat.drew': 'Mhalartaigh',
+  'holdem.seat.stoodPat': 'Choinnigh iad ar fad',
+  'holdem.street.predraw': 'Roimh an malartú',
+  'holdem.street.draw': 'An malartú',
+  'holdem.street.postdraw': 'Tar éis an mhalartaithe',
+  'holdem.prompt.draw': 'Roghnaigh suas le {n} chárta le malartú, nó coinnigh iad ar fad',
+  'holdem.remedy.discardOrStand': 'Is é an malartú é — roghnaigh idir cárta amháin agus {n} cárta le malartú, nó coinnigh iad ar fad.',
+  'err.DRAW_NOT_NOW': 'Ní féidir leat cártaí a mhalartú ach le linn an mhalartaithe',
+  'err.DRAW_PENDING': 'Tá an bord ag malartú — malartaigh cártaí nó coinnigh iad ar fad ar dtús',
+  'err.DRAW_TOO_MANY': 'Is féidir leat trí chárta ar a mhéad a mhalartú',
+  'err.DRAW_EMPTY': 'Roghnaigh cárta amháin ar a laghad le malartú, nó coinnigh iad ar fad',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Geallta teorainn an phota — ní féidir le hardú a bheith níos mó ná an pota tar éis duit glaoch.',
+  'holdem.rules.omaha.deal': 'Faigheann gach imreoir ceithre chárta béal faoi.',
+  'holdem.rules.omaha.useTwo': 'Caithfidh do lámh dhá cheann díreach de do cheithre chárta a úsáid, agus trí cinn díreach ón mbord.',
+  'holdem.rules.omaha.allIn': 'Ní féidir leat níos mó ná do chruach a chur isteach riamh, ná níos mó ná mar a cheadaíonn an pota. Ceadaítear dul all-in aon uair a fheileann do chruach faoin teorainn sin — fiú ar níos lú ná ardú iomlán.',
+  'holdem.remedy.raiseAtMostPot': 'Ardaigh go {n} ar a mhéad — sin méid an phota.',
+  'err.OVER_POT_LIMIT': 'Tá an t-ardú sin níos mó ná an pota',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Aidhm',
   'lastcard.rules.section.setup': 'Socrú',

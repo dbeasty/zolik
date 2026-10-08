@@ -2134,6 +2134,33 @@ export const es: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Mantienes la puja: di mám o pasa',
   'err.MARIAS_YOU_BID': 'Estás pujando: puja más alto o pasa',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Cada jugador recibe cinco cartas boca abajo. No hay cartas comunitarias: tu mano son las cinco cartas que tienes.',
+  'holdem.rules.draw.streets': 'Se apuesta en dos rondas — una con las cartas repartidas y otra después del descarte.',
+  'holdem.rules.draw.draw': 'En el descarte, cada jugador que sigue en la mano, empezando a la izquierda del repartidor, tira de una a {n} cartas y recibe otras tantas nuevas — o se planta y se queda con las cinco. Los jugadores que están all-in también descartan.',
+  'holdem.rules.draw.public': 'Todos saben cuántas cartas cambió cada jugador, pero nunca cuáles.',
+  'holdem.offer.discard': 'Cambiar cartas',
+  'holdem.offer.stand': 'Plantarse',
+  'holdem.seat.drew': 'Cambió',
+  'holdem.seat.stoodPat': 'Plantado',
+  'holdem.street.predraw': 'Antes del descarte',
+  'holdem.street.draw': 'El descarte',
+  'holdem.street.postdraw': 'Después del descarte',
+  'holdem.prompt.draw': 'Elige hasta {n} cartas para cambiar, o plántate',
+  'holdem.remedy.discardOrStand': 'Es el descarte — elige de una a {n} cartas para cambiar, o plántate.',
+  'err.DRAW_NOT_NOW': 'Solo puedes cambiar cartas durante el descarte',
+  'err.DRAW_PENDING': 'La mesa está descartando — cambia cartas o plántate primero',
+  'err.DRAW_TOO_MANY': 'Puedes cambiar como mucho tres cartas',
+  'err.DRAW_EMPTY': 'Elige al menos una carta para cambiar, o plántate',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Apuestas con límite de bote — una subida puede ser como mucho del tamaño del bote después de igualar.',
+  'holdem.rules.omaha.deal': 'Cada jugador recibe cuatro cartas boca abajo.',
+  'holdem.rules.omaha.useTwo': 'Tu mano debe usar exactamente dos de tus cuatro cartas y exactamente tres de la mesa.',
+  'holdem.rules.omaha.allIn': 'Nunca puedes apostar más de lo que tienes, ni más de lo que permite el bote. Ir all-in está permitido siempre que tus fichas quepan bajo ese límite — incluso por menos de una subida completa.',
+  'holdem.remedy.raiseAtMostPot': 'Sube como mucho a {n} — es el tamaño del bote.',
+  'err.OVER_POT_LIMIT': 'Esa subida es mayor que el bote',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Objetivo',
   'lastcard.rules.section.setup': 'Preparación',

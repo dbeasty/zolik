@@ -166,6 +166,8 @@ const GAMES = [
   { moduleId: 'prsi', label: 'Prsi', seats: 2 },
   { moduleId: 'canasta', label: 'Canasta', seats: 2, options: { targetScore: 500 } },
   { moduleId: 'holdem', label: 'Holdem', seats: 3, variation: 'timed' },
+  { moduleId: 'holdem', label: 'Five-Card Draw', seats: 3, variation: 'draw', options: { handLimit: 10 } },
+  { moduleId: 'holdem', label: 'Pot-Limit Omaha', seats: 3, variation: 'omaha', options: { handLimit: 10 } },
   { moduleId: 'zolik', label: 'Zoliky', seats: 2 },
   { moduleId: 'ginrummy', label: 'Gin Rummy', seats: 2, options: { targetScore: 100 } },
   { moduleId: 'blackjack', label: 'Blackjack', seats: 3, options: { rounds: 5, startingStack: 200 } },
@@ -507,9 +509,12 @@ test.describe('one shell, every game', () => {
     await openGame(page, 'holdem');
     await openGameSetup(page, 'holdem');
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
-    // And a game with two shipped rulesets offers both.
-    await expect(page.getByTestId('variation-holdem-freezeout')).toBeVisible();
-    await expect(page.getByTestId('variation-holdem-timed')).toBeVisible();
+    // Poker's variations are the poker games, so it offers each; how a match
+    // ends is the hand-count option rather than a variation.
+    await expect(page.getByTestId('variation-holdem-holdem')).toBeVisible();
+    await expect(page.getByTestId('variation-holdem-draw')).toBeVisible();
+    await expect(page.getByTestId('variation-holdem-omaha')).toBeVisible();
+    await expect(page.getByTestId('option-holdem-handLimit-10')).toBeVisible();
   });
 
   test('the settings arrive open, and only a game against bots asks how many', async ({

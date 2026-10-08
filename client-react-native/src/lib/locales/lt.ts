@@ -2114,6 +2114,33 @@ export const lt: Record<string, string> = {
   'err.MARIAS_YOU_HOLD': 'Tu laikai pasiūlymą: sakyk mám arba pas',
   'err.MARIAS_YOU_BID': 'Tu siūlai: siūlyk daugiau arba pas',
   // --- end Mariáš ---
+  // --- Five-Card Draw ---
+  'holdem.rules.draw.deal': 'Kiekvienas žaidėjas gauna penkias užverstas kortas. Bendrų kortų nėra: tavo ranka – tos penkios kortos, kurias laikai.',
+  'holdem.rules.draw.streets': 'Statoma dviem ratais — kartą su išdalytomis kortomis ir kartą po keitimo.',
+  'holdem.rules.draw.draw': 'Keitimo metu kiekvienas dar dalyje dalyvaujantis žaidėjas, pradedant nuo dalintojo kairės, išmeta nuo vienos iki {n} kortų ir gauna tiek pat naujų — arba pasilieka visas penkias. Keičia ir žaidėjai, kurie yra all-in.',
+  'holdem.rules.draw.public': 'Visiems pranešama, kiek kortų pakeitė kiekvienas žaidėjas, bet niekada – kurias.',
+  'holdem.offer.discard': 'Keisti kortas',
+  'holdem.offer.stand': 'Pasilikti visas',
+  'holdem.seat.drew': 'Pakeitė',
+  'holdem.seat.stoodPat': 'Pasiliko visas',
+  'holdem.street.predraw': 'Prieš keitimą',
+  'holdem.street.draw': 'Keitimas',
+  'holdem.street.postdraw': 'Po keitimo',
+  'holdem.prompt.draw': 'Pasirink iki {n} kortų keitimui arba pasilik visas',
+  'holdem.remedy.discardOrStand': 'Dabar keičiama — pasirink nuo vienos iki {n} kortų keitimui arba pasilik visas.',
+  'err.DRAW_NOT_NOW': 'Kortas keisti galima tik keitimo metu',
+  'err.DRAW_PENDING': 'Prie stalo keičiamos kortos — pirma pakeisk kortas arba pasilik visas',
+  'err.DRAW_TOO_MANY': 'Gali pakeisti daugiausia tris kortas',
+  'err.DRAW_EMPTY': 'Pasirink bent vieną kortą keitimui arba pasilik visas',
+  // --- end Five-Card Draw ---
+  // --- Pot-Limit Omaha ---
+  'holdem.rules.potLimit': 'Statymai su banko limitu — pakelti galima daugiausia tiek, kiek yra banke tau išlyginus.',
+  'holdem.rules.omaha.deal': 'Kiekvienas žaidėjas gauna keturias užverstas kortas.',
+  'holdem.rules.omaha.useTwo': 'Tavo derinys turi naudoti lygiai dvi iš tavo keturių kortų ir lygiai tris nuo stalo.',
+  'holdem.rules.omaha.allIn': 'Niekada negali statyti daugiau, nei turi, ar daugiau, nei leidžia bankas. All-in leidžiamas visada, kai tavo žetonai telpa į šią ribą — net už mažiau nei visą pakėlimą.',
+  'holdem.remedy.raiseAtMostPot': 'Kelk daugiausia iki {n} — toks yra bankas.',
+  'err.OVER_POT_LIMIT': 'Šis pakėlimas didesnis už banką',
+  // --- end Pot-Limit Omaha ---
   // --- Last Card ---
   'lastcard.rules.section.goal': 'Tikslas',
   'lastcard.rules.section.setup': 'Pasiruošimas',
