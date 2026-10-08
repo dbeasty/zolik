@@ -282,3 +282,54 @@ test.describe('last card', () => {
     await expect(page.getByText(/Colour in play/)).toBeVisible();
   });
 });
+
+test.describe('last card, lowest total wins', () => {
+  test('everyone pays for their own hand, and the lowest total takes the match', async ({ request }) => {
+    test.setTimeout(240_000);
+    const { matchId, users } = await startMatch(request, 3, { targetScore: 200, scoring: 1, pauseBetweenRounds: 0 });
+    const wsBase = API_BASE.replace(/^http/, 'ws');
+    const sockets = users.map((u) => new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(u.accessToken)}`));
+    const latest: any[] = users.map(() => null);
+    sockets.forEach((ws, i) => {
+      ws.onmessage = (ev) => {
+        const msg = JSON.parse(String(ev.data));
+        if (msg.type === 'match_state') latest[i] = msg;
+      };
+    });
+    for (let i = 0; i < 200 && latest.some((l) => !l); i++) await new Promise((r) => setTimeout(r, 50));
+
+    // Any legal move will do; the point is the arithmetic at the end of each deal.
+    const order = ['continue', 'accept', 'catch', 'call', 'play_card', 'pass', 'draw'];
+    for (let step = 0; step < 8000; step++) {
+      const i = latest.findIndex((l) => (l?.legalActions ?? []).some((o: any) => o.enabled));
+      if (i === -1 || latest[i].status !== 'active') break;
+      const o = latest[i].legalActions
+        .filter((x: any) => x.enabled && order.includes(x.verb))
+        .sort((a: any, b: any) => order.indexOf(a.verb) - order.indexOf(b.verb))[0];
+      const action: any = { offerId: o.id, verb: o.verb };
+      if ((o.source?.minCards ?? 0) > 0) action.cards = o.source.cards.slice(0, 1);
+      for (const p of o.params ?? []) action.params = { ...(action.params ?? {}), [p.name]: p.defaultChoice ?? p.choices[0].value };
+      const before = latest.map((l) => l);
+      sockets[i].send(JSON.stringify(action));
+      for (let k = 0; k < 200 && latest.every((l, j) => l === before[j]); k++) await new Promise((r) => setTimeout(r, 10));
+    }
+    for (const ws of sockets) ws.close();
+
+    const final = await stateFor(request, matchId, users[0]);
+    expect(final.status).toBe('completed');
+    const rounds = final.rounds?.rounds ?? [];
+    expect(rounds.length).toBeGreaterThan(0);
+    for (const r of rounds) {
+      for (const s of r.scores) {
+        // The deal's winner pays nothing; everyone else pays their own lines.
+        if (r.winners.includes((s as any).playerId)) expect(s.delta).toBe(0);
+        if (s.lines?.length) expect(s.lines.reduce((a, l) => a + l.points, 0)).toBe(s.delta);
+      }
+    }
+    const totals = rounds[rounds.length - 1].scores.map((s) => s.total);
+    expect(Math.max(...totals), 'someone reached the target').toBeGreaterThanOrEqual(200);
+    const standings = (final as any).standings as { playerId: string; rank: number; shown?: number }[];
+    const lowest = Math.min(...totals);
+    expect(standings.find((s) => s.rank === 1)?.shown, 'the winner holds the lowest total').toBe(lowest);
+  });
+});

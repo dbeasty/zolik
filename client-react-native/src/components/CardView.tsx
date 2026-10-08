@@ -387,14 +387,22 @@ export function CardView({
   const lastCard = deck === 'lastcard' && isLastCardCode(card);
   /**
    * Which Last Card face. Each skin has its own set of the pack —
-   * `lastCardSetFor` — and every set shares one small face, frame and one big
-   * index, for a card too small for anything else to read: a phone's hand, a
-   * compact board, a stack.
+   * `lastCardSetFor`. A stacked card is the small face — frame and one big
+   * index — in every set; the classic set, which is the condensed one, also
+   * uses it on a compact board and a phone's narrow cards. The casino and
+   * heirloom sets draw their whole face wherever a card is shown whole, the
+   * pile included.
    */
-  const lastCardVariant =
-    stacked || compact || metrics.card.width < LAST_CARD_FULL_WIDTH
-      ? 'plain'
-      : ({ classic: 'classic', casino: 'full', heirloom: 'heirloom' } as const)[lastCardSetFor(skin)];
+  const lastCardSet = lastCardSetFor(skin);
+  const lastCardVariant = stacked
+    ? 'plain'
+    : lastCardSet === 'classic'
+      ? compact || metrics.card.width < LAST_CARD_FULL_WIDTH
+        ? 'plain'
+        : 'classic'
+      : lastCardSet === 'heirloom'
+        ? 'heirloom'
+        : 'full';
   const germanFull = german && !stacked && !plain;
   const washed =
     !lastCard &&
