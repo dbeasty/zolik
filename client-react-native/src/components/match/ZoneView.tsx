@@ -735,6 +735,7 @@ export function ZoneView({
                     buried + i,
                     <CardView
                       card={c.card}
+                      as={c.as}
                       faceDown={c.faceDown}
                       compact={compact}
                       selected={selected?.includes(c.card) || (!!picked && picked === c.card)}

@@ -6,7 +6,7 @@ import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
 import { GermanFace } from '@/src/components/cards/GermanFace';
 import { GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
-import { LastCardFace } from '@/src/components/cards/LastCardFace';
+import { LastCardFace, lastCardSetFor } from '@/src/components/cards/LastCardFace';
 import { isLastCardCode } from '@/src/components/cards/lastCardArt';
 import { Suit } from '@/src/components/cards/Suit';
 import { VectorFace } from '@/src/components/cards/VectorFace';
@@ -69,6 +69,8 @@ type Props = {
   // nothing measured around it moves. A ceremonial turn, not a secret: the
   // server still says which card it is (see matchTypes.CardView.faceDown).
   faceDown?: boolean;
+  /** What the card stands for in play, where its face can show it (`CardView.as` on the wire). */
+  as?: string;
 };
 
 /** How much of a card's own side shows below and to the right of it. */
@@ -311,6 +313,7 @@ export function CardView({
   stacked,
   testID,
   faceDown,
+  as,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -383,13 +386,23 @@ export function CardView({
    */
   const lastCard = deck === 'lastcard' && isLastCardCode(card);
   /**
-   * Which Last Card face. The pack is a picture deck, so wherever a card is
-   * drawn big enough to show its picture it gets the full face, whatever the
-   * skin; the plain face — frame and one big index — is for a card too small
-   * for anything else to read: a phone's hand, a compact board, a stack.
+   * Which Last Card face. Each skin has its own set of the pack —
+   * `lastCardSetFor`. A stacked card is the small face — frame and one big
+   * index — in every set; the classic set, which is the condensed one, also
+   * uses it on a compact board and a phone's narrow cards. The casino and
+   * heirloom sets draw their whole face wherever a card is shown whole, the
+   * pile included.
    */
-  const lastCardVariant: 'full' | 'plain' =
-    stacked || (plain && (compact || metrics.card.width < LAST_CARD_FULL_WIDTH)) ? 'plain' : 'full';
+  const lastCardSet = lastCardSetFor(skin);
+  const lastCardVariant = stacked
+    ? 'plain'
+    : lastCardSet === 'classic'
+      ? compact || metrics.card.width < LAST_CARD_FULL_WIDTH
+        ? 'plain'
+        : 'classic'
+      : lastCardSet === 'heirloom'
+        ? 'heirloom'
+        : 'full';
   const germanFull = german && !stacked && !plain;
   const washed =
     !lastCard &&
@@ -400,6 +413,7 @@ export function CardView({
   const face = lastCard ? (
     <LastCardFace
       card={card}
+      as={as}
       variant={lastCardVariant}
       width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
       height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}

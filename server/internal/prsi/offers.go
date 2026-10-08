@@ -48,7 +48,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// The wild's suit choice. Declared only when a wild is actually among the
 	// playable cards, so a client never renders a suit picker it cannot use.
 	if containsWild(playable) {
-		play.Params = []module.ParamSpec{suitParam(s.Hands[playerID])}
+		play.Params = []module.ParamSpec{suitParam(s.Hands[playerID], queensIn(playable))}
 	}
 	offers = append(offers, play)
 
@@ -145,12 +145,12 @@ func containsWild(cards []string) bool {
 // It starts on the suit the hand holds most of, not counting the queens
 // themselves — the suit the player will usually name, and the one a queen
 // played without a second thought should name rather than hearts.
-func suitParam(hand []string) module.ParamSpec {
+func suitParam(hand, queens []string) module.ParamSpec {
 	choices := make([]module.ParamChoice, 0, len(suits))
 	for _, s := range suits {
 		choices = append(choices, module.ParamChoice{Value: s, LabelKey: module.GermanSuitKey(s)})
 	}
-	return module.ParamSpec{Name: "suit", LabelKey: "prompt.chooseSuit", DefaultChoice: longestSuit(hand), Choices: choices}
+	return module.ParamSpec{Name: "suit", LabelKey: "prompt.chooseSuit", DefaultChoice: longestSuit(hand), Cards: queens, Choices: choices}
 }
 
 // longestSuit is the suit a hand holds most of, leaving out the wild queens,
@@ -170,4 +170,16 @@ func longestSuit(hand []string) string {
 		}
 	}
 	return best
+}
+
+// queensIn is the queens among the playable cards — the cards the suit
+// parameter is asked for.
+func queensIn(cards []string) []string {
+	var out []string
+	for _, c := range cards {
+		if rankOf(c) == rankWild {
+			out = append(out, c)
+		}
+	}
+	return out
 }

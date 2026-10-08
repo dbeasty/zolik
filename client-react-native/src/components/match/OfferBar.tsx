@@ -319,7 +319,9 @@ export function OfferBar({
             ) : null}
 
             {offer.enabled
-              ? (offer.params ?? []).map((p) => (
+              ? // A question a particular card asks (`ParamSpec.cards`) is put
+                // when that card goes — see ChoiceSheet — not set in advance here.
+                (offer.params ?? []).filter((p) => !p.cards?.length).map((p) => (
                   <ParamControl
                     key={p.name}
                     spec={p}
