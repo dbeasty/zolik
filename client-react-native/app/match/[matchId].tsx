@@ -1943,9 +1943,9 @@ export default function MatchScreen() {
           </Tip>
         </View>
 
-        {(view.header ?? []).length > 0 ? (
+        {(view.header ?? []).some((f) => !f.standing) ? (
           <View style={styles.facts} testID="match-header">
-            {(view.header ?? []).map((f, i) =>
+            {(view.header ?? []).filter((f) => !f.standing).map((f, i) =>
               // A Last Card colour in play is shown in that colour, not only named.
               lastCardColourOfKey(f.value) ? (
                 <ColourInPlay key={`${f.labelKey}-${i}`} fact={f} style={styles.fact} />

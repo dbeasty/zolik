@@ -266,7 +266,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		{LabelKey: "header.deck", Value: strconv.Itoa(len(s.DrawPile))},
 	}
 	if c := s.colourInPlay(); c != "" {
-		vm.Header = append(vm.Header, module.Fact{LabelKey: "lastcard.header.colour", Value: colourKey(c)})
+		vm.Header = append(vm.Header, module.Fact{LabelKey: "lastcard.header.colour", Value: colourKey(c), Standing: true})
 	}
 	if s.direction() < 0 {
 		vm.Header = append(vm.Header, module.Fact{LabelKey: "lastcard.header.anticlockwise"})
