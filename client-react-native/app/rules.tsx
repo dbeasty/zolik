@@ -5,6 +5,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import type { ModuleRules } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
@@ -74,7 +75,9 @@ export default function RulesScreen() {
 
   // Once the rules are on screen, put the one that was asked for in view.
   // Deliberately not instant: the reader arrived from somewhere else, and a
-  // list that scrolls under them shows where the answer sits in the whole.
+  // list that scrolls under them shows where the answer sits in the whole —
+  // unless they asked for stillness, when it is simply there.
+  const stillness = useReducedMotion();
   useEffect(() => {
     if (!rules || !highlight) return;
     const node = highlighted.current;
@@ -85,11 +88,13 @@ export default function RulesScreen() {
         // @ts-expect-error — measureLayout takes the scroll view's node handle,
         // which react-native-web and native both accept as the component.
         view,
-        (_x: number, y: number) => view.scrollTo({ y: Math.max(0, y - 60), animated: true }),
+        (_x: number, y: number) => view.scrollTo({ y: Math.max(0, y - 60), animated: !stillness }),
         () => {},
       );
     }, 60);
     return () => clearTimeout(timer);
+    // Not on `stillness`: the setting changing is no reason to scroll again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rules, highlight]);
 
   if (!rules && !error) {

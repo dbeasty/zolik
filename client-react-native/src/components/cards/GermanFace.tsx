@@ -1,6 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg from 'react-native-svg';
 
+// Card type, pinned to the card's own size — see CardText.
+import { CardText as Text } from '@/src/components/cards/CardText';
 import { GermanShapes, GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
 import { aceShapes, courtPanel, placedSuit, type Notch, type Shape } from '@/src/components/cards/germanArt';
 import type { CardDisplay } from '@/src/lib/cards';

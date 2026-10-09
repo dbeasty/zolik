@@ -407,6 +407,8 @@ function SeatScroller({
   children: ReactNode;
 }) {
   const scroller = useRef<ScrollView>(null);
+  // Stepped rather than swept for someone who asked for stillness.
+  const stillness = useReducedMotion();
   const [view, setView] = useState(0);
   const [content, setContent] = useState(0);
   const [x, setX] = useState(0);
@@ -415,7 +417,7 @@ function SeatScroller({
   // Most of a viewport at a time, so the seat cut off at the edge is still in
   // sight after the step and a reader keeps their place.
   const step = (dir: 1 | -1) =>
-    scroller.current?.scrollTo({ x: Math.max(0, Math.min(content - view, x + dir * view * 0.8)), animated: true });
+    scroller.current?.scrollTo({ x: Math.max(0, Math.min(content - view, x + dir * view * 0.8)), animated: !stillness });
 
   return (
     <View style={styles.scroller}>

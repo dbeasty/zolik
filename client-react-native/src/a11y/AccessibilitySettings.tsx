@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { setA11yPref, useA11yPrefs, type A11yPrefs } from '@/src/a11y/prefs';
+import { STARTUP_HIGH_CONTRAST } from '@/src/a11y/startupContrast';
+import { useSystemContrast } from '@/src/a11y/systemContrast';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -10,6 +12,12 @@ import { colors, shared } from '@/src/theme';
  */
 export function AccessibilitySettings() {
   const prefs = useA11yPrefs();
+  const systemContrast = useSystemContrast();
+  // The table changes the moment contrast does; the screens outside it fix
+  // their palette as the app starts (see `startupContrast.ts`). Said only
+  // when the two disagree, which is the only time it is news.
+  const contrastNow = prefs.contrast === 'on' || (prefs.contrast === 'auto' && systemContrast);
+  const contrastLater = contrastNow !== STARTUP_HIGH_CONTRAST;
 
   return (
     <View style={shared.card} testID="a11y-settings">
@@ -52,6 +60,11 @@ export function AccessibilitySettings() {
         ]}
         onChange={(v) => setA11yPref('contrast', v as A11yPrefs['contrast'])}
       />
+      {contrastLater ? (
+        <Text style={styles.hint} testID="a11y-contrast-later">
+          {t('a11y.settings.contrast.later')}
+        </Text>
+      ) : null}
       <Choice
         id="motion"
         label={t('a11y.settings.motion')}

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Card type, pinned to the card's own size — see CardText.
+import { CardText as Text } from '@/src/components/cards/CardText';
 import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
 import { GermanFace } from '@/src/components/cards/GermanFace';
@@ -12,11 +14,12 @@ import { Suit } from '@/src/components/cards/Suit';
 import { VectorFace } from '@/src/components/cards/VectorFace';
 import { PRINTED } from '@/src/cards/vector/faces';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { useSkin } from '@/src/hooks/useSkin';
+import { useFourColour, useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
 import { germanIndex, useDeck } from '@/src/lib/deck';
 import { isCourt } from '@/src/lib/pips';
 import { CARD_BORDER, INDEX_PADDING, type CardMetrics } from '@/src/lib/layout';
+import { fourColourSkin, germanFourColourInk } from '@/src/skins/fourColour';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -316,9 +319,15 @@ export function CardView({
   as,
 }: Props) {
   const metrics = useMetrics();
-  const skin = useSkin();
   const deck = useDeck();
   const d = parseCard(card);
+  // The four-colour deck is this skin with a diamond's red turned blue and a
+  // club's black turned green — see `fourColourSkin`. French faces only: the
+  // German pack's index takes its own four inks below, and Last Card is
+  // four-coloured already.
+  const tableSkin = useSkin();
+  const fourColour = useFourColour();
+  const skin = fourColour && deck === 'french' ? fourColourSkin(tableSkin, d.suit) : tableSkin;
   // Recomputed only when the card's own size or the skin changes — every
   // other render of a card reuses the same style objects.
   const styles = useMemo(() => cardStyles(metrics.card, skin), [metrics.card, skin]);
@@ -408,7 +417,9 @@ export function CardView({
     !lastCard &&
     (rich || deluxe || vector || germanFull) && !!skin.card.faceGradient && !selected && !d.isJoker;
   const germanLabel = german ? germanIndex(d.rank) : '';
-  const germanColor = german ? germanInk(d.suit, skin.card.red) : '';
+  const germanColor = german
+    ? (fourColour && germanFourColourInk(skin, d.suit)) || germanInk(d.suit, skin.card.red)
+    : '';
 
   const face = lastCard ? (
     <LastCardFace
