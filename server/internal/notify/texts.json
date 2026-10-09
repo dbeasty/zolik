@@ -1,5 +1,6 @@
 {
   "bg": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Пасианс",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -10,6 +11,7 @@
     "notify.push.rematchTitle": "{host} иска реванш"
   },
   "cs": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -20,6 +22,7 @@
     "notify.push.rematchTitle": "{host} chce odvetu"
   },
   "da": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Kabale",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -30,6 +33,7 @@
     "notify.push.rematchTitle": "{host} vil have en revanche"
   },
   "de": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitär",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -40,6 +44,7 @@
     "notify.push.rematchTitle": "{host} möchte eine Revanche"
   },
   "el": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Πασιέντζα",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -50,6 +55,7 @@
     "notify.push.rematchTitle": "{host} θέλει ρεβάνς"
   },
   "en": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -60,6 +66,7 @@
     "notify.push.rematchTitle": "{host} wants a rematch"
   },
   "es": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -70,6 +77,7 @@
     "notify.push.rematchTitle": "{host} quiere la revancha"
   },
   "et": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -80,6 +88,7 @@
     "notify.push.rematchTitle": "{host} tahab revanši"
   },
   "fi": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasianssi",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -90,6 +99,7 @@
     "notify.push.rematchTitle": "{host} haluaa uusintaottelun"
   },
   "fr": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitaire",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -100,6 +110,7 @@
     "notify.push.rematchTitle": "{host} veut une revanche"
   },
   "ga": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Foighne",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -110,6 +121,7 @@
     "notify.push.rematchTitle": "Tá athchluiche ag teastáil ó {host}"
   },
   "hr": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasijans",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -120,6 +132,7 @@
     "notify.push.rematchTitle": "{host} želi revanš"
   },
   "hu": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasziánsz",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -130,6 +143,7 @@
     "notify.push.rematchTitle": "{host} visszavágót szeretne"
   },
   "it": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitario",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -140,6 +154,7 @@
     "notify.push.rematchTitle": "{host} vuole la rivincita"
   },
   "lt": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansas",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -150,6 +165,7 @@
     "notify.push.rematchTitle": "{host} nori revanšo"
   },
   "lv": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjanss",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -160,6 +176,7 @@
     "notify.push.rematchTitle": "{host} vēlas revanšu"
   },
   "mt": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitarju",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -170,6 +187,7 @@
     "notify.push.rematchTitle": "{host} irid rivinċita"
   },
   "nl": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Patience",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -180,6 +198,7 @@
     "notify.push.rematchTitle": "{host} wil een revanche"
   },
   "pl": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjans",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -190,6 +209,7 @@
     "notify.push.rematchTitle": "{host} chce rewanżu"
   },
   "pt": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Paciência",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -200,6 +220,7 @@
     "notify.push.rematchTitle": "{host} quer uma desforra"
   },
   "ro": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasiență",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -210,6 +231,7 @@
     "notify.push.rematchTitle": "{host} vrea o revanșă"
   },
   "sk": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Solitér",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -220,6 +242,7 @@
     "notify.push.rematchTitle": "{host} chce odvetu"
   },
   "sl": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Pasjansa",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
@@ -230,6 +253,7 @@
     "notify.push.rematchTitle": "{host} želi revanšo"
   },
   "sv": {
+    "module.ferbl": "Ferbl",
     "module.klondike": "Patiens",
     "module.okobere": "Oko bere",
     "module.sedma": "Sedma",

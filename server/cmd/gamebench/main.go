@@ -33,6 +33,7 @@ import (
 	"zolik/server/internal/module"
 
 	_ "zolik/server/internal/canasta"
+	_ "zolik/server/internal/ferbl"
 	_ "zolik/server/internal/holdem"
 	_ "zolik/server/internal/lastcard"
 	_ "zolik/server/internal/marias"

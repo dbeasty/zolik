@@ -38,6 +38,12 @@
     "DRAW_NOT_NOW",
     "DRAW_PENDING",
     "DRAW_TOO_MANY",
+    "FERBL_CANNOT_BET",
+    "FERBL_CANNOT_CHECK",
+    "FERBL_CANNOT_RAISE",
+    "FERBL_NOTHING_TO_CALL",
+    "FERBL_NO_NEED_TO_FOLD",
+    "FERBL_RAISES_CLOSED",
     "FOUNDATION_ORDER",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
@@ -432,6 +438,58 @@
     "canasta.seat.notOpened",
     "canasta.seat.teamScore",
     "canasta.seat.toOpen",
+    "ferbl.fact.chips",
+    "ferbl.hand.banda",
+    "ferbl.hand.fourKind",
+    "ferbl.hand.suits",
+    "ferbl.hand.threeKind",
+    "ferbl.hand.threeSuited",
+    "ferbl.hand.twoAces",
+    "ferbl.hand.twoSuited",
+    "ferbl.header.bet",
+    "ferbl.header.hand",
+    "ferbl.header.pot",
+    "ferbl.offer.bet",
+    "ferbl.offer.call",
+    "ferbl.offer.check",
+    "ferbl.offer.fold",
+    "ferbl.offer.raise",
+    "ferbl.prompt.facing",
+    "ferbl.prompt.open",
+    "ferbl.round.hand",
+    "ferbl.round.pot",
+    "ferbl.round.shown",
+    "ferbl.rules.allIn",
+    "ferbl.rules.ante",
+    "ferbl.rules.banda",
+    "ferbl.rules.cap",
+    "ferbl.rules.deck",
+    "ferbl.rules.end",
+    "ferbl.rules.fourKind",
+    "ferbl.rules.goal",
+    "ferbl.rules.ignored",
+    "ferbl.rules.round1",
+    "ferbl.rules.round2",
+    "ferbl.rules.section.betting",
+    "ferbl.rules.section.cards",
+    "ferbl.rules.section.end",
+    "ferbl.rules.section.goal",
+    "ferbl.rules.section.hands",
+    "ferbl.rules.section.showdown",
+    "ferbl.rules.showdown",
+    "ferbl.rules.suits",
+    "ferbl.rules.threeKind",
+    "ferbl.rules.threeSuited",
+    "ferbl.rules.twoAces",
+    "ferbl.rules.twoSuited",
+    "ferbl.rules.values",
+    "ferbl.seat.allIn",
+    "ferbl.seat.chips",
+    "ferbl.seat.dealer",
+    "ferbl.seat.folded",
+    "ferbl.seat.inPot",
+    "ferbl.seat.out",
+    "ferbl.zone.hand",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
@@ -1364,6 +1422,30 @@
     "canasta.rules.wildLimit",
     "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
+    "ferbl.rules.allIn",
+    "ferbl.rules.ante",
+    "ferbl.rules.banda",
+    "ferbl.rules.cap",
+    "ferbl.rules.deck",
+    "ferbl.rules.end",
+    "ferbl.rules.fourKind",
+    "ferbl.rules.goal",
+    "ferbl.rules.ignored",
+    "ferbl.rules.round1",
+    "ferbl.rules.round2",
+    "ferbl.rules.section.betting",
+    "ferbl.rules.section.cards",
+    "ferbl.rules.section.end",
+    "ferbl.rules.section.goal",
+    "ferbl.rules.section.hands",
+    "ferbl.rules.section.showdown",
+    "ferbl.rules.showdown",
+    "ferbl.rules.suits",
+    "ferbl.rules.threeKind",
+    "ferbl.rules.threeSuited",
+    "ferbl.rules.twoAces",
+    "ferbl.rules.twoSuited",
+    "ferbl.rules.values",
     "ginrummy.remedy.discardToEndTurn",
     "ginrummy.remedy.drawElsewhere",
     "ginrummy.remedy.drawFirst",
@@ -2112,6 +2194,68 @@
     "canasta.seat.toOpen": [
       "n",
       "value"
+    ],
+    "ferbl.fact.chips": [
+      "n"
+    ],
+    "ferbl.hand.banda": [
+      "n"
+    ],
+    "ferbl.hand.suits": [
+      "n"
+    ],
+    "ferbl.hand.threeSuited": [
+      "n"
+    ],
+    "ferbl.hand.twoSuited": [
+      "n"
+    ],
+    "ferbl.header.bet": [
+      "n",
+      "raises"
+    ],
+    "ferbl.header.hand": [
+      "n",
+      "of"
+    ],
+    "ferbl.header.pot": [
+      "n"
+    ],
+    "ferbl.prompt.facing": [
+      "n"
+    ],
+    "ferbl.prompt.open": [
+      "n"
+    ],
+    "ferbl.round.pot": [
+      "n"
+    ],
+    "ferbl.round.shown": [
+      "hand",
+      "player"
+    ],
+    "ferbl.rules.ante": [
+      "n"
+    ],
+    "ferbl.rules.cap": [
+      "n"
+    ],
+    "ferbl.rules.end": [
+      "chips",
+      "n"
+    ],
+    "ferbl.rules.round1": [
+      "n"
+    ],
+    "ferbl.rules.round2": [
+      "n"
+    ],
+    "ferbl.seat.chips": [
+      "n",
+      "value"
+    ],
+    "ferbl.seat.inPot": [
+      "n"
     ],
     "ginrummy.fact.deadwood": [
       "n",
@@ -3225,6 +3369,25 @@
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
     "canasta.seat.toOpen",
+    "ferbl.fact.chips",
+    "ferbl.hand.banda",
+    "ferbl.hand.suits",
+    "ferbl.hand.threeSuited",
+    "ferbl.hand.twoSuited",
+    "ferbl.header.bet",
+    "ferbl.header.hand",
+    "ferbl.header.pot",
+    "ferbl.prompt.facing",
+    "ferbl.prompt.open",
+    "ferbl.round.pot",
+    "ferbl.round.shown",
+    "ferbl.rules.ante",
+    "ferbl.rules.cap",
+    "ferbl.rules.end",
+    "ferbl.rules.round1",
+    "ferbl.rules.round2",
+    "ferbl.seat.chips",
+    "ferbl.seat.inPot",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
