@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
+import { IS_DESKTOP } from '@/src/config';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
@@ -38,6 +39,18 @@ export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
     startPerfMonitor();
+  }, []);
+
+  // The Mac app's menu bar moves between screens through this, rather than by
+  // loading a new page: a reload would drop the player out of an offline
+  // table, which only lives in this page's memory.
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    const w = window as { __zolikNavigate?: (path: string) => void };
+    w.__zolikNavigate = (path) => router.push(path as never);
+    return () => {
+      delete w.__zolikNavigate;
+    };
   }, []);
 
   return (

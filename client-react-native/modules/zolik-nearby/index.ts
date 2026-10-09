@@ -82,13 +82,16 @@ type NativeModule = {
 
 // Optional because the web build, Expo Go and jest have no such module. The
 // Play-offline entry is hidden when this is null, rather than offered and
-// broken.
-const native = requireOptionalNativeModule<NativeModule>('ZolikNearby');
+// broken. The desktop apps show the web build, and provide the same module
+// from their own native side (client-macos/Resources/bridge.js).
+const native =
+  requireOptionalNativeModule<NativeModule>('ZolikNearby') ??
+  ((globalThis as { ZolikNearbyDesktop?: NativeModule }).ZolikNearbyDesktop || null);
 
 export const nearbyAvailable = native != null;
 
 function need(): NativeModule {
-  if (!native) throw new Error('Offline tables need the iOS or Android app');
+  if (!native) throw new Error('Offline tables need the Jokerless app');
   return native;
 }
 

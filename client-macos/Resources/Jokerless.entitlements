@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	What the Mac App Store build declares. The sandbox itself is switched on
+	for that build only (see client-macos/README.md); these say what the app
+	needs inside it: to host a table (server), reach the cloud and other
+	tables (client), and talk to phones over Bluetooth.
+	-->
+	<key>com.apple.security.network.server</key>
+	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.device.bluetooth</key>
+	<true/>
+</dict>
+</plist>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>Jokerless</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.jokerless.mac</string>
+	<key>CFBundleName</key>
+	<string>Jokerless</string>
+	<key>CFBundleDisplayName</key>
+	<string>Jokerless</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__VERSION__</string>
+	<key>JokerlessCommit</key>
+	<string>__COMMIT__</string>
+	<key>JokerlessServer</key>
+	<string>https://jokerless.com</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.card-games</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© Limidus</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Jokerless finds tables on this network, and lets other players on it join yours.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_zolik._tcp</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Jokerless uses Bluetooth to play with phones nearby when there is no shared Wi-Fi.</string>
+</dict>
+</plist>
