@@ -1,7 +1,9 @@
 import { router, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, TextInput } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
+import { Field } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
 import { AvatarPicker } from '@/src/components/avatars/AvatarPicker';
 import { avatarFor } from '@/src/components/avatars/catalogue';
 import { LegalNotice } from '@/src/components/LegalNotice';
@@ -91,10 +93,11 @@ export default function GuestScreen() {
 
   return (
     <Screen title={t('auth.guest.title')} subtitle={t('auth.guest.subtitle')} scroll>
-      <TextInput
-        style={shared.input}
+      <Field
+        label={t('auth.guest.displayName')}
+        error={error}
         placeholder={t('auth.guest.displayName')}
-        placeholderTextColor="#8b9cb3"
+        autoComplete="nickname"
         value={name}
         onChangeText={(v) => {
           named.current = true;
@@ -102,17 +105,25 @@ export default function GuestScreen() {
         }}
         autoCapitalize="words"
       />
-      <Text style={shared.status}>{t('settings.face.heading')}</Text>
+      <Text style={shared.status} {...heading(3)}>
+        {t('settings.face.heading')}
+      </Text>
       <AvatarPicker value={avatarId} onChange={setAvatarId} />
-      {error ? <Text style={shared.error}>{error}</Text> : null}
       {/* Above the button, not below it: the point of the notice is that it is
           read before the thing it is about, and a guest who taps Continue has
           started playing. */}
       <LegalNotice />
-      <Pressable style={[shared.button, { marginTop: 12 }]} onPress={submit} disabled={busy}>
-        <Text style={shared.buttonText}>{busy ? '…' : 'Continue'}</Text>
+      <Pressable
+        style={[shared.button, { marginTop: 12 }]}
+        role="button"
+        aria-label={t('verb.continue')}
+        aria-busy={busy}
+        onPress={submit}
+        disabled={busy}
+      >
+        <Text style={shared.buttonText}>{busy ? '…' : t('verb.continue')}</Text>
       </Pressable>
-      <Pressable onPress={() => router.back()}>
+      <Pressable role="button" onPress={() => router.back()}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import type { MatchAction, MatchState } from '@/src/api/matchTypes';
-import { apiClient } from '@/src/api/client';
+import { ApiError, apiClient } from '@/src/api/client';
 import { WS_CLOSE_DISPLACED, type SocketLike } from '@/src/net/transport';
 import { busyBackoff, jitteredBackoff } from '@/src/lib/reconnectBackoff';
 
@@ -43,6 +43,19 @@ export type MatchSocketState = {
  */
 const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
 
+// The access token rides in the socket url's query string, because a browser
+// socket cannot carry an Authorization header.
+const TOKEN_PARAM = /([?&]token=)([^&#]*)/;
+
+function withToken(url: string, token: string): string {
+  return url.replace(TOKEN_PARAM, (_, prefix: string) => prefix + encodeURIComponent(token));
+}
+
+function tokenOf(url: string): string | null {
+  const m = TOKEN_PARAM.exec(url);
+  return m ? decodeURIComponent(m[2]) : null;
+}
+
 /**
  * `client` is the server the socket belongs to. After a drop, it is asked
  * whether that server is full. An offline table is hosted on this phone, so
@@ -50,7 +63,10 @@ const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
  */
 export function useMatchSocket(
   url: string | null,
-  client: Pick<typeof apiClient, 'getCapacity' | 'openSocket'> = apiClient,
+  client: Pick<
+    typeof apiClient,
+    'getCapacity' | 'openSocket' | 'renewSession' | 'accessToken'
+  > = apiClient,
 ): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState<{ code: string; message?: string; ruleIds?: string[] } | null>(
@@ -101,14 +117,59 @@ export function useMatchSocket(
     // exponential backoff instead.
     let stableTimer: ReturnType<typeof setTimeout> | null = null;
     const STABLE_MS = 2000;
+    // The address the next socket is opened at. It starts as `url` and moves
+    // on only when the token in it has been renewed (see `onclose`).
+    //
+    // The access token in the query string lives fifteen minutes, and the
+    // server turns the upgrade away once it has run out. Nothing on a match
+    // screen makes a REST call, so nothing else was going to notice: the
+    // screen reconnected with the same dead token for as long as the player
+    // looked at it, showing "Connecting…", and came back only if some other
+    // screen happened to refresh the session. A seat-link client does not
+    // even report its new tokens upward, so waiting for `url` to change is not
+    // enough on its own either; the hook rebuilds the address itself.
+    let current = url;
+    // Whether this failure streak has already renewed the token. Once is
+    // enough: if a fresh token is turned away too, the token was not the
+    // problem, and renewing again before every attempt would rotate the
+    // session for nothing. Cleared once a socket opens.
+    let renewed = false;
+
+    // A socket the server would not let in — refused at the upgrade, or
+    // never reached at all; from here the two look the same. Renews the
+    // token once per streak and says whether the next attempt has a new one.
+    const renewToken = async (): Promise<boolean> => {
+      if (renewed) return false;
+      const sentWith = tokenOf(current);
+      if (sentWith === null) return false;
+      try {
+        // Someone else refreshed while this socket was failing; their token
+        // has not been tried yet.
+        if (client.accessToken === sentWith) await client.renewSession();
+      } catch (e) {
+        // The refresh token was refused too. The client has already ended
+        // the session, and the screen goes back to sign-in on its own.
+        if (e instanceof ApiError && e.status === 401) terminal = true;
+        // Anything else — the server is unreachable, most likely — says
+        // nothing about the token, and the next attempt may try again.
+        return false;
+      }
+      if (!client.accessToken || client.accessToken === sentWith) return false;
+      renewed = true;
+      current = withToken(current, client.accessToken);
+      return true;
+    };
 
     const open = () => {
       if (torn) return;
-      const ws = client.openSocket(url);
+      const ws = client.openSocket(current);
       socket = ws;
       wsRef.current = ws;
+      let opened = false;
 
       ws.onopen = () => {
+        opened = true;
+        renewed = false;
         setConnected(true);
         if (stableTimer) clearTimeout(stableTimer);
         stableTimer = setTimeout(() => {
@@ -155,6 +216,12 @@ export function useMatchSocket(
         if (terminal) return;
         void (async () => {
           if (torn || socket !== ws) return;
+          if (!opened && (await renewToken())) {
+            // A refusal the new token answers; there is nothing to wait out.
+            if (!torn && socket === ws) open();
+            return;
+          }
+          if (torn || terminal || socket !== ws) return;
           let delay: number;
           try {
             const cap = await client.getCapacity();

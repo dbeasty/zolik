@@ -1,5 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+// Card type, pinned to the card's own size — see CardText.
+import { CardText as Text } from '@/src/components/cards/CardText';
 import { Court } from '@/src/components/cards/Court';
 import { Suit } from '@/src/components/cards/Suit';
 import type { CardDisplay } from '@/src/lib/cards';

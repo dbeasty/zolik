@@ -150,9 +150,9 @@ async function meldShape(page: Page) {
           }
         : null,
       // Every card in the stack, top edge first, in the order they are drawn.
-      cards: Array.from(group.querySelectorAll('[aria-label]'))
+      cards: Array.from(group.querySelectorAll('[data-card]'))
         .map((c) => ({
-          card: c.getAttribute('aria-label') ?? '',
+          card: c.getAttribute('data-card') ?? '',
           y: Math.round(c.getBoundingClientRect().y),
           height: Math.round(c.getBoundingClientRect().height),
         }))

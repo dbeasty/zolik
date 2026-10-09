@@ -459,3 +459,21 @@ table.bots td.bot-switch { white-space: nowrap; }
 .chip.level-amber { border-color: #c98a12; color: #c98a12; font-weight: 600; }
 .chip.level-red { border-color: var(--danger); color: var(--danger); font-weight: 600; }
 .chip.level-green { color: var(--ok); }
+
+/* Accounts card. */
+.small { font-size: 13px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
+@media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+.chart.chart-short { height: 120px; }
+.hbars { display: flex; flex-direction: column; gap: 4px; }
+.hbar { display: grid; grid-template-columns: minmax(0, 11em) 1fr 3.5em; gap: 8px; align-items: center; font-size: 13px; }
+.hbar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbar-track { height: 10px; border-radius: 5px; background: color-mix(in srgb, var(--line) 60%, transparent); }
+.hbar-fill { height: 100%; border-radius: 5px; background: var(--bar); min-width: 2px; }
+.hbar-n { text-align: right; font-variant-numeric: tabular-nums; }
+.hbar[data-unknown="1"] .hbar-fill { background: var(--muted); }
+.players-head { margin-top: 18px; }
+table.players td { white-space: nowrap; }
+table.players td.player { text-align: left; }
+table.players th:nth-child(2), table.players th:nth-child(3), table.players td:nth-child(3) { text-align: left; }
+#players-form { flex-direction: row; margin-top: 0; }

@@ -15,10 +15,14 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	stacking := cfg.Opt(OptStacking, stackOff)
 	drawUntil := cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn
 	sevenZero := cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn
+	lowest := cfg.Opt(OptScoring, scoreWinnerTakes) == scoreLowest
 
 	goal := module.Fact{LabelKey: "lastcard.rules.goal"}
 	end := module.Fact{LabelKey: "lastcard.rules.end"}
-	if target > 0 {
+	if target > 0 && lowest {
+		goal = module.Fact{LabelKey: "lastcard.rules.goal.lowest", Params: map[string]any{"target": target}}
+		end = module.Fact{LabelKey: "lastcard.rules.end.lowest", Params: map[string]any{"target": target}}
+	} else if target > 0 {
 		goal = module.Fact{LabelKey: "lastcard.rules.goal.points", Params: map[string]any{"target": target}}
 		end = module.Fact{LabelKey: "lastcard.rules.end.points", Params: map[string]any{"target": target}}
 	}
@@ -78,7 +82,12 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "lastcard.rules.challenge"},
 		))
 	}
-	if target > 0 {
+	if target > 0 && lowest {
+		out = append(out, module.Section("lastcard.rules.section.scoring",
+			module.Fact{LabelKey: "lastcard.rules.scoring.lowest", Params: map[string]any{"target": target}},
+			module.Fact{LabelKey: "lastcard.rules.values"},
+		))
+	} else if target > 0 {
 		out = append(out, module.Section("lastcard.rules.section.scoring",
 			module.Fact{LabelKey: "lastcard.rules.scoring", Params: map[string]any{"target": target}},
 			module.Fact{LabelKey: "lastcard.rules.values"},

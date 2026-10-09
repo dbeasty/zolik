@@ -159,12 +159,12 @@ async function groupShape(page: Page) {
     return {
       box: round(group.getBoundingClientRect()),
       hole: hole ? round(hole.getBoundingClientRect()) : null,
-      cards: Array.from(group.querySelectorAll('[aria-label]'))
-        .filter((c) => /^[0-9TJQKA]/.test(c.getAttribute('aria-label') ?? ''))
+      cards: Array.from(group.querySelectorAll('[data-card]'))
+        .filter((c) => /^[0-9TJQKA]/.test(c.getAttribute('data-card') ?? ''))
         .map((c) => {
           const index = c.querySelector('[data-testid^="index-meld_1-"]');
           return {
-            card: c.getAttribute('aria-label') ?? '',
+            card: c.getAttribute('data-card') ?? '',
             y: Math.round(c.getBoundingClientRect().y),
             index: index ? round(index.getBoundingClientRect()) : null,
           };

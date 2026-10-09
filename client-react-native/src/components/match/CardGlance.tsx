@@ -1,10 +1,15 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+
+import { cardsSpoken } from '@/src/a11y/cardNames';
+import { t } from '@/src/lib/i18n';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { parseCard } from '@/src/lib/cards';
 import type { Metrics } from '@/src/lib/layout';
-import { useSkin } from '@/src/hooks/useSkin';
+import { useFourColour, useSkin } from '@/src/hooks/useSkin';
+import { useDeck } from '@/src/lib/deck';
+import { fourColourInkOf } from '@/src/skins/fourColour';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -29,6 +34,8 @@ export function CardGlance({ cards, max = 6, testID = 'card-glance' }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => glanceStyles(metrics, skin), [metrics, skin]);
+  const fourColour = useFourColour();
+  const deck = useDeck();
 
   if (!cards.length) return null;
 
@@ -36,11 +43,31 @@ export function CardGlance({ cards, max = 6, testID = 'card-glance' }: Props) {
   const rest = cards.length - shown.length;
 
   return (
-    <View style={styles.row} testID={testID}>
+    <View
+      style={styles.row}
+      testID={testID}
+      // The glyphs are for the eye ("K♥"); a screen reader gets the cards in
+      // words, as one image of the hand, and the glyphs are hidden from it.
+      {...((Platform.OS === 'web'
+        ? {
+            role: 'img',
+            'aria-label': rest > 0 ? t('a11y.board.glance.more', { cards: cardsSpoken(shown), n: rest }) : cardsSpoken(shown),
+          }
+        : {
+            accessible: true,
+            accessibilityRole: 'image',
+            accessibilityLabel:
+              rest > 0 ? t('a11y.board.glance.more', { cards: cardsSpoken(shown), n: rest }) : cardsSpoken(shown),
+          }) as object)}
+    >
       {shown.map((card, i) => {
         const d = parseCard(card);
         return (
-          <Text key={`${card}-${i}`} style={[styles.one, d.isRed && styles.red]} testID={`glance-${card}-${i}`}>
+          <Text
+            key={`${card}-${i}`}
+            style={[styles.one, d.isRed && styles.red, fourColour && deck === 'french' && inkStyle(styles, card)]}
+            testID={`glance-${card}-${i}`}
+          >
             {d.rank}
             {d.suitSymbol}
           </Text>
@@ -60,6 +87,16 @@ function glanceStyles(m: Metrics, s: Skin) {
     // the label. The title says whose hand it is; this is the hand.
     one: { color: colors.text, fontSize: m.panel.titleFont + 4, fontWeight: '700' },
     red: { color: colors.danger },
+    // The four-colour deck on a panel rather than on card stock: the panel's
+    // own blue and green, which hold their contrast on it where the card
+    // inks (dark, for cream stock) would not.
+    diamonds: { color: colors.accent },
+    clubs: { color: colors.success },
     tail: { color: colors.muted, fontSize: m.panel.titleFont + 2, fontWeight: '600' },
   });
+}
+
+function inkStyle(styles: ReturnType<typeof glanceStyles>, card: string) {
+  const ink = fourColourInkOf(card);
+  return ink ? styles[ink] : undefined;
 }

@@ -6,6 +6,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"zolik/server/internal/db"
 	"zolik/server/internal/models"
@@ -19,6 +20,10 @@ type Repository interface {
 	FindByUsername(ctx context.Context, username string) (models.User, error)
 	FindByID(ctx context.Context, id bson.ObjectID) (models.User, error)
 	UpdateByID(ctx context.Context, id bson.ObjectID, update bson.M) error
+	// EachUser calls fn for every account, in no particular order, stopping
+	// at fn's first error. For the operator console's account statistics:
+	// a whole-table read, so nothing on a player's request path may call it.
+	EachUser(ctx context.Context, fn func(models.User) error) error
 }
 
 type mongoRepository struct {
@@ -65,4 +70,23 @@ func (r *mongoRepository) FindByID(ctx context.Context, id bson.ObjectID) (model
 func (r *mongoRepository) UpdateByID(ctx context.Context, id bson.ObjectID, update bson.M) error {
 	_, err := r.users.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
 	return err
+}
+
+func (r *mongoRepository) EachUser(ctx context.Context, fn func(models.User) error) error {
+	// The password hash never leaves the database for a statistics read.
+	cur, err := r.users.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{"passwordHash": 0}))
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var u models.User
+		if err := cur.Decode(&u); err != nil {
+			return err
+		}
+		if err := fn(u); err != nil {
+			return err
+		}
+	}
+	return cur.Err()
 }

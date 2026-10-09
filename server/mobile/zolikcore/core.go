@@ -196,12 +196,22 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 	ctx, cancel := context.WithCancel(context.Background())
 	a.Start(ctx)
 
+	if dir := webRootDir(); dir != "" {
+		a.SetWebUI(os.DirFS(dir))
+	}
+
+	// The loopback listener is the phone's own app, and only it may list
+	// and save this device's finished games. The room's listener and the
+	// Bluetooth tunnel serve the same router without this mark.
+	own := newServer(r)
+	own.ConnContext = func(ctx context.Context, _ net.Conn) context.Context { return app.MarkLoopback(ctx) }
+
 	h := &Host{
 		app:        a,
 		handler:    r,
 		cloudKeys:  cloudKeys,
 		bleKey:     bleKey,
-		srv:        newServer(r),
+		srv:        own,
 		ln:         ln,
 		cancel:     cancel,
 		instanceID: id.InstanceID,
@@ -217,6 +227,35 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 	log.Printf("zolikcore: host %s listening on %s", id.InstanceID, ln.Addr())
 	current = h
 	return h, nil
+}
+
+var (
+	webMu   sync.Mutex
+	webRoot string
+)
+
+// SetWebRoot names a folder holding the web client's export, for a host to
+// serve to browsers in the room. The app calls it before Start with the copy
+// it ships among its assets. Without it the host serves whatever web client
+// was compiled in (see scripts/build-mobile-core.sh), and without either it
+// serves the API alone.
+func SetWebRoot(dir string) {
+	webMu.Lock()
+	defer webMu.Unlock()
+	webRoot = strings.TrimSpace(dir)
+}
+
+func webRootDir() string {
+	webMu.Lock()
+	defer webMu.Unlock()
+	if webRoot == "" {
+		return ""
+	}
+	if _, err := os.Stat(filepath.Join(webRoot, "index.html")); err != nil {
+		log.Printf("zolikcore: no web client at %s: %v", webRoot, err)
+		return ""
+	}
+	return webRoot
 }
 
 // describeAccount names an account for a refusal, without putting an id the

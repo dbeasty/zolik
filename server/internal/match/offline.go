@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -34,11 +35,9 @@ type Outbox interface {
 // HandUp records a finished match by handing it to this node's outbox instead
 // of writing a result nobody else would ever see.
 //
-// It replaces the statistics recorder on a spoke. A phone has no leaderboard
-// and no lifetime figures of its own: those are the cloud's, computed from
-// records the cloud wrote, and a phone that kept its own would be keeping a
-// second set of numbers that quietly disagreed with the ones the player sees
-// everywhere else.
+// It replaces the statistics recorder on a self-hosted server that replicates
+// with the cloud, whose players signed up to play there. A phone does not use
+// it: there every match waits for its players' answer (see LocalSaves).
 type HandUp struct {
 	repo Repository
 	out  Outbox
@@ -139,7 +138,24 @@ type Importer struct {
 	// played as a guest before signing in is credited to the person who
 	// played it.
 	claims GuestClaims
+	// passes checks the offline pass that travels with each account's seat.
+	// Without one, no seat is credited to an account.
+	passes PassChecker
 }
+
+// PassChecker checks that an offline pass is the cloud's own, names userHex,
+// and was good at the moment the match was played.
+//
+// NodeOwner names the account that enrolled a node, so that account's own
+// seat at its own table is credited without a pass: the bundle's signature
+// already is that account's word.
+type PassChecker interface {
+	CheckSeatPass(pass, userHex string, at time.Time) error
+	NodeOwner(ctx context.Context, nodeID string) (string, error)
+}
+
+// SetPassChecker gives the importer what it checks account seats with.
+func (i *Importer) SetPassChecker(p PassChecker) { i.passes = p }
 
 // GuestClaims answers which account, if any, a guest has become.
 type GuestClaims interface {
@@ -176,6 +192,15 @@ func (i *Importer) ImportBundle(ctx context.Context, b zsync.Bundle) error {
 	}
 	if envelope.Status != "completed" {
 		return fmt.Errorf("match %s: handed up as %q rather than completed", b.Match, envelope.Status)
+	}
+	// Already here: the node handed it up again, which is what a node does
+	// until it sees the match in its owner's history. Nothing is replayed or
+	// recorded twice.
+	switch _, err := i.repo.FindByID(ctx, id); {
+	case err == nil:
+		return nil
+	case !db.IsNotFound(err):
+		return err
 	}
 	mod := i.registry.Get(b.Module)
 	if mod == nil {
@@ -223,7 +248,7 @@ func (i *Importer) ImportBundle(ctx context.Context, b zsync.Bundle) error {
 	// room. What it can do is refuse to credit an account that did not prove
 	// it was there, which is what the seat attestations behind Seats are for,
 	// and carry a guest's seat to the account that has since claimed it.
-	credited, err := i.credit(ctx, envelope, b.Seats)
+	credited, err := i.credit(ctx, envelope, b)
 	if err != nil {
 		return err
 	}
@@ -239,12 +264,28 @@ func (i *Importer) ImportBundle(ctx context.Context, b zsync.Bundle) error {
 
 // credit rewrites the envelope's seats from what the hosting node attested,
 // applying any claim a guest has since made.
-func (i *Importer) credit(ctx context.Context, envelope models.Match, seats map[string]string) (models.Match, error) {
+//
+// The seat map is the only word that counts. Whatever ids the envelope itself
+// carries are cleared first, so a seat the map does not name, or names in a
+// way that cannot be believed, arrives as an anonymous player rather than as
+// whoever the envelope said.
+func (i *Importer) credit(ctx context.Context, envelope models.Match, b zsync.Bundle) (models.Match, error) {
+	seats := b.Seats
+	playedAt := envelope.CreatedAt
+	if playedAt.IsZero() {
+		playedAt = b.FinishedAt
+	}
 	out := envelope
 	out.Players = append([]models.Player(nil), envelope.Players...)
 	for n, p := range out.Players {
+		if !p.IsAI {
+			out.Players[n].UserID, out.Players[n].GuestID = "", ""
+		}
 		subject, ok := seats[p.ID]
 		if !ok {
+			if !p.IsAI {
+				out.Players[n].GuestID = AnonymousGuestID(envelope.ID.Hex(), p.ID)
+			}
 			continue
 		}
 		user, guest, persona := splitSubject(subject)
@@ -258,6 +299,15 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, seats map[
 		}
 		if guest != "" && !isGuestID(guest) {
 			return models.Match{}, fmt.Errorf("match %s: seat %s names %q, which is not a guest", envelope.ID.Hex(), p.ID, guest)
+		}
+		if user != "" {
+			// An account is credited on the cloud's own signature, carried
+			// with the seat, and never on the hosting node's say-so alone.
+			if err := i.checkPass(ctx, b, p.ID, user, playedAt); err != nil {
+				log.Printf("match=%s: seat %s is not credited to an account: %v", envelope.ID.Hex(), p.ID, err)
+				out.Players[n].GuestID = AnonymousGuestID(envelope.ID.Hex(), p.ID)
+				continue
+			}
 		}
 		switch {
 		case user != "":
@@ -283,6 +333,20 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, seats map[
 		}
 	}
 	return out, nil
+}
+
+func (i *Importer) checkPass(ctx context.Context, b zsync.Bundle, seat, user string, at time.Time) error {
+	if i.passes == nil {
+		return errors.New("this server checks no offline passes")
+	}
+	if owner, err := i.passes.NodeOwner(ctx, b.Node); err == nil && owner == user {
+		return nil
+	}
+	pass := b.Passes[seat]
+	if pass == "" {
+		return errors.New("no offline pass travelled with the seat")
+	}
+	return i.passes.CheckSeatPass(pass, user, at)
 }
 
 // subjectKeyForUser is the subject key for a seat held by an account, whether

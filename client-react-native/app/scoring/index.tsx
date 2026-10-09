@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { Field, FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { SignInRequired } from '@/src/components/SignInRequired';
 import { useSession } from '@/src/context/SessionContext';
@@ -82,15 +83,15 @@ export default function ScoringScreen() {
     <Screen title={t('more.scoreTable')} subtitle={t('scoring.subtitle')} scroll>
       {!sessionId ? (
         <>
-          <Text style={shared.status}>{t('scoring.namesHint')}</Text>
-          <TextInput
-            style={shared.input}
+          {/* The hint is the box's label: it is the only thing saying what
+              goes in it. */}
+          <Field
+            label={t('scoring.namesHint')}
             value={namesInput}
             onChangeText={setNamesInput}
             placeholder="P1,P2,P3,P4"
-            placeholderTextColor="#8b9cb3"
           />
-          <Pressable style={shared.button} onPress={createSession}>
+          <Pressable role="button" style={shared.button} onPress={createSession}>
             <Text style={shared.buttonText}>{t('scoring.newSession')}</Text>
           </Pressable>
         </>
@@ -98,23 +99,23 @@ export default function ScoringScreen() {
         <View>
           <Text style={{ color: colors.text }}>{t('scoring.session', { id: sessionId })}</Text>
           <Text style={shared.status}>{t('scoring.players', { names: players.join(', ') })}</Text>
-          <Text style={[shared.status, { marginTop: 12 }]}>{t('scoring.roundScores', { n: round })}</Text>
-          <TextInput
-            style={shared.input}
-            value={scoresInput}
-            onChangeText={setScoresInput}
-            placeholder={t('scoring.scoresPlaceholder')}
-            placeholderTextColor="#8b9cb3"
-          />
-          <Pressable style={shared.button} onPress={saveRound}>
+          <View style={{ marginTop: 12 }}>
+            <Field
+              label={t('scoring.roundScores', { n: round })}
+              value={scoresInput}
+              onChangeText={setScoresInput}
+              placeholder={t('scoring.scoresPlaceholder')}
+            />
+          </View>
+          <Pressable role="button" style={shared.button} onPress={saveRound}>
             <Text style={shared.buttonText}>{t('scoring.saveRound')}</Text>
           </Pressable>
-          <Pressable style={[shared.button, shared.buttonSecondary]} onPress={doExport}>
+          <Pressable role="button" style={[shared.button, shared.buttonSecondary]} onPress={doExport}>
             <Text style={shared.buttonTextSecondary}>{t('scoring.export')}</Text>
           </Pressable>
         </View>
       )}
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      {error ? <FormError message={error} /> : null}
       {exportText ? (
         <Text style={[shared.status, { marginTop: 12, fontFamily: 'monospace' }]}>
           {exportText}

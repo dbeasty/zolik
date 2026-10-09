@@ -78,6 +78,12 @@ const (
 	// NSSettings holds the operator's runtime switches, one small document
 	// per concern — see internal/botsettings.
 	NSSettings = "settings"
+
+	// NSLocalSaves holds, on a phone, each finished match waiting for its
+	// players to decide whether it goes to the cloud, and the offline passes
+	// that seated an account. It is never in a sync list: nothing in it may
+	// leave the device until somebody said yes.
+	NSLocalSaves = "local_saves"
 )
 
 var kdbNamespaceNames = []string{
@@ -85,7 +91,7 @@ var kdbNamespaceNames = []string{
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
 	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations, NSNodes, NSGuestClaims,
 	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
-	NSSettings,
+	NSSettings, NSLocalSaves,
 }
 
 const kdbCatalog = "zolik"

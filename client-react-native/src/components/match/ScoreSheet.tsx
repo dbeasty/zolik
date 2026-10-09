@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Fact, MatchPlayer, RoundLog, RoundResult, RoundScore, ScoreLine, Seat, Standing } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { Sheet } from '@/src/a11y/Sheet';
 import { t } from '@/src/lib/i18n';
 import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
@@ -90,76 +91,75 @@ function ScoreSheetBody({
       .join(' & ');
 
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={onClose}>
-      <Pressable
-        style={[styles.backdrop, !metrics.narrow && styles.backdropWide]}
-        onPress={onClose}
-        testID="score-sheet-backdrop"
-      >
-        {/* Stops a press inside the sheet from closing it. */}
-        <Pressable style={[styles.sheet, !metrics.narrow && styles.sheetWide]} onPress={() => {}} testID="score-sheet">
-          <View style={styles.header}>
-            <Text style={styles.key}>{t('score.title')}</Text>
-            <View style={styles.headerRow}>
-              <Text style={styles.sideName} numberOfLines={2} testID="score-sheet-side">
-                {sideName(side)}
-              </Text>
-              {standing ? (
-                <Text style={styles.headerTotal} testID="score-sheet-total">
-                  {shownScore(standing)} {label(standing.labelKey)}
+    <Sheet
+      visible
+      onClose={onClose}
+      label={t('score.title')}
+      backdropStyle={[styles.backdrop, !metrics.narrow && styles.backdropWide]}
+      backdropTestID="score-sheet-backdrop"
+      style={[styles.sheet, !metrics.narrow && styles.sheetWide]}
+      testID="score-sheet"
+    >
+      <View style={styles.header}>
+        <Text style={styles.key}>{t('score.title')}</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.sideName} numberOfLines={2} testID="score-sheet-side">
+            {sideName(side)}
+          </Text>
+          {standing ? (
+            <Text style={styles.headerTotal} testID="score-sheet-total">
+              {shownScore(standing)} {label(standing.labelKey)}
+            </Text>
+          ) : null}
+        </View>
+        {sides.length > 1 ? (
+          <View style={styles.tabs}>
+            {sides.map((s, i) => (
+              <Pressable
+                key={s.join(',')}
+                onPress={() => setSideIndex(i)}
+                style={[styles.tab, i === sideIndex && styles.tabOn]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: i === sideIndex }}
+                testID={`score-sheet-tab-${s[0]}`}
+              >
+                <Text style={[styles.tabText, i === sideIndex && styles.tabTextOn]} numberOfLines={1}>
+                  {sideName(s)}
                 </Text>
-              ) : null}
-            </View>
-            {sides.length > 1 ? (
-              <View style={styles.tabs}>
-                {sides.map((s, i) => (
-                  <Pressable
-                    key={s.join(',')}
-                    onPress={() => setSideIndex(i)}
-                    style={[styles.tab, i === sideIndex && styles.tabOn]}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: i === sideIndex }}
-                    testID={`score-sheet-tab-${s[0]}`}
-                  >
-                    <Text style={[styles.tabText, i === sideIndex && styles.tabTextOn]} numberOfLines={1}>
-                      {sideName(s)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
+              </Pressable>
+            ))}
           </View>
+        ) : null}
+      </View>
 
-          <ScrollView contentContainerStyle={styles.body}>
-            {rounds.length === 0 ? (
-              <Text style={styles.empty} testID="score-sheet-empty">
-                {t('score.empty')}
-              </Text>
-            ) : null}
-            {rounds.map((r) => {
-              const rs = r.scores.find((s) => s.playerId === who);
-              if (!rs) return null;
-              return (
-                <RoundCard
-                  key={r.number}
-                  round={r}
-                  score={rs}
-                  roundLabel={label(log?.labelKey)}
-                  players={players}
-                  open={open.has(r.number)}
-                  onToggle={() => toggle(r.number)}
-                  styles={styles}
-                />
-              );
-            })}
-          </ScrollView>
+      <ScrollView contentContainerStyle={styles.body}>
+        {rounds.length === 0 ? (
+          <Text style={styles.empty} testID="score-sheet-empty">
+            {t('score.empty')}
+          </Text>
+        ) : null}
+        {rounds.map((r) => {
+          const rs = r.scores.find((s) => s.playerId === who);
+          if (!rs) return null;
+          return (
+            <RoundCard
+              key={r.number}
+              round={r}
+              score={rs}
+              roundLabel={label(log?.labelKey)}
+              players={players}
+              open={open.has(r.number)}
+              onToggle={() => toggle(r.number)}
+              styles={styles}
+            />
+          );
+        })}
+      </ScrollView>
 
-          <Pressable style={styles.close} onPress={onClose} testID="score-sheet-close">
-            <Text style={styles.closeText}>{t('score.close')}</Text>
-          </Pressable>
-        </Pressable>
+      <Pressable style={styles.close} onPress={onClose} testID="score-sheet-close">
+        <Text style={styles.closeText}>{t('score.close')}</Text>
       </Pressable>
-    </Modal>
+    </Sheet>
   );
 }
 

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
@@ -98,6 +99,10 @@ export default function RootLayout() {
                       route here. */}
                   {/* A table this phone hosts itself, with no internet. */}
                   <Stack.Screen name="offline" options={{ title: t('offline.title') }} />
+                  {/* The games it hosted, waiting for its owner to save them. */}
+                  <Stack.Screen name="local-games" options={{ title: t('localGames.title') }} />
+                  {/* Where a guest's "keep this game" link lands, on the cloud. */}
+                  <Stack.Screen name="claim" options={{ title: t('claim.title') }} />
                   <Stack.Screen name="lobby/games" options={{ title: t('nav.games') }} />
                   <Stack.Screen name="lobby/setup" options={{ title: t('nav.games') }} />
                   <Stack.Screen name="lobby/table" options={{ title: t('nav.table') }} />
@@ -126,6 +131,10 @@ export default function RootLayout() {
                       `LEGAL_LOCALES`. */}
                   <Stack.Screen name="legal/terms" options={{ title: t('legal.terms') }} />
                   <Stack.Screen name="legal/privacy" options={{ title: t('legal.privacy') }} />
+                  {/* What works with assistive technology, what does not yet,
+                      and how to say so — linked beside the other notices and
+                      from About. */}
+                  <Stack.Screen name="legal/accessibility" options={{ title: t('a11y.statement.title') }} />
                   <Stack.Screen
                     name="match/[matchId]"
                     options={{ title: t('nav.match'), headerBackVisible: true }}
@@ -158,6 +167,10 @@ export default function RootLayout() {
                 </Stack>
                 </AvailabilityProvider>
                 <InviteBanner />
+                {/* The screen reader's live region and the tooltip bubble —
+                    last, so the bubble paints over the banner too. See
+                    `src/a11y`. */}
+                <A11yRoot />
               </InviteProvider>
             </AvatarProvider>
           </SessionProvider>

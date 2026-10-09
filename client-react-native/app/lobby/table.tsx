@@ -2,6 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
+import { Tip } from '@/src/a11y/Tip';
 import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
 import { Avatar } from '@/src/components/avatars/Avatar';
@@ -34,12 +37,21 @@ import { useBotStrength } from '@/src/components/BotStrengthSheet';
  * own (module.Skill), and an id this build has never heard of is refused there
  * rather than guessed at.
  */
-const BOT_SKILLS = [
-  { id: 'easy', label: 'Easy' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'hard', label: 'Hard' },
-  { id: 'ai', label: 'AI' },
-];
+const BOT_SKILLS = ['easy', 'medium', 'hard', 'ai'] as const;
+
+/** A strength's name, in the player's language — static keys, one per id. */
+function skillLabel(id: (typeof BOT_SKILLS)[number]): string {
+  switch (id) {
+    case 'easy':
+      return t('setup.botSkill.easy');
+    case 'medium':
+      return t('setup.botSkill.medium');
+    case 'hard':
+      return t('setup.botSkill.hard');
+    case 'ai':
+      return t('setup.botSkill.ai');
+  }
+}
 
 export default function TableScreen() {
   const { client, session, offline } = useSession();
@@ -65,7 +77,7 @@ export default function TableScreen() {
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {
-      setError(formatApiError(e, 'Could not read the table'));
+      setError(formatApiError(e, t('a11y.error.readTable')));
     }
     // Best-effort: a host who cannot currently see the waiting room should
     // still be able to run their table. Its absence is not an error worth
@@ -117,7 +129,7 @@ export default function TableScreen() {
       await client.invitePlayer(id, playerId);
       await poll();
     } catch (e) {
-      setError(formatApiError(e, 'Invite failed'));
+      setError(formatApiError(e, t('a11y.error.invite')));
     } finally {
       setInvitingId('');
     }
@@ -140,7 +152,7 @@ export default function TableScreen() {
       await client.releaseHeldSeat(id, playerId, true);
       await poll();
     } catch (e) {
-      setError(formatApiError(e, 'Could not add a bot'));
+      setError(formatApiError(e, t('a11y.error.addBot')));
     } finally {
       setBusy(false);
     }
@@ -153,7 +165,7 @@ export default function TableScreen() {
       await client.addBot(id, skill || undefined);
       await poll();
     } catch (e) {
-      setError(formatApiError(e, 'Could not add a bot'));
+      setError(formatApiError(e, t('a11y.error.addBot')));
     } finally {
       setBusy(false);
     }
@@ -175,7 +187,7 @@ export default function TableScreen() {
       await client.seatTable(id, order);
       await poll();
     } catch (e) {
-      setError(formatApiError(e, 'Could not rearrange the table'));
+      setError(formatApiError(e, t('a11y.error.reseat')));
       // Re-read rather than keep the order we hoped for: a refusal means the
       // server's seating is the true one and ours was a guess.
       await poll();
@@ -210,7 +222,7 @@ export default function TableScreen() {
       await client.startMatch(id);
       router.replace(`/match/${id}`);
     } catch (e) {
-      setError(formatApiError(e, 'Could not start'));
+      setError(formatApiError(e, t('a11y.error.start')));
       setBusy(false);
     }
   }
@@ -261,32 +273,48 @@ export default function TableScreen() {
           <NotifyCircleCard matchId={state.matchId || id} />
         ) : null}
 
-        <Text style={[shared.status, { marginTop: 12 }]}>Players ({players.length})</Text>
+        <Text style={[shared.status, { marginTop: 12 }]} {...heading(3)}>
+          {t('a11y.table.players', { n: players.length })}
+        </Text>
         {players.map((p, i) => (
           <View
             key={p.id}
-            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
+            style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}
           >
             <Text testID={`seated-${p.id}`} style={{ color: colors.text, flexShrink: 1 }}>
-              {i + 1}. {p.name}
-              {p.isAI ? ' 🤖' : ''}
-              {p.id === state?.hostId ? ' ★' : ''}
+              {i + 1}. {p.isAI ? t('a11y.player.bot', { name: p.name }) : p.name}
               {sideOf(p.id) ? ` · ${sideOf(p.id)}` : ''}
             </Text>
+            {/* The host's star, explained: a glyph is a badge only to those
+                who already know what it means. */}
+            {p.id === state?.hostId ? (
+              <Tip text={t('a11y.table.hostTip')} focusable label={t('a11y.table.host')}>
+                <Text style={{ color: colors.gold, marginLeft: 6 }} aria-hidden>
+                  ★
+                </Text>
+              </Tip>
+            ) : null}
             {/* A bot's strength, which the host can change by tapping it. */}
             {p.isAI && p.skill ? (
-              <Pressable
-                testID={`bot-strength-open-${p.id}`}
-                disabled={!botStrength.open}
-                onPress={() => botStrength.open?.({ id: p.id, name: p.name, skill: p.skill })}
-                accessibilityRole={botStrength.open ? 'button' : undefined}
-                accessibilityLabel={t('bot.strength.title', { name: p.name })}
-                style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: colors.border, borderRadius: 6 }}
-              >
-                <Text style={{ color: botStrength.open ? colors.accent : colors.muted }}>
-                  {t(`setup.botSkill.${p.skill}`)}
-                </Text>
-              </Pressable>
+              <Tip text={botStrength.open ? t('a11y.table.botStrengthTip') : t('a11y.table.botStrengthInfo')}>
+                <Pressable
+                  testID={`bot-strength-open-${p.id}`}
+                  disabled={!botStrength.open}
+                  onPress={() => botStrength.open?.({ id: p.id, name: p.name, skill: p.skill })}
+                  role="button"
+                  // The strength it is now, then what pressing does — the
+                  // pill's own text is only the first half.
+                  aria-label={t('a11y.table.botStrength', {
+                    name: p.name,
+                    skill: t(`setup.botSkill.${p.skill}`),
+                  })}
+                  style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: colors.border, borderRadius: 6 }}
+                >
+                  <Text style={{ color: botStrength.open ? colors.accent : colors.muted }}>
+                    {t(`setup.botSkill.${p.skill}`)}
+                  </Text>
+                </Pressable>
+              </Tip>
             ) : null}
             {/*
               Move a seat rather than name a team. In a game with sides the turn
@@ -296,28 +324,42 @@ export default function TableScreen() {
             */}
             {isHost && players.length > 1 ? (
               <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
-                <Pressable
-                  testID={`seat-up-${p.id}`}
-                  accessibilityLabel={t('lobby.table.moveSeatUp', { name: p.name })}
-                  disabled={busy || i === 0}
-                  onPress={() => moveSeat(i, i - 1)}
-                  style={{ paddingHorizontal: 10, paddingVertical: 2, opacity: i === 0 ? 0.3 : 1 }}
-                >
-                  <Text style={{ color: colors.text }}>▲</Text>
-                </Pressable>
-                <Pressable
-                  testID={`seat-down-${p.id}`}
-                  accessibilityLabel={t('lobby.table.moveSeatDown', { name: p.name })}
-                  disabled={busy || i === players.length - 1}
-                  onPress={() => moveSeat(i, i + 1)}
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 2,
-                    opacity: i === players.length - 1 ? 0.3 : 1,
-                  }}
-                >
-                  <Text style={{ color: colors.text }}>▼</Text>
-                </Pressable>
+                {/* Icon-only, so each carries its name and a tooltip saying it.
+                    The tooltip leaves the player's name out: the button's own
+                    name already says whose seat, and the bubble sits beside
+                    that player's row. */}
+                <Tip text={t('a11y.table.seatUpTip')}>
+                  <Pressable
+                    testID={`seat-up-${p.id}`}
+                    role="button"
+                    aria-label={t('lobby.table.moveSeatUp', { name: p.name })}
+                    disabled={busy || i === 0}
+                    onPress={() => moveSeat(i, i - 1)}
+                    style={{ paddingHorizontal: 10, paddingVertical: 2, opacity: i === 0 ? 0.3 : 1 }}
+                  >
+                    <Text style={{ color: colors.text }} aria-hidden>
+                      ▲
+                    </Text>
+                  </Pressable>
+                </Tip>
+                <Tip text={t('a11y.table.seatDownTip')}>
+                  <Pressable
+                    testID={`seat-down-${p.id}`}
+                    role="button"
+                    aria-label={t('lobby.table.moveSeatDown', { name: p.name })}
+                    disabled={busy || i === players.length - 1}
+                    onPress={() => moveSeat(i, i + 1)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 2,
+                      opacity: i === players.length - 1 ? 0.3 : 1,
+                    }}
+                  >
+                    <Text style={{ color: colors.text }} aria-hidden>
+                      ▼
+                    </Text>
+                  </Pressable>
+                </Tip>
               </View>
             ) : null}
           </View>
@@ -338,6 +380,7 @@ export default function TableScreen() {
             </Text>
             {isHost ? (
               <Pressable
+                role="button"
                 testID={`held-fill-${r.playerId}`}
                 disabled={busy}
                 onPress={() => fillHeldSeat(r.playerId)}
@@ -362,6 +405,7 @@ export default function TableScreen() {
 
         {isHost && players.length > 2 ? (
           <Pressable
+            role="button"
             testID="table-shuffle-seats"
             style={[shared.button, { marginTop: 8 }]}
             disabled={busy}
@@ -371,7 +415,7 @@ export default function TableScreen() {
           </Pressable>
         ) : null}
 
-        {error ? <Text style={shared.error}>{error}</Text> : null}
+        {error ? <FormError message={error} /> : null}
         {botStrength.sheet}
 
         {isHost ? (
@@ -384,6 +428,7 @@ export default function TableScreen() {
               />
             )}
             <Pressable
+              role="button"
               testID="table-add-bot"
               style={shared.button}
               onPress={() => addBot()}
@@ -397,18 +442,21 @@ export default function TableScreen() {
               me an opponent" and it should stay one tap.
             */}
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              {BOT_SKILLS.filter((s) => s.id !== 'ai' || botStrength.offersAI).map((s) => (
+              {BOT_SKILLS.filter((s) => s !== 'ai' || botStrength.offersAI).map((s) => (
                 <Pressable
-                  key={s.id}
-                  testID={`table-add-bot-${s.id}`}
+                  key={s}
+                  testID={`table-add-bot-${s}`}
+                  role="button"
+                  // "Hard" alone does not say what the button does.
+                  aria-label={t('a11y.table.addBotAt', { skill: skillLabel(s) })}
                   style={[
                     shared.button,
                     { flexGrow: 1, flexBasis: 0, paddingVertical: 8, paddingHorizontal: 10 },
                   ]}
-                  onPress={() => addBot(s.id)}
+                  onPress={() => addBot(s)}
                   disabled={busy}
                 >
-                  <Text style={shared.buttonText}>{s.label}</Text>
+                  <Text style={shared.buttonText}>{skillLabel(s)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -418,7 +466,7 @@ export default function TableScreen() {
               </Text>
             ) : null}
             {offline ? null : <AgentConnectPanel matchId={id} />}
-            <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
+            <Pressable role="button" testID="table-start" style={shared.button} onPress={start} disabled={busy}>
               <Text style={shared.buttonText}>
                 {held.length
                   ? t('lobby.table.startWithout', { names: held.map((r) => r.name).join(', ') })
@@ -451,8 +499,8 @@ function WaitingPlayersPanel({
 }) {
   return (
     <View style={[shared.card, { marginTop: 12, marginBottom: 12 }]} testID="waiting-players-panel">
-      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }}>
-        Waiting to play ({available.length})
+      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }} {...heading(3)}>
+        {t('a11y.table.waitingToPlay', { n: available.length })}
       </Text>
       {available.length === 0 ? (
         // Rendered explicitly rather than hiding the whole panel: a host
@@ -479,18 +527,21 @@ function WaitingPlayersPanel({
                 out of the pool, not a row of text. */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
               <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={28} />
-              <Text style={{ color: colors.text }} numberOfLines={1}>
+              <Text style={{ color: colors.text, flexShrink: 1 }}>
                 {p.username}
                 {p.isGuest ? ` ${t('home.guestSuffix')}` : ''}
               </Text>
             </View>
             <Pressable
               testID={`invite-${p.playerId}`}
+              role="button"
+              aria-label={t('a11y.table.inviteName', { name: p.username })}
+              aria-busy={invitingId === p.playerId}
               style={[shared.button, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 14 }]}
               onPress={() => onInvite(p.playerId)}
               disabled={invitingId !== ''}
             >
-              <Text style={shared.buttonText}>{invitingId === p.playerId ? '…' : 'Invite'}</Text>
+              <Text style={shared.buttonText}>{invitingId === p.playerId ? '…' : t('a11y.table.invite')}</Text>
             </Pressable>
           </View>
         ))

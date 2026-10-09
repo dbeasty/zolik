@@ -73,6 +73,22 @@ export function optionLabel(moduleId: string, opt: { name: string; label: string
 }
 
 /**
+ * What a table setting does, in a sentence — the module's own `help`, where it
+ * wrote one. Shown as the setting's tooltip and read as its description.
+ *
+ * The same shape as `optionLabel`: a module-scoped key, then a shared one, then
+ * the server's English. Undefined for an option that has no help, so a caller
+ * shows no tooltip rather than an empty one.
+ */
+export function optionHelp(
+  moduleId: string,
+  opt: { name: string; help?: string },
+): string | undefined {
+  if (!opt.help) return undefined;
+  return scoped(`optionHelp.${moduleId}.${opt.name}`, `optionHelp.${opt.name}`, opt.help);
+}
+
+/**
  * One value a setting can take — "Easy", "Off", "Late surrender".
  *
  * Module-first for a reason found the hard way: Canasta's target score of 500

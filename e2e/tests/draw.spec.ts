@@ -59,7 +59,7 @@ async function holeCodes(page: Page, userId: string, selected = false): Promise<
     ({ prefix, selected }) =>
       [...document.querySelectorAll(`[data-testid^="${prefix}"]${selected ? '[aria-selected="true"]' : ''}`)]
         .filter((c) => !c.getAttribute('data-testid')!.includes('concealed'))
-        .map((c) => c.closest('[aria-label]')?.getAttribute('aria-label') ?? ''),
+        .map((c) => c.closest('[data-card]')?.getAttribute('data-card') ?? ''),
     { prefix: `card-hole:${userId}-`, selected },
   );
 }
@@ -69,10 +69,10 @@ async function selectHole(page: Page, userId: string, codes: string[]) {
   for (let guard = 0; guard < 10; guard++) {
     const on = await holeCodes(page, userId, true);
     if (on.length === 0) break;
-    await tapCard(page, page.locator(`[aria-label="${on[0]}"] [data-testid^="card-hole:${userId}-"]`).first());
+    await tapCard(page, page.locator(`[data-card="${on[0]}"] [data-testid^="card-hole:${userId}-"]`).first());
   }
   for (const code of codes) {
-    await tapCard(page, page.locator(`[aria-label="${code}"] [data-testid^="card-hole:${userId}-"]`).first());
+    await tapCard(page, page.locator(`[data-card="${code}"] [data-testid^="card-hole:${userId}-"]`).first());
   }
   await expect.poll(async () => (await holeCodes(page, userId, true)).sort()).toEqual(codes.slice().sort());
 }
