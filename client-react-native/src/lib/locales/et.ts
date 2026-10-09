@@ -3118,6 +3118,8 @@ export const et: Record<string, string> = {
   'desktop.menu.quit': 'Välju: Jokerless',
   'desktop.menu.file': 'Fail',
   'desktop.menu.newGame': 'Uus mäng',
+  'desktop.game.playing': 'Mängus',
+  'desktop.game.show': 'Näita',
   'desktop.window.title': '{game} · vs {names}',
   'desktop.menu.closeWindow': 'Sulge aken',
   'desktop.menu.edit': 'Redigeeri',

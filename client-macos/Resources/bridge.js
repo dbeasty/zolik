@@ -273,7 +273,7 @@
     'startHost', 'startNode', 'syncNow', 'followMatch', 'stopHost', 'openRoom', 'closeRoom',
     'openRelay', 'closeRelay', 'startBrowsing', 'stopBrowsing', 'bleHostStart', 'bleHostStop',
     'bleScanStart', 'bleScanStop', 'bleConnect', 'bleSend', 'bleDisconnect', 'bleReady',
-    'relayJoin', 'guestLeave', 'guestStatus',
+    'relayJoin', 'bleOpen', 'bleJoin', 'bleLeaveLink', 'guestLeave', 'guestStatus',
   ].forEach(function (name) {
     nearby[name] = asyncMethod(name);
   });
@@ -317,6 +317,23 @@
     }),
   });
 
+  // ---- which games have a window open (src/desktop/openGames.ts) -------------
+
+  var gamesState = ((window.__ZOLIK_DESKTOP_STATE__ || {}).games) || [];
+  var gamesListeners = [];
+  Object.defineProperty(globalThis, 'ZolikDesktopGames', {
+    value: Object.freeze({
+      state: function () { return gamesState; },
+      subscribe: function (cb) {
+        gamesListeners.push(cb);
+        return function () {
+          var i = gamesListeners.indexOf(cb);
+          if (i >= 0) gamesListeners.splice(i, 1);
+        };
+      },
+    }),
+  });
+
   // ---- events from the app --------------------------------------------------
 
   window.__zolikDesktop = Object.freeze({
@@ -339,6 +356,9 @@
         });
       } else if (name === 'state') {
         applyState(p);
+      } else if (name === 'games') {
+        gamesState = (p && p.open) || [];
+        gamesListeners.slice().forEach(function (cb) { cb(gamesState); });
       } else if (name === 'seat') {
         seatState = p ? p.table || null : null;
         seatListeners.slice().forEach(function (cb) { cb(seatState); });

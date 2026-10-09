@@ -3144,6 +3144,8 @@ export const nl: Record<string, string> = {
   'desktop.menu.quit': 'Stop Jokerless',
   'desktop.menu.file': 'Archief',
   'desktop.menu.newGame': 'Nieuw spel',
+  'desktop.game.playing': 'Wordt gespeeld',
+  'desktop.game.show': 'Toon',
   'desktop.window.title': '{game} · tegen {names}',
   'desktop.menu.closeWindow': 'Sluit venster',
   'desktop.menu.edit': 'Wijzig',

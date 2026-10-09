@@ -294,6 +294,13 @@ func (t *guestTunnel) dropped(sess *guestSession, code int) {
 	if t.live == sess {
 		t.live = nil
 	}
+	if !sess.keys {
+		// Gone before the handshake finished: do not wait for a welcome.
+		select {
+		case sess.welcome <- nil:
+		default:
+		}
+	}
 	switch code {
 	case relayHostGone:
 		t.away = "away"
@@ -712,4 +719,93 @@ func GuestStatus(instanceID string) string {
 	}
 	raw, _ := json.Marshal(out)
 	return string(raw)
+}
+
+// ---- Bluetooth as a link ----------------------------------------------------
+
+// BleSource is the native side of a guest's Bluetooth link: it finds and
+// connects to the table, moves whole messages (chunking is its business, see
+// NearbyFraming) and hangs up. Implemented in Swift and Kotlin. What comes
+// back from the table goes the other way, through BleReceive and BleClosed.
+type BleSource interface {
+	// Connect opens a fresh link to the table with this instance id, finding
+	// it again if it must (a guest has no stable Bluetooth address), and
+	// returns the link's id.
+	Connect(instanceID string) (string, error)
+	Send(linkID string, msg []byte) error
+	Disconnect(linkID string)
+}
+
+type bleLink struct {
+	src       BleSource
+	id        string
+	onMessage func([]byte)
+	onClose   func(code int)
+	once      sync.Once
+}
+
+func (l *bleLink) send(msg []byte) error { return l.src.Send(l.id, msg) }
+
+func (l *bleLink) close() {
+	l.src.Disconnect(l.id)
+	l.ended()
+}
+
+// ended tells the tunnel the link is gone, once, however it went.
+func (l *bleLink) ended() {
+	l.once.Do(func() {
+		bleLinks.Delete(l.id)
+		l.onClose(1006)
+	})
+}
+
+var bleLinks sync.Map // link id → *bleLink
+
+// BleReceive is one whole message from a link the core holds. The bytes are
+// copied: the native side lends them for the call only.
+func BleReceive(linkID string, msg []byte) {
+	if l, ok := bleLinks.Load(linkID); ok {
+		l.(*bleLink).onMessage(bytes.Clone(msg))
+	}
+}
+
+// BleClosed is a link the core holds going away.
+func BleClosed(linkID string) {
+	if l, ok := bleLinks.Load(linkID); ok {
+		l.(*bleLink).ended()
+	}
+}
+
+// JoinBle sits down at a table over Bluetooth, in the core, and serves it on
+// loopback like JoinRelay does. firstLinkID is a link the native side has
+// already opened to the table (to read which table it is); later links, after
+// a drop, come from src.Connect. pinnedKey is the table's key as this guest
+// last saw it, base64, or empty for a table it has never sat at.
+func JoinBle(src BleSource, instanceID, firstLinkID, pinnedKey string) (*GuestTable, error) {
+	var pinned []byte
+	if pinnedKey != "" {
+		b, err := base64.StdEncoding.DecodeString(pinnedKey)
+		if err != nil {
+			return nil, fmt.Errorf("bad pinned key: %w", err)
+		}
+		pinned = b
+	}
+	var firstMu sync.Mutex
+	first := firstLinkID
+	dial := func(onMessage func([]byte), onClose func(code int)) (guestLink, error) {
+		firstMu.Lock()
+		id := first
+		first = ""
+		firstMu.Unlock()
+		if id == "" {
+			var err error
+			if id, err = src.Connect(instanceID); err != nil {
+				return nil, err
+			}
+		}
+		l := &bleLink{src: src, id: id, onMessage: onMessage, onClose: onClose}
+		bleLinks.Store(id, l)
+		return l, nil
+	}
+	return serveGuest(newGuestTunnel(dial, pinned), instanceID)
 }

@@ -3137,6 +3137,8 @@ export const hu: Record<string, string> = {
   'desktop.menu.quit': 'Kilépés a Jokerlessből',
   'desktop.menu.file': 'Fájl',
   'desktop.menu.newGame': 'Új játék',
+  'desktop.game.playing': 'Játékban',
+  'desktop.game.show': 'Megjelenítés',
   'desktop.window.title': '{game} · {names} ellen',
   'desktop.menu.closeWindow': 'Ablak bezárása',
   'desktop.menu.edit': 'Szerkesztés',

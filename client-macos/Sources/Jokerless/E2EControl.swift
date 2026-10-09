@@ -171,6 +171,20 @@ final class E2EControl {
         done(main.pressToolbar(arg) ? .success(true) : .failure(E2EError("the \(arg) arrow is off")))
       default: done(.failure(E2EError("toolbar state|back|forward")))
       }
+    case "drag":
+      // A real mouse drag, as the window's own events: "drag x1 y1 x2 y2" in
+      // the page's pixels. Goes through AppKit and WebKit's input path, not
+      // a script's synthetic events.
+      let n = arg.split(separator: " ").compactMap { Double($0) }
+      guard n.count == 4, let c = app?.active, let window = c.window else {
+        return done(.failure(E2EError("drag x1 y1 x2 y2")))
+      }
+      MouseDrag(window: window, view: c.web.webView, from: CGPoint(x: n[0], y: n[1]), to: CGPoint(x: n[2], y: n[3]))
+        .run { done(.success(true)) }
+    case "radiodrop":
+      // The radio drops every loopback link the core holds.
+      NearbyService.shared.dropLoopbackLinks()
+      done(.success(true))
     case "badge":
       done(.success(NSApp.dockTile.badgeLabel ?? ""))
     case "dock":
@@ -247,3 +261,69 @@ struct E2EError: Error, CustomStringConvertible {
   init(_ d: String) { description = d }
 }
 
+
+/// Presses, drags and releases the left mouse button in a window with real
+/// AppKit events, spaced out the way a hand does it.
+final class MouseDrag {
+  private let window: NSWindow
+  private let view: NSView
+  private let from: CGPoint
+  private let to: CGPoint
+  private var keep: MouseDrag?
+
+  init(window: NSWindow, view: NSView, from: CGPoint, to: CGPoint) {
+    self.window = window
+    self.view = view
+    self.from = from
+    self.to = to
+  }
+
+  private func event(_ type: NSEvent.EventType, _ p: CGPoint) -> NSEvent? {
+    // The page's pixels are the web view's own (it is flipped).
+    let inView = view.isFlipped ? p : CGPoint(x: p.x, y: view.bounds.height - p.y)
+    let inWindow = view.convert(inView, to: nil)
+    return NSEvent.mouseEvent(
+      with: type, location: inWindow, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+      windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1,
+      pressure: type == .leftMouseUp ? 0 : 1)
+  }
+
+  func run(done: @escaping () -> Void) {
+    keep = self
+    // Real events reach a page only through a window that is in front and
+    // key, as for a person; the test takes the keyboard for the drag.
+    NSApp.activate(ignoringOtherApps: true)
+    window.makeKeyAndOrderFront(nil)
+    window.makeFirstResponder(view)
+    // A person's pointer arrives first and rests on the card (a tooltip comes
+    // up, the card lifts) before the button goes down.
+    let rest = DispatchTime.now()
+    if let hover = event(.mouseMoved, CGPoint(x: from.x - 30, y: from.y + 20)) { NSApp.postEvent(hover, atStart: false) }
+    if let hover = event(.mouseMoved, from) { NSApp.postEvent(hover, atStart: false) }
+    Thread.sleep(forTimeInterval: 1.2)
+    _ = rest
+    if let down = event(.leftMouseDown, from) { NSApp.postEvent(down, atStart: false) }
+    var step = 0
+    let steps = 24
+    // A pause after the press, then steady movement: the drag gesture needs
+    // to see time pass.
+    Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { _ in
+      Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { timer in
+        step += 1
+        let t = Double(step) / Double(steps)
+        let p = CGPoint(x: self.from.x + (self.to.x - self.from.x) * t, y: self.from.y + (self.to.y - self.from.y) * t)
+        if let drag = self.event(.leftMouseDragged, p) { NSApp.postEvent(drag, atStart: false) }
+        if step >= steps {
+          timer.invalidate()
+          Timer.scheduledTimer(withTimeInterval: 0.25, repeats: false) { _ in
+            if let up = self.event(.leftMouseUp, self.to) { NSApp.postEvent(up, atStart: false) }
+            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+              done()
+              self.keep = nil
+            }
+          }
+        }
+      }
+    }
+  }
+}

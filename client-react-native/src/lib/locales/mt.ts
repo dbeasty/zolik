@@ -3137,6 +3137,8 @@ export const mt: Record<string, string> = {
   'desktop.menu.quit': 'Oħroġ minn Jokerless',
   'desktop.menu.file': 'Fajl',
   'desktop.menu.newGame': 'Logħba ġdida',
+  'desktop.game.playing': 'Qed tintlagħab',
+  'desktop.game.show': 'Uri',
   'desktop.window.title': '{game} · kontra {names}',
   'desktop.menu.closeWindow': 'Agħlaq it-tieqa',
   'desktop.menu.edit': 'Editja',

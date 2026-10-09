@@ -3115,6 +3115,8 @@ export const sv: Record<string, string> = {
   'desktop.menu.quit': 'Avsluta Jokerless',
   'desktop.menu.file': 'Arkiv',
   'desktop.menu.newGame': 'Nytt spel',
+  'desktop.game.playing': 'Spelas',
+  'desktop.game.show': 'Visa',
   'desktop.window.title': '{game} · mot {names}',
   'desktop.menu.closeWindow': 'Stäng fönster',
   'desktop.menu.edit': 'Redigera',

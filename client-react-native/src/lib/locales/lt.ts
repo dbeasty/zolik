@@ -3115,6 +3115,8 @@ export const lt: Record<string, string> = {
   'desktop.menu.quit': 'Baigti Jokerless',
   'desktop.menu.file': 'Failas',
   'desktop.menu.newGame': 'Naujas žaidimas',
+  'desktop.game.playing': 'Žaidžiama',
+  'desktop.game.show': 'Rodyti',
   'desktop.window.title': '{game} · prieš {names}',
   'desktop.menu.closeWindow': 'Uždaryti langą',
   'desktop.menu.edit': 'Taisyti',

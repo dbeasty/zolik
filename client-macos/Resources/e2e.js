@@ -164,6 +164,33 @@
       setValue(input, value);
       return true;
     },
+    // A drag with pointer events spaced out in time, from one point to
+    // another, as a mouse makes them (the hand's drag gesture needs to see
+    // time pass: see e2e/helpers/drag.ts).
+    drag: async function (from, to) {
+      var down = document.elementFromPoint(from[0], from[1]);
+      var ev = function (type, x, y, buttons) {
+        return new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons: buttons });
+      };
+      down.dispatchEvent(ev('pointerdown', from[0], from[1], 1));
+      down.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: from[0], clientY: from[1], button: 0, buttons: 1 }));
+      await sleep(200);
+      var steps = 25;
+      for (var i = 1; i <= steps; i++) {
+        var x = from[0] + (to[0] - from[0]) * i / steps;
+        var y = from[1] + (to[1] - from[1]) * i / steps;
+        var at = document.elementFromPoint(x, y) || down;
+        at.dispatchEvent(ev('pointermove', x, y, 1));
+        at.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1 }));
+        await sleep(20);
+      }
+      await sleep(200);
+      var end = document.elementFromPoint(to[0], to[1]) || down;
+      end.dispatchEvent(ev('pointerup', to[0], to[1], 0));
+      end.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: to[0], clientY: to[1], button: 0, buttons: 0 }));
+      await sleep(400);
+      return true;
+    },
     text: function () {
       return document.body ? document.body.innerText : '';
     },

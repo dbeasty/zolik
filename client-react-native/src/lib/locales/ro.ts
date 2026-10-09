@@ -3137,6 +3137,8 @@ export const ro: Record<string, string> = {
   'desktop.menu.quit': 'Ieși din Jokerless',
   'desktop.menu.file': 'Fișier',
   'desktop.menu.newGame': 'Joc nou',
+  'desktop.game.playing': 'Se joacă',
+  'desktop.game.show': 'Arată',
   'desktop.window.title': '{game} · contra {names}',
   'desktop.menu.closeWindow': 'Închide fereastra',
   'desktop.menu.edit': 'Editare',

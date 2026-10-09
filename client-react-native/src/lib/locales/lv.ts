@@ -3114,6 +3114,8 @@ export const lv: Record<string, string> = {
   'desktop.menu.quit': 'Iziet no Jokerless',
   'desktop.menu.file': 'Fails',
   'desktop.menu.newGame': 'Jauna spēle',
+  'desktop.game.playing': 'Spēlē',
+  'desktop.game.show': 'Rādīt',
   'desktop.window.title': '{game} · pret {names}',
   'desktop.menu.closeWindow': 'Aizvērt logu',
   'desktop.menu.edit': 'Rediģēt',

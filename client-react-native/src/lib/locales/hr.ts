@@ -3117,6 +3117,8 @@ export const hr: Record<string, string> = {
   'desktop.menu.quit': 'Zatvori Jokerless',
   'desktop.menu.file': 'Datoteka',
   'desktop.menu.newGame': 'Nova igra',
+  'desktop.game.playing': 'Igra se',
+  'desktop.game.show': 'Prikaži',
   'desktop.window.title': '{game} · protiv {names}',
   'desktop.menu.closeWindow': 'Zatvori prozor',
   'desktop.menu.edit': 'Uredi',

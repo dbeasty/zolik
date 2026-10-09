@@ -2,9 +2,12 @@ package zolikcore
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -115,5 +118,145 @@ func TestAGuestTableAnswersOnLoopbackThroughTheRelay(t *testing.T) {
 	}
 	if g.HostAway() != "ended" {
 		t.Errorf("after the host closed the table, HostAway = %q (relay close code %d)", g.HostAway(), relay.CloseHostEnded)
+	}
+}
+
+// fakeRadio is the native side of Bluetooth: each link is a host Tunnel whose
+// messages come back through BleReceive, as the Swift and Kotlin code does.
+type fakeRadio struct {
+	h      *Host
+	mu     sync.Mutex
+	next   int
+	links  map[string]*Tunnel
+	opened int
+}
+
+type radioSink struct {
+	id string
+}
+
+func (s radioSink) Send(msg []byte) { go BleReceive(s.id, msg) }
+
+func (r *fakeRadio) open() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.next++
+	r.opened++
+	id := "link-" + strconv.Itoa(r.next) + "-" + r.h.InstanceID()
+	r.links[id] = r.h.NewTunnel(radioSink{id: id}, id)
+	return id
+}
+
+func (r *fakeRadio) Connect(instanceID string) (string, error) {
+	if instanceID != r.h.InstanceID() {
+		return "", errors.New("out of range")
+	}
+	return r.open(), nil
+}
+
+func (r *fakeRadio) Send(linkID string, msg []byte) error {
+	r.mu.Lock()
+	t := r.links[linkID]
+	r.mu.Unlock()
+	if t == nil {
+		return errors.New("no such link")
+	}
+	t.Receive(append([]byte(nil), msg...))
+	return nil
+}
+
+func (r *fakeRadio) Disconnect(linkID string) {
+	r.mu.Lock()
+	t := r.links[linkID]
+	delete(r.links, linkID)
+	r.mu.Unlock()
+	if t != nil {
+		t.Close()
+	}
+}
+
+// A table in the room, over Bluetooth: the guest's end in the core, the host's
+// end behind a radio that is only a function call, and the table on loopback.
+func TestAGuestTableAnswersOnLoopbackOverBluetooth(t *testing.T) {
+	h := startHost(t, t.TempDir())
+	radio := &fakeRadio{h: h, links: map[string]*Tunnel{}}
+
+	first := radio.open()
+	g, err := JoinBle(radio, h.InstanceID(), first, "")
+	if err != nil {
+		t.Fatalf("JoinBle: %v", err)
+	}
+	t.Cleanup(LeaveGuestTables)
+	if g.HostKey() != h.PublicKey() || len(g.CheckCode()) != 4 {
+		t.Fatalf("host key %q, check %q", g.HostKey(), g.CheckCode())
+	}
+	checkBefore := g.CheckCode()
+
+	post := func() (*http.Response, error) {
+		return http.Post(g.BaseURL()+"/auth/guest", "application/json", strings.NewReader(`{"guestName":"Bea"}`))
+	}
+	res, err := post()
+	if err != nil || res.StatusCode != 200 {
+		t.Fatalf("sign-in over the radio: %v %v", res, err)
+	}
+	body, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	var who struct {
+		AccessToken string `json:"accessToken"`
+	}
+	_ = json.Unmarshal(body, &who)
+
+	// A socket through the radio.
+	req, _ := http.NewRequest("POST", g.BaseURL()+"/matches", strings.NewReader(`{"moduleId":"prsi"}`))
+	req.Header.Set("Authorization", "Bearer "+who.AccessToken)
+	req.Header.Set("Content-Type", "application/json")
+	res, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ = io.ReadAll(res.Body)
+	res.Body.Close()
+	var made struct {
+		MatchID string `json:"matchId"`
+	}
+	_ = json.Unmarshal(body, &made)
+	ws, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(g.BaseURL(), "http")+"/ws/matches/"+made.MatchID+"?token="+who.AccessToken, nil)
+	if err != nil {
+		t.Fatalf("socket over the radio: %v", err)
+	}
+	_ = ws.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, data, err := ws.ReadMessage(); err != nil || !strings.Contains(string(data), made.MatchID) {
+		t.Fatalf("the socket sent %q, %v", data, err)
+	}
+	_ = ws.Close()
+
+	// The radio drops the link; the next request finds the table again, over
+	// a new link with a new check code, on the same address.
+	BleClosed(first)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		res, err = post()
+		if err == nil && res.StatusCode == 200 {
+			res.Body.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no reconnect over the radio: %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	radio.mu.Lock()
+	opened := radio.opened
+	radio.mu.Unlock()
+	if opened != 2 {
+		t.Errorf("links opened = %d, want 2 (the first, and one after the drop)", opened)
+	}
+	if g.CheckCode() == checkBefore {
+		t.Errorf("the check code did not change with the new handshake")
+	}
+
+	// Another table's key is refused.
+	if _, err := JoinBle(radio, h.InstanceID(), radio.open(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="); err != ErrHostKeyChanged {
+		t.Errorf("joining with the wrong pin: %v", err)
 	}
 }

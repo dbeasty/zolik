@@ -3116,6 +3116,8 @@ export const da: Record<string, string> = {
   'desktop.menu.quit': 'Slut Jokerless',
   'desktop.menu.file': 'Arkiv',
   'desktop.menu.newGame': 'Nyt spil',
+  'desktop.game.playing': 'Spiller',
+  'desktop.game.show': 'Vis',
   'desktop.window.title': '{game} · mod {names}',
   'desktop.menu.closeWindow': 'Luk vindue',
   'desktop.menu.edit': 'Rediger',

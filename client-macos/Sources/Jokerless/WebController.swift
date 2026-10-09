@@ -39,6 +39,9 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   /// The seat the app holds (the offline table the player sits at), read
   /// before every page load so a window opened later finds the player seated.
   private let seat: () -> [String: Any]?
+  /// The match ids that have a game window open, for the pages that list
+  /// games (a game already open is shown, not resumed).
+  var openGames: () -> [String] = { [] }
   private let bridge: Bridge
   private let schemeHandler = AppSchemeHandler()
   /// Called for console output and policy violations in an end-to-end run.
@@ -86,7 +89,8 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
       // so cards dealt there never finish appearing. Test runs only; a
       // shipped app behaves like any other window. (Key-value coding finds
       // WebKit's `_setWindowOcclusionDetectionEnabled:` for this key.)
-      if AppConfig.isE2E, webView.responds(to: NSSelectorFromString("_setWindowOcclusionDetectionEnabled:")) {
+      if AppConfig.isE2E, ProcessInfo.processInfo.environment["ZOLIK_E2E_OCCLUSION"] != "1",
+        webView.responds(to: NSSelectorFromString("_setWindowOcclusionDetectionEnabled:")) {
         webView.setValue(false, forKey: "windowOcclusionDetectionEnabled")
       }
     #endif
@@ -156,6 +160,10 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     webView.load(URLRequest(url: URL(string: Self.origin + path)!))
   }
 
+  func emitGames(_ ids: [String]) {
+    bridge.emit("games", ["open": ids])
+  }
+
   /// Another window's seat change, for this page to follow.
   func emitSeat(_ table: Any?) {
     bridge.emit("seat", ["table": table ?? NSNull()])
@@ -187,7 +195,7 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     controller.addUserScript(
       WKUserScript(
         source: Self.bootScript(
-          state: nearby.snapshot().merging(["nav": navState, "seat": seat() ?? NSNull()]) { a, _ in a }, spec: spec),
+          state: nearby.snapshot().merging(["nav": navState, "seat": seat() ?? NSNull(), "games": openGames()]) { a, _ in a }, spec: spec),
         injectionTime: .atDocumentStart, forMainFrameOnly: true))
     if AppConfig.isE2E, let e2e = Self.resource("e2e.js") {
       controller.addUserScript(WKUserScript(source: e2e, injectionTime: .atDocumentStart, forMainFrameOnly: true))

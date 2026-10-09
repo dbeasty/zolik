@@ -62,6 +62,9 @@ type NativeModule = {
   // a tunnel and serve it on a loopback address, so every window can use it.
   // Absent on the phones, which keep the tunnel in the page.
   relayJoin?(code: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable>;
+  bleOpen?(peripheralId: string): Promise<{ linkId: string; instanceId: string; v: number }>;
+  bleJoin?(linkId: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable>;
+  bleLeaveLink?(linkId: string): Promise<void>;
   guestLeave?(instanceId: string): Promise<void>;
   guestStatus?(instanceId: string): Promise<{ checkCode: string; away: '' | 'away' | 'ended' }>;
   startBrowsing(): Promise<void>;
@@ -109,6 +112,21 @@ export const coreHoldsGuests = typeof native?.relayJoin === 'function';
  */
 export async function relayJoinInCore(code: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable> {
   return need().relayJoin!(code, instanceId, pinnedKey);
+}
+
+/**
+ * Bluetooth, in the core: opens the first link to a table (which says which
+ * table it is and what version it speaks), and then sits down at it with the
+ * key pinned for that table, if any. The page keeps nothing of the tunnel.
+ */
+export async function bleOpenInCore(peripheralId: string) {
+  return need().bleOpen!(peripheralId);
+}
+export async function bleJoinInCore(linkId: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable> {
+  return need().bleJoin!(linkId, instanceId, pinnedKey);
+}
+export async function bleLeaveLinkInCore(linkId: string): Promise<void> {
+  await native?.bleLeaveLink?.(linkId);
 }
 
 /** Leaves a table the core holds a tunnel to. */

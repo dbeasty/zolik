@@ -656,7 +656,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     ) => {
       // Sitting down at another table lets go of the tunnel to the last.
       const before = offlineRef.current;
-      if (nearby.coreHoldsGuests && before?.via === 'internet' && before.instanceId !== instanceId) {
+      if (nearby.coreHoldsGuests && (before?.via === 'internet' || before?.via === 'bluetooth') && before.instanceId !== instanceId) {
         void nearby.leaveGuestInCore(before.instanceId);
       }
       const key = offlineKey(instanceId);
@@ -755,6 +755,31 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const joinBluetooth = useCallback(
     async (peripheralId: string, name: string) => {
+      // In the desktop app the tunnel is the core's (see joinRelay).
+      if (nearby.coreHoldsGuests && typeof nearby.bleOpenInCore === 'function') {
+        const opened = await nearby.bleOpenInCore(peripheralId);
+        if (opened.v !== nearby.PROTOCOL_VERSION) {
+          await nearby.bleLeaveLinkInCore(opened.linkId);
+          throw new NearbyVersionError(opened.v ?? 0);
+        }
+        await storage.setItem(hostRadioKey(opened.instanceId), peripheralId);
+        const pinned = (await storage.getItem(hostKeyKey(opened.instanceId))) ?? '';
+        let table: nearby.CoreGuestTable;
+        try {
+          table = await nearby.bleJoinInCore(opened.linkId, opened.instanceId, pinned);
+        } catch (e) {
+          if (e instanceof Error && e.message.includes('BLE_HOST_KEY_CHANGED')) throw new BleHostKeyChanged();
+          throw e;
+        }
+        await pinIfNew(opened.instanceId, table.hostKey);
+        await sitAt(
+          new ZolikClient(table.baseUrl),
+          opened.instanceId,
+          { role: 'guest', via: 'bluetooth', checkCode: table.checkCode },
+          name,
+        );
+        return;
+      }
       // The first link is opened here, to read which table this is before
       // anything is spent on it. Later links (after a drop) find the table
       // again by its instance id.
@@ -876,7 +901,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // A host has a server and a radio running here. A guest leaving just
     // stops talking to somebody else's phone.
     was?.ble?.close();
-    if (was?.via === 'internet' && nearby.coreHoldsGuests) await nearby.leaveGuestInCore(was.instanceId);
+    if ((was?.via === 'internet' || was?.via === 'bluetooth') && nearby.coreHoldsGuests) await nearby.leaveGuestInCore(was.instanceId);
     if (was?.role === 'host') {
       await nearby.closeRelay();
       await nearby.closeRoom();
@@ -966,7 +991,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   // A table the desktop app's core reaches for this page: it says when the
   // host's device goes away, and what the check code is after a reconnect.
-  const coreGuestOf = offline?.via === 'internet' && nearby.coreHoldsGuests ? offline.instanceId : '';
+  const coreGuestOf =
+    (offline?.via === 'internet' || offline?.via === 'bluetooth') && nearby.coreHoldsGuests ? offline.instanceId : '';
   useEffect(() => {
     if (!coreGuestOf) return;
     const timer = setInterval(() => {
@@ -981,6 +1007,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }, 3000);
     return () => clearInterval(timer);
   }, [coreGuestOf]);
+
+  // The end-to-end run drives joins the radio cannot be made to offer: a
+  // debug build of the Mac app injects `window.e2e` (client-macos/Resources/
+  // e2e.js), and only there is this reachable.
+  useEffect(() => {
+    const e2e = IS_DESKTOP ? (window as { e2e?: Record<string, unknown> }).e2e : undefined;
+    if (!e2e) return;
+    e2e.session = { joinBluetooth };
+    return () => {
+      delete e2e.session;
+    };
+  }, [joinBluetooth]);
 
   // A host's table stops while the app is in the background. Coming back,
   // nobody at it is charged for the time the host was away: no bot takes a

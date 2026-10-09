@@ -3144,6 +3144,8 @@ export const fr: Record<string, string> = {
   'desktop.menu.quit': 'Quitter Jokerless',
   'desktop.menu.file': 'Fichier',
   'desktop.menu.newGame': 'Nouvelle partie',
+  'desktop.game.playing': 'En jeu',
+  'desktop.game.show': 'Afficher',
   'desktop.window.title': '{game} · contre {names}',
   'desktop.menu.closeWindow': 'Fermer la fenêtre',
   'desktop.menu.edit': 'Édition',

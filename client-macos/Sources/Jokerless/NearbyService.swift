@@ -43,15 +43,204 @@ final class NearbyService {
   init() {
     bonjour.onFound = { [weak self] host in self?.event("onHostFound", host) }
     bonjour.onLost = { [weak self] name in self?.event("onHostLost", ["name": name]) }
-    bleGuest.onFound = { [weak self] host in self?.event("onBleFound", host) }
+    bleGuest.onFound = { [weak self] host in
+      self?.event("onBleFound", host)
+      if let id = host["peripheralId"] as? String { self?.sighted(id) }
+    }
     bleGuest.onMessage = { [weak self] linkId, data in
+      // A link the core holds goes to the core; the page's own links, to the page.
+      if self?.coreHolds(linkId) == true {
+        ZolikcoreBleReceive(linkId, data)
+        return
+      }
       self?.event("onBleMessage", ["linkId": linkId, "data": data.base64EncodedString()])
     }
-    bleGuest.onClosed = { [weak self] linkId in self?.event("onBleClosed", ["linkId": linkId]) }
+    bleGuest.onClosed = { [weak self] linkId in
+      if self?.coreHolds(linkId) == true {
+        self?.coreReleases(linkId)
+        ZolikcoreBleClosed(linkId)
+        return
+      }
+      self?.event("onBleClosed", ["linkId": linkId])
+    }
     bleHost.onGuestsChanged = { [weak self] n in
       self?.event("onBleGuests", ["count": n])
       self?.pushState()
     }
+  }
+
+  // MARK: Bluetooth guests held by the core
+
+  /// Links the core holds, and the peripheral each table was last reached at
+  /// (only a first guess: a guest has no stable Bluetooth address).
+  private let coreLock = NSLock()
+  private var coreLinks = Set<String>()
+  private var radioHints: [String: String] = [:]
+  private var sightings: [UUID: (String) -> Void] = [:]
+  private lazy var coreSource = CoreBleSource(service: self)
+
+  fileprivate func coreHolds(_ linkId: String) -> Bool {
+    coreLock.lock()
+    defer { coreLock.unlock() }
+    return coreLinks.contains(linkId)
+  }
+
+  fileprivate func coreTakes(_ linkId: String, instance: String, peripheral: String) {
+    coreLock.lock()
+    coreLinks.insert(linkId)
+    radioHints[instance] = peripheral
+    coreLock.unlock()
+  }
+
+  fileprivate func coreReleases(_ linkId: String) {
+    coreLock.lock()
+    coreLinks.remove(linkId)
+    coreLock.unlock()
+  }
+
+  private func sighted(_ peripheral: String) {
+    coreLock.lock()
+    let watchers = Array(sightings.values)
+    coreLock.unlock()
+    for w in watchers { w(peripheral) }
+  }
+
+  /// Opens a link to the table with this instance id, finding it again if it
+  /// must: the peripheral it was last at first, then whatever a scan turns up
+  /// that says it is that table. Blocks; called from the core's goroutines.
+  fileprivate func openLink(instance: String) -> String? {
+    coreLock.lock()
+    let hint = radioHints[instance]
+    coreLock.unlock()
+    var tried = Set<String>()
+    if let hint {
+      tried.insert(hint)
+      if let link = connectBlocking(hint, instance) { return link }
+    }
+    let wake = DispatchSemaphore(value: 0)
+    var found: [String] = []
+    let watcher = UUID()
+    coreLock.lock()
+    sightings[watcher] = { id in
+      self.coreLock.lock()
+      found.append(id)
+      self.coreLock.unlock()
+      wake.signal()
+    }
+    coreLock.unlock()
+    bleGuest.scan()
+    defer {
+      bleGuest.stopScan()
+      coreLock.lock()
+      sightings[watcher] = nil
+      coreLock.unlock()
+    }
+    let deadline = Date().addingTimeInterval(8)
+    while Date() < deadline {
+      _ = wake.wait(timeout: .now() + 0.25)
+      coreLock.lock()
+      let next = found
+      found = []
+      coreLock.unlock()
+      for id in next where tried.insert(id).inserted {
+        if let link = connectBlocking(id, instance) { return link }
+      }
+    }
+    return nil
+  }
+
+  private func connectBlocking(_ peripheral: String, _ instance: String) -> String? {
+    let done = DispatchSemaphore(value: 0)
+    var out: (String, Data)?
+    radioConnect(peripheral) { result in
+      if case .success(let v) = result { out = v }
+      done.signal()
+    }
+    done.wait()
+    guard let (link, info) = out else { return nil }
+    let id = ((try? JSONSerialization.jsonObject(with: info)) as? [String: Any])?["id"] as? String
+    guard id == instance else {
+      radioDisconnect(link)
+      return nil
+    }
+    coreTakes(link, instance: instance, peripheral: peripheral)
+    return link
+  }
+
+  fileprivate func radioSend(_ linkId: String, _ msg: Data) -> Error? {
+    let done = DispatchSemaphore(value: 0)
+    var failure: Error?
+    radioWrite(linkId, msg) { error in
+      failure = error
+      done.signal()
+    }
+    done.wait()
+    return failure
+  }
+
+  fileprivate func radioHangUp(_ linkId: String) {
+    radioDisconnect(linkId)
+    coreReleases(linkId)
+  }
+
+  // The radio, or in an end-to-end run a stand-in for it: "e2e-loopback"
+  // is a table reached through this process's own host, so the core's whole
+  // guest path (this Swift, the gomobile bridge, the tunnel) runs without a
+  // second device. Never in a release build.
+  private static let loopbackPeripheral = "e2e-loopback"
+  private var loopbackLinks: [String: ZolikcoreTunnel] = [:]
+
+  fileprivate func radioConnect(_ peripheral: String, _ done: @escaping (Result<(String, Data), Error>) -> Void) {
+    #if DEBUG
+      if AppConfig.isE2E, peripheral == Self.loopbackPeripheral {
+        guard let host = ZolikcoreCurrent() else { return done(.failure(Failure("no host is running"))) }
+        let id = "loopback-" + UUID().uuidString
+        let tunnel = host.newTunnel(LoopbackSink(linkId: id), peer: id)
+        coreLock.lock()
+        loopbackLinks[id] = tunnel
+        coreLock.unlock()
+        let info = try? JSONSerialization.data(withJSONObject: ["id": host.instanceID(), "v": ZolikcoreProtocolVersion])
+        return done(.success((id, info ?? Data())))
+      }
+    #endif
+    bleGuest.connect(peripheralId: peripheral, done: done)
+  }
+
+  /// For tests: the loopback radio loses every link at once.
+  func dropLoopbackLinks() {
+    #if DEBUG
+      coreLock.lock()
+      let ids = Array(loopbackLinks.keys)
+      coreLock.unlock()
+      for id in ids { radioDisconnect(id) }
+    #endif
+  }
+
+  fileprivate func radioDisconnect(_ linkId: String) {
+    #if DEBUG
+      coreLock.lock()
+      let fake = loopbackLinks.removeValue(forKey: linkId)
+      coreLock.unlock()
+      if let fake {
+        fake.close()
+        ZolikcoreBleClosed(linkId)
+        return
+      }
+    #endif
+    bleGuest.disconnect(linkId: linkId)
+  }
+
+  fileprivate func radioWrite(_ linkId: String, _ msg: Data, _ done: @escaping (Error?) -> Void) {
+    #if DEBUG
+      coreLock.lock()
+      let fake = loopbackLinks[linkId]
+      coreLock.unlock()
+      if let fake {
+        fake.receive(msg)
+        return done(nil)
+      }
+    #endif
+    bleGuest.send(linkId: linkId, msg: msg, done: done)
   }
 
   struct Failure: LocalizedError {
@@ -105,6 +294,43 @@ final class NearbyService {
             "checkCode": table.checkCode(),
           ])
         }
+      case "bleOpen":
+        // The first link to a table the core is about to hold: connects, and
+        // says which table it is, before anything is spent on the handshake.
+        let peripheral = string(0)
+        radioConnect(peripheral) { [weak self] result in
+          switch result {
+          case .success(let (linkId, info)):
+            let parsed = (try? JSONSerialization.jsonObject(with: info)) as? [String: Any]
+            guard let instance = parsed?["id"] as? String else {
+              self?.radioDisconnect(linkId)
+              fail(Failure("not a Zolik table"))
+              return
+            }
+            self?.coreTakes(linkId, instance: instance, peripheral: peripheral)
+            finish(["linkId": linkId, "instanceId": instance, "v": parsed?["v"] ?? 0])
+          case .failure(let e): fail(e)
+          }
+        }
+      case "bleJoin":
+        let (linkId, instance, pinned) = (string(0), string(1), string(2))
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+          var error: NSError?
+          guard let table = ZolikcoreJoinBle(self?.coreSource, instance, linkId, pinned, &error) else {
+            self?.radioDisconnect(linkId)
+            self?.coreReleases(linkId)
+            fail(Failure(error?.localizedDescription ?? "could not reach the table"))
+            return
+          }
+          finish([
+            "baseUrl": table.baseURL(), "instanceId": table.instanceID(), "hostKey": table.hostKey(),
+            "checkCode": table.checkCode(),
+          ])
+        }
+      case "bleLeaveLink":
+        radioDisconnect(string(0))
+        coreReleases(string(0))
+        finish(nil)
       case "guestLeave":
         ZolikcoreLeaveGuestTable(string(0))
         finish(nil)
@@ -252,3 +478,37 @@ final class NearbyService {
     return dir.path
   }
 }
+
+/// The core's way to a guest's Bluetooth radio (server/mobile/zolikcore
+/// BleSource): it asks for links and sends messages through them, and what
+/// the radio hears comes back through ZolikcoreBleReceive and BleClosed.
+private final class CoreBleSource: NSObject, ZolikcoreBleSourceProtocol {
+  private unowned let service: NearbyService
+  init(service: NearbyService) { self.service = service }
+
+  func connect(_ instanceID: String?, error: NSErrorPointer) -> String {
+    if let link = service.openLink(instance: instanceID ?? "") { return link }
+    error?.pointee = NSError(
+      domain: "Jokerless", code: 1, userInfo: [NSLocalizedDescriptionKey: "the table is out of range"])
+    return ""
+  }
+
+  func send(_ linkID: String?, msg: Data?) throws {
+    if let failure = service.radioSend(linkID ?? "", msg ?? Data()) { throw failure }
+  }
+
+  func disconnect(_ linkID: String?) { service.radioHangUp(linkID ?? "") }
+}
+
+#if DEBUG
+  /// A loopback link's way back to the core: the host tunnel's messages go to
+  /// the guest the way a radio's would.
+  private final class LoopbackSink: NSObject, ZolikcoreTunnelSinkProtocol {
+    let linkId: String
+    init(linkId: String) { self.linkId = linkId }
+    func send(_ msg: Data?) {
+      let copy = msg ?? Data()
+      DispatchQueue.global().async { ZolikcoreBleReceive(self.linkId, copy) }
+    }
+  }
+#endif

@@ -705,6 +705,8 @@
  "deal.play": "Play this deal",
  "deal.stale": "This link no longer opens a deal",
  "deal.title": "A deal for you",
+ "desktop.game.playing": "Playing",
+ "desktop.game.show": "Show",
  "desktop.menu.about": "About Jokerless",
  "desktop.menu.account": "Account",
  "desktop.menu.actualSize": "Actual Size",

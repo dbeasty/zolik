@@ -3124,6 +3124,8 @@ export const fi: Record<string, string> = {
   'desktop.menu.quit': 'Lopeta Jokerless',
   'desktop.menu.file': 'Arkisto',
   'desktop.menu.newGame': 'Uusi peli',
+  'desktop.game.playing': 'Pelissä',
+  'desktop.game.show': 'Näytä',
   'desktop.window.title': '{game} · vastaan {names}',
   'desktop.menu.closeWindow': 'Sulje ikkuna',
   'desktop.menu.edit': 'Muokkaa',

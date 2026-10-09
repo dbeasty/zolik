@@ -70,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     let controller = AppWindowController(
       role: role, matchId: matchId, kind: kind, nearby: NearbyService.shared,
       cascadeFrom: active?.window ?? windows.last?.window, seat: { [weak self] in self?.seat })
+    controller.web.openGames = { [weak self] in self?.openMatchIds ?? [] }
     controller.onActivate = { [weak self] c in
       self?.active = c
       self?.applyLabels()
@@ -87,8 +88,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     return controller
   }
 
+  /// The matches that have a window open: what the lists of games show as
+  /// playing rather than as something to resume.
+  var openMatchIds: [String] {
+    games.compactMap { g in
+      guard let key = g.gameKey, key.hasPrefix("match:") else { return nil }
+      return String(key.dropFirst("match:".count))
+    }
+  }
+
+  private func broadcastGames() {
+    let ids = openMatchIds
+    for w in windows { w.web.emitGames(ids) }
+  }
+
   private func windowClosed(_ c: AppWindowController) {
     games.removeAll { $0 === c }
+    defer { broadcastGames() }
     if active === c { active = games.last ?? main }
     // Closing a game's window is leaving its view, not the match; but it is
     // no longer one to bring back at the next launch.
@@ -112,6 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     let id = parts.count > 1 ? parts[1] : ""
     let c = makeController(role: .game, matchId: id, kind: kind, path: path)
     games.append(c)
+    broadcastGames()
     remembered.add(key: key, path: path)
     c.web.load(path: path)
     if activate { raise(c) } else { c.show() }
@@ -156,6 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
       let before = c.gameKey
       c.apply(info: body)
       guard let key = c.gameKey else { return }
+      if before != key { broadcastGames() }
       if let before, before != key { remembered.remove(before) }
       // A finished game, or a table on this Mac's own server, is not one to
       // bring back at the next launch.
@@ -283,7 +301,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   @objc func showMainWindow(_ sender: Any?) { showMain() }
 
   @objc func startOfflineTable(_ sender: Any?) { showMain(); web?.navigate(to: "/offline") }
-  @objc func backOnline(_ sender: Any?) { showMain(); web?.navigate(to: "/") }
+  /// Back to online play: lets go of the table the player sits at (a host
+  /// closes it; a guest leaves), in every window, and shows the home screen.
+  @objc func backOnline(_ sender: Any?) {
+    showMain()
+    web?.command("leaveOffline")
+    web?.navigate(to: "/")
+  }
   @objc func goHome(_ sender: Any?) { showMain(); web?.navigate(to: "/") }
   /// Back and Forward walk the main window's own history, which holds every
   /// screen the page moved to, so one always undoes the other. With nothing

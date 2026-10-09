@@ -48,7 +48,7 @@ function handler(): Handler | null {
  * Draws nothing.
  */
 export function DesktopMenuBridge() {
-  const { session, onlineSession, logout, client, loading } = useSession();
+  const { session, onlineSession, logout, client, loading, leaveOffline } = useSession();
   const [games, setGames] = useState<{ id: string; label: string }[]>([]);
 
   useEffect(() => {
@@ -92,6 +92,7 @@ export function DesktopMenuBridge() {
     const w = window as { __zolikCommand?: (name: string) => void };
     w.__zolikCommand = (name) => {
       if (name === 'signOut') void logout();
+      else if (name === 'leaveOffline') void leaveOffline();
       else if (name === 'back') {
         if (router.canGoBack()) router.back();
         else router.replace('/');
@@ -100,7 +101,7 @@ export function DesktopMenuBridge() {
     return () => {
       delete w.__zolikCommand;
     };
-  }, [logout]);
+  }, [logout, leaveOffline]);
 
   useEffect(() => {
     const signedIn = !!session && !session.isGuest;

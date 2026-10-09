@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useOpenGames } from '@/src/desktop/openGames';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -33,6 +34,7 @@ type Scope = 'unfinished' | 'finished';
  * this screen offers exactly the buttons the server would honour.
  */
 export default function MyGamesScreen() {
+  const openGames = useOpenGames();
   const { client } = useSession();
   // Arriving from a game's page narrows the list to that game and opens on
   // its finished tab; from the account menu it is every game, in progress.
@@ -147,7 +149,9 @@ export default function MyGamesScreen() {
               {moduleName(row.moduleId)}
               {row.variation ? ` · ${variationName(row.moduleId, row.variation)}` : ''}
             </Text>
-            <Text style={styles.rowMeta}>{t(`mine.status.${row.status}`, undefined, row.status)}</Text>
+            <Text style={styles.rowMeta}>
+              {openGames.has(row.matchId) ? t('desktop.game.playing') : t(`mine.status.${row.status}`, undefined, row.status)}
+            </Text>
             <Text style={styles.rowPlayers} numberOfLines={2}>
               {row.players.map((p) => (p.isAI ? t('a11y.player.bot', { name: p.name }) : p.name)).join(', ')}
             </Text>
@@ -157,12 +161,12 @@ export default function MyGamesScreen() {
                 <Pressable
                   testID={`mine-resume-${row.matchId}`}
                   role="button"
-                  aria-label={t('a11y.actionFor', { action: t('mine.resume'), what: moduleName(row.moduleId) })}
+                  aria-label={t('a11y.actionFor', { action: openGames.has(row.matchId) ? t('desktop.game.show') : t('mine.resume'), what: moduleName(row.moduleId) })}
                   disabled={busyId === row.matchId}
                   style={[shared.button, styles.rowButton]}
                   onPress={() => resume(row)}
                 >
-                  <Text style={shared.buttonText}>{t('mine.resume')}</Text>
+                  <Text style={shared.buttonText}>{openGames.has(row.matchId) ? t('desktop.game.show') : t('mine.resume')}</Text>
                 </Pressable>
               ) : (
                 <Pressable

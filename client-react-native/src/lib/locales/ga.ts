@@ -3149,6 +3149,8 @@ export const ga: Record<string, string> = {
   'desktop.menu.quit': 'Scoir de Jokerless',
   'desktop.menu.file': 'Comhad',
   'desktop.menu.newGame': 'Cluiche nua',
+  'desktop.game.playing': 'Ag imirt',
+  'desktop.game.show': 'Taispeáin',
   'desktop.window.title': '{game} · i gcoinne {names}',
   'desktop.menu.closeWindow': 'Dún an fhuinneog',
   'desktop.menu.edit': 'Eagar',

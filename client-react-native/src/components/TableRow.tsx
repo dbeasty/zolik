@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { StoredTable } from '@/src/api/matchTypes';
+import { useOpenGames } from '@/src/desktop/openGames';
 import { t } from '@/src/lib/i18n';
 import { routeForMatch, routeForReplay } from '@/src/lib/matchRoute';
 import { colors } from '@/src/theme';
@@ -25,6 +26,8 @@ export function TableRow({
   selfId?: string;
 }) {
   const over = row.status === 'completed';
+  const openGames = useOpenGames();
+  const playing = !over && openGames.has(row.matchId);
   const others = row.players.filter((p) => p.id !== selfId);
   const people = others.filter((p) => !p.isAI).map((p) => p.name);
   const withWho = people.join(', ');
@@ -45,7 +48,7 @@ export function TableRow({
         <Text style={[styles.badge, styles.badgeTurn]}>{t('picker.yourTurn')}</Text>
       ) : (
         <Text style={[styles.badge, styles.badgeQuiet]}>
-          {t(`mine.status.${row.status}`, undefined, row.status)}
+          {playing ? t('desktop.game.playing') : t(`mine.status.${row.status}`, undefined, row.status)}
         </Text>
       )}
       <Pressable
@@ -54,7 +57,7 @@ export function TableRow({
         // "Resume" five times in a row is five identical buttons to a screen
         // reader listing them; this says which table each one opens.
         aria-label={t('a11y.actionFor', {
-          action: over ? t('mine.replay') : t('picker.resume'),
+          action: over ? t('mine.replay') : playing ? t('desktop.game.show') : t('picker.resume'),
           what: [gameLabel, withWho || t('lobby.games.bots')].filter(Boolean).join(', '),
         })}
         onPress={() =>
@@ -66,7 +69,7 @@ export function TableRow({
         }
         style={({ pressed }) => [styles.go, pressed && { borderColor: colors.accent }]}
       >
-        <Text style={styles.goText}>{over ? t('mine.replay') : t('picker.resume')}</Text>
+        <Text style={styles.goText}>{over ? t('mine.replay') : playing ? t('desktop.game.show') : t('picker.resume')}</Text>
       </Pressable>
     </View>
   );

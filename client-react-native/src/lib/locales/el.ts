@@ -3156,6 +3156,8 @@ export const el: Record<string, string> = {
   'desktop.menu.quit': 'Έξοδος από Jokerless',
   'desktop.menu.file': 'Αρχείο',
   'desktop.menu.newGame': 'Νέο παιχνίδι',
+  'desktop.game.playing': 'Παίζεται',
+  'desktop.game.show': 'Εμφάνιση',
   'desktop.window.title': '{game} · εναντίον {names}',
   'desktop.menu.closeWindow': 'Κλείσιμο παραθύρου',
   'desktop.menu.edit': 'Επεξεργασία',

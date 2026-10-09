@@ -3118,6 +3118,8 @@ export const sk: Record<string, string> = {
   'desktop.menu.quit': 'Ukončiť Jokerless',
   'desktop.menu.file': 'Súbor',
   'desktop.menu.newGame': 'Nová hra',
+  'desktop.game.playing': 'Hrá sa',
+  'desktop.game.show': 'Zobraziť',
   'desktop.window.title': '{game} · proti {names}',
   'desktop.menu.closeWindow': 'Zavrieť okno',
   'desktop.menu.edit': 'Upraviť',

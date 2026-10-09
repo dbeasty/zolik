@@ -3113,6 +3113,8 @@ export const sl: Record<string, string> = {
   'desktop.menu.quit': 'Končaj Jokerless',
   'desktop.menu.file': 'Datoteka',
   'desktop.menu.newGame': 'Nova igra',
+  'desktop.game.playing': 'Igra se',
+  'desktop.game.show': 'Pokaži',
   'desktop.window.title': '{game} · proti {names}',
   'desktop.menu.closeWindow': 'Zapri okno',
   'desktop.menu.edit': 'Uredi',

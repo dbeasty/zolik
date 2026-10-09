@@ -3130,6 +3130,8 @@ export const bg: Record<string, string> = {
   'desktop.menu.quit': 'Изход от Jokerless',
   'desktop.menu.file': 'Файл',
   'desktop.menu.newGame': 'Нова игра',
+  'desktop.game.playing': 'Играе се',
+  'desktop.game.show': 'Покажи',
   'desktop.window.title': '{game} · срещу {names}',
   'desktop.menu.closeWindow': 'Затвори прозореца',
   'desktop.menu.edit': 'Редактиране',
