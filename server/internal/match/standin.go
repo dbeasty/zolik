@@ -155,6 +155,11 @@ func (m *Manager) scheduleStandIn(matchID, playerID string, at time.Time) {
 // wait is over, un-pauses the table if it was paused for one of them, and
 // starts the bots.
 func (m *Manager) checkStandIns(ctx context.Context, matchID string) {
+	// Held while a phone host cannot reach its remote guests; looked at
+	// again when it can (HoldStandIns).
+	if m.standInsAreHeld() {
+		return
+	}
 	e, err := m.lockMatch(ctx, matchID)
 	if err != nil {
 		return

@@ -102,6 +102,11 @@ type Manager struct {
 	// check pending, and an override of the option's wait, for tests.
 	leaveTimers map[string]bool
 	leaveWait   time.Duration
+	// standInsHeld and resumedAt are hostpause.go's: a phone host whose
+	// internet is down holds every stand-in, and one that has just come back
+	// gives every away clock a fresh start.
+	standInsHeld bool
+	resumedAt    time.Time
 
 	// live holds the state of every match in play; see live.go.
 	live liveMatches

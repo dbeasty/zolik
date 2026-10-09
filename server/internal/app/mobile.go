@@ -281,3 +281,11 @@ func (a *App) ReplicaWriter() *replica.Writer {
 // ask for a sync when it comes back to the foreground or the network returns.
 // Nil when this install replicates with nobody.
 func (a *App) Sync() *zsync.Node { return a.sync }
+
+// HostResumed is a phone's server coming back from the background: absences
+// it caused are not charged to the players (see match/hostpause.go).
+func (a *App) HostResumed() { a.matchManager().HostResumed() }
+
+// HoldStandIns holds stand-in bots and cash-outs while a phone cannot reach
+// its remote guests, and lets them go when it can again.
+func (a *App) HoldStandIns(on bool) { a.matchManager().HoldStandIns(on) }

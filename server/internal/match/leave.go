@@ -86,6 +86,12 @@ func (m *Manager) checkLeave(ctx context.Context, matchID, playerID string) {
 	if !ok {
 		return // back since, and gone again: that absence has its own timer
 	}
+	// Nobody is cashed out while a phone host cannot reach them: see
+	// hostpause.go. The clock starts again when it can.
+	if m.standInsAreHeld() {
+		m.scheduleLeave(matchID, playerID, time.Now().Add(wait))
+		return
+	}
 	if due := since.Add(wait); time.Now().Before(due) {
 		m.scheduleLeave(matchID, playerID, due)
 		return

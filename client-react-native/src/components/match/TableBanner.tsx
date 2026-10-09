@@ -30,12 +30,12 @@ type Props = {
  * person whose problem it is.
  *
  * Three different pauses look identical on a board — nothing moves — and
- * mean opposite things. If *you* are offline, nothing anybody else does will
- * help. If the *server* is offline (a table hosted on a phone), everyone
- * waits for it and nothing is lost. If one *player* is missing, the table
- * waits for them for as long as it was set up to, and then a bot plays their
- * seat. So they are checked in that order, and only the first that holds is
- * shown: when you are offline you cannot know anything else.
+ * mean opposite things. If the *server* is offline (a table hosted on a
+ * phone), everyone waits for it and nothing is lost — and since the relay
+ * says so for certain, that is checked first. If *you* are offline, nothing
+ * anybody else does will help, and you cannot know anything else. If one
+ * *player* is missing, the table waits for them for as long as it was set up
+ * to, and then a bot plays their seat. Only the first that holds is shown.
  */
 export function TableBanner({ state, seats, viewerId, connected, serverGone, notice, onDismissNotice, onLetBotPlay }: Props) {
   const counting = !!awaitedAway(state, seats)?.standInAt;
@@ -95,8 +95,11 @@ export function tableBanner({
   notice: string | null;
   now: number;
 }): { kind: BannerKind; tone: 'bad' | 'info' | 'ok'; text: string; playerId?: string } | null {
-  if (!connected) return { kind: 'offline', tone: 'bad', text: t('banner.offline') };
+  // The server going is known for certain — the relay said so — and it takes
+  // this player's socket down with it; so it is said before "you are offline",
+  // which is only what a dropped socket looks like from here.
   if (serverGone) return { kind: 'server', tone: 'bad', text: t('banner.serverOffline', { name: serverGone.name }) };
+  if (!connected) return { kind: 'offline', tone: 'bad', text: t('banner.offline') };
   const waitingOn = awaitedAway(state, seats);
   if (waitingOn && waitingOn.id !== viewerId) {
     const name = playerName(state.players, waitingOn.id);

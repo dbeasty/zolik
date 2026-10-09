@@ -15,6 +15,7 @@ import {
 import { ensureBlePermission } from '@/src/net/ble/link';
 import { BleHostKeyChanged } from '@/src/net/ble/transport';
 import { guestNameFor } from '@/src/lib/guestName';
+import { shareInviteLink } from '@/src/lib/inviteLink';
 import { loadFlag, saveFlag, useDeviceFlag } from '@/src/notify/prefs';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
@@ -451,6 +452,8 @@ function Hosting() {
 
       <BluetoothRoom name={session?.username ?? ''} />
 
+      <InternetRoom name={session?.username ?? ''} signedIn={!!session && !session.isGuest} />
+
       <Pressable
         style={[shared.button, shared.buttonSecondary]}
         onPress={() => router.push('/local-games')}
@@ -468,6 +471,98 @@ function Hosting() {
         <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.backOnline')}</Text>
       </Pressable>
     </Screen>
+  );
+}
+
+/**
+ * The host's internet side: people anywhere, through the cloud. The phone
+ * stays the server, so the card says so in as many words — if the host leaves
+ * the app, the game stops for everybody, and the people across town cannot
+ * see the host's screen to know why.
+ */
+function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
+  const [relay, setRelay] = useState<nearby.RelayStatus>(() => nearby.relayStatus());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const open = relay.status !== 'off';
+
+  // The door can drop and come back by itself (the phone's own connection),
+  // so its state is read, not remembered.
+  useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => setRelay(nearby.relayStatus()), 3000);
+    return () => clearInterval(id);
+  }, [open]);
+
+  async function start() {
+    setBusy(true);
+    setError('');
+    try {
+      setRelay(await nearby.openRelay(t('relay.phoneName', { name })));
+      await activateKeepAwakeAsync(KEEP_AWAKE);
+    } catch (e) {
+      setError(t('offline.failed', { reason: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stop() {
+    await nearby.closeRelay();
+    setRelay(nearby.relayStatus());
+  }
+
+  return (
+    <View style={[shared.card, { marginTop: 12 }]} testID="offline-internet">
+      <Text style={cardTitle}>{t('relay.cardTitle')}</Text>
+      {!signedIn ? (
+        <Text style={shared.status} testID="offline-relay-sign-in">
+          {t('relay.needsSignIn')}
+        </Text>
+      ) : !open ? (
+        <>
+          <Text style={shared.status}>{t('relay.cardBody')}</Text>
+          <Pressable style={[shared.button, { marginTop: 8 }]} onPress={start} disabled={busy} testID="offline-relay-open">
+            <Text style={shared.buttonText}>{busy ? t('relay.opening') : t('relay.open')}</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Text
+            style={[shared.status, { color: relay.status === 'online' ? colors.success : colors.gold }]}
+            testID="offline-relay-status"
+          >
+            {relay.status === 'online'
+              ? t('relay.online', { n: relay.guests })
+              : t('relay.reconnecting')}
+          </Text>
+          <Text style={[shared.status, { color: colors.text }]} testID="offline-relay-warning">
+            {t('relay.youAreTheServer')}
+          </Text>
+          {relay.url ? (
+            <>
+              <Text style={[shared.status, { color: colors.text }]} selectable testID="offline-relay-url">
+                {relay.url}
+              </Text>
+              <View style={{ alignSelf: 'flex-start', padding: 8, backgroundColor: '#fff', marginVertical: 8 }}>
+                <QRCode value={relay.url} size={168} />
+              </View>
+              <Pressable
+                style={[shared.button, { marginTop: 4 }]}
+                onPress={() => void shareInviteLink(relay.url, t('relay.shareText', { name }))}
+                testID="offline-relay-share"
+              >
+                <Text style={shared.buttonText}>{t('relay.share')}</Text>
+              </Pressable>
+            </>
+          ) : null}
+          <Pressable style={[shared.button, shared.buttonSecondary]} onPress={stop} testID="offline-relay-close">
+            <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('relay.close')}</Text>
+          </Pressable>
+        </>
+      )}
+      {error ? <Text style={shared.error}>{error}</Text> : null}
+    </View>
   );
 }
 
@@ -560,19 +655,26 @@ function Guesting() {
   const { offline, leaveOffline } = useSession();
   const baseUrl = offline?.baseUrl ?? '';
   const overBluetooth = offline?.via === 'bluetooth';
+  const overInternet = offline?.via === 'internet';
   return (
     <Screen title={t('offline.title')} subtitle={t('offline.subtitle')} scroll>
       <Text style={shared.status} testID="offline-guest-active">
-        {overBluetooth
-          ? t('offline.guestBle')
-          : t('offline.guestActive', { host: baseUrl.replace(/^https?:\/\//, '') })}
+        {overInternet
+          ? t('offline.guestRelay', { name: offline?.serverName || t('server.hostsPhone') })
+          : overBluetooth
+            ? t('offline.guestBle')
+            : t('offline.guestActive', { host: baseUrl.replace(/^https?:\/\//, '') })}
       </Text>
       {overBluetooth && offline?.checkCode ? (
         <Text style={[shared.status, { color: colors.text }]} testID="offline-check-code">
           {t('offline.bleCheck', { code: offline.checkCode })}
         </Text>
       ) : null}
-      <Pressable style={[shared.button, { marginTop: 12 }]} onPress={() => router.push('/lobby/join')}>
+      <Pressable
+        style={[shared.button, { marginTop: 12 }]}
+        onPress={() => router.push('/lobby/join')}
+        testID="offline-guest-join"
+      >
         <Text style={shared.buttonText}>{t('nav.join')}</Text>
       </Pressable>
       <Pressable

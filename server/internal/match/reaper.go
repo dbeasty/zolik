@@ -74,6 +74,11 @@ func (m *Manager) ReapAbandoned(ctx context.Context) int {
 		if match.Status != "suspended" || match.AbandonAt == nil || match.AbandonAt.After(now) {
 			continue
 		}
+		// The server has just come back from being away itself (a phone
+		// host): the players it lost were lost to its absence, not theirs.
+		if m.justResumed(now, m.abandonWindow(match)) {
+			continue
+		}
 
 		// Somebody is still sitting here. A table with a player at it is not
 		// a stranded one, whatever the clock says — they are waiting for

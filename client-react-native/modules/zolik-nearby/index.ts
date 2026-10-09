@@ -54,6 +54,10 @@ type NativeModule = {
   hostStatus(): HostInfo | null;
   openRoom(name: string): Promise<{ port: number; addresses: string[] }>;
   closeRoom(): Promise<void>;
+  openRelay(name: string): Promise<RelayStatus>;
+  closeRelay(): Promise<void>;
+  relayStatus(): RelayStatus;
+  hostResumed(): void;
   startBrowsing(): Promise<void>;
   stopBrowsing(): Promise<void>;
   localAddresses(): string[];
@@ -161,6 +165,42 @@ export async function openRoom(name: string): Promise<{ port: number; addresses:
 
 export async function closeRoom(): Promise<void> {
   await native?.closeRoom();
+}
+
+/**
+ * The internet door of a table this phone hosts: whether it is open, and the
+ * link a guest anywhere opens to sit down (server/mobile/zolikcore/relay.go).
+ */
+export type RelayStatus = {
+  status: 'off' | 'connecting' | 'online';
+  code: string;
+  url: string;
+  guests: number;
+};
+
+/**
+ * Lets people anywhere join this phone's table, through the cloud. The phone
+ * stays the server; the cloud only carries sealed messages. Needs a signed-in,
+ * enrolled phone.
+ */
+export async function openRelay(name: string): Promise<RelayStatus> {
+  return need().openRelay(name);
+}
+
+export async function closeRelay(): Promise<void> {
+  await native?.closeRelay();
+}
+
+export function relayStatus(): RelayStatus {
+  return native?.relayStatus() ?? { status: 'off', code: '', url: '', guests: 0 };
+}
+
+/**
+ * The app is back in the foreground after its table was stopped in the
+ * background. Nobody at the table is charged for the time the host was away.
+ */
+export function hostResumed(): void {
+  native?.hostResumed();
 }
 
 /** This phone's IPv4 addresses on Wi-Fi and its hotspot, for a guest to type. */
