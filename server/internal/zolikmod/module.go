@@ -97,6 +97,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				module.OptPauseBetweenRounds:  module.OptOn,
 				module.OptOpenDiscardPile:     module.BoolOpt(!cfg.DiscardPileTopOnly),
 				module.OptBotSkill:            module.SkillOpt(module.SkillMedium),
+				module.OptStandInAfter:        module.StandInAfterDefault,
 			},
 		})
 	}
@@ -110,6 +111,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		// read. A table that plays Continental's top-card draw can fold it.
 		module.OpenDiscardPileOption(),
 		module.BotSkillOptionWithAI(),
+		module.StandInOption(),
 		module.HintsOption(),
 	)
 	for _, o := range d.Options {

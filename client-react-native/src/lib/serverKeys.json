@@ -163,6 +163,10 @@
     "SEQUENCE_NO_WILDS",
     "SERVER_BUSY",
     "SET_TOO_LARGE",
+    "STAND_IN_ENDED",
+    "STAND_IN_NOT_A_PERSON",
+    "STAND_IN_NOT_OFFERED",
+    "STAND_IN_PLAYER_HERE",
     "STOCK_EMPTY",
     "STOCK_NOT_EMPTY",
     "SUIT_REQUIRED",
@@ -183,6 +187,7 @@
     "UNKNOWN_MODULE",
     "UNKNOWN_OPTION",
     "UNKNOWN_PLAYER",
+    "UNKNOWN_SKILL",
     "UNKNOWN_SUIT",
     "UNKNOWN_VARIATION",
     "UPCARD_DECLINED",
@@ -884,6 +889,11 @@
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
     "round.continue",
+    "rules.standIn.after",
+    "rules.standIn.record",
+    "rules.standIn.return",
+    "rules.standIn.section",
+    "rules.standIn.wait",
     "rummytiles.badge.invalid",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
@@ -2470,6 +2480,9 @@
     "prsi.rules.deck": [
       "value"
     ],
+    "rules.standIn.after": [
+      "seconds"
+    ],
     "rummytiles.fact.setCards": [
       "value"
     ],
@@ -2957,6 +2970,7 @@
     "prsi.remedy.playOrDraw",
     "prsi.rules.deal",
     "prsi.rules.deck",
+    "rules.standIn.after",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",

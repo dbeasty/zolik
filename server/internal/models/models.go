@@ -53,7 +53,26 @@ type Player struct {
 	// the table has minted one (see match.SeatLink). Only the hash is kept,
 	// and never sent anywhere: the link is the secret.
 	SeatKeyHash string `bson:"seatKeyHash,omitempty" json:"-"`
+	// StandIn is set while the server plays this seat for a person who is
+	// away. The seat stays theirs — IsAI stays false, and the name, account
+	// and avatar are untouched — and it is cleared the moment they are back.
+	StandIn *StandIn `bson:"standIn,omitempty" json:"standIn,omitempty"`
 }
+
+// StandIn is a bot playing a person's seat while they are away.
+type StandIn struct {
+	Since time.Time `bson:"since" json:"since"`
+	// Skill is how well the stand-in plays, as module.Skill.
+	Skill string `bson:"skill" json:"skill"`
+	// By says what put it there: StandInTimeout or StandInHost.
+	By string `bson:"by" json:"by"`
+}
+
+// What put a stand-in in a seat.
+const (
+	StandInTimeout = "timeout"
+	StandInHost    = "host"
+)
 
 type User struct {
 	ID       bson.ObjectID `bson:"_id,omitempty" json:"id"`

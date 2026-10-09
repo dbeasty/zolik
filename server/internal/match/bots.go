@@ -3,6 +3,7 @@ package match
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -256,7 +257,15 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			return
 		}
 
-		played, skipped := false, 0
+		// A stand-in's moves are only made while it is still standing in: its
+		// player may be back between this loop reading the match and the move
+		// landing, and from then on the seat's decisions are theirs.
+		standIn := false
+		if p := playerByID(match.Players, actor); p != nil && p.StandIn != nil {
+			standIn = true
+		}
+
+		played, skipped, ended := false, 0, false
 		for i, c := range candidates {
 			// Only the prepended bot pick is deduplicated, and only against the
 			// list's first choice, which is the one case where the two sources
@@ -272,7 +281,11 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 				skipped++
 				continue
 			}
-			err := m.HandleAction(ctx, matchID, actor, c.action)
+			err := m.handleAction(ctx, matchID, actor, c.action, standIn)
+			if errors.Is(err, errStandInEnded) {
+				ended = true
+				break
+			}
 			if err == nil {
 				if i > 0 {
 					log.Printf("bot loop: match=%s seat=%s recovered on candidate %d/%d (%s)",
@@ -284,6 +297,11 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 			log.Printf("bot loop: match=%s seat=%s candidate %d/%d (%s) refused: %v",
 				matchID, actor, i+1, len(candidates), c.action.Verb, err)
+		}
+		if ended {
+			// Somebody else may still be waited on — a bot readying between
+			// rounds — so the loop goes on rather than stopping here.
+			continue
 		}
 		if !played {
 			// Skipped and refused counted apart, because they mean opposite
@@ -433,7 +451,11 @@ func botSeatFor(match models.Match, actor string) module.BotSeat {
 		Seed:     module.SeatSeed(match.Seed, actor, "bot"),
 	}
 	if p := playerByID(match.Players, actor); p != nil {
-		if skill, auto := module.ParseSkill(p.AIDifficulty); !auto {
+		played := p.AIDifficulty
+		if p.StandIn != nil {
+			played = p.StandIn.Skill
+		}
+		if skill, auto := module.ParseSkill(played); !auto {
 			seat.Skill = skill
 		}
 	}
