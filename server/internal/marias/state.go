@@ -30,6 +30,7 @@ type GameState struct {
 	FlekLimit      int    `json:"flekLimit,omitempty"`
 	ZLidu          bool   `json:"zLidu,omitempty"`
 	ShowCardPoints bool   `json:"showCardPoints,omitempty"`
+	OpenBetlDurch  bool   `json:"openBetlDurch,omitempty"`
 	Pause          bool   `json:"pause,omitempty"`
 
 	// Deal is the deal in progress, counted from zero.
@@ -339,6 +340,13 @@ func (s *GameState) sitter() string {
 		return ""
 	}
 	return s.Players[(s.FirstChooser+s.Deal+n-1)%n]
+}
+
+// declarerShown is whether the declarer's hand lies face up: betl or durch,
+// at a table that plays them open, once the first trick has been taken.
+func (s *GameState) declarerShown() bool {
+	return s.OpenBetlDurch && (s.Game == gameBetl || s.Game == gameDurch) &&
+		s.Phase == phasePlay && len(s.History) > 0
 }
 
 func (s *GameState) licit() bool { return s.Variation == variationLicit }

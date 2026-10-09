@@ -61,6 +61,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			},
 			module.BotSkillOption(),
 			module.PauseOption(),
+			module.StandInOption(),
 		},
 	}
 }
@@ -70,6 +71,7 @@ var defaults = map[string]int{
 	OptShowCardPoints:            module.OptOff,
 	module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 	module.OptPauseBetweenRounds: module.OptOn,
+	module.OptStandInAfter:       module.StandInAfterDefault,
 }
 
 type config struct {

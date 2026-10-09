@@ -349,7 +349,7 @@ partnership-stats decision early, which is a cheap rehearsal for Bridge.
 - Křížový mariáš (four players, partnerships).
 - ~~Four at a three-player table, with the dealer sitting out each deal.~~ Done: a Mariáš table
   seats three or four in both variations (marias-rules.md, difference 4).
-- Showing the declarer's hand in Betl or Durch after the first trick (a house rule in some
-  places).
+- ~~Showing the declarer's hand in Betl or Durch after the first trick.~~ Done: the
+  `openBetlDurch` table option (marias-rules.md, difference 5).
 - Mariáš leaderboards by units won.
 - Offline play.

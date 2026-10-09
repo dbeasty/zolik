@@ -10,12 +10,13 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { apiClient, ZolikClient } from '@/src/api/client';
 import * as nearby from '@/modules/zolik-nearby';
 import { connectToTable } from '@/src/net/ble/link';
 import { BleTransport } from '@/src/net/ble/transport';
+import { RelayHostAway, relayInfo, relayLink, relayRandom32 } from '@/src/net/relay/link';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
 import { guestIdOfKey } from '@/src/lib/inviteLink';
@@ -84,13 +85,23 @@ export type OfflineTable = {
   baseUrl: string;
   /** Whether this phone runs the table or sits at somebody else's. */
   role: 'host' | 'guest';
-  /** How a guest reaches the host. A host is always 'self'. */
-  via: 'self' | 'wifi' | 'bluetooth';
+  /**
+   * How a guest reaches the host. A host is always 'self'; 'internet' is a
+   * guest anywhere, through the cloud's relay to the host's phone.
+   */
+  via: 'self' | 'wifi' | 'bluetooth' | 'internet';
   /**
    * Over Bluetooth, the four characters both phones can show to check that
    * nobody sits between them. Empty otherwise.
    */
   checkCode: string;
+  /** What the table's server is called, where it is known ("Ada's phone"). */
+  serverName?: string;
+  /**
+   * The phone serving this table cannot be reached, though this device's own
+   * connection is fine: the game is paused for everyone until it is back.
+   */
+  serverGone?: boolean;
 };
 
 /** Thrown when a nearby table runs a different app version than this one. */
@@ -212,6 +223,8 @@ type SessionContextValue = {
   joinNearby: (address: string, name: string) => Promise<void>;
   /** The same, over Bluetooth, to a table a scan found. */
   joinBluetooth: (peripheralId: string, name: string) => Promise<void>;
+  /** The same from anywhere, through the cloud, to a table's relay code. */
+  joinRelay: (code: string, name: string) => Promise<void>;
   /** Back to the online server. Tables stay on the phone for next time. */
   leaveOffline: () => Promise<void>;
 };
@@ -626,7 +639,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     async (
       client: ZolikClient,
       instanceId: string,
-      table: Pick<OfflineTable, 'role' | 'via' | 'checkCode'>,
+      table: Pick<OfflineTable, 'role' | 'via' | 'checkCode' | 'serverName'>,
       name: string,
       ble?: BleTransport,
       offlinePass?: string,
@@ -776,6 +789,49 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [sitAt],
   );
 
+  const joinRelay = useCallback(
+    async (code: string, name: string) => {
+      const info = await relayInfo(ZOLIK_BASE_URL, code);
+      if (info.protocol && info.protocol !== nearby.PROTOCOL_VERSION) throw new NearbyVersionError(info.protocol);
+      if (!info.online) throw new RelayHostAway();
+      const mark = (gone: boolean) =>
+        setOffline((prev) => (prev && prev.ble === transport && !!prev.serverGone !== gone ? { ...prev, serverGone: gone } : prev));
+      const transport: BleTransport = new BleTransport({
+        instanceId: info.instanceId,
+        connect: () =>
+          relayLink(ZOLIK_BASE_URL, info.code, {
+            onHostGone: () => mark(true),
+            onHostHere: () => mark(false),
+          }),
+        // The same pin a Wi-Fi or Bluetooth meeting left: a table met in the
+        // room is checked, not trusted, when it is reached from afar.
+        pinnedKey: async () => {
+          const k = await storage.getItem(hostKeyKey(info.instanceId));
+          return k ? base64ToBytes(k) : null;
+        },
+        pinKey: (k) => storage.setItem(hostKeyKey(info.instanceId), bytesToBase64(k)),
+        random32: relayRandom32,
+        timeoutMs: 20000,
+      });
+      try {
+        await transport.ready();
+      } catch (e) {
+        transport.close();
+        throw e;
+      }
+      const client = new ZolikClient(`relay://${info.code}`, transport);
+      await sitAt(
+        client,
+        info.instanceId,
+        { role: 'guest', via: 'internet', checkCode: '', serverName: info.name },
+        name,
+        transport,
+        session?.isGuest ? undefined : session?.offlinePass,
+      );
+    },
+    [sitAt, session],
+  );
+
   const leaveOffline = useCallback(async () => {
     const was = offline;
     setOffline(null);
@@ -783,11 +839,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // stops talking to somebody else's phone.
     was?.ble?.close();
     if (was?.role === 'host') {
+      await nearby.closeRelay();
       await nearby.closeRoom();
       await nearby.bleHostStop();
       await nearby.stopHost();
     }
   }, [offline]);
+
+  // A host's table stops while the app is in the background. Coming back,
+  // nobody at it is charged for the time the host was away: no bot takes a
+  // seat and nobody is cashed out for an absence that was the host's.
+  const hosting = offline?.role === 'host';
+  useEffect(() => {
+    if (!hosting) return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') nearby.hostResumed();
+    });
+    return () => sub.remove();
+  }, [hosting]);
 
   const offlineTable = useMemo(
     () =>
@@ -798,6 +867,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             role: offline.role,
             via: offline.via,
             checkCode: offline.checkCode,
+            serverName: offline.serverName,
+            serverGone: offline.serverGone,
           }
         : null,
     [offline],
@@ -841,6 +912,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       playOffline,
       joinNearby,
       joinBluetooth,
+      joinRelay,
       leaveOffline,
     }),
     [
@@ -850,6 +922,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       playOffline,
       joinNearby,
       joinBluetooth,
+      joinRelay,
       leaveOffline,
       session,
       loading,

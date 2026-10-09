@@ -121,7 +121,7 @@ func TestTheBoardAgreesWithTheOffers(t *testing.T) {
 			}
 			enabled := false
 			for _, o := range offers {
-				if o.Enabled {
+				if o.Live() {
 					enabled = true
 					break
 				}

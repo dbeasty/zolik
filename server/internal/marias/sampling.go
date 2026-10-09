@@ -141,6 +141,13 @@ func (s *GameState) sample(me string, k knowledge, r *rand.Rand) (map[string][]s
 			seen[pl.Card] = true
 		}
 	}
+	// An open betl or durch: the declarer's hand lies on the table.
+	shown := s.declarerShown() && me != s.Declarer
+	if shown {
+		for _, c := range s.Hands[s.Declarer] {
+			seen[c] = true
+		}
+	}
 	talonKnown := me == s.Declarer
 	if talonKnown {
 		for _, c := range s.Talon {
@@ -162,7 +169,7 @@ func (s *GameState) sample(me string, k knowledge, r *rand.Rand) (map[string][]s
 	}
 	var slots []*slot
 	for _, p := range s.active() {
-		if p != me {
+		if p != me && !(shown && p == s.Declarer) {
 			slots = append(slots, &slot{name: p, need: len(s.Hands[p]), forbid: k.forbidden[p]})
 		}
 	}
@@ -183,6 +190,9 @@ func (s *GameState) sample(me string, k knowledge, r *rand.Rand) (map[string][]s
 
 	for attempt := 0; attempt < 40; attempt++ {
 		deal := map[string][]string{}
+		if shown {
+			deal[s.Declarer] = append([]string(nil), s.Hands[s.Declarer]...)
+		}
 		left := map[*slot]int{}
 		for _, sl := range slots {
 			left[sl] = sl.need

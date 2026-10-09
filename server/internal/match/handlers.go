@@ -96,6 +96,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/release", h.releaseHeldSeat)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/bots/{playerId}/skill", h.setBotSkill)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/seats/{playerId}/stand-in", h.setStandIn)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/invite", h.invite)
@@ -256,10 +257,18 @@ func (h *Handlers) moduleRules(w http.ResponseWriter, req *http.Request) {
 		writeModuleError(w, module.Error{Code: "NO_RULES", Message: id})
 		return
 	}
-	sections, err := rp.Rules(module.MatchConfig{Variation: variation, Options: opts})
+	cfg := module.MatchConfig{Variation: variation, Options: opts}
+	sections, err := rp.Rules(cfg)
 	if err != nil {
 		writeModuleError(w, err)
 		return
+	}
+	// What the table does when a connection drops is the runtime's rule, not
+	// the game's, so it is added here rather than by every module — and only
+	// here, where a person reads it: the bot simulator's tables have nobody to
+	// drop.
+	if module.DeclaresStandIn(mod) {
+		sections = append(sections, module.StandInRules(cfg))
 	}
 	writeJSON(w, map[string]any{
 		"moduleId":  id,
@@ -485,6 +494,41 @@ func (h *Handlers) setBotSkill(w http.ResponseWriter, req *http.Request) {
 		"skill":     bot.AIDifficulty,
 		"aiPersona": bot.AIPersona,
 	})
+}
+
+// setStandInReq is the host's say over a stand-in bot: put one in (or change
+// how well it plays) with On, or take it out to wait for the player.
+type setStandInReq struct {
+	On    bool   `json:"on"`
+	Skill string `json:"skill,omitempty"`
+}
+
+// setStandIn lets the host decide about the seat of a person who is away,
+// rather than wait for the table's option to.
+func (h *Handlers) setStandIn(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	seatID, err := url.PathUnescape(chi.URLParam(req, "playerId"))
+	if err != nil {
+		http.Error(w, "bad player id", http.StatusBadRequest)
+		return
+	}
+	var body setStandInReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
+	m, err := h.manager.SetStandIn(req.Context(), chi.URLParam(req, "id"), uc.UserID, seatID, body.On, body.Skill)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	p := playerByID(m.Players, seatID)
+	resp := map[string]any{"playerId": seatID}
+	if p != nil && p.StandIn != nil {
+		resp["standIn"] = StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
+	}
+	writeJSON(w, resp)
 }
 
 // personaForSeat is personaFor for a bot that is already sitting down: the

@@ -69,6 +69,17 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 
 	opponents := opponentsOf(m, seat)
 
+	// A match a bot played part of for this player is theirs to look back
+	// on, but not their win or their loss: dropping on purpose would
+	// otherwise let a Hard bot finish a game for you. It joins the history
+	// and touches no total, no split and no streak.
+	if seat.StandIn {
+		noteDates(&ps, m.CompletedAt)
+		ps.RecentMatches = prependRecent(ps.RecentMatches, matchRef(m, seat, opponents))
+		ps.UpdatedAt = now
+		return ps
+	}
+
 	// A game played alone against the deck is nobody's victory over anybody.
 	// It is counted under its own game and in the history, but it is kept out
 	// of Overall, which the leaderboard ranks on — or a hundred games of
@@ -100,14 +111,26 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 
 	applyStreak(&ps, seat, m.IsDraw)
 
-	if ps.FirstMatchAt.IsZero() || m.CompletedAt.Before(ps.FirstMatchAt) {
-		ps.FirstMatchAt = m.CompletedAt
-	}
-	if m.CompletedAt.After(ps.LastMatchAt) {
-		ps.LastMatchAt = m.CompletedAt
-	}
+	noteDates(&ps, m.CompletedAt)
+	ps.RecentMatches = prependRecent(ps.RecentMatches, matchRef(m, seat, opponents))
 
-	ps.RecentMatches = prependRecent(ps.RecentMatches, MatchRef{
+	ps.UpdatedAt = now
+	return ps
+}
+
+// noteDates widens a record's first and last match to take in one at.
+func noteDates(ps *PlayerStats, at time.Time) {
+	if ps.FirstMatchAt.IsZero() || at.Before(ps.FirstMatchAt) {
+		ps.FirstMatchAt = at
+	}
+	if at.After(ps.LastMatchAt) {
+		ps.LastMatchAt = at
+	}
+}
+
+// matchRef is the history line one seat's match leaves.
+func matchRef(m MatchResult, seat Standing, opponents []Standing) MatchRef {
+	return MatchRef{
 		RecordID:      m.ID,
 		MatchID:       m.MatchID,
 		PlayedAt:      m.CompletedAt,
@@ -122,10 +145,8 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 		AgainstAI:     anyAI(opponents),
 		AgainstHumans: anyHuman(opponents),
 		Repeat:        m.Repeat,
-	})
-
-	ps.UpdatedAt = now
-	return ps
+		StandIn:       seat.StandIn,
+	}
 }
 
 // opponentsOf returns every participant other than the given seat. It matches

@@ -319,6 +319,11 @@ export type ActionOffer = {
   id: string;
   verb: string;
   enabled: boolean;
+  /**
+   * A move only a person makes for themselves — getting up from the table.
+   * Open all game long, so it never means it is this player's turn.
+   */
+  manual?: boolean;
   whyNot?: string;
   /**
    * The written rules that justify `whyNot` at this table — ids of items in
@@ -474,6 +479,13 @@ export type MatchPlayer = {
   /** How well a bot plays — 'easy', 'medium', 'hard' or 'ai'. Absent for people. */
   skill?: string;
   /**
+   * A bot is playing this person's seat while they are away. The seat stays
+   * theirs; it is cleared the moment they are back.
+   */
+  standIn?: { skill: string; since: string; by: 'timeout' | 'host' };
+  /** When a bot will start playing for this away seat (ISO time), for a countdown. */
+  standInAt?: string;
+  /**
    * The face this seat wears, as a slug. Absent when the seat never named
    * one, which is not a gap to fill in from somewhere else: every client
    * derives the same face from the id, so an older client, a seat filled
@@ -529,6 +541,8 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /** Every seat a stand-in bot has played for at this table — their record does not count it. */
+  stoodIn?: string[];
   /**
    * The table this finished one is being played again at, and who asked.
    * Everybody else from here has a seat held at it.

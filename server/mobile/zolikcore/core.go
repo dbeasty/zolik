@@ -72,6 +72,13 @@ type Host struct {
 	lanMu  sync.Mutex
 	lanSrv *http.Server
 	lanLn  *trackingListener
+
+	// nodeCredential and cloudBaseURL are what an enrolled phone dials the
+	// cloud with; relay is its open door to remote guests, if any (relay.go).
+	nodeCredential string
+	cloudBaseURL   string
+	relayMu        sync.Mutex
+	relay          *relayLink
 }
 
 var (
@@ -217,6 +224,9 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 		instanceID: id.InstanceID,
 		userHex:    strings.TrimSpace(userHex),
 		done:       make(chan struct{}),
+
+		nodeCredential: strings.TrimSpace(nodeCredential),
+		cloudBaseURL:   strings.TrimRight(strings.TrimSpace(cloudBaseURL), "/"),
 	}
 	go func() {
 		defer close(h.done)
@@ -434,6 +444,7 @@ func (h *Host) stopLocked() {
 	}
 	current = nil
 	h.CloseLAN()
+	h.CloseRelay()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	h.app.Stop(ctx)

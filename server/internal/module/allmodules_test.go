@@ -18,6 +18,7 @@ import (
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -99,6 +100,23 @@ func allModules() []hosted {
 			players:  refs("p1", "p2", "p3"),
 			cfg:      module.MatchConfig{Variation: "classic"},
 			prefer:   []string{"continue", "end_trick", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "snaps",
+			rounds:   true,
+			mod:      snaps.New(),
+			players:  refs("p1", "p2"),
+			prefer:   []string{"continue", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "snaps-66",
+			rounds:   true,
+			mod:      snaps.New(),
+			players:  refs("p1", "p2"),
+			cfg:      module.MatchConfig{Variation: "sedesatSest"},
+			prefer:   []string{"continue", "play_card"},
 			finishes: true,
 		},
 		{
@@ -598,7 +616,7 @@ func TestEveryModuleSeatsItsPlayers(t *testing.T) {
 						t.Fatalf("LegalActions(%s): %v", p.ID, err)
 					}
 					for _, o := range offers {
-						if o.Enabled {
+						if o.Live() {
 							enabledSeats[p.ID] = true
 							break
 						}
@@ -621,7 +639,7 @@ func TestEveryModuleSeatsItsPlayers(t *testing.T) {
 				}
 				enabled := false
 				for _, o := range offers {
-					if o.Enabled {
+					if o.Live() {
 						enabled = true
 					}
 				}
@@ -685,7 +703,7 @@ func TestEveryModuleNamesItsWinners(t *testing.T) {
 					t.Fatalf("LegalActions: %v", err)
 				}
 				for _, o := range offers {
-					if o.Enabled {
+					if o.Live() {
 						t.Errorf("%s is still offered %q after the match ended", p.ID, o.ID)
 					}
 				}
@@ -1003,7 +1021,7 @@ func advanceOnce(g hosted, state module.State) (module.State, bool) {
 			continue
 		}
 		for _, o := range offers {
-			if !o.Enabled {
+			if !o.Live() {
 				continue
 			}
 			a, ok := module.SubmissionFor(o)
@@ -1066,7 +1084,7 @@ func TestNumericParametersAreUsable(t *testing.T) {
 		for _, p := range players {
 			offers, _ := m.LegalActions(state, p.ID)
 			for _, o := range offers {
-				if o.Enabled {
+				if o.Live() {
 					actor = p.ID
 					break
 				}
@@ -1824,6 +1842,37 @@ func TestEveryModulesHintNamesAControl(t *testing.T) {
 			}
 			if hinted == 0 {
 				t.Fatal("no hint was ever given — the check looked at nothing")
+			}
+		})
+	}
+}
+
+// TestEveryTableThatPausesOffersAStandIn — a game that waits for everyone must
+// let the people still at the table go on without somebody whose phone died,
+// and a game that already plays past an absent seat must not offer a second
+// way to do it.
+func TestEveryTableThatPausesOffersAStandIn(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			_, dropIn := module.SitOutVerbs(g.mod)
+			want := !dropIn && !g.solo
+			if got := module.DeclaresStandIn(g.mod); got != want {
+				t.Errorf("declares standInAfter = %v, want %v (drop-in %v, solo %v)", got, want, dropIn, g.solo)
+			}
+			if !want {
+				return
+			}
+			d := g.mod.Descriptor()
+			spec := d.Option(module.OptStandInAfter)
+			if !spec.Allows(module.StandInAfterDefault) || !spec.Allows(0) {
+				t.Errorf("standInAfter must offer the default (%d) and waiting (0): %+v", module.StandInAfterDefault, spec.Choices)
+			}
+			// The lobby preselects what each variation says; one that says
+			// nothing shows the setting with no choice made.
+			for _, v := range d.Variations {
+				if got, ok := v.Defaults[module.OptStandInAfter]; !ok || got != module.StandInAfterDefault {
+					t.Errorf("variation %q: standInAfter default = %d (set %v), want %d", v.ID, got, ok, module.StandInAfterDefault)
+				}
 			}
 		})
 	}

@@ -216,6 +216,31 @@ class ZolikNearbyModule : Module() {
       Zolikcore.current()?.closeLAN()
     }
 
+    // The internet door: guests anywhere, through the cloud's relay. The
+    // phone stays the server (zolikcore/relay.go).
+    AsyncFunction("openRelay") { name: String ->
+      val host = Zolikcore.current() ?: throw HostException("no host is running")
+      try {
+        host.openRelay(name)
+      } catch (e: Exception) {
+        throw HostException(e.message ?: "could not open the table to the internet")
+      }
+      relay(host)
+    }
+
+    AsyncFunction("closeRelay") {
+      Zolikcore.current()?.closeRelay()
+    }
+
+    Function("relayStatus") {
+      Zolikcore.current()?.let { relay(it) }
+        ?: mapOf("status" to "off", "code" to "", "url" to "", "guests" to 0)
+    }
+
+    Function("hostResumed") {
+      Zolikcore.current()?.resumed()
+    }
+
     AsyncFunction("startBrowsing") {
       nsd().browse()
     }
@@ -236,6 +261,13 @@ class ZolikNearbyModule : Module() {
       thermal?.stop()
     }
   }
+
+  private fun relay(host: Host): Map<String, Any> = mapOf(
+    "status" to host.relayStatus(),
+    "code" to host.relayCode(),
+    "url" to host.relayURL(),
+    "guests" to host.relayGuests(),
+  )
 
   private fun describe(host: Host): Map<String, Any> = mapOf(
     "port" to host.port(),

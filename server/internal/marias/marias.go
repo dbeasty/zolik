@@ -51,6 +51,7 @@ const (
 	OptFlekLimit      = "flekLimit"
 	OptZLidu          = "zLidu"
 	OptShowCardPoints = "showCardPoints"
+	OptOpenBetlDurch  = "openBetlDurch"
 )
 
 // Tariff choices.
@@ -78,4 +79,5 @@ type config struct {
 	flekLimit      int // FlekUnlimited, or the most doublings any one part takes
 	zLidu          bool
 	showCardPoints bool
+	openBetlDurch  bool
 }
