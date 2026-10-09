@@ -1,7 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { webAttrs } from '@/src/a11y/props';
+import { Sheet } from '@/src/a11y/Sheet';
+import { Tip } from '@/src/a11y/Tip';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
 import { CLIENT_VERSION } from '@/src/config';
@@ -55,136 +58,144 @@ export function AccountMenu() {
     router.push(path);
   };
 
+  // The face says two things a glance takes in — who, and whether signed in —
+  // and a waiting count. All three go into the name a screen reader hears,
+  // because none of them is text on screen.
+  const triggerLabel = [
+    t('a11y.menu.button', { status: session ? `${session.username}, ${statusLabel}` : statusLabel }),
+    circleRequests > 0 ? t('a11y.menu.requests', { n: circleRequests }) : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <>
-      <Pressable
-        testID="account-menu-button"
-        accessibilityRole="button"
-        accessibilityLabel={t('menu.label')}
-        onPress={() => setOpen(true)}
-        style={styles.trigger}
-      >
-        <Avatar spec={spec} size={30} />
-        {/* Ringed in the header's own colour, so it reads as a badge stuck on
-            the face rather than as part of the drawing. */}
-        <View style={[styles.dot, { backgroundColor: statusColor }]} />
-        {/* Somebody asked to be in this player's circle. On the face, not
-            only inside the menu, because a request nobody sees is a request
-            nobody answers. */}
-        {circleRequests > 0 ? (
-          <View style={styles.badge} testID="account-menu-badge">
-            <Text style={styles.badgeText}>{circleRequests > 9 ? '9+' : circleRequests}</Text>
-          </View>
-        ) : null}
-      </Pressable>
-
-      <Modal
-        transparent
-        animationType="fade"
-        visible={open}
-        onRequestClose={() => setOpen(false)}
-      >
+      <Tip text={t('a11y.menu.tip')}>
         <Pressable
-          style={styles.backdrop}
-          onPress={() => setOpen(false)}
-          testID="account-menu-backdrop"
+          testID="account-menu-button"
+          role="button"
+          aria-label={triggerLabel}
+          aria-expanded={open}
+          {...webAttrs({ 'aria-haspopup': 'dialog' })}
+          onPress={() => setOpen(true)}
+          style={styles.trigger}
         >
-          {/* Stops a press inside the panel from closing it. */}
-          <Pressable style={styles.sheet} onPress={() => {}} testID="account-menu">
-            <View style={styles.who}>
-              <Avatar spec={spec} size={40} />
-              <View style={styles.whoText}>
-                <Text style={styles.name} numberOfLines={1} testID="account-menu-name">
-                  {session ? session.username : t('menu.notSignedIn')}
-                </Text>
-                {session ? (
-                  <Text style={[styles.status, { color: statusColor }]} testID="account-menu-status">
-                    {statusLabel}
-                  </Text>
-                ) : null}
-              </View>
+          <Avatar spec={spec} size={30} />
+          {/* Ringed in the header's own colour, so it reads as a badge stuck on
+              the face rather than as part of the drawing. */}
+          <View style={[styles.dot, { backgroundColor: statusColor }]} />
+          {/* Somebody asked to be in this player's circle. On the face, not
+              only inside the menu, because a request nobody sees is a request
+              nobody answers. */}
+          {circleRequests > 0 ? (
+            <View style={styles.badge} testID="account-menu-badge">
+              <Text style={styles.badgeText}>{circleRequests > 9 ? '9+' : circleRequests}</Text>
             </View>
-
-            <View style={styles.rule} />
-
-            {/* First, because it is the list the main menu no longer shows:
-                every game you have going, whichever game it is. A guest's
-                games are kept against their guest id, so they get it too. */}
-            {session ? (
-              <MenuItem
-                label={t('nav.myGames')}
-                testID="account-menu-my-games"
-                onPress={() => go('/lobby/mine')}
-              />
-            ) : null}
-            <MenuItem
-              label={t('nav.more')}
-              testID="account-menu-more"
-              onPress={() => go('/more')}
-            />
-            {/* The circle lives on the online server, so it follows the
-                online session — present at an offline table as well. */}
-            {onlineSession ? (
-              <MenuItem
-                label={t('circle.title')}
-                testID="account-menu-circle"
-                badge={circleRequests}
-                onPress={() => go('/circle')}
-              />
-            ) : null}
-            <MenuItem
-              label={t('settings.title')}
-              testID="account-menu-settings"
-              onPress={() => go('/settings')}
-            />
-            {/* Both sign-in items say the same two words, because that is what
-                the action is. A guest gets the reason underneath in smaller
-                type — the stats they are already building are the thing they
-                stand to lose by staying anonymous — rather than folded into
-                the label, where it made the item read as a different and
-                longer errand than "sign in". */}
-            {!session ? (
-              <MenuItem
-                label={t('settings.signIn')}
-                testID="account-menu-signin"
-                onPress={() => go('/auth/login')}
-              />
-            ) : signedIn ? (
-              <MenuItem
-                label={t('nav.account')}
-                testID="account-menu-account"
-                onPress={() => go('/account')}
-              />
-            ) : (
-              <MenuItem
-                label={t('settings.signIn')}
-                hint={t('menu.keepStats')}
-                testID="account-menu-signin"
-                onPress={() => go('/auth/login')}
-              />
-            )}
-
-            {session ? (
-              <MenuItem
-                label={t('menu.signOut')}
-                testID="account-menu-signout"
-                danger
-                onPress={() => {
-                  setOpen(false);
-                  void logout();
-                }}
-              />
-            ) : null}
-
-            {/* Last, and apart from the account items above it: this one is
-                about the app. It carries the build numbers themselves, so
-                "which version is this?" is answered by opening the menu —
-                from any screen — without going any further. */}
-            <View style={styles.rule} />
-            <AboutItem onPress={() => go('/about')} />
-          </Pressable>
+          ) : null}
         </Pressable>
-      </Modal>
+      </Tip>
+
+      <Sheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        label={t('menu.label')}
+        backdropStyle={styles.backdrop}
+        style={styles.sheet}
+        backdropTestID="account-menu-backdrop"
+        testID="account-menu"
+      >
+        <View style={styles.who}>
+          <Avatar spec={spec} size={40} />
+          <View style={styles.whoText}>
+            <Text style={styles.name} testID="account-menu-name">
+              {session ? session.username : t('menu.notSignedIn')}
+            </Text>
+            {session ? (
+              <Text style={[styles.status, { color: statusColor }]} testID="account-menu-status">
+                {statusLabel}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.rule} />
+
+        {/* First, because it is the list the main menu no longer shows:
+            every game you have going, whichever game it is. A guest's
+            games are kept against their guest id, so they get it too. */}
+        {session ? (
+          <MenuItem
+            label={t('nav.myGames')}
+            testID="account-menu-my-games"
+            onPress={() => go('/lobby/mine')}
+          />
+        ) : null}
+        <MenuItem
+          label={t('nav.more')}
+          testID="account-menu-more"
+          onPress={() => go('/more')}
+        />
+        {/* The circle lives on the online server, so it follows the
+            online session — present at an offline table as well. */}
+        {onlineSession ? (
+          <MenuItem
+            label={t('circle.title')}
+            testID="account-menu-circle"
+            badge={circleRequests}
+            onPress={() => go('/circle')}
+          />
+        ) : null}
+        <MenuItem
+          label={t('settings.title')}
+          testID="account-menu-settings"
+          onPress={() => go('/settings')}
+        />
+        {/* Both sign-in items say the same two words, because that is what
+            the action is. A guest gets the reason underneath in smaller
+            type — the stats they are already building are the thing they
+            stand to lose by staying anonymous — rather than folded into
+            the label, where it made the item read as a different and
+            longer errand than "sign in". */}
+        {!session ? (
+          <MenuItem
+            label={t('settings.signIn')}
+            testID="account-menu-signin"
+            onPress={() => go('/auth/login')}
+          />
+        ) : signedIn ? (
+          <MenuItem
+            label={t('nav.account')}
+            testID="account-menu-account"
+            onPress={() => go('/account')}
+          />
+        ) : (
+          <MenuItem
+            label={t('settings.signIn')}
+            hint={t('menu.keepStats')}
+            testID="account-menu-signin"
+            onPress={() => go('/auth/login')}
+          />
+        )}
+
+        {session ? (
+          <MenuItem
+            label={t('menu.signOut')}
+            testID="account-menu-signout"
+            danger
+            onPress={() => {
+              setOpen(false);
+              void logout();
+            }}
+          />
+        ) : null}
+
+        {/* Last, and apart from the account items above it: this one is
+            about the app. It carries the build numbers themselves, so
+            "which version is this?" is answered by opening the menu —
+            from any screen — without going any further. */}
+        <View style={styles.rule} />
+        <AboutItem onPress={() => go('/about')} />
+      </Sheet>
     </>
   );
 }
@@ -222,10 +233,13 @@ function MenuItem({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="button"
+      role="button"
       // Read as one item by a screen reader, which has no smaller type to
-      // hear the difference in.
-      accessibilityLabel={hint ? `${label} (${hint})` : label}
+      // hear the difference in — the waiting count included, which is
+      // otherwise a bare number in a red dot.
+      aria-label={[hint ? `${label} (${hint})` : label, badge ? t('a11y.menu.requests', { n: badge }) : '']
+        .filter(Boolean)
+        .join(', ')}
       onPress={onPress}
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
     >
@@ -283,7 +297,8 @@ const styles = StyleSheet.create({
     right: -4,
     top: -4,
     minWidth: 16,
-    height: 16,
+    // A floor, not a fixed height: the count inside grows with the text size.
+    minHeight: 16,
     borderRadius: 8,
     paddingHorizontal: 3,
     backgroundColor: colors.danger,
@@ -295,7 +310,7 @@ const styles = StyleSheet.create({
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   itemBadge: {
     minWidth: 18,
-    height: 18,
+    minHeight: 18,
     borderRadius: 9,
     paddingHorizontal: 4,
     backgroundColor: colors.danger,

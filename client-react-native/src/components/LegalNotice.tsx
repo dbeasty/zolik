@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Link } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 
 import { t } from '@/src/lib/i18n';
@@ -22,23 +22,14 @@ export function LegalNotice() {
   return (
     <Text style={[shared.status, styles.notice]} testID="legal-notice">
       {t('legal.notice.before')}
-      <Text
-        style={styles.link}
-        accessibilityRole="link"
-        testID="legal-notice-terms"
-        onPress={() => router.push('/legal/terms')}
-      >
+      {/* `Link`s, so each is an `<a href>` a keyboard can follow on the web. */}
+      <Link href="/legal/terms" style={styles.link} testID="legal-notice-terms">
         {t('legal.notice.terms')}
-      </Text>
+      </Link>
       {t('legal.notice.between')}
-      <Text
-        style={styles.link}
-        accessibilityRole="link"
-        testID="legal-notice-privacy"
-        onPress={() => router.push('/legal/privacy')}
-      >
+      <Link href="/legal/privacy" style={styles.link} testID="legal-notice-privacy">
         {t('legal.notice.privacy')}
-      </Text>
+      </Link>
       {t('legal.notice.after')}
     </Text>
   );

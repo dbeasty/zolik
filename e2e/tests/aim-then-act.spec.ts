@@ -167,7 +167,7 @@ test.describe('aiming at a target before choosing the cards', () => {
 
     const toggle = page.getByTestId(`group-toggle-${meldId}`);
     await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-selected', 'true');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
 
     // Nothing was sent: the board and the hand are exactly as they were.
     await page.waitForTimeout(500);

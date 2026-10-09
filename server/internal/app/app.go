@@ -96,6 +96,9 @@ type App struct {
 	// importer takes the finished matches other nodes have handed up, checks
 	// them by replaying them, and records them. Nil on anything but the hub.
 	importer *zsync.Importer
+	// localSaves holds, on a phone, the finished games waiting for their
+	// players to say whether they go to the cloud. Nil everywhere else.
+	localSaves *match.LocalSaves
 	// nodes is the record of enrolled replicas: which installs exist and what
 	// each one signs with.
 	nodes auth.NodeRepository
@@ -476,6 +479,7 @@ func (a *App) Start(ctx context.Context) {
 	// Replication starts last: the match runtime has to exist before a peer
 	// can ask this node whether one of its matches may change hands.
 	a.startSync()
+	go a.reconcileLocalSaves(ctx)
 }
 
 // Stop closes this process's boot record, and flushes whatever counters have
@@ -828,9 +832,10 @@ func (a *App) RegisterRoutes(r chi.Router) {
 	a.registerWebUI(r)
 }
 
-// SetWebUI replaces the compiled-in bundle. Only tests call it: the real
-// bundle arrives through //go:embed at image build time, and there is no
-// deployment in which it is chosen at runtime.
+// SetWebUI replaces the compiled-in bundle. On a server the bundle arrives
+// through //go:embed at image build time and only tests call this; a phone
+// may instead serve the copy the app ships among its assets (see
+// zolikcore.SetWebRoot).
 func (a *App) SetWebUI(fsys fs.FS) { a.web = webui.NewHandler(fsys) }
 
 // registerWebUI hangs the web client off the router's leftovers.

@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import type { MatchState } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -85,7 +86,7 @@ export default function JoinByLinkScreen() {
       router.replace(routeForMatch(seated.status, seated.hostId === session.userId, matchId));
     } catch (e) {
       await clearPendingDestination();
-      setError(formatApiError(e, 'That table could not be joined'));
+      setError(formatApiError(e, t('a11y.error.joinTable')));
     }
   }, [client, joinCode, session]);
 
@@ -100,20 +101,19 @@ export default function JoinByLinkScreen() {
   if (error) {
     return (
       <Screen title={t('nav.join')} scroll>
-        <Text testID="invite-error" style={shared.error}>
-          {error}
-        </Text>
+        <FormError testID="invite-error" message={error} />
         <Text style={shared.status}>
           {t('join.staleLink')}
         </Text>
         <Pressable
+          role="button"
           testID="invite-error-join"
           style={shared.button}
           onPress={() => router.replace('/lobby/join')}
         >
           <Text style={shared.buttonText}>{t('join.enterCode')}</Text>
         </Pressable>
-        <Pressable testID="invite-error-home" onPress={() => router.replace('/')}>
+        <Pressable role="button" testID="invite-error-home" onPress={() => router.replace('/')}>
           <Text style={shared.status}>{t('join.backToMenu')}</Text>
         </Pressable>
       </Screen>
@@ -122,7 +122,7 @@ export default function JoinByLinkScreen() {
 
   return (
     <Screen title={t('nav.joining')} scroll>
-      <ActivityIndicator testID="invite-joining" />
+      <ActivityIndicator aria-label={t('a11y.loading')} testID="invite-joining" />
       <Text style={[shared.status, { marginTop: 12 }]}>
         {table?.moduleId ? t('join.takingSeatAt', { game: table.moduleId }) : t('join.takingSeat')}
       </Text>

@@ -2,12 +2,15 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/admin"
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/lobby"
+	"zolik/server/internal/models"
+	"zolik/server/internal/stats"
 )
 
 // RegisterAdminRoutes mounts the operator console.
@@ -68,6 +71,7 @@ func (a *App) RegisterAdminRoutes(r chi.Router) {
 		},
 		Governor:    a.governorView,
 		SetGovernor: a.setGovernorMode,
+		Accounts:    a.accountsData,
 	}).RegisterRoutes(r)
 }
 
@@ -80,4 +84,30 @@ func (a *App) RegisterAdminRoutes(r chi.Router) {
 func (a *App) AdminConsoleConfigured() bool {
 	return len(a.cfg.AdminEmails) > 0 ||
 		(a.cfg.AdminUsername != "" && a.cfg.AdminPasswordHash != "")
+}
+
+// accountsData gathers what the console's Accounts card is built from: every
+// account, the lifetime record of each, and the daily player sets.
+//
+// A whole-table read on purpose. The console is one operator, rarely; an
+// index or a counter maintained on every sign-in and every match to make this
+// cheaper would cost every player to save the operator a second.
+func (a *App) accountsData(ctx context.Context, from, to time.Time) (admin.AccountsData, error) {
+	var out admin.AccountsData
+	if err := a.userRepo.EachUser(ctx, func(u models.User) error {
+		out.Users = append(out.Users, u)
+		return nil
+	}); err != nil {
+		return out, err
+	}
+	keys := make([]string, 0, len(out.Users))
+	for _, u := range out.Users {
+		keys = append(keys, stats.Subject{Kind: stats.SubjectUser, ID: u.ID.Hex()}.Key())
+	}
+	var err error
+	if out.Stats, err = a.statsRepo.FindManyPlayerStats(ctx, keys); err != nil {
+		return out, err
+	}
+	out.Days, err = a.reporter.Days(ctx, from, to)
+	return out, err
 }

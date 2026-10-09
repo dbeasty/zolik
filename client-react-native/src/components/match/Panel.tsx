@@ -1,5 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { Tip } from '@/src/a11y/Tip';
+import { t } from '@/src/lib/i18n';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -64,6 +67,21 @@ type Props = {
   hovered?: boolean;
   testID?: string;
   innerRef?: (node: Measurable | null) => void;
+  /**
+   * Makes this panel one of the board's named regions — seats, table, your
+   * hand, actions — so a screen reader can jump between them: a landmark on
+   * the web (`role="region"` with this as its name), a heading on iOS and
+   * Android, whose readers move by headings the way a browser's move by
+   * landmarks.
+   */
+  region?: string;
+  /**
+   * A name for the panel as a whole without making it a region — a pile
+   * inside the table, which is a thing on the table rather than a part of
+   * the screen. A labelled group on the web; the title's spoken name on a
+   * device.
+   */
+  groupLabel?: string;
   /** Layout overrides from a caller placing this panel in its own row — e.g. `flex: 1` to share a row with a neighbour. Applied after the base look, so it can't undo it. */
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
@@ -89,6 +107,8 @@ export function Panel({
   testID,
   innerRef,
   style,
+  region,
+  groupLabel,
   children,
 }: Props) {
   const metrics = useMetrics();
@@ -116,6 +136,13 @@ export function Panel({
         style,
       ]}
       testID={testID}
+      {...((Platform.OS === 'web'
+        ? region
+          ? { role: 'region', 'aria-label': region }
+          : groupLabel
+            ? { role: 'group', 'aria-label': groupLabel }
+            : {}
+        : {}) as object)}
     >
       <View style={styles.headerRow}>
         {/* Title and summary sit together on the left, close enough to read
@@ -124,7 +151,17 @@ export function Panel({
             single `space-between` row of everything used to do. */}
         <View style={styles.headerLeft}>
           <View style={styles.titles}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text
+              style={styles.title}
+              numberOfLines={1}
+              {...((Platform.OS === 'web'
+                ? {}
+                : region
+                  ? { accessibilityRole: 'header' }
+                  : groupLabel
+                    ? { accessibilityLabel: groupLabel }
+                    : {}) as object)}
+            >
               {title}
             </Text>
             {subtitle ? (
@@ -151,17 +188,24 @@ export function Panel({
             </Text>
           ) : null}
           {canToggle ? (
-            <Pressable
-              testID={`panel-toggle-${panelId}`}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: !collapsed }}
-              accessibilityLabel={collapsed ? `Show ${title}` : `Minimize ${title}`}
-              onPress={onToggleMinimized}
-              hitSlop={8}
-              style={styles.toggle}
+            <Tip
+              text={collapsed ? t('a11y.board.panel.show', { title }) : t('a11y.board.panel.minimize', { title })}
             >
-              <Text style={styles.toggleGlyph}>{collapsed ? '▸' : '▾'}</Text>
-            </Pressable>
+              <Pressable
+                testID={`panel-toggle-${panelId}`}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !collapsed }}
+                {...((Platform.OS === 'web' ? { 'aria-expanded': !collapsed } : {}) as object)}
+                accessibilityLabel={
+                  collapsed ? t('a11y.board.panel.show', { title }) : t('a11y.board.panel.minimize', { title })
+                }
+                onPress={onToggleMinimized}
+                hitSlop={8}
+                style={styles.toggle}
+              >
+                <Text style={styles.toggleGlyph}>{collapsed ? '▸' : '▾'}</Text>
+              </Pressable>
+            </Tip>
           ) : null}
         </View>
       </View>

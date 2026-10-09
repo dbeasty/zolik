@@ -1,8 +1,9 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
+import { Tip } from '@/src/a11y/Tip';
 import type { Zone } from '@/src/api/matchTypes';
 import { CardGlance } from '@/src/components/match/CardGlance';
 import { CardView } from '@/src/components/CardView';
@@ -13,6 +14,7 @@ import { useSkin } from '@/src/hooks/useSkin';
 import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, splitFan, type Rect, type Slot } from '@/src/lib/hand';
 import { dragPeek, fanOverlaps, fanPitch, type Metrics } from '@/src/lib/layout';
+import { handCardLabel, handSpokenLabel, type PlayOption } from '@/src/lib/boardSpeech';
 import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
@@ -107,6 +109,32 @@ type Props = {
    * a drag can still rearrange the fan, and that is all the hint says.
    */
   canDropOnBoard?: boolean;
+  /**
+   * What each card can do right now, by slot id — where it can be played,
+   * and the sentence its tooltip and description say. Worked out by the
+   * screen, which has the offers; handed down as one map so a card's memo
+   * holds while nothing about the board has changed.
+   */
+  cardInfo?: ReadonlyMap<string, HandCardInfo>;
+  /**
+   * Play this card — the keyboard's Enter. The screen decides: straight there
+   * when there is one place, a "where?" sheet when there are several.
+   */
+  onPlay?: (slotId: string) => void;
+  /** Play this card to one named option — a screen reader's "Play to …" action. */
+  onPlayTo?: (slotId: string, optionKey: string) => void;
+  /** Hands the screen a way to put keyboard focus back into the hand. */
+  registerFocus?: (focus: (() => void) | null) => void;
+};
+
+/** What a card in hand can do right now; see `HandZone.cardInfo`. */
+export type HandCardInfo = {
+  options: PlayOption[];
+  /** Places that would take this card with more picked alongside it. */
+  partial: PlayOption[];
+  /** The tooltip and description: the card's name and where it can go. */
+  tip: string;
+  justDrawn?: boolean;
 };
 
 type Measurable = {
@@ -232,6 +260,10 @@ export function HandZone({
   registerSpot,
   entranceDelay,
   canDropOnBoard,
+  cardInfo,
+  onPlay,
+  onPlayTo,
+  registerFocus,
 }: Props) {
   const rowRef = useRef<Measurable | null>(null);
   const cardRefs = useRef<(Measurable | null)[]>([]);
@@ -501,6 +533,135 @@ export function HandZone({
     return fn;
   }, []);
 
+  // ---- The keyboard's way through the hand (web) -------------------------
+  //
+  // One Tab stop for the whole hand, not one per card: a dozen stops between
+  // the table and the controls is a dozen presses of Tab to get past cards
+  // the player had no interest in. Inside, the arrows move, Space picks,
+  // Shift with an arrow moves the card along (the same move a drag makes),
+  // and Enter plays. Which card holds the stop is remembered by the card's
+  // own slot id, never by its position, so a card drawn into the middle of
+  // the fan does not move the player's place.
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const tabId =
+    (focusId && slots.some((s) => s.id === focusId) ? focusId : null) ??
+    slots.find((s) => selected.has(s.id))?.id ??
+    slots[0]?.id ??
+    null;
+  // Where focus is to go after the next render — set by a key that moves it
+  // or moves the card it is on (moving a node in the DOM drops its focus).
+  const pendingFocus = useRef<string | null>(null);
+  // Whether focus was in the hand, and where, for when the card holding it
+  // leaves: played, the node goes, and focus would otherwise fall to the top
+  // of the page — the worst place to be put by playing a card.
+  const focusWithin = useRef(false);
+  const lostAt = useRef(0);
+  const lastIndex = useRef(0);
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+
+  const focusCardAt = useCallback((index: number) => {
+    if (Platform.OS !== 'web') return;
+    const node = cardRefs.current[index] as unknown as { querySelector?: (s: string) => { focus?: () => void } | null } | null;
+    node?.querySelector?.('[role="option"]')?.focus?.();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const want = pendingFocus.current;
+    if (want) {
+      pendingFocus.current = null;
+      const at = slots.findIndex((s) => s.id === want);
+      if (at >= 0) focusCardAt(at);
+      return;
+    }
+    // The card that had focus is gone: its neighbour, at the same place.
+    const active = typeof document !== 'undefined' ? document.activeElement : null;
+    const dropped = !active || active === document.body;
+    if (dropped && (focusWithin.current || Date.now() - lostAt.current < 1500) && slots.length) {
+      const at = Math.min(lastIndex.current, slots.length - 1);
+      setFocusId(slots[at]!.id);
+      focusCardAt(at);
+    }
+  });
+
+  useEffect(() => {
+    if (!registerFocus) return;
+    registerFocus(() => {
+      const list = slotsRef.current;
+      if (!list.length) return;
+      focusCardAt(Math.min(lastIndex.current, list.length - 1));
+    });
+    return () => registerFocus(null);
+  }, [registerFocus, focusCardAt]);
+
+  const keyRef = useRef<(slotId: string, index: number, e: CardKeyEvent) => void>(() => undefined);
+  keyRef.current = (slotId, index, e) => {
+    const n = slots.length;
+    const step = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : 0;
+    if (step) {
+      e.preventDefault();
+      e.stopPropagation();
+      const to = Math.max(0, Math.min(n - 1, index + step));
+      if (to === index) return;
+      if (e.shiftKey) {
+        // The card goes with the focus: the same reorder a drag along the
+        // fan makes, and the same one the screen-reader actions make.
+        pendingFocus.current = slotId;
+        onMove(index, to);
+        return;
+      }
+      pendingFocus.current = slots[to]!.id;
+      setFocusId(slots[to]!.id);
+      return;
+    }
+    if ((e.key === 'Home' || e.key === 'End') && n) {
+      e.preventDefault();
+      e.stopPropagation();
+      const to = e.key === 'Home' ? 0 : n - 1;
+      pendingFocus.current = slots[to]!.id;
+      setFocusId(slots[to]!.id);
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggle(slotId);
+      return;
+    }
+    // I: what the module's mark on this card means — the explanation a
+    // long-press opens, for a keyboard that has no long-press.
+    if ((e.key === 'i' || e.key === 'I') && onMark) {
+      const slot = slots[index];
+      const keys = slot ? badges?.get(slot.card) : undefined;
+      if (slot && keys?.length) {
+        e.preventDefault();
+        e.stopPropagation();
+        onMark(slot.card, keys);
+      }
+      return;
+    }
+    if (e.key === 'Enter' && onPlay) {
+      e.preventDefault();
+      e.stopPropagation();
+      onPlay(slotId);
+    }
+  };
+  const stableKey = useCallback((slotId: string, index: number, e: CardKeyEvent) => keyRef.current(slotId, index, e), []);
+  const stableFocus = useCallback((slotId: string, index: number) => {
+    focusWithin.current = true;
+    lastIndex.current = index;
+    setFocusId(slotId);
+  }, []);
+  const stableBlur = useCallback(() => {
+    focusWithin.current = false;
+    lostAt.current = Date.now();
+  }, []);
+  const onMark = onPressBadge;
+  const playRef = useRef(onPlayTo);
+  playRef.current = onPlayTo;
+  const stablePlayTo = useCallback((slotId: string, key: string) => playRef.current?.(slotId, key), []);
+
   const title = label(zone.labelKey) || zone.id;
   const metrics = useMetrics();
   const skin = useSkin();
@@ -579,6 +740,7 @@ export function HandZone({
       style={carrying && dragLayer}
       panelId={panelId}
       title={title}
+      region={title}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
       testID={`zone-${zone.id}`}
@@ -598,25 +760,30 @@ export function HandZone({
       accessory={
         onAutoArrange && slots.length > 1 ? (
           <View style={styles.accessory}>
-            <Pressable onPress={onAutoArrange} hitSlop={8}>
-              <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
-                Auto-arrange
-              </Text>
-            </Pressable>
+            <Tip text={t('a11y.board.tip.autoArrange')}>
+              <Pressable onPress={onAutoArrange} hitSlop={8} accessibilityRole="button">
+                <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
+                  {t('a11y.board.hand.autoArrange')}
+                </Text>
+              </Pressable>
+            </Tip>
             {/* Opening the fan out is a look, not a setting, so it sits with
                 Auto-arrange in the header rather than among the controls that
                 do something to the game. */}
             {closable ? (
-              <Pressable
-                onPress={() => setSpread((v) => !v)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t(spread ? 'hand.closeFan' : 'hand.openFan')}
-                accessibilityState={{ expanded: spread }}
-                testID={`hand-spread-${zone.id}`}
-              >
-                <Text style={styles.spreadToggle}>{spread ? '›‹' : '‹›'}</Text>
-              </Pressable>
+              <Tip text={t(spread ? 'hand.closeFan' : 'hand.openFan')}>
+                <Pressable
+                  onPress={() => setSpread((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(spread ? 'hand.closeFan' : 'hand.openFan')}
+                  accessibilityState={{ expanded: spread }}
+                  {...((Platform.OS === 'web' ? { 'aria-expanded': spread } : {}) as object)}
+                  testID={`hand-spread-${zone.id}`}
+                >
+                  <Text style={styles.spreadToggle}>{spread ? '›‹' : '‹›'}</Text>
+                </Pressable>
+              </Tip>
             ) : null}
           </View>
         ) : undefined
@@ -632,6 +799,16 @@ export function HandZone({
         }}
         style={[styles.cards, styles.fanInset, carrying && dragLayer]}
         testID={`hand-${zone.id}`}
+        // The hand, said as what it is: a list to pick from, several at once.
+        // Each card is one of its options (see `CardA11y`).
+        {...((Platform.OS === 'web'
+          ? {
+              role: 'listbox',
+              'aria-multiselectable': true,
+              'aria-orientation': 'horizontal',
+              'aria-label': handSpokenLabel(title, slots.length),
+            }
+          : { accessibilityLabel: handSpokenLabel(title, slots.length) }) as object)}
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
           // Only a real change, so a re-layout that reports the same number
@@ -693,6 +870,12 @@ export function HandZone({
               badgeKeys={badges?.get(slot.card)}
               onPressBadge={onPressBadge}
               styles={styles}
+              info={cardInfo?.get(slot.id)}
+              tabStop={slot.id === tabId}
+              onKey={stableKey}
+              onFocusCard={stableFocus}
+              onBlurCard={stableBlur}
+              onPlayTo={stablePlayTo}
             />
           </Fragment>
         ))}
@@ -792,6 +975,21 @@ type CardProps = {
   badgeKeys?: string[];
   onPressBadge?: (card: string, badgeKeys: string[]) => void;
   styles: HandStyles;
+  /** What this card can do now — see `HandZone.cardInfo`. */
+  info?: HandCardInfo;
+  /** Whether this card holds the hand's one Tab stop. */
+  tabStop: boolean;
+  onKey: (slotId: string, index: number, e: CardKeyEvent) => void;
+  onFocusCard: (slotId: string, index: number) => void;
+  onBlurCard: () => void;
+  onPlayTo: (slotId: string, optionKey: string) => void;
+};
+
+type CardKeyEvent = {
+  key: string;
+  shiftKey?: boolean;
+  preventDefault: () => void;
+  stopPropagation: () => void;
 };
 
 /**
@@ -824,6 +1022,12 @@ const DraggableCard = memo(function DraggableCard({
   badgeKeys,
   onPressBadge,
   styles,
+  info,
+  tabStop,
+  onKey,
+  onFocusCard,
+  onBlurCard,
+  onPlayTo,
 }: CardProps) {
   // A long-press that just opened the badge explanation must not also toggle
   // selection when the finger comes up — Pressable has no long-press of its
@@ -972,6 +1176,77 @@ const DraggableCard = memo(function DraggableCard({
     [floatingAt?.left, floatingAt?.top],
   );
 
+  // The card as it is read: its name, its place in the hand, and the flags
+  // that are otherwise only a ring colour. Selected is the control's state,
+  // not part of its name — see `handCardLabel`.
+  const marked = Boolean(badgeKeys?.length);
+  const spokenLabel = handCardLabel(slot.card, index, count, {
+    justDrawn: info?.justDrawn,
+    marked,
+    playable: (info?.options.length ?? 0) > 0,
+  });
+  // What the mark means, read with the card rather than only on a long-press
+  // nobody using a keyboard or a screen reader can make.
+  const markText = marked ? label(badgeKeys![0], { card: slot.card }) : '';
+  const description = [info?.tip, markText].filter(Boolean).join('. ');
+
+  const toggle = () => onToggle(slot.id);
+  const nativeA11y =
+    Platform.OS === 'web'
+      ? { dataSet: { card: slot.card } }
+      : {
+          accessible: true,
+          accessibilityRole: 'button' as const,
+          accessibilityLabel: spokenLabel,
+          accessibilityHint: description || undefined,
+          accessibilityState: { selected },
+          accessibilityActions: [
+            { name: 'activate', label: t(selected ? 'a11y.board.card.deselect' : 'a11y.board.card.select') },
+            { name: 'moveLeft', label: t('hand.moveLeft') },
+            { name: 'moveRight', label: t('hand.moveRight') },
+            ...(info?.options ?? []).map((o) => ({ name: `play:${o.key}`, label: o.label })),
+            ...(marked && onPressBadge ? [{ name: 'explainMark', label: t('a11y.board.card.explainMark') }] : []),
+          ],
+          onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => {
+            const name = e.nativeEvent.actionName;
+            if (name === 'activate') toggle();
+            else if (name === 'moveLeft') onMove(index, Math.max(0, index - 1));
+            else if (name === 'moveRight') onMove(index, Math.min(count - 1, index + 1));
+            else if (name === 'explainMark') explainBadge();
+            else if (name.startsWith('play:')) onPlayTo(slot.id, name.slice('play:'.length));
+          },
+        };
+
+  const face = (
+    <CardView
+      card={slot.card}
+      selected={selected}
+      dragging={held}
+      badged={marked}
+      testID={testID}
+      a11y={{
+        role: 'option',
+        label: spokenLabel,
+        tabIndex: tabStop ? 0 : -1,
+        onKeyDown: (e) => onKey(slot.id, index, e),
+        onFocus: () => onFocusCard(slot.id, index),
+        onBlur: onBlurCard,
+      }}
+      onPress={() => {
+        // A press that ended a drag is not also a tap. Gesture-handler
+        // normally cancels the child responder for us; this is the belt to
+        // those braces, because a drag that silently toggled selection
+        // would be maddening.
+        if (consumedByDrag()) return;
+        if (suppressTapRef.current) {
+          suppressTapRef.current = false;
+          return;
+        }
+        toggle();
+      }}
+    />
+  );
+
   return (
     <GestureDetector gesture={gesture}>
       <View
@@ -984,40 +1259,20 @@ const DraggableCard = memo(function DraggableCard({
           placed,
           carried,
         ]}
-        // The same move, for anyone not using a pointer. A drag is not an
-        // affordance a screen reader can offer, so the two directions are
-        // published as actions instead.
-        accessible
-        accessibilityLabel={slot.card}
-        accessibilityActions={[
-          { name: 'moveLeft', label: t('hand.moveLeft') },
-          { name: 'moveRight', label: t('hand.moveRight') },
-        ]}
-        onAccessibilityAction={(e) => {
-          if (e.nativeEvent.actionName === 'moveLeft') onMove(index, Math.max(0, index - 1));
-          if (e.nativeEvent.actionName === 'moveRight') onMove(index, Math.min(count - 1, index + 1));
-        }}
+        // The same moves, for anyone not using a pointer. A drag is not an
+        // affordance a screen reader can offer, so on iOS and Android this
+        // wrapper is the card's one accessible element and publishes them as
+        // actions: pick it, move it along, play it to each place it fits.
+        // On the web the card's ring is a listbox option instead, driven by
+        // the keyboard (see `HandZone`), and this only carries the card code
+        // the end-to-end suite looks cards up by.
+        {...(nativeA11y as object)}
       >
         <SettleIn kind="deal" delay={dealDelay}>
-          <CardView
-            card={slot.card}
-            selected={selected}
-            dragging={held}
-            badged={Boolean(badgeKeys?.length)}
-            testID={testID}
-            onPress={() => {
-              // A press that ended a drag is not also a tap. Gesture-handler
-              // normally cancels the child responder for us; this is the belt to
-              // those braces, because a drag that silently toggled selection
-              // would be maddening.
-              if (consumedByDrag()) return;
-              if (suppressTapRef.current) {
-                suppressTapRef.current = false;
-                return;
-              }
-              onToggle(slot.id);
-            }}
-          />
+          {/* The tooltip is the web's: hover or keyboard focus. A long-press
+              on a phone is already the badge's explanation and the drag's
+              start, and a screen reader hears the same words as the hint. */}
+          {Platform.OS === 'web' ? <Tip text={description || spokenLabel}>{face}</Tip> : face}
         </SettleIn>
       </View>
     </GestureDetector>

@@ -4,6 +4,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { CardBack } from '@/src/components/CardBack';
 import { CardView } from '@/src/components/CardView';
 import { useMetrics } from '@/src/hooks/useMetrics';
+import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { FLIGHT_MS, FLIGHT_SEQUENCE_MS, FLIGHT_STALE_MS, type Flight } from '@/src/lib/flights';
 import type { Rect } from '@/src/lib/hand';
 import { FLIGHT_EASING } from '@/src/lib/motion';
@@ -56,6 +57,11 @@ export function FlightLayer({ flights, rectFor, measure, onDone }: Props) {
         selfRef.current = n as unknown as Measurable | null;
       }}
       pointerEvents="none"
+      // A card in the air is a picture of a move the announcer has already
+      // said; the copy it lands as is the one to read.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      aria-hidden
       style={styles.layer}
       onLayout={remeasureOrigin}
       testID="flight-layer"
@@ -96,6 +102,17 @@ function FlightCard({
   const [path, setPath] = useState<{ from: Rect; to: Rect } | null>(null);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const stillness = useReducedMotion();
+
+  // The caller plans no flights under stillness, but a card already in the
+  // air when it is asked for (the in-app setting changes mid-match) lands at
+  // once rather than finishing its journey.
+  useEffect(() => {
+    if (stillness) {
+      progress.stopAnimation();
+      doneRef.current(flight.id);
+    }
+  }, [stillness, progress, flight.id]);
 
   useEffect(() => {
     // The rects were last read at the previous gesture — or never, on the

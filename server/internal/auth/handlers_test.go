@@ -1353,3 +1353,38 @@ func TestConcurrentFirstSignInsForTheSameIdentityResolveToOneAccount(t *testing.
 			n, len(seen), seen)
 	}
 }
+
+// A refresh is the one request every signed-in client makes regularly, so it
+// is what keeps an account's last-seen stamp and time zone current for the
+// operator console. Garbage is never stored, and a guest refresh touches no
+// account.
+func TestRefreshRecordsTheAccountsTimeZone(t *testing.T) {
+	h := newTestHarness(t)
+	account := h.do(http.MethodPost, "/auth/oauth/fake/token", "", map[string]any{
+		"idToken": h.oidc.sign(t, jwt.MapClaims{"sub": "tz-account", "email": "tz@example.com"}),
+	})
+	userID := account.str("userId")
+
+	refreshed := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{
+		"refreshToken": account.str("refreshToken"),
+		"timeZone":     "Europe/Prague",
+	})
+	if refreshed.status != http.StatusOK {
+		t.Fatalf("refresh: status %d body %s", refreshed.status, refreshed.raw)
+	}
+	u, err := h.store.FindUserByID(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("finding the account: %v", err)
+	}
+	if u.TimeZone != "Europe/Prague" {
+		t.Errorf("TimeZone = %q, want Europe/Prague", u.TimeZone)
+	}
+
+	h.do(http.MethodPost, "/auth/refresh", "", map[string]any{
+		"refreshToken": refreshed.str("refreshToken"),
+		"timeZone":     "<script>alert(1)</script>",
+	})
+	if u, _ = h.store.FindUserByID(context.Background(), userID); u.TimeZone != "Europe/Prague" {
+		t.Errorf("a malformed zone replaced the stored one: %q", u.TimeZone)
+	}
+}

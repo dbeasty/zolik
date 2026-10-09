@@ -50,6 +50,11 @@ type Bundle struct {
 	// "ai:<persona>" for a bot. A guest's seat becomes an account's when that
 	// guest signs in and claims it.
 	Seats map[string]string `bson:"seats" json:"seats"`
+	// Passes carries, for each "user:" seat, the offline pass its holder sat
+	// down with. The seat map is only the hosting node's word; the pass is
+	// the cloud's own signature saying that account was the one at the table,
+	// so the cloud credits an account only when its pass is here.
+	Passes map[string]string `bson:"passes,omitempty" json:"passes,omitempty"`
 	// FinishedAt is when the hosting node saw the match end.
 	FinishedAt time.Time `bson:"finishedAt" json:"finishedAt"`
 	// Signature is the hosting node's signature over the bundle, so the cloud
@@ -119,6 +124,15 @@ func (o *Outbox) Drop(matchHex string) error {
 	return err
 }
 
+// Has reports whether a bundle for the match is still in the outbox.
+func (o *Outbox) Has(matchHex string) bool {
+	if o == nil {
+		return false
+	}
+	_, err := o.kdb.Get(db.NodeOutboxNS(o.nodeID), BundleKey(matchHex))
+	return err == nil
+}
+
 // Pending lists what this node is still waiting to have accepted, so the app
 // can say "3 matches waiting to sync" rather than nothing at all.
 func (o *Outbox) Pending() ([]Bundle, error) {
@@ -183,6 +197,19 @@ func signingPayload(b Bundle) ([]byte, error) {
 	sort.Strings(seats)
 	for _, seat := range seats {
 		write(seat, b.Seats[seat])
+	}
+	// Only when there are any, so a bundle without passes signs exactly the
+	// bytes it did before passes existed.
+	if len(b.Passes) > 0 {
+		passSeats := make([]string, 0, len(b.Passes))
+		for seat := range b.Passes {
+			passSeats = append(passSeats, seat)
+		}
+		sort.Strings(passSeats)
+		write("passes", strconv.Itoa(len(passSeats)))
+		for _, seat := range passSeats {
+			write(seat, string(digest([]byte(b.Passes[seat]))))
+		}
 	}
 	return h.Sum(nil), nil
 }

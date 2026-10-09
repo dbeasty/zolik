@@ -156,14 +156,17 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		})
 	}
 
-	// Obligations are prompts, not something the client works out from state.
-	if s.PendingDraw > 0 {
+	// Obligations are prompts, not something the client works out from state —
+	// and they are the obligated player's own: "answer with a seven or draw"
+	// on everybody's screen tells the other players to do something they
+	// cannot. What the seven did to whom is the status box's line for them.
+	if s.PendingDraw > 0 && viewerID != "" && viewerID == s.Current {
 		vm.Prompts = append(vm.Prompts, module.Fact{
 			LabelKey: "prompt.mustDrawOrAnswerSeven",
 			Params:   map[string]any{"n": s.PendingDraw},
 		})
 	}
-	if s.SkipPending {
+	if s.SkipPending && viewerID != "" && viewerID == s.Current {
 		vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.skipPending"})
 	}
 	if s.Status == "completed" {

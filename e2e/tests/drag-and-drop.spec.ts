@@ -183,11 +183,18 @@ test.describe('dropping a card on the board', () => {
 
     const { cards: playable } = await offerFor(request, matchId, host, 'play_card');
     const before = await serverHand(request, matchId, host);
-    const index = before.findIndex((c) => playable.includes(c));
+    // A card that asks nothing when it lands, where there is one: a queen
+    // names the suit that follows, and asks which before it goes.
+    const plain = before.findIndex((c) => playable.includes(c) && !c.startsWith('Q'));
+    const index = plain >= 0 ? plain : before.findIndex((c) => playable.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
 
     const dragged = before[index];
     await dragLocatorTo(page, card(page, index), page.getByTestId('zone-discard'));
+    if (dragged.startsWith('Q')) {
+      await expect(page.getByTestId('choice-suit')).toBeVisible();
+      await page.getByTestId('choice-suit-H').click();
+    }
 
     // The server is the witness, and specifically that *this* card left — a
     // hand that merely got shorter could have got shorter for another reason.
@@ -339,6 +346,11 @@ test.describe('dropping a card on the board', () => {
       .locator('[data-testid^="zone-melds"]')
       .first();
     await expect(melds).toBeVisible();
+    // Both ends of the carry on screen at once, as a player would have them:
+    // the melds sit under the hand and the controls, and the status box
+    // above the hand can leave them below the fold.
+    await melds.scrollIntoViewIfNeeded();
+    await expect(card(page, 0)).toBeInViewport();
 
     const over = await carryLocatorOver(page, card(page, 0), melds);
     try {
