@@ -152,6 +152,7 @@ func (m *Manager) drivenSeat(match models.Match, mod module.GameModule, awaited 
 			return id, false
 		}
 		if m.satOut(match, *p) {
+			m.noteAwayToLeave(match, id)
 			return id, true
 		}
 		// Away, but not for long enough yet: come back when it is.

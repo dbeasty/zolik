@@ -68,6 +68,12 @@ func refusalRules(code string) []string {
 	case ErrNothingToShow:
 		return []string{"holdem.rules.showYourOwn"}
 
+	// --- getting up ------------------------------------------------------
+	case ErrLeaveTournament:
+		return []string{"holdem.rules.tournament"}
+	case ErrAlreadyLeft:
+		return []string{"holdem.rules.cash.leave"}
+
 	// --- not about the rules at all ---------------------------------------
 	//
 	// An amount that is not a number is a client that sent the wrong thing,

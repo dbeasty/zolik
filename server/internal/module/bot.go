@@ -130,7 +130,7 @@ func AwaitedSeats(m GameModule, s State, viewer string, players []PlayerRef) []s
 			continue
 		}
 		for _, o := range offers {
-			if o.Enabled {
+			if o.Live() {
 				out = append(out, p.ID)
 				break
 			}

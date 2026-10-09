@@ -45,6 +45,7 @@ import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useStandIn } from '@/src/components/StandInSheet';
 import { TableBanner } from '@/src/components/match/TableBanner';
+import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
@@ -100,7 +101,7 @@ import {
   yourTurnText,
   type PlayOption,
 } from '@/src/lib/boardSpeech';
-import { turnStep } from '@/src/lib/turnStep';
+import { turnStep, isLive } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
@@ -187,8 +188,15 @@ export default function MatchScreen() {
   // (`ChoiceSheet`), however the card was played: a dragged card has no
   // control beside it to answer on.
   const [asking, setAsking] = useState<{ action: MatchAction; ask: ParamSpec[] } | null>(null);
+  // Getting up from the table waits for a yes: it is the one move that
+  // cannot be taken back.
+  const [leaving, setLeaving] = useState<MatchAction | null>(null);
   const proceed = useCallback(
     (action: MatchAction) => {
+      if (action.verb === 'leave') {
+        setLeaving(action);
+        return;
+      }
       const offer = state?.legalActions?.find((o) => o.id === action.offerId);
       const next = choicesToAsk(offer, action);
       if (next.ask.length) setAsking(next);
@@ -272,7 +280,7 @@ export default function MatchScreen() {
   // Only while the table is waiting on this player. A card drawn on a turn
   // that the draw itself ended — nothing playable came — has nowhere to go
   // until the next turn, and a card left picked then is a pick nobody made.
-  const myTurn = (state?.legalActions ?? []).some((o) => o.enabled);
+  const myTurn = (state?.legalActions ?? []).some(isLive);
   useEffect(() => {
     if (autoSelectIds.length && myTurn) {
       setSelected(new Set(autoSelectIds));
@@ -465,7 +473,7 @@ export default function MatchScreen() {
   }, [state]);
   useEffect(() => {
     setIdle(false);
-    if (!state?.legalActions?.some((o) => o.enabled)) return;
+    if (!state?.legalActions?.some(isLive)) return;
     const timer = setTimeout(() => setIdle(true), IDLE_NUDGE_MS);
     return () => clearTimeout(timer);
   }, [state]);
@@ -555,7 +563,7 @@ export default function MatchScreen() {
     for (const m of fresh) {
       if (m.playerId !== viewerId) announceGame(spokenFactText(m.fact, state.players), 'move');
     }
-    const mine = state.legalActions.some((o) => o.enabled);
+    const mine = state.legalActions.some(isLive);
     if (mine && !turnSeen.current) {
       const text = yourTurnText(state.legalActions, state.players);
       if (text) announceGame(text, 'turn');
@@ -779,7 +787,7 @@ export default function MatchScreen() {
   );
   const liftsOf = (card: string) => liftOffers.filter((o) => o.source!.submit![0] === card);
 
-  const canAct = state.legalActions.some((o) => o.enabled);
+  const canAct = state.legalActions.some(isLive);
   const step = turnStep(state.legalActions);
   // Whose turn it is when it is somebody else's: the first thing a player
   // asking "why can't I?" needs, so a not-your-turn refusal names them.
@@ -2176,6 +2184,14 @@ export default function MatchScreen() {
           for all three, because they are one question. */}
       {botStrength.sheet}
       {standIn.sheet}
+      <LeaveSheet
+        visible={!!leaving}
+        onCancel={() => setLeaving(null)}
+        onLeave={() => {
+          if (leaving) sendNow(leaving);
+          setLeaving(null);
+        }}
+      />
       <ScoreSheet
         subjectId={scoreOf?.playerId ?? null}
         focusRound={scoreOf?.round}

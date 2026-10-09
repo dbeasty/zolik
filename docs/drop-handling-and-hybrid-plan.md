@@ -102,51 +102,63 @@ type StandIn struct {
 
 ## Part B: poker and Blackjack: cash tables and tournaments
 
+**As built.** This differs from the first draft of this section in four places, each noted below.
+
 ### The option
 
-Hold'em/Draw/Omaha get `format`. Blackjack is always a cash-style table, since each seat plays against the dealer, so it gets the cash rules without the option.
+Hold'em/Draw/Omaha get `format`: **Tournament** (the default) or **Cash table**. Blackjack is always a cash-style table, since each seat plays the dealer, so it gets the leaving rules without the option.
 
 | `format` | Meaning | End of match |
 |---|---|---|
-| `tournament` (default when `handLimit = 0`) | Freeze-out: everyone starts with the same stack, last player standing wins | today's `matchOverAfterHand` |
-| `cash` | Come and go: your result is the chips you leave with | the host ends the table, the hand limit is reached, or fewer than 2 are seated |
+| Tournament (0) | Freeze-out: everyone starts level and plays to the last chip. Nobody leaves with theirs. | `matchOverAfterHand`, as before |
+| Cash table (1) | Come and go: what you leave with is your result | The hand limit, fewer than 2 seated, or no person still seated |
 
-`handLimit > 0` today ("most chips after N hands") behaves like a cash table with a fixed end, so it maps to `cash` with that limit. Migration rule: a stored match with no `format` reads `handLimit == 0 ? tournament : cash`, so no data migration is needed.
+*Changed:* a stored match with no `format` reads as a tournament, whatever its hand limit. That is what every table was, so nothing changes under an existing game.
 
-### Leaving (cash format, and Blackjack)
+### Leaving
 
-- **A new verb, `leave`,** offered to a seated, non-out player at a cash table at any time.
-  - **Between hands, or folded:** the seat leaves now.
-  - **Mid-hand and still live:** the seat leaves at the end of the hand. The player can also fold first. The button says "Leave after this hand".
-  - Blackjack: the player leaves after the current round settles; a bet already placed plays out.
-- Engine (`internal/holdem/engine.go`): `Seat.Left bool` plus `Seat.CashOut int`, locked when they leave. `liveSeats()` excludes `Left`. The button and blinds skip the seat. `matchOverAfterHand` ends the match when fewer than 2 seats are live and not left.
-- The runtime keeps the `Player` in `match.Players` (history, replay and results need them), and the client shows the seat as empty with "Jana left with 1 340".
-- **Results:** ranked by chips, using `CashOut` for those who left and the stack for those still seated. A cash table shows net (+/−) against the buy-in.
-- **Leaving is not dropping.** A player who leaves does not get a stand-in, and reconnecting does not reseat them. Late joining is Part E.
-- `Rules()` gets a "Leaving the table" fact for cash and a matching one for tournaments. A refused `leave` in a tournament points at it.
+- **`module.VerbLeave`,** offered by `module.LeaveOffer`, last in the list, to every seated player who is not out.
+  - The offer is **`Manual`**: no bot, sat-out seat or driver ever picks it (`module.ChooseActions`, the bot loop's candidates).
+  - `ActionOffer.Live()` (enabled and not manual) is now what every "is it this seat's turn" check reads, on the server and in the client (`isLive`). An always-open "leave" says nothing about whose turn it is.
+- **Poker** (*changed*: leave at once, never "after this hand"). A seat still holding cards folds as it goes, so its chips this hand stay in the pot. It is `Left` and `Out` from then on, with its stack frozen as its result; no separate `CashOut` field is needed. At a showdown, leaving counts as going on.
+- **Blackjack.** Before your stake is dealt to, you leave at once, and an undealt stake is handed back. With cards out, the seat is `Leaving`: it plays the round out (sat out, if its player has gone) and gets up when the round settles.
+- **Both games:**
+  - A table where nobody who is a person is still seated ends, rather than leaving bots to play to nobody. Seats record `Bot` at the deal.
+  - Standings rank by stack, which for a leaver is what they left with.
+  - Seats show `seat.left` ("Left the table") or `seat.leaving`.
+- **Client:** the generic controls render the offer ("Leave the table"), and `LeaveSheet` asks before sending it.
 
 ### Away at a poker or Blackjack table
 
-- **Cash:** sat out as today (check/fold, stand, minimum bet in Blackjack, per `SitOut()`). After **5 minutes** sat out, the seat **leaves automatically** with its chips, so an abandoned phone doesn't pay blinds for ever. The time is another option, `leaveAfterAway`: 2, 5 or 10 minutes, or 0 = never.
-- **Tournament:** sat out and blinded off, which is the real-table rule. They are never removed and never get a stand-in. When the blinds take their last chip, they are out like anyone else.
-- **Blinds while sat out at a cash table:** today a sat-out seat still posts blinds, because the forced verbs aren't in `SitOut()`. At a cash table, skip a sat-out seat's blinds the way a left seat's are skipped. They post again when they come back. This is the usual "sitting out" rule and goes into `Rules()`.
+- **Option `leaveAfterAway`:** 2, 5 (default) or 10 minutes, or never. It is declared by both games.
+  - The runtime (`match/leave.go`) starts the clock when a person's connection goes, or when the bot loop finds the seat sat out after a restart.
+  - When the wait is over it submits `leave` on the player's behalf. This is the one move the runtime makes for a person, and only the one the rules state.
+  - The module decides whether the move is allowed: a tournament refuses it, and the seat stays sat out.
+- **Tournament:** sat out and blinded off, never removed, no stand-in.
+- *Changed:* **blinds while sat out at a cash table are still posted.** The wait before an absent player is cashed out bounds what that costs, and skipping blinds would need the engine to know about presence. Left for later if it matters.
+- *Changed:* there is **no "net against the buy-in"** column on results. Standings stay chips.
 
-### The poker bot as a stand-in
+### Tests (as built)
 
-Not used. In a tournament, being blinded off is the expected rule. At a cash table you can leave, so a bot playing your chips adds risk without adding anything. The `standInAfter` option is not offered for drop-in modules.
-
-### Tests
-
-- Engine:
-  - Leaving between hands, folded, and mid-hand; the button and blinds skip a left seat; the match ends at fewer than 2.
-  - Heads-up leave: the match ends and the result is right.
-  - Results by `CashOut`.
-  - Tournament refuses `leave`.
-  - Sat out at cash → no blinds, automatic leave after the timeout.
-  - Sat out in a tournament → blinded off, eventually out.
-- Blackjack: leaving with a live bet, and leaving between rounds.
-- Old stored states (no `format`) resolve as above.
-- Bots never pick `leave`. Add it to the bot's excluded verbs and check `Botted`.
+- `holdem/leave_test.go`:
+  - A tournament refuses leaving and offers no leave.
+  - Leaving mid-hand, off turn.
+  - Leaving heads-up ends the match.
+  - A table with only bots left ends.
+  - Leaving at the showdown doesn't hold the table up.
+- `blackjack/leave_test.go`:
+  - Leaving before the deal, with a stake handed back.
+  - Leaving mid-round waits for the round to settle.
+  - The last person leaving ends the table.
+  - The offer is last and manual.
+- `match/leave_test.go`:
+  - An away player is cashed out of a cash table.
+  - A tournament never cashes anybody out.
+  - Coming back in time keeps the seat.
+- `e2e/tests/cash-table.spec.ts`:
+  - Leave, "stay" changes nothing, then leave for real; every board shows it.
+  - A tournament has no leave control.
+- `e2e/tests/blackjack.spec.ts`'s socket driver now skips manual offers, as every driver must.
 
 ---
 

@@ -148,7 +148,7 @@ func whoseTurn(m GameModule, state State, players []PlayerRef) (string, error) {
 			return "", fmt.Errorf("LegalActions(%s): %w", p.ID, err)
 		}
 		for _, o := range offers {
-			if o.Enabled {
+			if o.Live() {
 				active = append(active, p.ID)
 				break
 			}
@@ -211,6 +211,9 @@ func ChooseActions(offers []ActionOffer, prefer []string) []Action {
 			return
 		}
 		seen[i] = true
+		if offers[i].Manual {
+			return
+		}
 		if a, ok := SubmissionFor(offers[i]); ok {
 			out = append(out, a)
 		}

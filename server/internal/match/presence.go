@@ -79,6 +79,8 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 			m.markAway(matchID, playerID, time.Now())
 		}
 	}
+	// And, at a cash table, the clock on getting up for them.
+	m.noteAwayToLeave(e.match, playerID)
 	suspended, ok := m.suspendLocked(ctx, e, playerID)
 	e.mu.Unlock()
 	if !ok {
