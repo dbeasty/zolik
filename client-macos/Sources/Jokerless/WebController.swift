@@ -112,14 +112,17 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     navWatch = [
       webView.observe(\.canGoBack) { [weak self] _, _ in self?.emitNav() },
       webView.observe(\.canGoForward) { [weak self] _, _ in self?.emitNav() },
-      webView.observe(\.url) { [weak self] _, _ in self?.emitNav() },
+      webView.observe(\.url) { [weak self] _, _ in
+        self?.settleForward()
+        self?.emitNav()
+      },
     ]
   }
 
   private var navWatch: [NSKeyValueObservation] = []
 
   private var navState: [String: Any] {
-    ["canGoBack": canBack, "canGoForward": webView.canGoForward]
+    ["canGoBack": canBack, "canGoForward": canForward]
   }
 
   /// The home screen is where Back stops: there is nowhere further back to go,
@@ -131,6 +134,21 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
 
   var canBack: Bool { !atHome && webView.canGoBack }
 
+  /// Forward is for returning to where the player's own Back left. The page
+  /// goes back by itself too (leaving the sign-in screen, say), which leaves
+  /// WebKit with a forward entry nobody asked for; that is not offered.
+  private var forwardIsTheirs = false
+  private var arrowNav = false
+
+  var canForward: Bool { forwardIsTheirs && webView.canGoForward }
+
+  /// The window's address changed: by an arrow, Forward stays theirs; by
+  /// anything else, whatever lies ahead is not.
+  private func settleForward() {
+    if !arrowNav { forwardIsTheirs = false }
+    arrowNav = false
+  }
+
   private func emitNav() {
     bridge.emit("nav", navState)
   }
@@ -139,11 +157,20 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   /// rule (home). Forward can always return to where Back left.
   func goBack() {
     if atHome { return }
-    if webView.canGoBack { webView.goBack() } else { command("back") }
+    if webView.canGoBack {
+      arrowNav = true
+      forwardIsTheirs = true
+      webView.goBack()
+    } else {
+      command("back")
+    }
   }
 
   func goForward() {
-    if webView.canGoForward { webView.goForward() }
+    if canForward {
+      arrowNav = true
+      webView.goForward()
+    }
   }
 
   /// Lets go of the page when its window closes: the script handler would

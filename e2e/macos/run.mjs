@@ -408,6 +408,8 @@ async function main() {
     expect(!page.arrows, 'the page still draws its own Back and Forward');
     const bar = await a.native('toolbar state');
     expect('back' in bar && 'forward' in bar, `the title bar has no arrows: ${JSON.stringify(bar)}`);
+    // Fresh at home: nowhere back, nowhere forward.
+    expect(bar.back === false && bar.forward === false, `at home with no history the arrows are ${JSON.stringify(bar)}`);
     const titles = await a.native('account');
     expect(/· Guest$/.test(titles[0]), `Account menu begins ${JSON.stringify(titles)}`);
     for (const want of ['My games', 'Sign in', 'Sign out']) {
@@ -704,6 +706,8 @@ async function main() {
     await a.js(`await e2e.waitFor(() => location.pathname === '/', 'the arrow back', 15000); await e2e.sleep(300); return 1`);
     bar = await a.native('toolbar state');
     expect(bar.forward === true, `no way forward after Back ${JSON.stringify(bar)}`);
+    // Home is where Back stops, though the window still has history behind it.
+    expect(bar.back === false, `Back is enabled at home: ${JSON.stringify(bar)}`);
     await a.native('toolbar forward');
     await a.js(`await e2e.waitFor(() => location.pathname === '/lobby/mine', 'the arrow forward', 15000); return 1`);
     await a.screenshot('title-bar-arrows');

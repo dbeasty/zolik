@@ -181,8 +181,18 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     item.target = self
     item.action = back ? #selector(toolbarBack(_:)) : #selector(toolbarForward(_:))
     toolbarItems[id.rawValue] = item
-    item.isEnabled = back ? web.canBack : web.webView.canGoForward
+    item.isEnabled = back ? web.canBack : web.canForward
     return item
+  }
+
+  /// The toolbar re-validates its items on every event; without this it would
+  /// enable Back again at home.
+  func validateToolbarItem(_ item: NSToolbarItem) -> Bool {
+    switch item.itemIdentifier.rawValue {
+    case "back": return web.canBack
+    case "forward": return web.canForward
+    default: return true
+    }
   }
 
   @objc private func toolbarBack(_ sender: Any?) { web.goBack() }
@@ -192,7 +202,7 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
   /// where there is somewhere to go.
   func refreshToolbar(labels: [String: String]? = nil) {
     for (id, item) in toolbarItems {
-      item.isEnabled = id == "back" ? web.canBack : web.webView.canGoForward
+      item.isEnabled = id == "back" ? web.canBack : web.canForward
       if let word = labels?[id] {
         item.label = word
         item.toolTip = word
