@@ -2436,6 +2436,7 @@ export const en: Record<string, string> = {
   'a11y.board.region.actions': 'Actions',
   // a11y: visual (Phase 5) — keys for skins, motion and card size
   'a11y.skin.highContrast': 'High contrast',
+  'a11y.settings.contrast.later': 'The game table changes now. Other screens follow the next time the app opens.',
   // a11y: statement (Phase 6)
   'a11y.statement.title': 'Accessibility',
 };

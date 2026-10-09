@@ -14,6 +14,10 @@ import type { Skin } from '@/src/skins/types';
  *   in play that nothing else uses.
  * - Buttons are gold with near-black text (~10:1); the old blue-on-dark
  *   button reads as chrome, gold reads as a chip you're meant to touch.
+ * - `muted`, `accent` and `danger` are a shade lighter than they were drawn
+ *   (#a4b8a8, #63b3ff, #ff8a7a): words set straight on the lit middle of
+ *   this felt came to 3.9–4.25:1, under the 4.5 text needs. Held there by
+ *   `contrast.test.ts`.
  */
 export const casino: Skin = {
   id: 'casino',
@@ -23,12 +27,12 @@ export const casino: Skin = {
     surface: 'rgba(9, 26, 18, 0.82)',
     border: 'rgba(228, 198, 124, 0.26)',
     text: '#f4eedd',
-    muted: '#a4b8a8',
-    accent: '#63b3ff',
+    muted: '#acbfb0',
+    accent: '#7cc0ff',
     accentDim: '#2c5f8f',
     accentButton: '#ecc772',
     onAccent: '#241905',
-    danger: '#ff8a7a',
+    danger: '#ffa397',
     success: '#6fe39a',
     gold: '#f0c75e',
     cardBg: '#fdfaf1',
@@ -64,6 +68,7 @@ export const casino: Skin = {
     faceGradient: ['#fffef8', '#f0e9d4'],
     ink: '#232c3b',
     red: '#bf2138',
+    fourColour: { diamonds: '#1f4fb4', clubs: '#17703a', bells: '#94570a' },
     selectedFace: '#fff4cf',
     jokerFace: '#f9efd7',
     shadow: true,
