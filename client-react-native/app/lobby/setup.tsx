@@ -260,10 +260,18 @@ export default function GameSetupScreen() {
             return (
               <View key={opt.name} style={styles.option}>
                 <Tip text={help} focusable={!!help} label={optionLabel(mod.id, opt)} style={styles.optionName}>
-                  <Text style={styles.optionLabel} nativeID={labelId}>
-                    {optionLabel(mod.id, opt)}
-                    {help ? <Text aria-hidden> ⓘ</Text> : null}
-                  </Text>
+                  {/* The ⓘ beside the name, not inside it: the name is also
+                      the radio group's label, and stays exactly the words. */}
+                  <View style={styles.optionNameRow}>
+                    <Text style={styles.optionLabel} nativeID={labelId}>
+                      {optionLabel(mod.id, opt)}
+                    </Text>
+                    {help ? (
+                      <Text style={styles.optionLabel} aria-hidden>
+                        {' ⓘ'}
+                      </Text>
+                    ) : null}
+                  </View>
                 </Tip>
                 <RadioGroup style={styles.row} label={optionLabel(mod.id, opt)} labelledBy={labelId}>
                   {opt.choices.map((c) => (
@@ -348,6 +356,7 @@ const styles = StyleSheet.create({
   summary: { color: colors.muted, fontSize: 13, marginTop: 2 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   option: { marginTop: 14 },
+  optionNameRow: { flexDirection: 'row', alignItems: 'baseline' },
   optionLabel: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   // Only as wide as the name, so the tooltip anchors on the words.
   optionName: { alignSelf: 'flex-start' },

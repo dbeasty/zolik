@@ -305,14 +305,38 @@ can split per game (Žolíky first, since it has the richest board, then
 Canasta, Gin Rummy, Hold'em, Blackjack, Mariáš, Last Card, Klondike, Rummy
 Tiles), using the generic shell so most games come along for free.
 
-## Open questions
+## Decisions taken while implementing (branch `claude/accessibility`)
 
-1. **Verbosity default** for move announcements: "all" (most informative,
-   chatty with three bots) or "my turn + results"?
-2. **Turn timers**: are any tables timed today in a way a slow screen-reader
-   player would hit? If not, Phase 2's timing item is just a guard.
-3. **Card hints from the server** (Phase 4): acceptable to add optional
-   `hintKeys` to the observation protocol, or keep tooltips to client-derived
-   info only?
-4. **Conformance claim**: do we want to publicly state WCAG 2.2 AA, or "aims to
-   meet" until user testing is done?
+The open questions were settled as follows; each is easy to revisit.
+
+1. **Verbosity default** is "Every move". The announcer queues and spaces
+   messages, drops repeats, and drops the oldest of a long burst. Players can
+   choose "My turn and results" or "Off" in Settings → Accessibility.
+2. **Turn timers**: the server has none, so no player can be timed out. There
+   is nothing to guard yet. If a timer is ever added, it needs a "more time"
+   table option.
+3. **Card hints** come from the client only: the card name, plus where it fits
+   now (`fits`/`dropSpotsFor`). The observation protocol is unchanged.
+4. **Conformance claim**: the statement (`app/legal/accessibility.tsx`) says
+   the app *aims to meet* WCAG 2.2 AA. It makes no conformance claim until
+   user testing is done.
+5. **Final-move confirmation** has no explicit "ends the hand" signal in the
+   offer data. `endsHandFor` asks only when a move plays every card left in
+   your hand, or when the verb is `knock`.
+6. **Board regions** follow the existing visual order (players → table →
+   recent moves → your hand → actions), not the order proposed above. Changing
+   it would have moved layout geometry.
+7. **High contrast outside the match** applies at the next app start. The
+   board switches immediately. Moving every module-level stylesheet into a hook
+   is not worth the risk.
+8. **No ESLint**: the client has no ESLint setup. axe in e2e, the skin
+   contrast test and role/name e2e specs cover the same ground.
+
+## What is still open
+
+- VoiceOver, TalkBack, Switch Control and Dynamic Type passes on real devices
+  (the manual scripts in Phase 6), and sessions with disabled players.
+- A native review of the Maltese and Irish translations, and of the German-pack
+  court-card names in Greek.
+- Apple's Accessibility Nutrition Labels and the Play Store accessibility
+  details.

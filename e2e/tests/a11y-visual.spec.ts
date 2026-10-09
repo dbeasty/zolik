@@ -55,7 +55,7 @@ async function inkByCode(page: Page): Promise<Record<string, string>> {
   return page.evaluate(() => {
     const out: Record<string, string> = {};
     for (const card of document.querySelectorAll('[data-testid^="card-hand:"]')) {
-      const code = card.closest('[aria-label]')?.getAttribute('aria-label') ?? '';
+      const code = card.closest('[data-card]')?.getAttribute('data-card') ?? card.getAttribute('data-card') ?? '';
       const text = card.querySelector('div[dir="auto"]');
       if (code && text) out[code] = getComputedStyle(text).color;
     }
