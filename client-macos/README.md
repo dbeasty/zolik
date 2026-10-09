@@ -30,10 +30,11 @@ Go core (Zolikcore.xcframework): hosts tables, and makes every network request
   come back at the next launch. Rules and other screens asked for from a
   game go to the main window. **File › New Game** (⌘N) shows the game picker.
 - **The app owns the connections.** The table this Mac hosts, the seat at an
-  offline table (`SeatStore` in `AppDelegate`) and a guest's tunnel to a
-  table across the internet (`zolikcore/guest.go`, served on loopback) all
-  belong to the app, so any window can show any game. Bluetooth guests are
-  still held by the page, and their game stays in the main window.
+  offline table (`seat` in `AppDelegate`) and a guest's tunnel to a table
+  across the internet or over Bluetooth (`zolikcore/guest.go`, served on
+  loopback) all belong to the app, so any window can show any game. The home
+  screen and My games show a game with a window open as being played, with a
+  button to show it, not as something to resume.
 - The Dock badge counts invites waiting while the main window is not in
   front, and games waiting on you in windows that are not; their titles get a
   dot.

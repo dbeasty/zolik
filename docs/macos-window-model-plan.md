@@ -1,16 +1,16 @@
 # Mac app: one main window, a window per game
 
-Status: implemented 2026-10-09 on `claude/macos-client` (PR #305), except the
-Bluetooth half of phase 3 (see below). `node e2e/macos/run.mjs`: 21/21.
+Status: implemented 2026-10-09 on `claude/macos-client` (PR #305); the only
+untested part is the CoreBluetooth radio itself. `node e2e/macos/run.mjs`: 23/23.
 
 Differences from the plan as written:
 
-- **Bluetooth guests stay in the page.** The guest tunnel is in the core
-  (`server/mobile/zolikcore/guest.go`, with a gateway on loopback) and the
-  internet relay uses it. The Bluetooth link's bytes are not yet handed to it
-  from `NearbyBleGuest`, and a Mac cannot be tested against its own radio. A
-  Bluetooth seat is not shareable (`seatIsShareable`), so that game stays in
-  the main window instead of opening a game window.
+- **Bluetooth guests are in the core too** (`JoinBle` in `guest.go`; Swift's
+  `NearbyService` is the radio source). The Go tests run it against a host
+  through a fake radio, and the e2e run drives the Swift and gomobile path
+  through a debug-only `e2e-loopback` radio that reaches this process's own
+  host. Only the CoreBluetooth radio itself is untested here; it needs a
+  phone or a second Mac.
 - **New Game (⌘N)** goes to the home screen, which is the game picker;
   `/lobby/games` is a per-game screen.
 - "Your turn" alerts: badge and title dot only (decision 3, as suggested).
