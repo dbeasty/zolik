@@ -474,6 +474,13 @@ export type MatchPlayer = {
   /** How well a bot plays — 'easy', 'medium', 'hard' or 'ai'. Absent for people. */
   skill?: string;
   /**
+   * A bot is playing this person's seat while they are away. The seat stays
+   * theirs; it is cleared the moment they are back.
+   */
+  standIn?: { skill: string; since: string; by: 'timeout' | 'host' };
+  /** When a bot will start playing for this away seat (ISO time), for a countdown. */
+  standInAt?: string;
+  /**
    * The face this seat wears, as a slug. Absent when the seat never named
    * one, which is not a gap to fill in from somewhere else: every client
    * derives the same face from the id, so an older client, a seat filled

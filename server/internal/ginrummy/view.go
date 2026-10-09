@@ -56,6 +56,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 			{
@@ -72,6 +73,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 		},
@@ -82,6 +84,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// for its own bot (state.Interest) is deliberately not published.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.StandInOption(),
 			module.HintsOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,

@@ -50,12 +50,14 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptPoolExhaustion:            module.BoolOpt(variations["standard"].poolExhaustionLowestWins),
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
 			module.BotSkillOption(),
+			module.StandInOption(),
 			module.HintsOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,

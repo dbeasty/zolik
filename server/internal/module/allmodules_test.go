@@ -1810,3 +1810,34 @@ func TestEveryModulesHintNamesAControl(t *testing.T) {
 		})
 	}
 }
+
+// TestEveryTableThatPausesOffersAStandIn — a game that waits for everyone must
+// let the people still at the table go on without somebody whose phone died,
+// and a game that already plays past an absent seat must not offer a second
+// way to do it.
+func TestEveryTableThatPausesOffersAStandIn(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			_, dropIn := module.SitOutVerbs(g.mod)
+			want := !dropIn && !g.solo
+			if got := module.DeclaresStandIn(g.mod); got != want {
+				t.Errorf("declares standInAfter = %v, want %v (drop-in %v, solo %v)", got, want, dropIn, g.solo)
+			}
+			if !want {
+				return
+			}
+			d := g.mod.Descriptor()
+			spec := d.Option(module.OptStandInAfter)
+			if !spec.Allows(module.StandInAfterDefault) || !spec.Allows(0) {
+				t.Errorf("standInAfter must offer the default (%d) and waiting (0): %+v", module.StandInAfterDefault, spec.Choices)
+			}
+			// The lobby preselects what each variation says; one that says
+			// nothing shows the setting with no choice made.
+			for _, v := range d.Variations {
+				if got, ok := v.Defaults[module.OptStandInAfter]; !ok || got != module.StandInAfterDefault {
+					t.Errorf("variation %q: standInAfter default = %d (set %v), want %d", v.ID, got, ok, module.StandInAfterDefault)
+				}
+			}
+		})
+	}
+}
