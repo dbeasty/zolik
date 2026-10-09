@@ -15,6 +15,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"zolik/server/internal/relay"
 
 	"github.com/go-chi/chi/v5"
 
@@ -40,9 +41,12 @@ import (
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
 	"zolik/server/internal/notify"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/scoring"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/stats"
 	zsync "zolik/server/internal/sync"
 	userrepo "zolik/server/internal/user"
@@ -660,7 +664,7 @@ func (a *App) matchManager() *match.Manager {
 func (a *App) hostedModules() []module.GameModule {
 	all := []module.GameModule{
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(),
-		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), ferbl.New(),
+		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(),
 	}
 	if a.outbox() == nil {
 		return all
@@ -802,6 +806,18 @@ func (a *App) routeGroups() []routeGroup {
 			mh.SetBaseURL(a.cfg.PublicBaseURL)
 			mh.SetConsentBase(os.Getenv("OAUTH_CONSENT_BASE_URL"))
 			mh.RegisterRoutes(r)
+		}},
+		// Remote guests at a table a phone is hosting: the phone dials out,
+		// guests dial in, and this server copies sealed bytes between them.
+		// Only an enrolled phone may open one. See internal/relay.
+		{"relay", func(r chi.Router) {
+			relay.NewHandlers(relay.NewHub(), func(token string) (string, error) {
+				claims, err := auth.VerifyNodeCredential(token, auth.LocalKeys())
+				if err != nil {
+					return "", err
+				}
+				return claims.NodeID(), nil
+			}).RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
 		{"notify", func(r chi.Router) {

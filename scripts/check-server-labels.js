@@ -40,10 +40,10 @@ const UNIVERSAL = /^[\s\d:+\-–—/.,()%]*$/;
  */
 const PROPER = new Set([
   // Games.
-  'Žolíky', 'Prší', 'Mariáš', 'Canasta', 'Blackjack', 'Gin Rummy', 'Rummy Tiles', 'Last Card', 'Ferbl',
+  'Žolíky', 'Prší', 'Mariáš', 'Canasta', 'Blackjack', 'Gin Rummy', 'Rummy Tiles', 'Last Card', 'Šnaps', 'Sedma', 'Oko bere', 'Ferbl',
   'Texas Hold’em', "Texas Hold'em", 'Poker', 'Five-Card Draw', 'Pot-Limit Omaha',
   // Variations, which are named after places or after the game itself.
-  'Žolík Classic', 'Continental', 'Oklahoma', 'Atlantic City', 'Vegas Strip',
+  'Žolík Classic', 'Continental', 'Šedesát šest', 'Oklahoma', 'Atlantic City', 'Vegas Strip',
   // Samba is the name of the game as well as of the dance; it is not "Samba mode".
   'Samba',
 ]);

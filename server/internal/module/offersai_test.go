@@ -9,7 +9,10 @@ import (
 	"zolik/server/internal/lastcard"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -21,7 +24,7 @@ func TestOnlyGamesWithAModelOfferAI(t *testing.T) {
 			t.Errorf("%s ships a model and does not offer AI", m.Descriptor().ID)
 		}
 	}
-	for _, m := range []module.GameModule{prsi.New(), marias.New(), lastcard.New(), ferbl.New()} {
+	for _, m := range []module.GameModule{prsi.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New()} {
 		if module.OffersAI(m.Descriptor()) {
 			t.Errorf("%s ships no model and offers AI", m.Descriptor().ID)
 		}

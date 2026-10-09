@@ -8,8 +8,10 @@
 // With -credential and -user it starts as an enrolled phone with somebody
 // signed in, replicating with -cloud, exactly as zolikcore.StartNode does on a
 // device. With -enroll-token (an account's access token on -cloud) and -user
-// it enrols itself first, the way the app does at sign-in. It prints one line of JSON with both addresses once it is up, and
-// runs until interrupted.
+// it enrols itself first, the way the app does at sign-in. With -relay it
+// also opens the table to the internet through -cloud, as the app's
+// "Let people join over the internet" does. It prints one line of JSON with
+// its addresses (and relay code) once it is up, and runs until interrupted.
 package main
 
 import (
@@ -35,6 +37,7 @@ func main() {
 	user := flag.String("user", "", "account id signed in on this phone")
 	room := flag.Bool("room", true, "open the room listener")
 	enrollToken := flag.String("enroll-token", "", "an account's access token on -cloud, to enrol this host with")
+	relayName := flag.String("relay", "", "open the table to the internet through -cloud's relay, under this name")
 	flag.Parse()
 	if *data == "" {
 		log.Fatal("phonehost: -data is required")
@@ -71,6 +74,14 @@ func main() {
 		}
 		out["lanPort"] = port
 		out["roomUrl"] = "http://127.0.0.1:" + strconv.Itoa(port)
+	}
+	if *relayName != "" {
+		code, err := h.OpenRelay(*relayName)
+		if err != nil {
+			log.Fatalf("phonehost: opening the relay: %v", err)
+		}
+		out["relayCode"] = code
+		out["relayUrl"] = h.RelayURL()
 	}
 	_ = json.NewEncoder(os.Stdout).Encode(out)
 

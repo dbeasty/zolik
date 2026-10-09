@@ -36,6 +36,23 @@ const (
 // minimum legal raise, the all-in ceiling, and a default. The engine still
 // validates whatever comes back, exactly as it validates a meld shape.
 func (m *Module) LegalActions(raw module.State, playerID string) ([]module.ActionOffer, error) {
+	offers, err := m.legalActions(raw, playerID)
+	if err != nil {
+		return nil, err
+	}
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	// Getting up, at a cash table, to anybody still seated — last, so it is
+	// never the first control a hand falls on.
+	if seat := s.seat(playerID); seat != nil && s.Format == FormatCash && !seat.Out && s.Status == "active" {
+		offers = append(offers, module.LeaveOffer(true, ""))
+	}
+	return offers, nil
+}
+
+func (m *Module) legalActions(raw module.State, playerID string) ([]module.ActionOffer, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return nil, err

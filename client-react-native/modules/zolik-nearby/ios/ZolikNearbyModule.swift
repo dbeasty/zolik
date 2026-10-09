@@ -175,6 +175,29 @@ public class ZolikNearbyModule: Module {
       ZolikcoreCurrent()?.closeLAN()
     }.runOnQueue(.main)
 
+    // The internet door: guests anywhere, through the cloud's relay. The
+    // phone stays the server (zolikcore/relay.go).
+    AsyncFunction("openRelay") { (name: String) -> [String: Any] in
+      guard let host = ZolikcoreCurrent() else { throw HostException("no host is running") }
+      _ = try host.openRelay(name)
+      return Self.relay(host)
+    }
+
+    AsyncFunction("closeRelay") {
+      ZolikcoreCurrent()?.closeRelay()
+    }
+
+    Function("relayStatus") { () -> [String: Any] in
+      guard let host = ZolikcoreCurrent() else {
+        return ["status": "off", "code": "", "url": "", "guests": 0]
+      }
+      return Self.relay(host)
+    }
+
+    Function("hostResumed") {
+      ZolikcoreCurrent()?.resumed()
+    }
+
     AsyncFunction("startBrowsing") {
       self.bonjour.browse()
     }.runOnQueue(.main)
@@ -186,6 +209,15 @@ public class ZolikNearbyModule: Module {
     Function("localAddresses") { () -> [String] in
       NearbyAddresses.ipv4()
     }
+  }
+
+  private static func relay(_ host: ZolikcoreHost) -> [String: Any] {
+    return [
+      "status": host.relayStatus(),
+      "code": host.relayCode(),
+      "url": host.relayURL(),
+      "guests": host.relayGuests(),
+    ]
   }
 
   private static func describe(_ host: ZolikcoreHost) -> [String: Any] {

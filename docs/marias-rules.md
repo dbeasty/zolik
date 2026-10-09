@@ -74,6 +74,7 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 | `play.seven` | Whoever announced a sedma keeps the 7 of trumps for the last trick unless no other card is legal. | ČSM B/13, Pagat |
 | `play.marriage` | Play the svršek while holding the král of the same suit to announce a marriage: {plain}, or {trump} in trumps. No marriages in betl or durch. | Pagat |
 | `play.earlyEnd` | Betl ends at the declarer's first trick, and durch at their first trick lost. | our simplification (see below) |
+| `play.openHand` 🔧 | In betl and durch the declarer lays their cards face up once the first trick has been played. | pub custom (option) |
 
 ### Scoring
 
@@ -101,6 +102,7 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 | `flekLimit` | no limit, flek only, up to re, up to boty | no limit | Pagat: "in theory without limit". ČSM caps payment, not doublings |
 | `zLidu` | allowed, not allowed | allowed | ČSM B/6 |
 | `showCardPoints` | hidden, shown | hidden | At a real table nobody counts aloud |
+| `openBetlDurch` | played closed, declarer's hand shown | closed | ČSM plays them closed; showing the hand after the first trick is a pub custom |
 | `botSkill`, `pauseBetweenRounds` | stock | medium, pause | |
 
 ## Where this differs from the association's sheet (for sign-off)
@@ -119,6 +121,10 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
    a multiple of four at a table of four (9→12, 18→20). The sitter sees only what a spectator
    sees.
 5. **No open (ložené) betl or durch**, and no laid-down game (B/16-18). Play simply runs out.
+   The pub custom of laying the declarer's hand face up *after the first trick* is the
+   `openBetlDurch` option (`play.openHand`); the hard bot's sampler then deals the declarer
+   exactly the cards on the table. Ložený betl and durch, laid down before the lead at a higher
+   price, remain out.
 6. **Betl and durch end early** once they are decided (`play.earlyEnd`). The result is the same,
    and nobody has to play out nine dead tricks.
 7. **Marriages are announced automatically** when a svršek is played while holding its král.

@@ -2,6 +2,7 @@
   "errorCodes": [
     "ACE_BRIDGE",
     "ALREADY_BET",
+    "ALREADY_LEFT",
     "ALREADY_READY",
     "ALREADY_SHOWN",
     "AMOUNT_NOT_A_NUMBER",
@@ -71,6 +72,7 @@
     "LASTCARD_ONLY_DRAWN_CARD",
     "LASTCARD_STACK_OR_TAKE",
     "LASTCARD_UNKNOWN_COLOUR",
+    "LEAVE_TOURNAMENT",
     "MARIAS_BELOW_THE_BID",
     "MARIAS_BID_TOO_LOW",
     "MARIAS_DISCARD_TWO",
@@ -146,6 +148,13 @@
     "NO_SUCH_CARD",
     "NO_SUCH_MELD",
     "NO_SUCH_SET",
+    "OKO_ALREADY_BET",
+    "OKO_BET_ABOVE_BANK",
+    "OKO_BET_ABOVE_STACK",
+    "OKO_BET_BELOW_MINIMUM",
+    "OKO_BET_FIRST",
+    "OKO_BET_NOT_A_NUMBER",
+    "OKO_DECK_EMPTY",
     "OPTION_NOT_ALLOWED",
     "OVER_POT_LIMIT",
     "PILE_BLOCKED",
@@ -165,10 +174,25 @@
     "SEAT_IN_USE",
     "SEAT_LINK_EXPIRED",
     "SEAT_NOT_IN_HAND",
+    "SEDMA_CONTINUE_WITH_RANK_OR_SEVEN",
+    "SEDMA_NOTHING_TO_STOP",
+    "SEDMA_PICK_ONE_CARD",
     "SEQUENCE_NEEDS_ONE_SUIT",
     "SEQUENCE_NO_WILDS",
     "SERVER_BUSY",
     "SET_TOO_LARGE",
+    "SNAPS_EXCHANGE_NEEDS_A_TRICK",
+    "SNAPS_MUST_BEAT",
+    "SNAPS_MUST_FOLLOW_SUIT",
+    "SNAPS_MUST_TRUMP",
+    "SNAPS_NOT_ON_LEAD",
+    "SNAPS_NO_EXCHANGE_CARD",
+    "SNAPS_PICK_ONE_CARD",
+    "SNAPS_TALON_CLOSED",
+    "STAND_IN_ENDED",
+    "STAND_IN_NOT_A_PERSON",
+    "STAND_IN_NOT_OFFERED",
+    "STAND_IN_PLAYER_HERE",
     "STOCK_EMPTY",
     "STOCK_NOT_EMPTY",
     "SUIT_REQUIRED",
@@ -189,6 +213,7 @@
     "UNKNOWN_MODULE",
     "UNKNOWN_OPTION",
     "UNKNOWN_PLAYER",
+    "UNKNOWN_SKILL",
     "UNKNOWN_SUIT",
     "UNKNOWN_VARIATION",
     "UPCARD_DECLINED",
@@ -262,6 +287,9 @@
     "blackjack.rules.hitStand",
     "blackjack.rules.hitsSoft17",
     "blackjack.rules.insurance",
+    "blackjack.rules.leave",
+    "blackjack.rules.leaveAway",
+    "blackjack.rules.leaveAwayNever",
     "blackjack.rules.minBet",
     "blackjack.rules.mostChipsWins",
     "blackjack.rules.noDoubleAfterSplit",
@@ -276,6 +304,7 @@
     "blackjack.rules.rounds",
     "blackjack.rules.section.dealer",
     "blackjack.rules.section.end",
+    "blackjack.rules.section.leaving",
     "blackjack.rules.section.play",
     "blackjack.rules.section.table",
     "blackjack.rules.split",
@@ -574,6 +603,9 @@
     "holdem.round.uncontested",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
+    "holdem.rules.cash.away",
+    "holdem.rules.cash.awayNever",
+    "holdem.rules.cash.leave",
     "holdem.rules.checkOrCall",
     "holdem.rules.draw.deal",
     "holdem.rules.draw.draw",
@@ -597,12 +629,14 @@
     "holdem.rules.section.goal",
     "holdem.rules.section.setup",
     "holdem.rules.section.showdown",
+    "holdem.rules.section.table",
     "holdem.rules.showOnce",
     "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
     "holdem.rules.stack",
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "holdem.rules.tournament",
     "holdem.seat.allIn",
     "holdem.seat.bet",
     "holdem.seat.dealer",
@@ -870,6 +904,7 @@
     "marias.rules.play.follow",
     "marias.rules.play.lead",
     "marias.rules.play.marriage",
+    "marias.rules.play.openHand",
     "marias.rules.play.seven",
     "marias.rules.play.trump",
     "marias.rules.points",
@@ -905,6 +940,62 @@
     "marias.zone.lastTrick",
     "marias.zone.talon",
     "marias.zone.trick",
+    "offer.leave",
+    "okobere.fact.bankFree",
+    "okobere.header.bankFree",
+    "okobere.header.bankRound",
+    "okobere.header.banker",
+    "okobere.header.round",
+    "okobere.offer.bet",
+    "okobere.offer.card",
+    "okobere.offer.stand",
+    "okobere.param.stake",
+    "okobere.prompt.bank",
+    "okobere.prompt.bet",
+    "okobere.prompt.draw",
+    "okobere.quick.allIn",
+    "okobere.quick.double",
+    "okobere.quick.vaBanque",
+    "okobere.round.banker",
+    "okobere.round.bankerOko",
+    "okobere.round.broken",
+    "okobere.round.punter",
+    "okobere.round.round",
+    "okobere.rules.bank",
+    "okobere.rules.banker",
+    "okobere.rules.bankerOko",
+    "okobere.rules.bust",
+    "okobere.rules.deal",
+    "okobere.rules.deck",
+    "okobere.rules.end",
+    "okobere.rules.goal",
+    "okobere.rules.oko",
+    "okobere.rules.okoPays1",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.section.bank",
+    "okobere.rules.section.cards",
+    "okobere.rules.section.end",
+    "okobere.rules.section.goal",
+    "okobere.rules.section.play",
+    "okobere.rules.section.settle",
+    "okobere.rules.settle",
+    "okobere.rules.stake",
+    "okobere.rules.turn",
+    "okobere.rules.values",
+    "okobere.seat.bank",
+    "okobere.seat.banker",
+    "okobere.seat.bust",
+    "okobere.seat.chips",
+    "okobere.seat.lost",
+    "okobere.seat.oko",
+    "okobere.seat.satOut",
+    "okobere.seat.stake",
+    "okobere.seat.total",
+    "okobere.seat.won",
+    "okobere.zone.bankerHand",
+    "okobere.zone.deck",
+    "okobere.zone.hand",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -942,6 +1033,11 @@
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
     "round.continue",
+    "rules.standIn.after",
+    "rules.standIn.record",
+    "rules.standIn.return",
+    "rules.standIn.section",
+    "rules.standIn.wait",
     "rummytiles.badge.invalid",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
@@ -1004,7 +1100,113 @@
     "rummytiles.zone.table",
     "rummytiles.zone.tray",
     "seat.cards",
+    "seat.leaving",
+    "seat.left",
     "seat.ready",
+    "sedma.fact.trickPoints",
+    "sedma.header.hand",
+    "sedma.header.led",
+    "sedma.header.sidePoints",
+    "sedma.header.yourPoints",
+    "sedma.offer.continue",
+    "sedma.offer.play",
+    "sedma.offer.stop",
+    "sedma.prompt.decide",
+    "sedma.prompt.lead",
+    "sedma.prompt.play",
+    "sedma.round.allCards",
+    "sedma.round.allPoints",
+    "sedma.round.hand",
+    "sedma.round.none",
+    "sedma.round.points",
+    "sedma.round.tie",
+    "sedma.round.won",
+    "sedma.rules.capture",
+    "sedma.rules.continue",
+    "sedma.rules.deal",
+    "sedma.rules.deck",
+    "sedma.rules.draw",
+    "sedma.rules.end",
+    "sedma.rules.goal",
+    "sedma.rules.play",
+    "sedma.rules.points",
+    "sedma.rules.score",
+    "sedma.rules.score3",
+    "sedma.rules.section.cards",
+    "sedma.rules.section.deal",
+    "sedma.rules.section.end",
+    "sedma.rules.section.goal",
+    "sedma.rules.section.play",
+    "sedma.rules.section.scoring",
+    "sedma.rules.teams",
+    "sedma.seat.dealer",
+    "sedma.seat.points",
+    "sedma.seat.winning",
+    "sedma.zone.lastTrick",
+    "sedma.zone.partnerHand",
+    "sedma.zone.stock",
+    "sedma.zone.trick",
+    "snaps.fact.exchange",
+    "snaps.header.closed",
+    "snaps.header.deal",
+    "snaps.header.talonOut",
+    "snaps.header.trumps",
+    "snaps.header.yourPoints",
+    "snaps.offer.close",
+    "snaps.offer.exchange",
+    "snaps.offer.play",
+    "snaps.prompt.follow",
+    "snaps.prompt.followStrict",
+    "snaps.prompt.lead",
+    "snaps.round.closerFailed",
+    "snaps.round.deal",
+    "snaps.round.draw",
+    "snaps.round.drawn",
+    "snaps.round.headline",
+    "snaps.round.higher",
+    "snaps.round.lastTrick",
+    "snaps.round.out",
+    "snaps.round.points",
+    "snaps.rules.close",
+    "snaps.rules.deal.turns",
+    "snaps.rules.deal5",
+    "snaps.rules.deal6",
+    "snaps.rules.deck20",
+    "snaps.rules.deck24",
+    "snaps.rules.end",
+    "snaps.rules.exchange",
+    "snaps.rules.exchange66",
+    "snaps.rules.goal",
+    "snaps.rules.lastTrick66",
+    "snaps.rules.lastTrickSnaps",
+    "snaps.rules.marriage",
+    "snaps.rules.marriageOpenOnly",
+    "snaps.rules.out",
+    "snaps.rules.play.draw",
+    "snaps.rules.play.open",
+    "snaps.rules.play.strict",
+    "snaps.rules.points",
+    "snaps.rules.points66",
+    "snaps.rules.score.closedAtClosing",
+    "snaps.rules.score.closedAtEnd",
+    "snaps.rules.score.closerFailed",
+    "snaps.rules.score.out",
+    "snaps.rules.section.cards",
+    "snaps.rules.section.deal",
+    "snaps.rules.section.end",
+    "snaps.rules.section.ending",
+    "snaps.rules.section.goal",
+    "snaps.rules.section.play",
+    "snaps.seat.closed",
+    "snaps.seat.dealer",
+    "snaps.seat.marriage",
+    "snaps.seat.points",
+    "snaps.seat.tricks",
+    "snaps.zone.lastTrick",
+    "snaps.zone.talon",
+    "snaps.zone.talonClosed",
+    "snaps.zone.trick",
+    "snaps.zone.trumpCard",
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
@@ -1130,6 +1332,9 @@
     "blackjack.rules.hitStand",
     "blackjack.rules.hitsSoft17",
     "blackjack.rules.insurance",
+    "blackjack.rules.leave",
+    "blackjack.rules.leaveAway",
+    "blackjack.rules.leaveAwayNever",
     "blackjack.rules.minBet",
     "blackjack.rules.mostChipsWins",
     "blackjack.rules.noDoubleAfterSplit",
@@ -1144,6 +1349,7 @@
     "blackjack.rules.rounds",
     "blackjack.rules.section.dealer",
     "blackjack.rules.section.end",
+    "blackjack.rules.section.leaving",
     "blackjack.rules.section.play",
     "blackjack.rules.section.table",
     "blackjack.rules.split",
@@ -1289,6 +1495,8 @@
     "holdem.remedy.waitForNextHand",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
+    "holdem.rules.cash.away",
+    "holdem.rules.cash.leave",
     "holdem.rules.checkOrCall",
     "holdem.rules.draw.deal",
     "holdem.rules.draw.draw",
@@ -1312,12 +1520,14 @@
     "holdem.rules.section.goal",
     "holdem.rules.section.setup",
     "holdem.rules.section.showdown",
+    "holdem.rules.section.table",
     "holdem.rules.showOnce",
     "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
     "holdem.rules.stack",
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "holdem.rules.tournament",
     "klondike.remedy.drawFirst",
     "klondike.remedy.playTheTable",
     "klondike.remedy.turnEverythingUp",
@@ -1433,6 +1643,7 @@
     "marias.rules.play.follow",
     "marias.rules.play.lead",
     "marias.rules.play.marriage",
+    "marias.rules.play.openHand",
     "marias.rules.play.seven",
     "marias.rules.play.trump",
     "marias.rules.points",
@@ -1455,6 +1666,28 @@
     "marias.rules.section.goal",
     "marias.rules.section.play",
     "marias.rules.section.scoring",
+    "okobere.rules.bank",
+    "okobere.rules.banker",
+    "okobere.rules.bankerOko",
+    "okobere.rules.bust",
+    "okobere.rules.deal",
+    "okobere.rules.deck",
+    "okobere.rules.end",
+    "okobere.rules.goal",
+    "okobere.rules.oko",
+    "okobere.rules.okoPays1",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.section.bank",
+    "okobere.rules.section.cards",
+    "okobere.rules.section.end",
+    "okobere.rules.section.goal",
+    "okobere.rules.section.play",
+    "okobere.rules.section.settle",
+    "okobere.rules.settle",
+    "okobere.rules.stake",
+    "okobere.rules.turn",
+    "okobere.rules.values",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.nameASuit",
@@ -1505,6 +1738,54 @@
     "rummytiles.rules.tiles",
     "rummytiles.rules.turn",
     "rummytiles.rules.turnDescription",
+    "sedma.rules.capture",
+    "sedma.rules.continue",
+    "sedma.rules.deal",
+    "sedma.rules.deck",
+    "sedma.rules.draw",
+    "sedma.rules.end",
+    "sedma.rules.goal",
+    "sedma.rules.play",
+    "sedma.rules.points",
+    "sedma.rules.score",
+    "sedma.rules.score3",
+    "sedma.rules.section.cards",
+    "sedma.rules.section.deal",
+    "sedma.rules.section.end",
+    "sedma.rules.section.goal",
+    "sedma.rules.section.play",
+    "sedma.rules.section.scoring",
+    "sedma.rules.teams",
+    "snaps.rules.close",
+    "snaps.rules.deal.turns",
+    "snaps.rules.deal5",
+    "snaps.rules.deal6",
+    "snaps.rules.deck20",
+    "snaps.rules.deck24",
+    "snaps.rules.end",
+    "snaps.rules.exchange",
+    "snaps.rules.exchange66",
+    "snaps.rules.goal",
+    "snaps.rules.lastTrick66",
+    "snaps.rules.lastTrickSnaps",
+    "snaps.rules.marriage",
+    "snaps.rules.marriageOpenOnly",
+    "snaps.rules.out",
+    "snaps.rules.play.draw",
+    "snaps.rules.play.open",
+    "snaps.rules.play.strict",
+    "snaps.rules.points",
+    "snaps.rules.points66",
+    "snaps.rules.score.closedAtClosing",
+    "snaps.rules.score.closedAtEnd",
+    "snaps.rules.score.closerFailed",
+    "snaps.rules.score.out",
+    "snaps.rules.section.cards",
+    "snaps.rules.section.deal",
+    "snaps.rules.section.end",
+    "snaps.rules.section.ending",
+    "snaps.rules.section.goal",
+    "snaps.rules.section.play",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFirst",
@@ -1621,6 +1902,9 @@
     ],
     "blackjack.rules.decks": [
       "n"
+    ],
+    "blackjack.rules.leaveAway": [
+      "minutes"
     ],
     "blackjack.rules.minBet": [
       "n"
@@ -2163,6 +2447,9 @@
       "bb",
       "sb"
     ],
+    "holdem.rules.cash.away": [
+      "minutes"
+    ],
     "holdem.rules.draw.draw": [
       "n"
     ],
@@ -2549,6 +2836,81 @@
     "marias.seat.tricks": [
       "n"
     ],
+    "okobere.fact.bankFree": [
+      "n"
+    ],
+    "okobere.header.bankFree": [
+      "n"
+    ],
+    "okobere.header.bankRound": [
+      "n",
+      "of"
+    ],
+    "okobere.header.banker": [
+      "player"
+    ],
+    "okobere.header.round": [
+      "n"
+    ],
+    "okobere.prompt.bank": [
+      "n"
+    ],
+    "okobere.prompt.bet": [
+      "n"
+    ],
+    "okobere.prompt.draw": [
+      "n"
+    ],
+    "okobere.quick.allIn": [
+      "value"
+    ],
+    "okobere.quick.double": [
+      "value"
+    ],
+    "okobere.quick.vaBanque": [
+      "value"
+    ],
+    "okobere.round.banker": [
+      "n",
+      "player"
+    ],
+    "okobere.round.bankerOko": [
+      "player"
+    ],
+    "okobere.round.punter": [
+      "player",
+      "result"
+    ],
+    "okobere.rules.bank": [
+      "bank"
+    ],
+    "okobere.rules.end": [
+      "chips",
+      "n"
+    ],
+    "okobere.rules.okoPays3": [
+      "n"
+    ],
+    "okobere.rules.rotation": [
+      "n"
+    ],
+    "okobere.rules.stake": [
+      "n"
+    ],
+    "okobere.seat.bank": [
+      "n",
+      "value"
+    ],
+    "okobere.seat.chips": [
+      "n",
+      "value"
+    ],
+    "okobere.seat.stake": [
+      "n"
+    ],
+    "okobere.seat.total": [
+      "n"
+    ],
     "prompt.canastasNeeded": [
       "n"
     ],
@@ -2613,6 +2975,9 @@
     ],
     "prsi.rules.deck": [
       "value"
+    ],
+    "rules.standIn.after": [
+      "seconds"
     ],
     "rummytiles.fact.setCards": [
       "value"
@@ -2696,6 +3061,83 @@
     "seat.cards": [
       "n",
       "value"
+    ],
+    "sedma.fact.trickPoints": [
+      "n"
+    ],
+    "sedma.header.hand": [
+      "n"
+    ],
+    "sedma.header.led": [
+      "rank"
+    ],
+    "sedma.header.sidePoints": [
+      "n"
+    ],
+    "sedma.header.yourPoints": [
+      "n"
+    ],
+    "sedma.prompt.decide": [
+      "rank"
+    ],
+    "sedma.round.points": [
+      "n",
+      "player"
+    ],
+    "sedma.rules.end": [
+      "n"
+    ],
+    "sedma.seat.points": [
+      "n"
+    ],
+    "snaps.fact.exchange": [
+      "card"
+    ],
+    "snaps.header.closed": [
+      "player"
+    ],
+    "snaps.header.deal": [
+      "n"
+    ],
+    "snaps.header.trumps": [
+      "suit"
+    ],
+    "snaps.header.yourPoints": [
+      "n"
+    ],
+    "snaps.round.headline": [
+      "n",
+      "player"
+    ],
+    "snaps.round.points": [
+      "n",
+      "player"
+    ],
+    "snaps.rules.end": [
+      "n"
+    ],
+    "snaps.rules.lastTrick66": [
+      "n"
+    ],
+    "snaps.rules.marriage": [
+      "plain",
+      "trump"
+    ],
+    "snaps.rules.out": [
+      "n"
+    ],
+    "snaps.rules.score.out": [
+      "n"
+    ],
+    "snaps.seat.marriage": [
+      "n",
+      "suit"
+    ],
+    "snaps.seat.points": [
+      "n"
+    ],
+    "snaps.seat.tricks": [
+      "n"
     ],
     "status.lastDeal": [
       "canastas",
@@ -2849,6 +3291,7 @@
     "blackjack.round.dealerTotal",
     "blackjack.rules.bustedOut",
     "blackjack.rules.decks",
+    "blackjack.rules.leaveAway",
     "blackjack.rules.minBet",
     "blackjack.rules.rounds",
     "blackjack.rules.split",
@@ -3000,6 +3443,7 @@
     "holdem.remedy.raiseAtMostPot",
     "holdem.round.pot",
     "holdem.rules.blinds",
+    "holdem.rules.cash.away",
     "holdem.rules.draw.draw",
     "holdem.rules.handLimit",
     "holdem.rules.stack",
@@ -3102,6 +3546,29 @@
     "marias.seat.marriage",
     "marias.seat.points",
     "marias.seat.tricks",
+    "okobere.fact.bankFree",
+    "okobere.header.bankFree",
+    "okobere.header.bankRound",
+    "okobere.header.banker",
+    "okobere.header.round",
+    "okobere.prompt.bank",
+    "okobere.prompt.bet",
+    "okobere.prompt.draw",
+    "okobere.quick.allIn",
+    "okobere.quick.double",
+    "okobere.quick.vaBanque",
+    "okobere.round.banker",
+    "okobere.round.bankerOko",
+    "okobere.round.punter",
+    "okobere.rules.bank",
+    "okobere.rules.end",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.stake",
+    "okobere.seat.bank",
+    "okobere.seat.chips",
+    "okobere.seat.stake",
+    "okobere.seat.total",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
@@ -3120,6 +3587,7 @@
     "prsi.remedy.playOrDraw",
     "prsi.rules.deal",
     "prsi.rules.deck",
+    "rules.standIn.after",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
@@ -3144,6 +3612,30 @@
     "rummytiles.seat.score",
     "rummytiles.status.lastRound",
     "seat.cards",
+    "sedma.fact.trickPoints",
+    "sedma.header.hand",
+    "sedma.header.led",
+    "sedma.header.sidePoints",
+    "sedma.header.yourPoints",
+    "sedma.prompt.decide",
+    "sedma.round.points",
+    "sedma.rules.end",
+    "sedma.seat.points",
+    "snaps.fact.exchange",
+    "snaps.header.closed",
+    "snaps.header.deal",
+    "snaps.header.trumps",
+    "snaps.header.yourPoints",
+    "snaps.round.headline",
+    "snaps.round.points",
+    "snaps.rules.end",
+    "snaps.rules.lastTrick66",
+    "snaps.rules.marriage",
+    "snaps.rules.out",
+    "snaps.rules.score.out",
+    "snaps.seat.marriage",
+    "snaps.seat.points",
+    "snaps.seat.tricks",
     "status.lastDeal",
     "status.teamScore",
     "status.winner",

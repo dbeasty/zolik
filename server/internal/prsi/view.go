@@ -42,6 +42,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptHandSize:               defaultHandSize,
 					module.OptOpenDiscardPile: module.OptOff,
 					module.OptBotSkill:        module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:    module.StandInAfterDefault,
 				},
 			},
 		},
@@ -51,6 +52,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// into it is remembered rather than looked up.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.StandInOption(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,

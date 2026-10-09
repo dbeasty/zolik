@@ -93,7 +93,26 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "holdem.rules.stopEveryHand"},
 		),
 		module.Section("holdem.rules.section.end", end...),
+		// Whether the chips in front of you are yours to take: the one rule
+		// that decides what a player who has to go may do.
+		module.Section("holdem.rules.section.table", tableRules(cfg)...),
 	}, nil
+}
+
+// tableRules are the sentences for the table's format: a tournament played to
+// the last chip, or a cash table anybody may get up from. Literal Facts per
+// branch, for revealRule's reason.
+func tableRules(cfg module.MatchConfig) []module.Fact {
+	if cfg.Opt(OptFormat, FormatTournament) != FormatCash {
+		return []module.Fact{{LabelKey: "holdem.rules.tournament"}}
+	}
+	out := []module.Fact{{LabelKey: "holdem.rules.cash.leave"}}
+	if mins := int(cfg.LeaveAfterAway().Minutes()); mins > 0 {
+		out = append(out, module.Fact{LabelKey: "holdem.rules.cash.away", Params: map[string]any{"minutes": mins}})
+	} else {
+		out = append(out, module.Fact{LabelKey: "holdem.rules.cash.awayNever"})
+	}
+	return out
 }
 
 // revealRule is the sentence for the reveal setting this table is playing.
