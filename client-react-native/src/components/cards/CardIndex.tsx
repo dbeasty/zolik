@@ -1,12 +1,16 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+// Card type, pinned to the card's own size — see CardText.
+import { CardText as Text } from '@/src/components/cards/CardText';
 import { Suit } from '@/src/components/cards/Suit';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { useSkin } from '@/src/hooks/useSkin';
+import { useFourColour, useSkin } from '@/src/hooks/useSkin';
 import { INKS, isLastCardCode, parseLastCard } from '@/src/components/cards/lastCardArt';
 import { parseCard } from '@/src/lib/cards';
+import { useDeck } from '@/src/lib/deck';
 import { CARD_INDEX_BORDER, cardIndexBox, type CardIndexBox } from '@/src/lib/layout';
+import { fourColourSkin } from '@/src/skins/fourColour';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -41,10 +45,14 @@ type Props = {
 
 export function CardIndex({ card, testID }: Props) {
   const metrics = useMetrics();
-  const skin = useSkin();
+  const d = parseCard(card);
+  // The four-colour deck, the same way `CardView` draws it.
+  const tableSkin = useSkin();
+  const fourColour = useFourColour();
+  const deck = useDeck();
+  const skin = fourColour && deck === 'french' ? fourColourSkin(tableSkin, d.suit) : tableSkin;
   const box = useMemo(() => cardIndexBox(metrics), [metrics]);
   const styles = useMemo(() => indexStyles(box, skin), [box, skin]);
-  const d = parseCard(card);
 
   // A Last Card index is its number and its colour's shape, both in that
   // colour — the shape is a glyph, so it is type like the rest of the index.

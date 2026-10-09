@@ -42,8 +42,11 @@ export const classic: Skin = {
     face: 'plain',
     ink: '#1e293b',
     red: '#dc2626',
+    fourColour: { diamonds: '#1d4ed8', clubs: '#15803d', bells: '#9a5b00' },
     selectedFace: '#fffbeb',
-    jokerFace: '#fef3c7',
+    // A shade paler than the #fef3c7 it was: the joker's red "JKR" came to
+    // 4.34:1 on that, under 4.5 (`contrast.test.ts`).
+    jokerFace: '#fff8e1',
     shadow: false,
     back: {
       colors: ['#2563c4', '#2563c4'],

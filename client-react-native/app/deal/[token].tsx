@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -65,10 +66,8 @@ export default function SentDealScreen() {
   if (error) {
     return (
       <Screen scroll>
-        <Text testID="deal-error" style={shared.error}>
-          {error}
-        </Text>
-        <Pressable testID="deal-error-home" onPress={() => router.replace('/')}>
+        <FormError testID="deal-error" message={error} />
+        <Pressable role="button" testID="deal-error-home" onPress={() => router.replace('/')}>
           <Text style={shared.status}>{t('join.backToMenu')}</Text>
         </Pressable>
       </Screen>
@@ -78,7 +77,7 @@ export default function SentDealScreen() {
   if (!deal || loading) {
     return (
       <Screen scroll>
-        <ActivityIndicator testID="deal-loading" />
+        <ActivityIndicator aria-label={t('a11y.loading')} testID="deal-loading" />
       </Screen>
     );
   }

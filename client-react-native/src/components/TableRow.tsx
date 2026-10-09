@@ -32,11 +32,11 @@ export function TableRow({
   return (
     <View style={styles.row} testID={`table-row-${row.matchId}`}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {gameLabel ?? (withWho || t('lobby.games.bots'))}
         </Text>
         {gameLabel ? (
-          <Text style={styles.meta} numberOfLines={1}>
+          <Text style={styles.meta} numberOfLines={2}>
             {withWho || t('lobby.games.bots')}
           </Text>
         ) : null}
@@ -51,6 +51,12 @@ export function TableRow({
       <Pressable
         testID={`table-row-go-${row.matchId}`}
         accessibilityRole="button"
+        // "Resume" five times in a row is five identical buttons to a screen
+        // reader listing them; this says which table each one opens.
+        aria-label={t('a11y.actionFor', {
+          action: over ? t('mine.replay') : t('picker.resume'),
+          what: [gameLabel, withWho || t('lobby.games.bots')].filter(Boolean).join(', '),
+        })}
         onPress={() =>
           router.push(
             over && row.canReplay

@@ -2,12 +2,14 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Zone } from '@/src/api/matchTypes';
+import { cardSpokenName } from '@/src/a11y/cardNames';
 import { CardView } from '@/src/components/CardView';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { zoneElementId } from '@/src/lib/drops';
+import { t } from '@/src/lib/i18n';
 import { label, playerName } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
 import { placeBySeat, seatCompass, seatSlotElementId, type Compass } from '@/src/lib/seatArrangement';
@@ -84,7 +86,23 @@ export function SeatArrangedZone({
             testID={`arranged-${zone.id}-${at}`}
           >
             <SettleIn kind="settle" delay={card === newest ? entranceDelay : 0}>
-              <CardView card={card.card} faceDown={card.faceDown} testID={`card-${zone.id}-by-${card.by}`} />
+              <CardView
+                card={card.card}
+                faceDown={card.faceDown}
+                testID={`card-${zone.id}-by-${card.by}`}
+                // Where a card lies says who played it; said, it has to be
+                // said in words.
+                a11y={
+                  card.faceDown
+                    ? undefined
+                    : {
+                        label: t('a11y.board.card.by', {
+                          card: cardSpokenName(card.card),
+                          name: card.by === viewerId ? t('match.you') : playerName(players, card.by!),
+                        }),
+                      }
+                }
+              />
             </SettleIn>
             {card.by !== viewerId ? (
               <Text style={[styles.name, at === 'left' ? styles.nameLeft : at === 'right' ? styles.nameRight : null]} numberOfLines={1}>

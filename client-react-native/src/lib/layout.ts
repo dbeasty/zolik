@@ -368,8 +368,43 @@ function font(n: number, scale: number): number {
   return Math.max(9, Math.round(n * scale));
 }
 
-export function metricsFor(width: number): Metrics {
-  const scale = scaleFor(width);
+/**
+ * The player's card size (Settings → Accessibility → Card size), as a
+ * multiple of whatever card the width would draw.
+ *
+ * Applied to the *scale* rather than to the card at the end, so everything
+ * the scale feeds moves with it — the slot pitch, the peek a closed hand
+ * shows, the index font sized against that peek, the compact cards of a
+ * meld, the chrome — and the derivations above stay true by construction
+ * instead of being re-derived for a second case. A Large hand is the same
+ * hand, measured the same way, just bigger.
+ *
+ * This is also the board's answer to the system font size. Free text scaling
+ * would grow a card's index without growing the card, and the fan maths
+ * (`indexFontFor` against `peekFor`) would stop holding: card text is
+ * therefore pinned to the size these metrics give it (see `CardText`), and
+ * this is how somebody who needs it bigger gets it bigger.
+ *
+ * What it costs is honest: thirteen Large cards may not fit one row where
+ * thirteen Normal ones did, and the hand closes into its fan sooner. That is
+ * the trade the player asked for.
+ */
+export type CardSize = 'normal' | 'large' | 'xlarge';
+
+export const CARD_SIZE_FACTOR: Record<CardSize, number> = {
+  normal: 1,
+  large: 1.15,
+  xlarge: 1.3,
+};
+
+export function metricsFor(width: number, cardSize: CardSize = 'normal'): Metrics {
+  const widthScale = scaleFor(width);
+  // Rounded to a hundredth so a factor's float noise never reaches a
+  // `Math.round` on its knife edge; `normal` is untouched, to the bit.
+  const scale =
+    cardSize === 'normal'
+      ? widthScale
+      : Math.round(widthScale * CARD_SIZE_FACTOR[cardSize] * 100) / 100;
   const chrome = chromeScale(scale);
   const narrow = width < 768;
   const cardWidth = dim(BASE_CARD.width, scale);
@@ -423,7 +458,10 @@ export function metricsFor(width: number): Metrics {
   return {
     scale,
     narrow,
-    roomy: scale > 1,
+    // From the width alone: `roomy` says there is *room* to spend on more
+    // than size (the dealer's own place at the table), and a bigger card
+    // takes room rather than making any.
+    roomy: widthScale > 1,
     maxWidth: Math.min(width, BOARD_MAX_WIDTH),
     card,
     panel,

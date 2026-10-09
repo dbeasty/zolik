@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -52,7 +53,7 @@ export default function GuestLinkScreen() {
   if (loading) {
     return (
       <Screen title={t('guestLink.title')}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
       </Screen>
     );
   }
@@ -62,18 +63,16 @@ export default function GuestLinkScreen() {
   return (
     <Screen title={t('guestLink.title')} scroll>
       {blocked || error ? (
-        <Text testID="guest-link-error" style={shared.error}>
-          {blocked || error}
-        </Text>
+        <FormError testID="guest-link-error" message={blocked || error} />
       ) : (
         <Text style={shared.status}>{alreadyThisGuest ? t('guestLink.already') : t('guestLink.body')}</Text>
       )}
       {!blocked && !alreadyThisGuest ? (
-        <Pressable testID="guest-link-continue" style={shared.button} disabled={busy} onPress={confirm}>
+        <Pressable role="button" testID="guest-link-continue" style={shared.button} disabled={busy} onPress={confirm}>
           <Text style={shared.buttonText}>{busy ? '…' : t('guestLink.continue')}</Text>
         </Pressable>
       ) : null}
-      <Pressable onPress={() => router.replace('/')}>
+      <Pressable role="button" onPress={() => router.replace('/')}>
         <Text style={shared.status}>{t('join.backToMenu')}</Text>
       </Pressable>
     </Screen>

@@ -1,4 +1,5 @@
 import type { Fact } from "@/src/api/matchTypes";
+import { cardSpokenName } from "@/src/a11y/cardNames";
 import { cardText, isCardCode, isTileCode, tileText } from "@/src/lib/cards";
 import { messageTemplate, t } from "@/src/lib/i18n";
 
@@ -88,7 +89,7 @@ const PLACES_ITS_OWN = /\{\w+\}/;
  * client turns that into words — so both are resolved in one place, and a
  * list of either becomes a list of names.
  */
-function tokenText(value: unknown, players: Named[]): string {
+function tokenText(value: unknown, players: Named[], spoken = false): string {
   if (Array.isArray(value)) {
     // A run of cards reads as a hand — "K♠ K♥ 7♦ 7♣ A♠" — the way it would be
     // written down at a table; commas are for lists of names.
@@ -100,7 +101,11 @@ function tokenText(value: unknown, players: Named[]): string {
           (isCardCode(v) || isTileCode(v)) &&
           !players.some((p) => p.id === v),
       );
-    return value.map((v) => tokenText(v, players)).join(hand ? " " : ", ");
+    // Spoken, a run of cards is a list like any other: "King of Spades, King
+    // of Hearts" — a space between two spoken names runs them together.
+    return value
+      .map((v) => tokenText(v, players, spoken))
+      .join(hand && !spoken ? " " : ", ");
   }
   if (typeof value !== "string") return String(value);
   const player = players.find((p) => p.id === value);
@@ -111,17 +116,25 @@ function tokenText(value: unknown, players: Named[]): string {
   // table can see — the rest of the screen draws that card as J♠. Checked
   // after the player list, so a player who calls themselves 7H keeps their
   // name. A tile is the same token in another notation.
-  if (isCardCode(value)) return cardText(value);
-  return isTileCode(value) ? tileText(value) : value;
+  //
+  // Spoken, the glyph is the wrong thing to hand a screen reader — "K♠" is
+  // read as "K black spade suit", or as "K" — so the same card is named in
+  // words instead (`cardSpokenName`).
+  if (isCardCode(value) || isTileCode(value)) {
+    if (spoken) return cardSpokenName(value);
+    return isCardCode(value) ? cardText(value) : tileText(value);
+  }
+  return value;
 }
 
 function resolveParams(
   params: Record<string, unknown> | undefined,
   players: Named[],
+  spoken = false,
 ): Record<string, string> | undefined {
   if (!params) return undefined;
   const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(params)) out[k] = tokenText(v, players);
+  for (const [k, v] of Object.entries(params)) out[k] = tokenText(v, players, spoken);
   return out;
 }
 
@@ -142,12 +155,12 @@ function resolveParams(
  * takes the value after it, which is what reads correctly for every plain fact
  * any of the four modules sends ("Deck 43", "Stack 980").
  */
-export function factText(f: Fact, players: Named[] = []): string {
-  const params = resolveParams(f.params, players);
+export function factText(f: Fact, players: Named[] = [], spoken = false): string {
+  const params = resolveParams(f.params, players, spoken);
   const value =
     f.value === undefined || f.value === ""
       ? undefined
-      : tokenText(f.value, players);
+      : tokenText(f.value, players, spoken);
   const name = label(
     f.labelKey,
     value === undefined ? params : { ...params, value },
@@ -155,6 +168,16 @@ export function factText(f: Fact, players: Named[] = []): string {
   const wording = f.labelKey ? messageTemplate(f.labelKey) : undefined;
   if (wording && PLACES_ITS_OWN.test(wording)) return name;
   return value === undefined ? name : `${name} ${value}`;
+}
+
+/**
+ * The same line, worded for a screen reader: every card in it named in words
+ * ("Seven of Clubs") rather than drawn as a glyph ("7♣"). Everything else —
+ * the key, the names, the order — is exactly what the board prints, so what a
+ * player hears and what a player reads cannot drift apart.
+ */
+export function spokenFactText(f: Fact, players: Named[] = []): string {
+  return factText(f, players, true);
 }
 
 /**

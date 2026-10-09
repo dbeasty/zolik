@@ -112,11 +112,11 @@ export function WaitingCard({ moduleId }: { moduleId: string }) {
               : t('waiting.reconnectingDetail', { n: attempts })}
           </Text>
           {busy ? null : (
-            <Text style={[shared.status, { marginTop: 4 }]}>Server: {ZOLIK_BASE_URL}</Text>
+            <Text style={[shared.status, { marginTop: 4 }]}>{t('a11y.waiting.server', { url: ZOLIK_BASE_URL })}</Text>
           )}
         </View>
         <CardButton label={t('waiting.tryAgain')} onPress={retryNow} />
-        <Pressable style={{ marginTop: 10 }} onPress={stop}>
+        <Pressable role="button" style={{ marginTop: 10 }} onPress={stop}>
           <Text style={shared.status}>{t('waiting.stop')}</Text>
         </Pressable>
       </View>
@@ -126,12 +126,12 @@ export function WaitingCard({ moduleId }: { moduleId: string }) {
   return (
     <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
       <View testID="waiting-status-connecting">
-        <ActivityIndicator color={colors.accent} style={{ marginBottom: 8 }} />
+        <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} style={{ marginBottom: 8 }} />
         <Text style={shared.status}>{t('waiting.adding')}</Text>
         <Text style={[shared.status, { marginTop: 4, fontSize: 12 }]}>{t('waiting.slowHint')}</Text>
-        <Text style={[shared.status, { marginTop: 4 }]}>Server: {ZOLIK_BASE_URL}</Text>
+        <Text style={[shared.status, { marginTop: 4 }]}>{t('a11y.waiting.server', { url: ZOLIK_BASE_URL })}</Text>
       </View>
-      <Pressable style={{ marginTop: 10 }} onPress={stop}>
+      <Pressable role="button" style={{ marginTop: 10 }} onPress={stop}>
         <Text style={shared.status}>{t('waiting.stop')}</Text>
       </Pressable>
     </View>
@@ -149,6 +149,7 @@ function CardButton({
 }) {
   return (
     <Pressable
+      role="button"
       testID={testID}
       style={[shared.button, shared.buttonSecondary, { marginTop: 12, marginBottom: 0 }]}
       onPress={onPress}
@@ -192,14 +193,16 @@ function WaitingList({
           style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}
         >
           <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={24} />
-          <Text style={{ color: colors.text, flexShrink: 1 }} numberOfLines={1}>
+          <Text style={{ color: colors.text, flexShrink: 1 }} numberOfLines={2}>
             {p.username}
             {p.isGuest ? ` ${t('home.guestSuffix')}` : ''}
           </Text>
         </View>
       ))}
       {players.length > shown.length ? (
-        <Text style={[shared.status, { marginTop: 2 }]}>+{players.length - shown.length} more</Text>
+        <Text style={[shared.status, { marginTop: 2 }]}>
+          {t('a11y.waiting.more', { n: players.length - shown.length })}
+        </Text>
       ) : null}
     </View>
   );

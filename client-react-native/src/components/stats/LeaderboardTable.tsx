@@ -20,13 +20,26 @@ export function LeaderboardTable({
   youId?: string;
 }) {
   return (
-    <View style={styles.table} testID="leaderboard-table">
-      <View style={styles.row}>
-        <Text style={[styles.rank, styles.head]}>#</Text>
-        <Text style={[styles.name, styles.head]}>{t('stats.col.player')}</Text>
-        <Text style={[styles.num, styles.head]} numberOfLines={1}>{t('stats.col.played')}</Text>
-        <Text style={[styles.num, styles.head]} numberOfLines={1}>{t('stats.col.won')}</Text>
-        <Text style={[styles.num, styles.head]} numberOfLines={1}>{t('stats.col.winPct')}</Text>
+    // A table to a screen reader, as on the stats screen's splits: each number
+    // is read with the column it is in. "#" is named in words for the same
+    // reason — a symbol read aloud as "number sign" is not a column name.
+    <View style={styles.table} testID="leaderboard-table" role="table" aria-label={t('stats.leaderboard')}>
+      <View style={styles.row} role="row">
+        <Text style={[styles.rank, styles.head]} role="columnheader" aria-label={t('a11y.stats.rank')}>
+          #
+        </Text>
+        <Text style={[styles.name, styles.head]} role="columnheader">
+          {t('stats.col.player')}
+        </Text>
+        <Text style={[styles.num, styles.head]} role="columnheader">
+          {t('stats.col.played')}
+        </Text>
+        <Text style={[styles.num, styles.head]} role="columnheader">
+          {t('stats.col.won')}
+        </Text>
+        <Text style={[styles.num, styles.head]} role="columnheader">
+          {t('stats.col.winPct')}
+        </Text>
       </View>
       {entries.map((e) => {
         const you = !!youId && e.subject.kind === 'user' && e.subject.id === youId;
@@ -35,16 +48,25 @@ export function LeaderboardTable({
             key={`${e.subject.kind}:${e.subject.id}`}
             style={[styles.row, you && styles.youRow]}
             testID={you ? 'leaderboard-row-you' : `leaderboard-row-${e.rank}`}
+            role="row"
           >
-            <Text style={[styles.rank, you && styles.youText]}>{e.rank}</Text>
-            <Text style={[styles.name, you && styles.youText]} numberOfLines={1}>
+            <Text style={[styles.rank, you && styles.youText]} role="cell">
+              {e.rank}
+            </Text>
+            <Text style={[styles.name, you && styles.youText]} role="rowheader">
               {you
                 ? t('stats.you', { name: subjectName(e.subject) })
                 : subjectName(e.subject)}
             </Text>
-            <Text style={[styles.num, you && styles.youText]}>{e.tally.matches}</Text>
-            <Text style={[styles.num, you && styles.youText]}>{e.tally.wins}</Text>
-            <Text style={[styles.num, you && styles.youText]}>{winPercentText(e.tally)}</Text>
+            <Text style={[styles.num, you && styles.youText]} role="cell">
+              {e.tally.matches}
+            </Text>
+            <Text style={[styles.num, you && styles.youText]} role="cell">
+              {e.tally.wins}
+            </Text>
+            <Text style={[styles.num, you && styles.youText]} role="cell">
+              {winPercentText(e.tally)}
+            </Text>
           </View>
         );
       })}

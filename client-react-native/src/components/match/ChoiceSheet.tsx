@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ParamSpec } from '@/src/api/matchTypes';
+import { Sheet } from '@/src/a11y/Sheet';
 import { t } from '@/src/lib/i18n';
 import { label } from '@/src/lib/labels';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -33,33 +34,37 @@ export function ChoiceSheet({
   if (!spec) return null;
 
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={onCancel}>
-      <Pressable style={styles.scrim} onPress={onCancel} testID="choice-scrim">
-        <Pressable style={styles.sheet} testID={`choice-${spec.name}`} onPress={() => undefined}>
-          <Text style={styles.title}>{label(spec.labelKey)}</Text>
-          <View style={styles.grid}>
-            {(spec.choices ?? []).map((c) => (
-              <Pressable
-                key={c.value}
-                testID={`choice-${spec.name}-${c.value}`}
-                accessibilityRole="button"
-                onPress={() => onPick(spec.name, c.value)}
-                style={({ pressed }) => [
-                  styles.option,
-                  c.value === spec.defaultChoice && styles.suggested,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.optionText}>{label(c.labelKey)}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Pressable onPress={onCancel} testID="choice-cancel" accessibilityRole="button" style={styles.cancel}>
-            <Text style={styles.cancelText}>{t('choice.cancel')}</Text>
+    <Sheet
+      visible
+      onClose={onCancel}
+      label={label(spec.labelKey)}
+      backdropStyle={styles.scrim}
+      backdropTestID="choice-scrim"
+      style={styles.sheet}
+      testID={`choice-${spec.name}`}
+    >
+      <Text style={styles.title}>{label(spec.labelKey)}</Text>
+      <View style={styles.grid}>
+        {(spec.choices ?? []).map((c) => (
+          <Pressable
+            key={c.value}
+            testID={`choice-${spec.name}-${c.value}`}
+            accessibilityRole="button"
+            onPress={() => onPick(spec.name, c.value)}
+            style={({ pressed }) => [
+              styles.option,
+              c.value === spec.defaultChoice && styles.suggested,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.optionText}>{label(c.labelKey)}</Text>
           </Pressable>
-        </Pressable>
+        ))}
+      </View>
+      <Pressable onPress={onCancel} testID="choice-cancel" accessibilityRole="button" style={styles.cancel}>
+        <Text style={styles.cancelText}>{t('choice.cancel')}</Text>
       </Pressable>
-    </Modal>
+    </Sheet>
   );
 }
 
