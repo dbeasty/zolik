@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, TextInput } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
+import { Field, FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
@@ -37,27 +38,38 @@ export default function UsernameLoginScreen() {
 
   return (
     <Screen title={t('nav.usernameSignIn')} scroll>
-      <TextInput
-        style={shared.input}
+      <Field
+        label={t('auth.register.username')}
         placeholder={t('auth.register.username')}
-        placeholderTextColor="#8b9cb3"
         autoCapitalize="none"
+        autoComplete="username"
         value={username}
         onChangeText={setUsername}
       />
-      <TextInput
-        style={shared.input}
+      <Field
+        label={t('auth.register.password')}
         placeholder={t('auth.register.password')}
-        placeholderTextColor="#8b9cb3"
         secureTextEntry
+        autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
+        onSubmitEditing={() => {
+          if (!busy) void submit();
+        }}
       />
-      {error ? <Text style={shared.error}>{error}</Text> : null}
-      <Pressable style={shared.button} onPress={submit} disabled={busy}>
+      {/* About the pair, not either box: a refusal never says which was wrong. */}
+      {error ? <FormError message={error} /> : null}
+      <Pressable
+        style={shared.button}
+        role="button"
+        aria-label={t('settings.signIn')}
+        aria-busy={busy}
+        onPress={submit}
+        disabled={busy}
+      >
         <Text style={shared.buttonText}>{busy ? '…' : t('settings.signIn')}</Text>
       </Pressable>
-      <Pressable onPress={() => router.push('/auth/register')}>
+      <Pressable role="link" onPress={() => router.push('/auth/register')}>
         <Text style={shared.status}>{t('auth.username.createAccount')}</Text>
       </Pressable>
     </Screen>

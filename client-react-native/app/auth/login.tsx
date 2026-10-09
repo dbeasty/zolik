@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -51,13 +52,17 @@ export default function LoginScreen() {
 
       {oauthProviders.map((p) => (
         <Pressable
+          role="button"
           key={p.id}
+          // The provider's name even while its spinner stands in for it.
+          aria-label={providerButtonLabel(p)}
+          aria-busy={busyProvider === p.id}
           style={shared.button}
           onPress={() => signIn(p.id)}
           disabled={busyProvider !== null}
         >
           {busyProvider === p.id ? (
-            <ActivityIndicator color={colors.text} />
+            <ActivityIndicator aria-label={t('a11y.loading')} color={colors.text} />
           ) : (
             <Text style={shared.buttonText}>{providerButtonLabel(p)}</Text>
           )}
@@ -65,6 +70,7 @@ export default function LoginScreen() {
       ))}
 
       <Pressable
+        role="button"
         style={shared.buttonSecondary}
         onPress={() => router.push('/auth/email')}
         disabled={busyProvider !== null}
@@ -72,10 +78,10 @@ export default function LoginScreen() {
         <Text style={shared.buttonTextSecondary}>{t('auth.login.continueWithEmail')}</Text>
       </Pressable>
 
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      {error ? <FormError message={error} /> : null}
 
       <View style={{ marginTop: 24 }}>
-        <Pressable onPress={() => router.push('/auth/username-login')}>
+        <Pressable role="button" onPress={() => router.push('/auth/username-login')}>
           <Text style={shared.status}>{t('auth.login.usernameInstead')}</Text>
         </Pressable>
       </View>

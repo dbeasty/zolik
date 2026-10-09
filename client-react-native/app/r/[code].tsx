@@ -106,7 +106,7 @@ export default function JoinRelayScreen() {
           <Text style={shared.error} testID="relay-away">
             {t('relay.away', { name: host })}
           </Text>
-          <Pressable style={[shared.button, shared.buttonSecondary]} onPress={look} testID="relay-retry">
+          <Pressable role="button" style={[shared.button, shared.buttonSecondary]} onPress={look} testID="relay-retry">
             <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('relay.tryAgain')}</Text>
           </Pressable>
         </>
@@ -132,7 +132,7 @@ export default function JoinRelayScreen() {
             maxLength={24}
             testID="relay-name"
           />
-          <Pressable
+          <Pressable role="button"
             style={[shared.button, (busy || !name.trim()) && { opacity: 0.4 }]}
             onPress={join}
             disabled={busy || !name.trim()}

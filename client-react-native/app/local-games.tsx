@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import * as nearby from '@/modules/zolik-nearby';
 import { ApiError, ZolikClient } from '@/src/api/client';
 import type { LocalSave } from '@/src/api/types';
@@ -93,29 +96,33 @@ export default function LocalGamesScreen() {
   return (
     <Screen title={t('localGames.title')} subtitle={t('localGames.subtitle')} scroll>
       <View style={shared.card}>
-        <Text style={{ color: colors.text, fontWeight: '700' }}>{t('localGames.modeTitle')}</Text>
-        {(['ask', 'always', 'never'] as SaveGamesMode[]).map((m) => (
-          <Pressable
-            key={m}
-            testID={`local-games-mode-${m}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: mode === m }}
-            onPress={() => void setSaveGamesMode(m)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}
-          >
-            <View
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 9,
-                borderWidth: 2,
-                borderColor: mode === m ? colors.gold : colors.border,
-                backgroundColor: mode === m ? colors.gold : 'transparent',
-              }}
-            />
-            <Text style={{ color: colors.text, flexShrink: 1 }}>{t(`localGames.mode.${m}`)}</Text>
-          </Pressable>
-        ))}
+        <Text style={{ color: colors.text, fontWeight: '700' }} nativeID="local-games-mode-label" {...heading(3)}>
+          {t('localGames.modeTitle')}
+        </Text>
+        <RadioGroup label={t('localGames.modeTitle')} labelledBy="local-games-mode-label">
+          {(['ask', 'always', 'never'] as SaveGamesMode[]).map((m) => (
+            <Pressable
+              key={m}
+              testID={`local-games-mode-${m}`}
+              {...radioProps(mode === m)}
+              onPress={() => void setSaveGamesMode(m)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}
+            >
+              <View
+                aria-hidden
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  borderWidth: 2,
+                  borderColor: mode === m ? colors.gold : colors.border,
+                  backgroundColor: mode === m ? colors.gold : 'transparent',
+                }}
+              />
+              <Text style={{ color: colors.text, flexShrink: 1 }}>{t(`localGames.mode.${m}`)}</Text>
+            </Pressable>
+          ))}
+        </RadioGroup>
       </View>
 
       {!enrolled ? (
@@ -129,7 +136,7 @@ export default function LocalGamesScreen() {
         </Text>
       ) : null}
 
-      {games == null && !error ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
+      {games == null && !error ? <ActivityIndicator aria-label={t('a11y.loading')} style={{ marginTop: 16 }} /> : null}
       {games && !games.length ? (
         <Text style={[shared.status, { marginTop: 12 }]}>{t('localGames.none')}</Text>
       ) : null}
@@ -142,7 +149,9 @@ export default function LocalGamesScreen() {
         const agreed = people.filter((s) => s.consent === true).length;
         return (
           <View key={g.matchId} style={[shared.card, { marginTop: 10 }]} testID={`local-game-${g.matchId}`}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{labels[g.moduleId] ?? moduleName(g.moduleId)}</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }} {...heading(3)}>
+              {labels[g.moduleId] ?? moduleName(g.moduleId)}
+            </Text>
             <Text style={shared.status}>
               {new Date(g.finishedAt).toLocaleString()} · {people.map((s) => s.name).join(', ')}
             </Text>
@@ -156,7 +165,9 @@ export default function LocalGamesScreen() {
             {g.state === 'pending' ? (
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                 <Pressable
+                  role="button"
                   testID="local-game-save"
+                  aria-label={t('a11y.actionFor', { action: t('save.hostYes'), what: labels[g.moduleId] ?? moduleName(g.moduleId) })}
                   disabled={!!busy || !enrolled}
                   style={[shared.button, !enrolled && { opacity: 0.5 }]}
                   onPress={() => act(g.matchId, 'save')}
@@ -164,7 +175,9 @@ export default function LocalGamesScreen() {
                   <Text style={shared.buttonText}>{t('save.hostYes')}</Text>
                 </Pressable>
                 <Pressable
+                  role="button"
                   testID="local-game-discard"
+                  aria-label={t('a11y.actionFor', { action: t('localGames.discard'), what: labels[g.moduleId] ?? moduleName(g.moduleId) })}
                   disabled={!!busy}
                   style={[shared.button, shared.buttonSecondary]}
                   onPress={() => act(g.matchId, 'discard')}
@@ -176,7 +189,7 @@ export default function LocalGamesScreen() {
           </View>
         );
       })}
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      {error ? <FormError message={error} /> : null}
     </Screen>
   );
 }

@@ -64,7 +64,7 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
             <Text style={styles.label}>{target?.on ? t('standIn.strength') : t('banner.letBotPlay')}</Text>
             <View style={styles.row}>
               {skills.map((s) => (
-                <Pressable
+                <Pressable role="button"
                   key={s}
                   testID={`standin-strength-${s}`}
                   onPress={() => pick(true, s)}
@@ -75,7 +75,7 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
               ))}
             </View>
             {target?.on ? (
-              <Pressable testID="standin-take-out" onPress={() => pick(false)} style={styles.pill}>
+              <Pressable role="button" testID="standin-take-out" onPress={() => pick(false)} style={styles.pill}>
                 <Text style={styles.pillText}>{t('standIn.takeOut')}</Text>
               </Pressable>
             ) : null}

@@ -88,6 +88,7 @@ export const heirloom: Skin = {
     faceGradient: ['#fffdf6', '#f2ecdb'],
     ink: '#1b1b1f',
     red: '#c8102e',
+    fourColour: { diamonds: '#1d4a9c', clubs: '#1d6b3a', bells: '#8f5a0c' },
     selectedFace: '#fff6d8',
     jokerFace: '#fbf4e2',
     shadow: true,

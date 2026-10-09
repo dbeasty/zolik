@@ -1,14 +1,15 @@
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
+import { Link } from 'expo-router';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
+import { webAttrs } from '@/src/a11y/props';
 import { SOURCE_URL } from '@/src/config';
 import { t } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
 
 /**
- * "Terms · Privacy · Source" — the standing way to reach either document, and
- * the offer of source the AGPL requires.
+ * "Terms · Privacy · Accessibility · Source" — the standing way to reach the
+ * notices, and the offer of source the AGPL requires.
  *
  * Quiet on purpose. These have to be permanently reachable from inside the
  * app, and they have to not compete with the thing the player came to do, so
@@ -25,35 +26,50 @@ import { colors } from '@/src/theme';
  * `source` section; this is the one-click form of it.
  */
 export function LegalLinks({ style }: { style?: object }) {
+  // Real links: `Link` is an `<a href>` on the web, so Enter follows it, a
+  // middle-click opens a tab, and a screen reader lists it among the page's
+  // links. A `Text` with an `onPress` was none of those to a keyboard.
   return (
-    <View style={[styles.row, style]} testID="legal-links">
-      <Text
-        style={styles.link}
-        accessibilityRole="link"
-        testID="legal-link-terms"
-        onPress={() => router.push('/legal/terms')}
-      >
+    <View style={[styles.row, style]} testID="legal-links" role="navigation" aria-label={t('a11y.legal.links')}>
+      <Link href="/legal/terms" style={styles.link} testID="legal-link-terms">
         {t('legal.terms')}
-      </Text>
-      <Text style={styles.separator}>·</Text>
-      <Text
-        style={styles.link}
-        accessibilityRole="link"
-        testID="legal-link-privacy"
-        onPress={() => router.push('/legal/privacy')}
-      >
+      </Link>
+      <Separator />
+      <Link href="/legal/privacy" style={styles.link} testID="legal-link-privacy">
         {t('legal.privacy')}
-      </Text>
-      <Text style={styles.separator}>·</Text>
+      </Link>
+      <Separator />
+      {/* How well the app works with a screen reader, a keyboard or large
+          text, and how to say when it does not — beside the other notices,
+          which is where a statement like it is looked for. */}
+      <Link href="/legal/accessibility" style={styles.link} testID="legal-link-accessibility">
+        {t('a11y.statement.title')}
+      </Link>
+      <Separator />
       <Text
         style={styles.link}
-        accessibilityRole="link"
+        role="link"
         testID="legal-link-source"
-        onPress={openSource}
+        // An `href` on the web as well, so it is a link a keyboard can follow;
+        // the default is stopped because `openSource` opens its own tab.
+        {...webAttrs({ href: SOURCE_URL })}
+        onPress={(e) => {
+          (e as unknown as { preventDefault?: () => void })?.preventDefault?.();
+          openSource();
+        }}
       >
         {t('legal.source')}
       </Text>
     </View>
+  );
+}
+
+/** The dot between links: drawn, not read. */
+function Separator() {
+  return (
+    <Text style={styles.separator} aria-hidden>
+      ·
+    </Text>
   );
 }
 
@@ -79,7 +95,8 @@ function openSource() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  // Wraps, so four links at 200% text size still fit a phone's width.
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 },
   link: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
   separator: { color: colors.muted, fontSize: 13 },
 });

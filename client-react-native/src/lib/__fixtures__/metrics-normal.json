@@ -1,0 +1,722 @@
+{
+ "320": {
+  "scale": 0.7,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 320,
+  "card": {
+   "width": 36,
+   "height": 50,
+   "gap": 4,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 31,
+   "compactHeight": 42,
+   "rankFont": 10,
+   "suitFont": 13,
+   "jokerRankFont": 9,
+   "suitInlineFont": 10,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 54
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 28,
+   "avatarCompact": 15
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 64
+ },
+ "360": {
+  "scale": 0.7,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 360,
+  "card": {
+   "width": 36,
+   "height": 50,
+   "gap": 4,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 31,
+   "compactHeight": 42,
+   "rankFont": 10,
+   "suitFont": 13,
+   "jokerRankFont": 9,
+   "suitInlineFont": 10,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 54
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 28,
+   "avatarCompact": 15
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 64
+ },
+ "375": {
+  "scale": 0.7,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 375,
+  "card": {
+   "width": 36,
+   "height": 50,
+   "gap": 4,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 31,
+   "compactHeight": 42,
+   "rankFont": 10,
+   "suitFont": 13,
+   "jokerRankFont": 9,
+   "suitInlineFont": 10,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 54
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 28,
+   "avatarCompact": 15
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 64
+ },
+ "379": {
+  "scale": 0.7,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 379,
+  "card": {
+   "width": 36,
+   "height": 50,
+   "gap": 4,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 31,
+   "compactHeight": 42,
+   "rankFont": 10,
+   "suitFont": 13,
+   "jokerRankFont": 9,
+   "suitInlineFont": 10,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 54
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 28,
+   "avatarCompact": 15
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 64
+ },
+ "380": {
+  "scale": 0.78,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 380,
+  "card": {
+   "width": 41,
+   "height": 56,
+   "gap": 5,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 34,
+   "compactHeight": 47,
+   "rankFont": 11,
+   "suitFont": 14,
+   "jokerRankFont": 9,
+   "suitInlineFont": 11,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 60
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 31,
+   "avatarCompact": 17
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 72
+ },
+ "414": {
+  "scale": 0.78,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 414,
+  "card": {
+   "width": 41,
+   "height": 56,
+   "gap": 5,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 34,
+   "compactHeight": 47,
+   "rankFont": 11,
+   "suitFont": 14,
+   "jokerRankFont": 9,
+   "suitInlineFont": 11,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 60
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 31,
+   "avatarCompact": 17
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 72
+ },
+ "479": {
+  "scale": 0.78,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 479,
+  "card": {
+   "width": 41,
+   "height": 56,
+   "gap": 5,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 34,
+   "compactHeight": 47,
+   "rankFont": 11,
+   "suitFont": 14,
+   "jokerRankFont": 9,
+   "suitInlineFont": 11,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 60
+  },
+  "panel": {
+   "padding": 6,
+   "gap": 6,
+   "radius": 10,
+   "titleFont": 9,
+   "bodyFont": 9
+  },
+  "seat": {
+   "avatar": 31,
+   "avatarCompact": 17
+  },
+  "stackedCorner": 20,
+  "buttonMinWidth": 72
+ },
+ "480": {
+  "scale": 0.88,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 480,
+  "card": {
+   "width": 46,
+   "height": 63,
+   "gap": 5,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 39,
+   "compactHeight": 53,
+   "rankFont": 12,
+   "suitFont": 16,
+   "jokerRankFont": 10,
+   "suitInlineFont": 12,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 65
+  },
+  "panel": {
+   "padding": 7,
+   "gap": 7,
+   "radius": 10,
+   "titleFont": 11,
+   "bodyFont": 11
+  },
+  "seat": {
+   "avatar": 35,
+   "avatarCompact": 19
+  },
+  "stackedCorner": 23,
+  "buttonMinWidth": 81
+ },
+ "600": {
+  "scale": 0.88,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 600,
+  "card": {
+   "width": 46,
+   "height": 63,
+   "gap": 5,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 39,
+   "compactHeight": 53,
+   "rankFont": 12,
+   "suitFont": 16,
+   "jokerRankFont": 10,
+   "suitInlineFont": 12,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 65
+  },
+  "panel": {
+   "padding": 7,
+   "gap": 7,
+   "radius": 10,
+   "titleFont": 11,
+   "bodyFont": 11
+  },
+  "seat": {
+   "avatar": 35,
+   "avatarCompact": 19
+  },
+  "stackedCorner": 23,
+  "buttonMinWidth": 81
+ },
+ "767": {
+  "scale": 0.88,
+  "narrow": true,
+  "roomy": false,
+  "maxWidth": 767,
+  "card": {
+   "width": 46,
+   "height": 63,
+   "gap": 5,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 39,
+   "compactHeight": 53,
+   "rankFont": 12,
+   "suitFont": 16,
+   "jokerRankFont": 10,
+   "suitInlineFont": 12,
+   "indexFont": 14,
+   "indexSuitFont": 13,
+   "fanGap": 4,
+   "slotPitch": 65
+  },
+  "panel": {
+   "padding": 7,
+   "gap": 7,
+   "radius": 10,
+   "titleFont": 11,
+   "bodyFont": 11
+  },
+  "seat": {
+   "avatar": 35,
+   "avatarCompact": 19
+  },
+  "stackedCorner": 23,
+  "buttonMinWidth": 81
+ },
+ "768": {
+  "scale": 2.3,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 768,
+  "card": {
+   "width": 120,
+   "height": 166,
+   "gap": 14,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 101,
+   "compactHeight": 138,
+   "rankFont": 32,
+   "suitFont": 41,
+   "jokerRankFont": 25,
+   "suitInlineFont": 32,
+   "indexFont": 32,
+   "indexSuitFont": 29,
+   "fanGap": 4,
+   "slotPitch": 148
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 92,
+   "avatarCompact": 51
+  },
+  "stackedCorner": 60,
+  "buttonMinWidth": 122
+ },
+ "800": {
+  "scale": 2.4,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 800,
+  "card": {
+   "width": 125,
+   "height": 173,
+   "gap": 14,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 106,
+   "compactHeight": 144,
+   "rankFont": 34,
+   "suitFont": 43,
+   "jokerRankFont": 26,
+   "suitInlineFont": 34,
+   "indexFont": 34,
+   "indexSuitFont": 31,
+   "fanGap": 4,
+   "slotPitch": 153
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 96,
+   "avatarCompact": 53
+  },
+  "stackedCorner": 62,
+  "buttonMinWidth": 122
+ },
+ "1024": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1024,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "1280": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1280,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "1366": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1366,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "1440": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1400,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "1600": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1400,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "1920": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1400,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "2560": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1400,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ },
+ "3840": {
+  "scale": 2.5,
+  "narrow": false,
+  "roomy": true,
+  "maxWidth": 1400,
+  "card": {
+   "width": 130,
+   "height": 180,
+   "gap": 15,
+   "ringPadding": 1,
+   "ringBorder": 2,
+   "compactWidth": 110,
+   "compactHeight": 150,
+   "rankFont": 35,
+   "suitFont": 45,
+   "jokerRankFont": 28,
+   "suitInlineFont": 35,
+   "indexFont": 35,
+   "indexSuitFont": 32,
+   "fanGap": 4,
+   "slotPitch": 159
+  },
+  "panel": {
+   "padding": 11,
+   "gap": 11,
+   "radius": 10,
+   "titleFont": 16,
+   "bodyFont": 16
+  },
+  "seat": {
+   "avatar": 100,
+   "avatarCompact": 55
+  },
+  "stackedCorner": 65,
+  "buttonMinWidth": 122
+ }
+}

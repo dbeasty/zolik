@@ -61,3 +61,14 @@ func (r *kdbRepository) FindByID(ctx context.Context, id bson.ObjectID) (models.
 func (r *kdbRepository) UpdateByID(ctx context.Context, id bson.ObjectID, update bson.M) error {
 	return db.KDBUpdateUserFields(r.k, id, update)
 }
+
+func (r *kdbRepository) EachUser(ctx context.Context, fn func(models.User) error) error {
+	return r.k.Scan(db.NSUsers, func(doc []byte) error {
+		var u models.User
+		if err := db.UnmarshalDoc(doc, &u); err != nil {
+			return err
+		}
+		u.PasswordHash = ""
+		return fn(u)
+	})
+}

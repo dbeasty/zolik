@@ -9,6 +9,7 @@ import type {
   LifetimeStats,
   TallyView,
 } from '@/src/api/types';
+import { heading } from '@/src/a11y/props';
 import { Screen } from '@/src/components/Screen';
 import { SignInRequired } from '@/src/components/SignInRequired';
 import { LeaderboardTable } from '@/src/components/stats/LeaderboardTable';
@@ -141,7 +142,7 @@ export default function StatsScreen() {
     <Screen title={t('more.stats')} scroll>
       <Section title={t('record.title')} testID="your-record">
         {statsLoading ? (
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
         ) : statsError ? (
           <Empty testID="stats-error">{t('stats.recordFailed', { reason: statsError })}</Empty>
         ) : stats ? (
@@ -152,6 +153,7 @@ export default function StatsScreen() {
       <Section title={t('stats.leaderboard')} note={scopeBlurb(scope)} testID="leaderboard-section">
         <Toggle
           testID="leaderboard-kind"
+          label={t('a11y.stats.kind')}
           value={kind}
           onChange={setKind}
           options={[
@@ -161,12 +163,13 @@ export default function StatsScreen() {
         />
         <Toggle
           testID="leaderboard-scope"
+          label={t('a11y.stats.scope')}
           value={scope}
           onChange={setScope}
           options={SCOPES.map((s) => ({ id: s.id, label: t(s.labelKey) }))}
         />
         {boardLoading ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 12 }} />
+          <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} style={{ marginTop: 12 }} />
         ) : boardError ? (
           <Empty testID="leaderboard-error">{t('stats.boardFailed', { reason: boardError })}</Empty>
         ) : board && board.entries.length > 0 ? (
@@ -209,12 +212,23 @@ function YourRecord({ stats, modules }: { stats: LifetimeStats; modules: MatchMo
       <Headline tally={stats.overall} />
 
       <View style={{ marginTop: 12 }}>
-        <Line label={t('record.winRate')} value={winPercentText(stats.overall)} testID="stats-winrate" />
-        <Line label={t('stats.avgFinish')} value={avgRankText(stats.overall)} testID="stats-avgrank" />
+        <Line
+          label={t('record.winRate')}
+          value={winPercentText(stats.overall)}
+          tip={t('a11y.stats.tip.winRate')}
+          testID="stats-winrate"
+        />
+        <Line
+          label={t('stats.avgFinish')}
+          value={avgRankText(stats.overall)}
+          tip={t('a11y.stats.tip.avgFinish')}
+          testID="stats-avgrank"
+        />
         <Line
           label={t('stats.currentStreak')}
           value={streakText(stats.currentStreak)}
           tone={streakTone(stats.currentStreak)}
+          tip={t('a11y.stats.tip.streak')}
           testID="stats-streak"
         />
         <Line
@@ -224,12 +238,14 @@ function YourRecord({ stats, modules }: { stats: LifetimeStats; modules: MatchMo
               ? t('stats.bestStreakValue', { n: stats.longestWinStreak })
               : '—'
           }
+          tip={t('a11y.stats.tip.bestStreak')}
           testID="stats-beststreak"
         />
         {stats.overall.bestScore !== null ? (
           <Line
             label={t('stats.bestScore')}
             value={String(stats.overall.bestScore)}
+            tip={t('a11y.stats.tip.bestScore')}
             testID="stats-bestscore"
           />
         ) : null}
@@ -278,13 +294,13 @@ function SubTable({
 }) {
   return (
     <View style={{ marginTop: 20 }}>
-      <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: 4 }}>
+      <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginBottom: 4 }} {...heading(4)}>
         {title}
       </Text>
       {note ? (
         <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}>{note}</Text>
       ) : null}
-      <SplitTable rows={rows} testID={testID} />
+      <SplitTable rows={rows} title={title} testID={testID} />
     </View>
   );
 }

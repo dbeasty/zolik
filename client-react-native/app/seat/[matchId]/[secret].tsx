@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { ApiError } from '@/src/api/client';
 import type { SeatPreview } from '@/src/api/types';
 import { Avatar } from '@/src/components/avatars/Avatar';
@@ -65,15 +66,13 @@ export default function SeatLinkScreen() {
       <Screen title={t('seat.title')} scroll>
         {error ? (
           <>
-            <Text testID="seat-error" style={shared.error}>
-              {error}
-            </Text>
-            <Pressable testID="seat-home" onPress={() => router.replace('/')}>
+            <FormError testID="seat-error" message={error} />
+            <Pressable role="button" testID="seat-home" onPress={() => router.replace('/')}>
               <Text style={shared.status}>{t('join.backToMenu')}</Text>
             </Pressable>
           </>
         ) : (
-          <ActivityIndicator testID="seat-loading" />
+          <ActivityIndicator aria-label={t('a11y.loading')} testID="seat-loading" />
         )}
       </Screen>
     );
@@ -115,12 +114,11 @@ export default function SeatLinkScreen() {
       ))}
 
       {error ? (
-        <Text testID="seat-error" style={[shared.error, { marginTop: 12 }]}>
-          {error}
-        </Text>
+        <FormError testID="seat-error" style={{ marginTop: 12 }} message={error} />
       ) : null}
 
       <Pressable
+        role="button"
         testID="seat-claim"
         style={[shared.button, { marginTop: 16 }]}
         disabled={claiming || loading}
@@ -128,7 +126,7 @@ export default function SeatLinkScreen() {
       >
         <Text style={shared.buttonText}>{claiming ? t('seat.claiming') : t('seat.claim')}</Text>
       </Pressable>
-      <Pressable testID="seat-not-me" onPress={() => router.replace('/')} style={{ marginTop: 12 }}>
+      <Pressable role="button" testID="seat-not-me" onPress={() => router.replace('/')} style={{ marginTop: 12 }}>
         <Text style={[shared.status, { textAlign: 'center' }]}>{t('seat.notMe', { name: seat.name })}</Text>
       </Pressable>
     </Screen>

@@ -1,10 +1,12 @@
 import * as Linking from 'expo-linking';
 import { router, useIsFocused, type Href } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { PressableStateCallbackType } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
+import { domId, heading, invalidWhen } from '@/src/a11y/props';
 import type { MatchModule, StoredTable } from '@/src/api/matchTypes';
 import { BuildFooter } from '@/src/components/BuildFooter';
 import { useOrderedModules } from '@/src/components/GameButtons';
@@ -45,6 +47,7 @@ function MenuButton({
 }) {
   return (
     <Pressable
+      role="button"
       style={[shared.button, secondary && shared.buttonSecondary, style]}
       onPress={onPress}
     >
@@ -82,7 +85,7 @@ export default function MainMenu() {
   if (loading || !introChecked) {
     return (
       <Screen>
-        <ActivityIndicator color="#3d8bfd" />
+        <ActivityIndicator aria-label={t('a11y.loading')} color="#3d8bfd" />
       </Screen>
     );
   }
@@ -181,7 +184,9 @@ function SidePanel({
       <WaitingInvitesCard />
       {going.length > 0 ? (
         <>
-          <Text style={styles.heading}>{t('mine.tabUnfinished')}</Text>
+          <Text style={styles.heading} {...heading(3)}>
+            {t('mine.tabUnfinished')}
+          </Text>
           <View style={styles.panelCard}>
             {going.map((row) => (
               <TableRow key={row.matchId} row={row} gameLabel={labelOf(row)} selfId={session.userId} />
@@ -191,7 +196,9 @@ function SidePanel({
       ) : null}
       {recent.length > 0 ? (
         <>
-          <Text style={styles.heading}>{t('mine.tabFinished')}</Text>
+          <Text style={styles.heading} {...heading(3)}>
+            {t('mine.tabFinished')}
+          </Text>
           <View style={styles.panelCard}>
             {recent.map((row) => (
               <TableRow key={row.matchId} row={row} gameLabel={labelOf(row)} selfId={session.userId} />
@@ -228,12 +235,14 @@ function GameRows({ tables, columns }: { tables: StoredTable[] | null; columns: 
       </Text>
     );
   }
-  if (!modules) return <ActivityIndicator color={colors.accent} />;
+  if (!modules) return <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />;
 
   return (
     <View testID="games-list">
       {session && !offline ? <AvailabilityStrip modules={modules} /> : null}
-      <Text style={styles.heading}>{t('picker.title')}</Text>
+      <Text style={styles.heading} {...heading(3)}>
+        {t('picker.title')}
+      </Text>
       {/* A grid of equal tiles. Each cell carries its own padding rather than
           the grid a `gap`, so the last row's width matches the others on
           every engine. */}
@@ -288,7 +297,9 @@ function GameRow({
           state.hovered && { transform: [{ translateY: -2 }] },
         ]}
       >
-        <Text style={styles.name} numberOfLines={1}>
+        {/* Two lines rather than one, so a long name at a large text size
+            wraps instead of losing its end. */}
+        <Text style={styles.name} numberOfLines={2}>
           {moduleLabel(mod)}
         </Text>
         {/* Always drawn, even empty, so every tile in the grid is the same
@@ -320,6 +331,8 @@ function GameRow({
         <Pressable
           testID={`picker-${mod.id}-resume`}
           accessibilityRole="button"
+          // Which game: every tile with a table has a Resume.
+          aria-label={t('a11y.actionFor', { action: t('picker.resume'), what: moduleLabel(mod) })}
           onPress={() => router.push(routeForMatch(resume.status, resume.isHost, resume.matchId))}
           style={({ pressed }) => [styles.resume, styles.resumeCorner, pressed && styles.rowPressed]}
         >
@@ -343,13 +356,14 @@ function AvailabilityStrip({ modules }: { modules: MatchModule[] }) {
     <View style={[shared.card, styles.strip]} testID="availability-strip">
       <Pressable
         style={{ flex: 1 }}
+        role="link"
         onPress={() => router.push(`/lobby/games?moduleId=${encodeURIComponent(availableFor)}`)}
       >
         <Text style={{ color: colors.success, fontWeight: '600' }}>
           {t('picker.waitingFor', { game: mod ? moduleLabel(mod) : moduleName(availableFor) })}
         </Text>
       </Pressable>
-      <Pressable testID="availability-strip-stop" onPress={() => setAvailableFor(null)}>
+      <Pressable testID="availability-strip-stop" role="button" onPress={() => setAvailableFor(null)}>
         <Text style={styles.stripStop}>{t('waiting.stop')}</Text>
       </Pressable>
     </View>
@@ -364,6 +378,9 @@ function AvailabilityStrip({ modules }: { modules: MatchModule[] }) {
 function TableCodeJoin() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const id = useId();
+  const labelId = domId('table-code-label', id);
+  const errorId = domId('table-code-error', id);
   const join = () => {
     const trimmed = codeFromInviteInput(code);
     if (!trimmed) {
@@ -376,9 +393,17 @@ function TableCodeJoin() {
   };
   return (
     <View style={{ marginTop: 16 }}>
+      {/* A visible name for the box: its placeholder goes the moment a
+          player starts typing (or pasting). */}
+      <Text nativeID={labelId} style={styles.codeLabel}>
+        {t('nav.join')}
+      </Text>
       <View style={styles.codeRow}>
         <TextInput
           testID="table-code-input"
+          accessibilityLabel={t('nav.join')}
+          aria-labelledby={labelId}
+          {...invalidWhen(error, errorId)}
           value={code}
           onChangeText={(v) => {
             setCode(v);
@@ -394,13 +419,14 @@ function TableCodeJoin() {
         <Pressable
           testID="table-code-join"
           accessibilityRole="button"
+          aria-label={t('a11y.home.joinCode')}
           onPress={join}
           style={[shared.button, shared.buttonSecondary, styles.codeButton]}
         >
           <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('picker.join')}</Text>
         </Pressable>
       </View>
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      {error ? <FormError id={errorId} message={error} /> : null}
     </View>
   );
 }
@@ -489,7 +515,7 @@ function WaitingInvitesCard() {
   if (invites.length === 0) return null;
   return (
     <View style={[shared.card, { marginTop: 12 }]} testID="waiting-invites-card">
-      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }}>
+      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }} {...heading(3)}>
         {t('notify.waitingCard.title')}
       </Text>
       {invites.map((invite) => (
@@ -557,6 +583,7 @@ const styles = StyleSheet.create({
   strip: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
   stripStop: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
   codeRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  codeLabel: { color: colors.muted, fontSize: 13, fontWeight: '600', marginBottom: 6 },
   codeInput: { flex: 1, marginBottom: 0 },
   codeButton: { marginBottom: 0, paddingVertical: 12 },
 });
@@ -574,6 +601,7 @@ function ServedByTableNote() {
       {host ? (
         <Pressable
           testID="served-open-in-app"
+          role="link"
           onPress={() => void Linking.openURL(`clientreactnative://offline?h=${encodeURIComponent(host)}`)}
         >
           <Text style={[shared.status, { color: colors.accent, marginTop: 6 }]}>{t('served.openInApp')}</Text>

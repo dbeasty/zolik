@@ -1,7 +1,8 @@
-import type { ReactNode, Ref } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, type ReactNode, type Ref } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchState, Zone } from '@/src/api/matchTypes';
+import { BoardSpeechProvider } from '@/src/components/match/BoardSpeech';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
 import { MoveAnnouncements } from '@/src/components/match/MoveAnnouncements';
@@ -107,6 +108,12 @@ export function BoardLayout({
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
   const drops = dropProps ?? {};
+  // Who is who and what is where, for everything below that says itself out
+  // loud — see `BoardSpeech`.
+  const speech = useMemo(
+    () => ({ players: state.players, viewerId, zones }),
+    [state.players, viewerId, zones],
+  );
 
   // What is worth putting on screen at all — a hidden zone with a count and
   // no cards says nothing the seat strip has not already said, unless it is
@@ -174,7 +181,7 @@ export function BoardLayout({
     ) : null;
 
   return (
-    <>
+    <BoardSpeechProvider value={speech}>
       <SeatStrip
         seats={view.seats ?? []}
         players={state.players}
@@ -191,7 +198,15 @@ export function BoardLayout({
       {/* The piles and stacks everyone draws from and discards to, and the
           cards everyone plays against, directly above the hand and buttons. */}
       {tableZones.length > 0 || arranged.length > 0 ? (
-        <View {...tableAnchor}>
+        <View
+          {...tableAnchor}
+          // The table is one of the board's regions — see `Panel`'s `region`.
+          // Here rather than on the section, because a trick laid out by seat
+          // sits beside the section and is just as much the table.
+          {...((Platform.OS === 'web'
+            ? { role: 'region', 'aria-label': t('a11y.board.region.table') }
+            : {}) as object)}
+        >
           {arranged.map((z) => (
             <SeatArrangedZone
               key={z.id}
@@ -248,7 +263,7 @@ export function BoardLayout({
           {factText(f, state.players)}
         </Text>
       ))}
-    </>
+    </BoardSpeechProvider>
   );
 }
 
@@ -423,6 +438,9 @@ export function matchStyles(s: Skin) {
     paddingVertical: 3,
   },
   hintButtonText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
+  // The hint button's tooltip wrapper is the row's flex item, so it is the
+  // one pushed to the right.
+  hintAt: { marginLeft: 'auto' },
   hintLine: { color: colors.gold, fontSize: 13, marginBottom: 8 },
 
   // The end of a match, built like the rule-violation banner in `shared`: a

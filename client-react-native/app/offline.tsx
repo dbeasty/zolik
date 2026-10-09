@@ -5,6 +5,8 @@ import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import * as nearby from '@/modules/zolik-nearby';
+import { Field, FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
 import { Screen } from '@/src/components/Screen';
 import {
   loadGuestId,
@@ -104,20 +106,22 @@ function NotSeated() {
   return (
     <Screen title={t('offline.title')} subtitle={t('offline.subtitle')} scroll>
       <Text style={shared.status}>{t('offline.body')}</Text>
-      <TextInput
-        style={[shared.input, { marginTop: 12 }]}
-        placeholder={t('offline.nameLabel')}
-        placeholderTextColor="#8b9cb3"
-        value={name}
-        onChangeText={(v) => {
-          named.current = true;
-          setName(v);
-        }}
-        autoCapitalize="words"
-        testID="offline-name"
-      />
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      <View style={{ marginTop: 12 }}>
+        <Field
+          label={t('offline.nameLabel')}
+          error={error}
+          placeholder={t('offline.nameLabel')}
+          value={name}
+          onChangeText={(v) => {
+            named.current = true;
+            setName(v);
+          }}
+          autoCapitalize="words"
+          testID="offline-name"
+        />
+      </View>
       <Pressable
+        role="button"
         style={[shared.button, { marginTop: 12 }]}
         onPress={() =>
           run(async () => {
@@ -132,7 +136,9 @@ function NotSeated() {
       </Pressable>
 
       <View style={[shared.card, { marginTop: 12 }]}>
-        <Text style={cardTitle}>{t('offline.nearbyTitle')}</Text>
+        <Text style={cardTitle} {...heading(3)}>
+          {t('offline.nearbyTitle')}
+        </Text>
         {hosts.length === 0 ? (
           <Text style={shared.status}>
             {slow ? t('offline.nearbyNothing') : t('offline.nearbyLooking')}
@@ -145,6 +151,8 @@ function NotSeated() {
                 <Text style={shared.status}>{host.hostName}</Text>
                 {current ? (
                   <Pressable
+                    role="button"
+                    aria-label={t('a11y.actionFor', { action: t('offline.joinThis'), what: host.hostName })}
                     style={[shared.button, shared.buttonSecondary]}
                     disabled={busy}
                     onPress={() => run(() => joinNearby(`${host.address}:${host.port}`, name.trim()), true)}
@@ -169,9 +177,13 @@ function NotSeated() {
       />
 
       <View style={[shared.card, { marginTop: 12 }]}>
-        <Text style={cardTitle}>{t('offline.byAddressTitle')}</Text>
+        <Text style={cardTitle} {...heading(3)}>
+          {t('offline.byAddressTitle')}
+        </Text>
         <TextInput
           style={shared.input}
+          // The card's title names the box: an example address is not a label.
+          accessibilityLabel={t('offline.byAddressTitle')}
           placeholder="192.168.1.20:47800"
           placeholderTextColor="#8b9cb3"
           value={address}
@@ -182,6 +194,7 @@ function NotSeated() {
           testID="offline-address"
         />
         <Pressable
+          role="button"
           style={[shared.button, shared.buttonSecondary]}
           disabled={busy || !address.trim()}
           onPress={() => run(() => joinNearby(address, name.trim()), true)}
@@ -256,9 +269,11 @@ function BluetoothTables({ busy, onJoin }: { busy: boolean; onJoin: (peripheralI
 
   return (
     <View style={[shared.card, { marginTop: 12 }]}>
-      <Text style={cardTitle}>{t('offline.bleTitle')}</Text>
+      <Text style={cardTitle} {...heading(3)}>
+          {t('offline.bleTitle')}
+        </Text>
       {state === 'idle' ? (
-        <Pressable style={[shared.button, shared.buttonSecondary]} onPress={look} testID="offline-ble-look">
+        <Pressable role="button" style={[shared.button, shared.buttonSecondary]} onPress={look} testID="offline-ble-look">
           <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.bleLook')}</Text>
         </Pressable>
       ) : state === 'off' ? (
@@ -272,6 +287,8 @@ function BluetoothTables({ busy, onJoin }: { busy: boolean; onJoin: (peripheralI
           <View key={s.peripheralId} style={{ marginTop: 8 }}>
             <Text style={shared.status}>{s.name || '—'}</Text>
             <Pressable
+              role="button"
+              aria-label={t('a11y.actionFor', { action: t('offline.joinThis'), what: s.name || '—' })}
               style={[shared.button, shared.buttonSecondary]}
               disabled={busy}
               onPress={() => {
@@ -371,16 +388,18 @@ function Hosting() {
       <Text style={shared.status} testID="offline-active">
         {t('offline.active')}
       </Text>
-      <Pressable style={[shared.button, { marginTop: 12 }]} onPress={() => router.dismissTo('/')}>
+      <Pressable role="button" style={[shared.button, { marginTop: 12 }]} onPress={() => router.dismissTo('/')}>
         <Text style={shared.buttonText}>{t('offline.chooseGame')}</Text>
       </Pressable>
 
       <View style={[shared.card, { marginTop: 12 }]}>
-        <Text style={cardTitle}>{t('offline.roomTitle')}</Text>
+        <Text style={cardTitle} {...heading(3)}>
+          {t('offline.roomTitle')}
+        </Text>
         <Pressable
           testID="offline-tell-nearby"
-          accessibilityRole="switch"
-          accessibilityState={{ checked: tellNearby === true }}
+          role="switch"
+          aria-checked={tellNearby === true}
           onPress={async () => {
             const next = tellNearby !== true;
             await saveFlag('tellNearby', next);
@@ -391,6 +410,7 @@ function Hosting() {
         >
           {/* The same two-pixel border on and off, so ticking it moves nothing. */}
           <View
+            aria-hidden
             style={{
               width: 22,
               height: 22,
@@ -422,7 +442,11 @@ function Hosting() {
                 {/* A plain web address: any phone's camera opens it in the
                     browser, where this phone serves the game itself. A guest
                     with the app is offered it from that page. */}
-                <View style={{ alignSelf: 'flex-start', padding: 8, backgroundColor: '#fff', marginVertical: 8 }}>
+                <View
+                  style={{ alignSelf: 'flex-start', padding: 8, backgroundColor: '#fff', marginVertical: 8 }}
+                  role="img"
+                  aria-label={t('a11y.qr')}
+                >
                   <QRCode value={`http://${first}/`} size={168} />
                 </View>
                 <Text style={shared.status} testID="offline-qr-hint">
@@ -430,7 +454,7 @@ function Hosting() {
                 </Text>
               </>
             ) : null}
-            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={close} testID="offline-room-close">
+            <Pressable role="button" style={[shared.button, shared.buttonSecondary]} onPress={close} testID="offline-room-close">
               <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.roomClose')}</Text>
             </Pressable>
           </>
@@ -438,6 +462,7 @@ function Hosting() {
           <>
             <Text style={shared.status}>{t('offline.roomBody')}</Text>
             <Pressable
+              role="button"
               style={[shared.button, { marginTop: 8 }]}
               onPress={open}
               disabled={busy}
@@ -447,7 +472,7 @@ function Hosting() {
             </Pressable>
           </>
         )}
-        {error ? <Text style={shared.error}>{error}</Text> : null}
+        {error ? <FormError message={error} /> : null}
       </View>
 
       <BluetoothRoom name={session?.username ?? ''} />
@@ -455,6 +480,7 @@ function Hosting() {
       <InternetRoom name={session?.username ?? ''} signedIn={!!session && !session.isGuest} />
 
       <Pressable
+        role="button"
         style={[shared.button, shared.buttonSecondary]}
         onPress={() => router.push('/local-games')}
         testID="offline-local-games"
@@ -463,6 +489,7 @@ function Hosting() {
       </Pressable>
 
       <Pressable
+        role="button"
         style={[shared.button, shared.buttonSecondary]}
         onPress={leave}
         disabled={busy}
@@ -522,7 +549,7 @@ function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
       ) : !open ? (
         <>
           <Text style={shared.status}>{t('relay.cardBody')}</Text>
-          <Pressable style={[shared.button, { marginTop: 8 }]} onPress={start} disabled={busy} testID="offline-relay-open">
+          <Pressable role="button" style={[shared.button, { marginTop: 8 }]} onPress={start} disabled={busy} testID="offline-relay-open">
             <Text style={shared.buttonText}>{busy ? t('relay.opening') : t('relay.open')}</Text>
           </Pressable>
         </>
@@ -547,7 +574,7 @@ function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
               <View style={{ alignSelf: 'flex-start', padding: 8, backgroundColor: '#fff', marginVertical: 8 }}>
                 <QRCode value={relay.url} size={168} />
               </View>
-              <Pressable
+              <Pressable role="button"
                 style={[shared.button, { marginTop: 4 }]}
                 onPress={() => void shareInviteLink(relay.url, t('relay.shareText', { name }))}
                 testID="offline-relay-share"
@@ -556,7 +583,7 @@ function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
               </Pressable>
             </>
           ) : null}
-          <Pressable style={[shared.button, shared.buttonSecondary]} onPress={stop} testID="offline-relay-close">
+          <Pressable role="button" style={[shared.button, shared.buttonSecondary]} onPress={stop} testID="offline-relay-close">
             <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('relay.close')}</Text>
           </Pressable>
         </>
@@ -623,7 +650,9 @@ function BluetoothRoom({ name }: { name: string }) {
 
   return (
     <View style={[shared.card, { marginTop: 12 }]}>
-      <Text style={cardTitle}>{t('offline.bleTitle')}</Text>
+      <Text style={cardTitle} {...heading(3)}>
+          {t('offline.bleTitle')}
+        </Text>
       {open ? (
         <>
           <Text style={shared.status} testID="offline-ble-open">
@@ -634,19 +663,19 @@ function BluetoothRoom({ name }: { name: string }) {
               {t('offline.bleCheck', { code: c })}
             </Text>
           ))}
-          <Pressable style={[shared.button, shared.buttonSecondary]} onPress={stop} testID="offline-ble-stop">
+          <Pressable role="button" style={[shared.button, shared.buttonSecondary]} onPress={stop} testID="offline-ble-stop">
             <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.bleStop')}</Text>
           </Pressable>
         </>
       ) : (
         <>
           <Text style={shared.status}>{t('offline.bleInviteBody')}</Text>
-          <Pressable style={[shared.button, { marginTop: 8 }]} onPress={start} testID="offline-ble-invite">
+          <Pressable role="button" style={[shared.button, { marginTop: 8 }]} onPress={start} testID="offline-ble-invite">
             <Text style={shared.buttonText}>{t('offline.bleInvite')}</Text>
           </Pressable>
         </>
       )}
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      {error ? <FormError message={error} /> : null}
     </View>
   );
 }
@@ -671,6 +700,7 @@ function Guesting() {
         </Text>
       ) : null}
       <Pressable
+        role="button"
         style={[shared.button, { marginTop: 12 }]}
         onPress={() => router.push('/lobby/join')}
         testID="offline-guest-join"
@@ -678,12 +708,14 @@ function Guesting() {
         <Text style={shared.buttonText}>{t('nav.join')}</Text>
       </Pressable>
       <Pressable
+        role="button"
         style={[shared.button, shared.buttonSecondary]}
         onPress={() => router.dismissTo('/')}
       >
         <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.chooseGame')}</Text>
       </Pressable>
       <Pressable
+        role="button"
         style={[shared.button, shared.buttonSecondary]}
         onPress={async () => {
           await leaveOffline();
