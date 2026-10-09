@@ -1892,6 +1892,8 @@ export const ro: Record<string, string> = {
   'notify.addedToCircle': '{name} este în cercul tău',
   'notify.push.inviteTitle': '{host} a deschis o masă',
   'notify.push.inviteBody': 'Vino să joci {game} cu {host}. Atinge pentru a te alătura.',
+  'notify.push.joinedTitle': '{name} s-a alăturat mesei',
+  'notify.push.joinedBody': '{game} · atinge pentru a deschide masa',
   'notify.push.rematchTitle': '{host} vrea o revanșă',
   'notify.push.rematchBody': 'Locul tău la {game} este păstrat. Atinge pentru a intra.',
   'offline.tellNearby': 'Anunță jucătorii din apropiere',

@@ -1871,6 +1871,8 @@ export const da: Record<string, string> = {
   'notify.addedToCircle': '{name} er i din kreds',
   'notify.push.inviteTitle': '{host} har åbnet et bord',
   'notify.push.inviteBody': 'Kom og spil {game} med {host}. Tryk for at deltage.',
+  'notify.push.joinedTitle': '{name} har sat sig ved bordet',
+  'notify.push.joinedBody': '{game} · tryk for at åbne bordet',
   'notify.push.rematchTitle': '{host} vil have en revanche',
   'notify.push.rematchBody': 'Din plads ved {game} er holdt. Tryk for at deltage.',
   'offline.tellNearby': 'Giv spillere i nærheden besked',

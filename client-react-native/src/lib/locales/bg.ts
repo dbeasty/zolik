@@ -1885,6 +1885,8 @@ export const bg: Record<string, string> = {
   'notify.addedToCircle': '{name} е във вашия кръг',
   'notify.push.inviteTitle': '{host} отвори маса',
   'notify.push.inviteBody': 'Елате да играете {game} с {host}. Докоснете, за да се присъедините.',
+  'notify.push.joinedTitle': '{name} се присъедини към масата',
+  'notify.push.joinedBody': '{game} · докоснете, за да отворите масата',
   'notify.push.rematchTitle': '{host} иска реванш',
   'notify.push.rematchBody': 'Мястото ви на {game} е запазено. Докоснете, за да се присъедините.',
   'offline.tellNearby': 'Съобщи на играчите наблизо',

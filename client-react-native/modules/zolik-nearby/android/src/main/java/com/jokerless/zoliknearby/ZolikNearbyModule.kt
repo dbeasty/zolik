@@ -68,6 +68,16 @@ class ZolikNearbyModule : Module() {
 
     Events("onHostFound", "onHostLost", "onBleFound", "onBleMessage", "onBleClosed", "onBleGuests")
 
+    // The phone's own notification when somebody sits down at a table it
+    // hosts. See NearbyNotify.kt.
+    OnCreate { Zolikcore.setNotifier(JoinNotifier(context())) }
+    OnActivityEntersForeground { JoinNotifier.inFront = true }
+    OnActivityEntersBackground { JoinNotifier.inFront = false }
+
+    Function("setJoinedTexts") { title: String, body: String ->
+      Zolikcore.setJoinedTexts(title, body)
+    }
+
     // Bluetooth, host side: advertise the table and serve guests through the
     // Go tunnel. The Go host must already be running.
     AsyncFunction("bleHostStart") { name: String ->

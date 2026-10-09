@@ -282,6 +282,18 @@ func (a *App) ReplicaWriter() *replica.Writer {
 // Nil when this install replicates with nobody.
 func (a *App) Sync() *zsync.Node { return a.sync }
 
+// AddJoinObserver hears every person who sits down at a table this process
+// hosts. The phone uses it to tell its owner, who may not be looking.
+func (a *App) AddJoinObserver(o match.JoinObserver) { a.matchManager().AddJoinObserver(o) }
+
+// GameLabel is a game's name as its module gives it, or "" for none.
+func (a *App) GameLabel(moduleID string) string {
+	if mod := a.matchManager().Registry().Get(moduleID); mod != nil {
+		return mod.Descriptor().Label
+	}
+	return ""
+}
+
 // HostResumed is a phone's server coming back from the background: absences
 // it caused are not charged to the players (see match/hostpause.go).
 func (a *App) HostResumed() { a.matchManager().HostResumed() }

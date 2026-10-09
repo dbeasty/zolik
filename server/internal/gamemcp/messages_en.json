@@ -1839,6 +1839,8 @@
  "notify.prompt.title": "Get told when your circle starts a game",
  "notify.push.inviteBody": "Come and play {game} with {host}. Tap to join.",
  "notify.push.inviteTitle": "{host} opened a table",
+ "notify.push.joinedBody": "{game} · tap to open the table",
+ "notify.push.joinedTitle": "{name} joined the table",
  "notify.push.rematchBody": "Your seat at {game} is being held. Tap to join.",
  "notify.push.rematchTitle": "{host} wants a rematch",
  "notify.settings.heading": "Notifications",

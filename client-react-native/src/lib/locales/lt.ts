@@ -1874,6 +1874,8 @@ export const lt: Record<string, string> = {
   'notify.addedToCircle': '{name} yra jūsų rate',
   'notify.push.inviteTitle': '{host} atidarė stalą',
   'notify.push.inviteBody': 'Ateikite žaisti {game} su {host}. Palieskite, kad prisijungtumėte.',
+  'notify.push.joinedTitle': '{name} prisijungė prie stalo',
+  'notify.push.joinedBody': '{game} · palieskite, kad atidarytumėte stalą',
   'notify.push.rematchTitle': '{host} nori revanšo',
   'notify.push.rematchBody': 'Jūsų vieta žaidime {game} laikoma. Palieskite, kad prisijungtumėte.',
   'offline.tellNearby': 'Pranešti žaidėjams netoliese',

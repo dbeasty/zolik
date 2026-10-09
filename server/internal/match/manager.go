@@ -125,6 +125,8 @@ type Manager struct {
 	// rematchObserver hears who a rematch is holding seats for, so they can
 	// be told wherever they are. Optional — see SetRematchObserver.
 	rematchObserver RematchObserver
+	// joinObservers hear who sat down at which table. See AddJoinObserver.
+	joinObservers []JoinObserver
 }
 
 // LobbyObserver is told when a lobby stops being one somebody could join: it
@@ -136,6 +138,26 @@ type LobbyObserver interface {
 
 // SetLobbyObserver attaches the observer. Optional.
 func (m *Manager) SetLobbyObserver(o LobbyObserver) { m.lobbyObserver = o }
+
+// JoinObserver is told when a person sits down at a table, so the people
+// already sitting there can be told wherever they are. Never for a bot, and
+// never for somebody coming back to a seat they already had. Must not block.
+type JoinObserver interface {
+	PlayerJoined(m models.Match, p models.Player)
+}
+
+// AddJoinObserver attaches another observer. Optional; every one is told.
+func (m *Manager) AddJoinObserver(o JoinObserver) {
+	if o != nil {
+		m.joinObservers = append(m.joinObservers, o)
+	}
+}
+
+func (m *Manager) playerJoined(match models.Match, p models.Player) {
+	for _, o := range m.joinObservers {
+		o.PlayerJoined(match, p)
+	}
+}
 
 // SetPersonalRoom names the room every client's own, always-open connection
 // is held in, keyed by subject key. With it, being picked up out of the
@@ -439,14 +461,21 @@ func (m *Manager) Join(ctx context.Context, idOrCode string, p models.Player) (m
 	if err != nil {
 		return models.Match{}, err
 	}
+	already := false
+	for _, existing := range e.match.Players {
+		already = already || existing.ID == p.ID
+	}
 	joined, full, err := m.joinLocked(ctx, e, p)
 	e.mu.Unlock()
 	if err != nil {
 		return models.Match{}, err
 	}
+	// Told once the lock is released, so an observer can never be the
+	// reason a table's lock is held.
+	if !already && !p.IsAI {
+		m.playerJoined(joined, p)
+	}
 	if full {
-		// Told once the lock is released, so an observer can never be the
-		// reason a table's lock is held.
 		m.lobbyClosed(joined.ID.Hex())
 	}
 	return joined, nil

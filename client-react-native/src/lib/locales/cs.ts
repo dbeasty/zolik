@@ -1865,6 +1865,8 @@ export const cs: Record<string, string> = {
   'notify.addedToCircle': '{name} je ve vašem kruhu',
   'notify.push.inviteTitle': '{host} otevřel(a) stůl',
   'notify.push.inviteBody': 'Přijďte si zahrát {game} s hráčem {host}. Klepněte a přisedněte.',
+  'notify.push.joinedTitle': '{name} přisedl(a) ke stolu',
+  'notify.push.joinedBody': '{game} · klepnutím otevřete stůl',
   'notify.push.rematchTitle': '{host} chce odvetu',
   'notify.push.rematchBody': 'Vaše místo u hry {game} je drženo. Klepněte a přisedněte.',
   'offline.tellNearby': 'Dát vědět hráčům poblíž',

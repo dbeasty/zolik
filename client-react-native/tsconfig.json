@@ -16,6 +16,7 @@
   ],
   "exclude": [
     "**/*.test.ts",
+    "**/*.test.tsx",
     "app.config.ts"
   ]
 }

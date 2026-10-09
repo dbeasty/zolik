@@ -13,6 +13,7 @@ import { AgentConnectPanel } from '@/src/components/AgentConnectPanel';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
@@ -65,6 +66,12 @@ export default function TableScreen() {
 
   const id = String(matchId ?? '');
   const isHost = !!state?.hostId && state.hostId === session?.userId;
+  // Who sits down while the host waits, said out loud rather than left for
+  // them to spot in the list.
+  useAnnounceArrivals(id, state?.players, session?.userId, {
+    moduleId: state?.moduleId,
+    joinCode: state?.joinCode,
+  });
 
   const poll = useCallback(async () => {
     if (!id) return;

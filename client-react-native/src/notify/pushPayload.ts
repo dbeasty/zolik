@@ -28,6 +28,17 @@ export function messageFromPush(data: unknown): MeWSMessage | null {
         : null;
     case 'circle_changed':
       return { type: 'circle_changed' };
+    case 'table_joined':
+      return typeof d.matchId === 'string' && typeof d.playerId === 'string'
+        ? {
+            type: 'table_joined',
+            matchId: d.matchId,
+            joinCode: typeof d.joinCode === 'string' ? d.joinCode : undefined,
+            moduleId: typeof d.moduleId === 'string' ? d.moduleId : undefined,
+            playerId: d.playerId,
+            name: typeof d.name === 'string' ? d.name : '',
+          }
+        : null;
     default:
       return null;
   }

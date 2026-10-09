@@ -1873,6 +1873,8 @@ export const sk: Record<string, string> = {
   'notify.addedToCircle': '{name} je vo vašom kruhu',
   'notify.push.inviteTitle': '{host} otvoril(a) stôl',
   'notify.push.inviteBody': 'Príďte si zahrať {game} s hráčom {host}. Ťuknite a prisadnite.',
+  'notify.push.joinedTitle': '{name} prisadol(a) k stolu',
+  'notify.push.joinedBody': '{game} · ťuknutím otvoríte stôl',
   'notify.push.rematchTitle': '{host} chce odvetu',
   'notify.push.rematchBody': 'Vaše miesto v hre {game} je držané. Ťuknite a prisadnite si.',
   'offline.tellNearby': 'Dať vedieť hráčom nablízku',

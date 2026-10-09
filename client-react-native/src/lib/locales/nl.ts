@@ -1899,6 +1899,8 @@ export const nl: Record<string, string> = {
   'notify.addedToCircle': '{name} zit in je kring',
   'notify.push.inviteTitle': '{host} heeft een tafel geopend',
   'notify.push.inviteBody': 'Kom {game} spelen met {host}. Tik om mee te doen.',
+  'notify.push.joinedTitle': '{name} is aan tafel gaan zitten',
+  'notify.push.joinedBody': '{game} · tik om de tafel te openen',
   'notify.push.rematchTitle': '{host} wil een revanche',
   'notify.push.rematchBody': 'Je plaats bij {game} wordt vrijgehouden. Tik om mee te doen.',
   'offline.tellNearby': 'Spelers in de buurt laten weten',

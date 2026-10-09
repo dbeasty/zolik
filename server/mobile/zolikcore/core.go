@@ -200,6 +200,8 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 		})
 	})
 
+	a.AddJoinObserver(joinNotifier{gameName: a.GameLabel})
+
 	ctx, cancel := context.WithCancel(context.Background())
 	a.Start(ctx)
 

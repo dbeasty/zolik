@@ -1870,6 +1870,8 @@ export const sv: Record<string, string> = {
   'notify.addedToCircle': '{name} är i din krets',
   'notify.push.inviteTitle': '{host} har öppnat ett bord',
   'notify.push.inviteBody': 'Kom och spela {game} med {host}. Tryck för att gå med.',
+  'notify.push.joinedTitle': '{name} har satt sig vid bordet',
+  'notify.push.joinedBody': '{game} · tryck för att öppna bordet',
   'notify.push.rematchTitle': '{host} vill ha en returmatch',
   'notify.push.rematchBody': 'Din plats i {game} hålls åt dig. Tryck för att gå med.',
   'offline.tellNearby': 'Meddela spelare i närheten',

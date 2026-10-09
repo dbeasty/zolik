@@ -23,6 +23,8 @@ import { guestIdOfKey } from '@/src/lib/inviteLink';
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
 import { servingTable } from '@/src/net/servingTable';
+import { askToNotify } from '@/src/notify/localNotify';
+import { t } from '@/src/lib/i18n';
 import { useReplicaSync } from '@/src/net/useReplicaSync';
 import type {
   AccountProfile,
@@ -701,6 +703,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const playOffline = useCallback(
     async (name: string) => {
       const host = await nearby.startHost();
+      // The host is told when somebody sits down, by the phone itself when
+      // the app is in the background: in the app's words, and only with the
+      // player's leave to notify.
+      nearby.setJoinedTexts(t('notify.push.joinedTitle'), t('notify.push.joinedBody'));
+      void askToNotify();
       await sitAt(
         new ZolikClient(host.baseUrl),
         host.instanceId,

@@ -1879,6 +1879,8 @@ export const pl: Record<string, string> = {
   'notify.addedToCircle': '{name} jest w twoim kręgu',
   'notify.push.inviteTitle': '{host} otwiera stół',
   'notify.push.inviteBody': 'Zagraj w {game} z: {host}. Dotknij, aby dołączyć.',
+  'notify.push.joinedTitle': '{name} dołącza do stołu',
+  'notify.push.joinedBody': '{game} · dotknij, aby otworzyć stół',
   'notify.push.rematchTitle': '{host} chce rewanżu',
   'notify.push.rematchBody': 'Twoje miejsce w grze {game} czeka. Dotknij, aby dołączyć.',
   'offline.tellNearby': 'Powiadom graczy w pobliżu',

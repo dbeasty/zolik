@@ -106,6 +106,7 @@ import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
 import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
+import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -246,6 +247,11 @@ export default function MatchScreen() {
   // only means a sheet shows its reason and remedy with no rule behind it.
   const ruleIndex = useRuleIndex(state);
   const viewerId = session?.userId ?? '';
+  // A game that takes players mid-play tells the table who just sat down.
+  useAnnounceArrivals(matchId ? String(matchId) : undefined, state?.players, viewerId, {
+    moduleId: state?.moduleId,
+    joinCode: state?.joinCode,
+  });
 
   const view = state?.view ?? { zones: [] };
   const zones = view.zones ?? [];

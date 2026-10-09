@@ -32,6 +32,7 @@ import type { Invite } from '@/src/notify/types';
 import { useAppActive } from '@/src/notify/useAppActive';
 import { useNearbyWatcher } from '@/src/notify/useNearbyWatcher';
 import { useUserSocket } from '@/src/notify/useUserSocket';
+import { useTableEvents } from '@/src/notify/TableEvents';
 import { showUnreadInTitle } from '@/src/notify/webTitle';
 
 type InviteContextValue = {
@@ -165,6 +166,7 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const { announce } = useTableEvents();
   const onMessage = useCallback(
     (msg: MeWSMessage) => {
       const now = Date.now();
@@ -186,9 +188,12 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
         case 'circle_changed':
           refreshCircle();
           return;
+        case 'table_joined':
+          announce(msg);
+          return;
       }
     },
-    [receiveSeated, refreshCircle],
+    [receiveSeated, refreshCircle, announce],
   );
 
   // Closed while a phone's app is in the background, where the OS push is

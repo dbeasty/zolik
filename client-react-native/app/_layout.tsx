@@ -16,6 +16,7 @@ import { startPerfMonitor } from '@/src/lib/perfMonitor';
 import { InviteBanner } from '@/src/notify/InviteBanner';
 import { AvailabilityProvider } from '@/src/context/AvailabilityContext';
 import { InviteProvider } from '@/src/notify/InviteProvider';
+import { TableEventsProvider } from '@/src/notify/TableEvents';
 import { colors } from '@/src/theme';
 
 export { ErrorBoundary } from 'expo-router';
@@ -58,6 +59,7 @@ export default function RootLayout() {
                   that outlives the screens. The banner is its face, drawn
                   over the Stack rather than inside any one screen. See
                   `src/notify/InviteProvider.tsx`. */}
+              <TableEventsProvider>
               <InviteProvider>
                 {/* Whether this player is waiting to be picked up, held above
                     the screens so leaving a game's page does not end it. See
@@ -174,6 +176,7 @@ export default function RootLayout() {
                     `src/a11y`. */}
                 <A11yRoot />
               </InviteProvider>
+              </TableEventsProvider>
             </AvatarProvider>
           </SessionProvider>
         </SkinProvider>
