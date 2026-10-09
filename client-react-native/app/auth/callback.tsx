@@ -22,7 +22,7 @@ import { t } from '@/src/lib/i18n';
 export default function AuthCallbackScreen() {
   const params = useGlobalSearchParams<{ code?: string; error?: string }>();
   const { client, setSession } = useSession();
-  const [message, setMessage] = useState('Signing you in…');
+  const [message, setMessage] = useState(() => t('a11y.auth.signingIn'));
   const ran = useRef(false);
 
   useEffect(() => {
@@ -59,8 +59,12 @@ export default function AuthCallbackScreen() {
 
   return (
     <Screen title={t('nav.signingIn')}>
-      <ActivityIndicator color={colors.accent} style={{ marginBottom: 16 }} />
-      <Text style={shared.status}>{message}</Text>
+      <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} style={{ marginBottom: 16 }} />
+      {/* Polite: the message changes from "signing you in" to the outcome,
+          and a screen reader should hear the outcome. */}
+      <Text style={shared.status} aria-live="polite">
+        {message}
+      </Text>
     </Screen>
   );
 }

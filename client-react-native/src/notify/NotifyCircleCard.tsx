@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { heading } from '@/src/a11y/props';
 import { apiClient } from '@/src/api/client';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -65,29 +66,33 @@ export function NotifyCircleCard({ matchId }: { matchId: string }) {
   return (
     <>
       <View style={[shared.card, { marginTop: 12 }]} testID="notify-circle-card">
-        <Text style={styles.heading}>{t('notify.announce.heading')}</Text>
+        <Text style={styles.heading} {...heading(3)}>
+          {t('notify.announce.heading')}
+        </Text>
         <Text style={shared.status}>{t('notify.announce.body')}</Text>
 
         <Pressable
           testID="notify-circle-toggle"
-          accessibilityRole="switch"
-          accessibilityState={{ checked: enabled === true }}
+          role="switch"
+          // `aria-checked`: react-native-web does not render
+          // `accessibilityState`, so the switch read as neither on nor off.
+          aria-checked={enabled === true}
           onPress={() => void saveFlag('announce', !enabled)}
           style={styles.toggleRow}
         >
-          <View style={[styles.box, enabled && styles.boxOn]}>
+          <View style={[styles.box, enabled && styles.boxOn]} aria-hidden>
             {enabled ? <Text style={styles.tick}>✓</Text> : null}
           </View>
           <Text style={styles.toggleText}>{t('notify.announce.toggle')}</Text>
         </Pressable>
 
         {enabled ? (
-          <Text style={[shared.status, { color: colors.text }]} testID="notify-circle-status">
+          <Text style={[shared.status, { color: colors.text }]} testID="notify-circle-status" aria-live="polite">
             {statusText(told)}
           </Text>
         ) : null}
 
-        <Pressable onPress={() => router.push('/circle')} testID="notify-circle-link">
+        <Pressable role="link" onPress={() => router.push('/circle')} testID="notify-circle-link">
           <Text style={[shared.status, { color: colors.accent }]}>{t('notify.announce.circleLink')} ›</Text>
         </Pressable>
       </View>

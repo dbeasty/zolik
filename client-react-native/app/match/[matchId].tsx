@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -11,16 +12,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { ActionOffer, MatchAction, Zone } from '@/src/api/matchTypes';
+import { announce, announceGame } from '@/src/a11y/announce';
+import { cardSpokenName, cardsSpoken } from '@/src/a11y/cardNames';
+import { useA11yPrefs } from '@/src/a11y/prefs';
+import { Tip, dismissTips, isTipOpen } from '@/src/a11y/Tip';
+import type { ActionOffer, MatchAction, MoveLine, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, choicesToAsk, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import type { ParamSpec } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { DeckProvider } from '@/src/lib/deck';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
-import { HandZone } from '@/src/components/match/HandZone';
+import { BoardSheet } from '@/src/components/match/BoardSheet';
+import { HandZone, type HandCardInfo } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
-import { OfferBar, OfferGlance, type OfferParams } from '@/src/components/match/OfferBar';
+import { OfferBar, OfferGlance, leadOffer, pressOf, type OfferParams } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
@@ -71,13 +77,27 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
-import { moduleName } from '@/src/lib/gameLabels';
+import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
-import { useSkinControls } from '@/src/hooks/useSkin';
-import { factText, label, playerName } from '@/src/lib/labels';
+import { useSkin, useSkinControls } from '@/src/hooks/useSkin';
+import { factText, label, playerName, spokenFactText } from '@/src/lib/labels';
+import {
+  SHORTCUT_KEYS,
+  cardTargetsText,
+  endsHandFor,
+  isTypingTarget,
+  newMoveLines,
+  playOptionsFor,
+  readTableText,
+  shortcutForKey,
+  sourceSpotFor,
+  undoOfferIn,
+  yourTurnText,
+  type PlayOption,
+} from '@/src/lib/boardSpeech';
 import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
@@ -165,7 +185,7 @@ export default function MatchScreen() {
   // (`ChoiceSheet`), however the card was played: a dragged card has no
   // control beside it to answer on.
   const [asking, setAsking] = useState<{ action: MatchAction; ask: ParamSpec[] } | null>(null);
-  const send = useCallback(
+  const proceed = useCallback(
     (action: MatchAction) => {
       const offer = state?.legalActions?.find((o) => o.id === action.offerId);
       const next = choicesToAsk(offer, action);
@@ -173,6 +193,30 @@ export default function MatchScreen() {
       else sendNow(next.action);
     },
     [state?.legalActions, sendNow],
+  );
+  // A move that ends the hand for this player — the last card out of their
+  // hand, a knock — asks first, when they have asked to be asked (Settings →
+  // Accessibility → Confirm final moves). Off by default: it is one more press
+  // on every hand, and only worth it to someone for whom a slip of the
+  // keyboard or a stray double-tap costs a game. What counts as ending the
+  // hand is deliberately narrow; see `endsHandFor`.
+  const a11yPrefs = useA11yPrefs();
+  const [confirming, setConfirming] = useState<MatchAction | null>(null);
+  const send = useCallback(
+    (action: MatchAction) => {
+      if (a11yPrefs.confirmFinal && state) {
+        const me = session?.userId ?? '';
+        const hands = (state.view?.zones ?? []).filter((z) => z.kind === 'hand' && z.ownerId === me);
+        const held = hands.reduce((n, z) => n + (z.cards?.length ?? z.count), 0);
+        const offer = state.legalActions.find((o) => o.id === action.offerId);
+        if (endsHandFor(offer, action, new Set(hands.map((z) => z.id)), held)) {
+          setConfirming(action);
+          return;
+        }
+      }
+      proceed(action);
+    },
+    [a11yPrefs.confirmFinal, state, session?.userId, proceed],
   );
   const answer = useCallback(
     (name: string, value: string) => {
@@ -479,6 +523,111 @@ export default function MatchScreen() {
     },
     [ending.scrollProps, opening.scrollProps],
   );
+
+  // ---- Accessibility: what is said, and what the keyboard does -----------
+  //
+  // Hooks, so up here above the early return with the rest.
+
+  // Where to play a card that fits more than one place, asked from the
+  // keyboard (Enter on a card) — the sheet's question and its answers.
+  const [chooser, setChooser] = useState<{ cards: string[]; options: PlayOption[] } | null>(null);
+  // The `?` sheet.
+  const [helpOpen, setHelpOpen] = useState(false);
+  // A way back into the hand for the keyboard, handed up by `HandZone`.
+  const handFocus = useRef<(() => void) | null>(null);
+  const registerHandFocus = useCallback((fn: (() => void) | null) => {
+    handFocus.current = fn;
+  }, []);
+
+  // News, said as it happens: somebody else's move, the turn coming round,
+  // a move of one's own refused. Compared state to state, the way flights and
+  // change marks are, and filtered by the player's verbosity choice inside
+  // `announceGame`. The first board a screen opens on is not news, except
+  // that it is your turn.
+  const movesSeen = useRef<MoveLine[] | undefined>(undefined);
+  const turnSeen = useRef(false);
+  useEffect(() => {
+    if (!state) return;
+    const fresh = newMoveLines(movesSeen.current, state.recentMoves);
+    movesSeen.current = state.recentMoves ?? [];
+    for (const m of fresh) {
+      if (m.playerId !== viewerId) announceGame(spokenFactText(m.fact, state.players), 'move');
+    }
+    const mine = state.legalActions.some((o) => o.enabled);
+    if (mine && !turnSeen.current) {
+      const text = yourTurnText(state.legalActions, state.players);
+      if (text) announceGame(text, 'turn');
+    }
+    turnSeen.current = mine;
+    // A question about a board that has moved on is a question about nothing.
+    if (!mine) setChooser(null);
+  }, [state, viewerId]);
+  useEffect(() => {
+    if (error) announceGame(reasonText(error.code, error.message || error.code), 'refusal');
+  }, [error]);
+
+  // What each card in hand can do right now — where it can go, said as its
+  // tooltip and offered as its screen-reader actions. One map, rebuilt only
+  // when the board or the selection changes, so a drag (which changes
+  // neither) leaves every card's memo alone.
+  const heldKey = heldSlots.map((h) => `${h.id}:${h.card}`).join(',');
+  const cardInfo = useMemo(() => {
+    const map = new Map<string, HandCardInfo>();
+    if (!state) return map;
+    const offers = state.legalActions.filter(
+      (o) => o.enabled && !(o.source?.zone === 'from_meld' && !o.source?.submit?.length),
+    );
+    const zonesNow = state.view?.zones ?? [];
+    const picked = cardsForSelection(heldSlots, selected);
+    const arrived = new Set(autoSelectIds);
+    for (const slot of heldSlots) {
+      const cards = selected.has(slot.id) && picked.length ? picked : [slot.card];
+      const { options, partial } = playOptionsFor(offers, cards, zonesNow, state.players, viewerId);
+      map.set(slot.id, {
+        options,
+        partial,
+        tip: [cardSpokenName(slot.card), cardTargetsText(options, partial)].filter(Boolean).join('. '),
+        justDrawn: arrived.has(slot.id),
+      });
+    }
+    return map;
+    // `heldSlots` is rebuilt every render; `heldKey` is what it says.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, heldKey, selected, autoSelectIds, viewerId]);
+
+  // The page's title on the web — the game's name, so a screen reader says
+  // where it has arrived and a browser tab says which table it is.
+  // Game names are the server's own labels (see `gameLabels.ts`), so a game
+  // without a key of its own is named from `/modules` rather than by its id.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const moduleId = state?.moduleId;
+    document.title = t('a11y.page.title', {
+      screen: moduleId ? moduleName(moduleId) : t('nav.match'),
+    });
+    if (!moduleId) return;
+    let live = true;
+    client
+      .modules()
+      .then((mods) => {
+        const mod = mods.find((m) => m.id === moduleId);
+        if (live && mod) document.title = t('a11y.page.title', { screen: moduleLabel(mod) });
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [state?.moduleId, client]);
+
+  // The board's own keys on the web. Assigned below, once everything they act
+  // on has been worked out; listened for here, once.
+  const onBoardKey = useRef<(e: KeyboardEvent) => void>(() => undefined);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const listener = (e: KeyboardEvent) => onBoardKey.current(e);
+    document.addEventListener('keydown', listener);
+    return () => document.removeEventListener('keydown', listener);
+  }, []);
 
   if (!state) {
     return (
@@ -1003,6 +1152,160 @@ export default function MatchScreen() {
     return out;
   };
 
+  // ---- Playing from the keyboard and from a screen reader ---------------
+  //
+  // Everything a drag or a tap on the board does, reachable without either:
+  // a card in hand is played to a place by name, never by finding the place.
+
+  // The cards a press on this card means: the whole selection when the card
+  // is part of it, the card alone otherwise.
+  const cardsFor = (slotId: string): string[] => {
+    const slot = heldSlots.find((h) => h.id === slotId);
+    if (!slot) return [];
+    return selected.has(slotId) && selectedCards.length ? selectedCards : [slot.card];
+  };
+
+  // One named way to play, sent exactly as a press on that target would send
+  // it — `submissionFor` and the offer's own end of the run.
+  const playOption = (option: PlayOption, cards: string[]) => {
+    const offer = state.legalActions.find((o) => o.id === option.spot.offerId);
+    if (!offer) return;
+    const action = submissionFor(offer, { cards });
+    if (!action) return;
+    if (option.position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: option.position };
+    send(action);
+    clearSelection();
+    setPendingGroupKey(null);
+    setTablePick(null);
+  };
+
+  // Enter on a card: played where it goes, when that is one place; a sheet
+  // asking where, when it is several; and when it is none, why not — out
+  // loud, since a keyboard player has no board lighting up to read.
+  const playFromHand = (slotId: string) => {
+    const cards = cardsFor(slotId);
+    if (!cards.length) return;
+    if (!selected.has(slotId)) {
+      setSelected(new Set([slotId]));
+      setSelectionIsAuto(false);
+    }
+    const { options, partial, refusal } = playOptionsFor(handOffers, cards, zones, state.players, viewerId);
+    if (options.length === 1) {
+      playOption(options[0]!, cards);
+      return;
+    }
+    if (options.length > 1) {
+      setChooser({ cards, options });
+      return;
+    }
+    if (partial.length) {
+      const offer = state.legalActions.find((o) => o.id === partial[0]!.spot.offerId);
+      const fit = offer ? readyWith(offer, cards) : undefined;
+      if (fit && !fit.ok) announceGame(label(fit.labelKey, fit.params), 'refusal');
+      return;
+    }
+    const why = refusal?.code
+      ? reasonText(refusal.code, '')
+      : refusal?.labelKey
+        ? label(refusal.labelKey, refusal.params)
+        : '';
+    announceGame(
+      [t('a11y.board.card.cannotPlay', { card: cardsSpoken(cards) }), why].filter(Boolean).join('. '),
+      'refusal',
+    );
+  };
+
+  // A screen reader's "Play to …" action on a card: one of the options its
+  // own description listed.
+  const playTo = (slotId: string, key: string) => {
+    const option = cardInfo.get(slotId)?.options.find((o) => o.key === key);
+    if (option) playOption(option, cardsFor(slotId));
+  };
+
+  // The whole table, said on request.
+  const readTable = () => announce(readTableText(state, viewerId), 'assertive');
+
+  // The piles D and T take from — the face-down stack and the face-up pile,
+  // by the kinds the zones were given: every press-to-take spot on the board, not
+  // only the ones lit while nothing is picked — a key means the same thing
+  // whatever happens to be selected.
+  const takeSpots = sourceSpotsFor(state.legalActions, zones, viewerId);
+  const stackSpot = sourceSpotFor('stack', takeSpots, zones);
+  const pileSpot = sourceSpotFor('pile', takeSpots, zones);
+  const undoOffer = undoOfferIn(state.legalActions);
+  const lead = leadOffer(handOffers, selectedCards, offerParams);
+  // Which control each key presses, for the tooltips that show the key.
+  const offerShortcuts = new Map<string, string>();
+  if (a11yPrefs.shortcuts) {
+    if (stackSpot) offerShortcuts.set(stackSpot.offerId, SHORTCUT_KEYS.stack!);
+    if (pileSpot) offerShortcuts.set(pileSpot.offerId, SHORTCUT_KEYS.pile!);
+    if (undoOffer) offerShortcuts.set(undoOffer.id, SHORTCUT_KEYS.undo!);
+  }
+  if (lead && !offerShortcuts.has(lead.id)) offerShortcuts.set(lead.id, t('a11y.board.key.enter'));
+
+  const sendOffer = (offer: ActionOffer) => {
+    const { action, cards } = pressOf(offer, selectedCards, offerParams);
+    if (!action) return false;
+    send(action);
+    if (cards?.length) clearSelection();
+    return true;
+  };
+
+  onBoardKey.current = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    const which = shortcutForKey(e);
+    if (!which) return;
+    if (isTypingTarget(e.target as HTMLElement | null)) return;
+    // A sheet is open: its keys are its own (Escape closes it there).
+    if (document.querySelector('[aria-modal="true"]')) return;
+    if (which === 'escape') {
+      // A tooltip first — Escape closing the bubble is all it should do then.
+      if (isTipOpen()) return;
+      if (selectedCards.length || pendingGroupKey || armedMeldId || tablePick || meldPick) {
+        clearSelection();
+        setPendingGroupKey(null);
+        setTablePick(null);
+      }
+      return;
+    }
+    if (which === 'primary') {
+      // Only from nowhere in particular: Enter on a control is that control's.
+      const el = document.activeElement as HTMLElement | null;
+      if (el && el !== document.body && (el.tabIndex >= 0 || el.getAttribute('role'))) return;
+      if (lead && sendOffer(lead)) e.preventDefault();
+      return;
+    }
+    // Single characters can be turned off (WCAG 2.1.4); Enter and Escape cannot.
+    if (!a11yPrefs.shortcuts) return;
+    e.preventDefault();
+    switch (which) {
+      case 'help':
+        dismissTips();
+        setHelpOpen(true);
+        return;
+      case 'read':
+        readTable();
+        return;
+      case 'moves': {
+        const box = document.querySelector('[data-testid="move-announcements"]') as HTMLElement | null;
+        box?.focus();
+        return;
+      }
+      case 'stack':
+      case 'pile': {
+        const spot = which === 'stack' ? stackSpot : pileSpot;
+        const offer = spot ? state.legalActions.find((o) => o.id === spot.offerId) : undefined;
+        if (offer && sendOffer(offer)) return;
+        announceGame(t('a11y.board.shortcut.nothing', { key: SHORTCUT_KEYS[which]! }), 'refusal');
+        return;
+      }
+      case 'undo':
+        if (undoOffer && sendOffer(undoOffer)) return;
+        announceGame(t('a11y.board.shortcut.nothing', { key: SHORTCUT_KEYS.undo! }), 'refusal');
+        return;
+    }
+  };
+
   const dropProps = {
     registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
     activeDrops,
@@ -1253,6 +1556,7 @@ export default function MatchScreen() {
     <Panel
       {...zonePanelProps('controls')}
       title={t('match.controls')}
+      region={t('a11y.board.region.actions')}
       testID="controls-panel"
       summary={
         <OfferGlance
@@ -1284,9 +1588,11 @@ export default function MatchScreen() {
                 })}
           </Text>
           {hintsAllowed ? (
-            <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton}>
-              <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
-            </Pressable>
+            <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
+              <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton} hitSlop={8}>
+                <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
+              </Pressable>
+            </Tip>
           ) : null}
         </View>
       ) : null}
@@ -1353,6 +1659,8 @@ export default function MatchScreen() {
         urgent={paused}
         nudge={idle}
         hintOfferId={hint?.offerId}
+        board={{ zones, players: state.players, viewerId }}
+        shortcuts={offerShortcuts}
         onAmbiguous={(groupKey) => {
           setPendingGroupKey(groupKey);
           // The board is inside a scroll view, so a target's position
@@ -1422,6 +1730,10 @@ export default function MatchScreen() {
         entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
         canDropOnBoard={canDropOnBoard}
         badges={badgesFor(z)}
+        cardInfo={cardInfo}
+        onPlay={playFromHand}
+        onPlayTo={playTo}
+        registerFocus={registerHandFocus}
         onPressBadge={(card, badgeKeys) =>
           setExplaining({
             labelKey: badgeKeys[0],
@@ -1440,7 +1752,12 @@ export default function MatchScreen() {
   );
 
   const screen = (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      // iOS's magic tap (a two-finger double tap) reads the table from
+      // anywhere on it — the same words as the Read table control and R.
+      {...((Platform.OS === 'ios' ? { onMagicTap: readTable } : {}) as object)}
+    >
       {/* The felt. Behind everything, catches nothing. */}
       <TableSurface />
       {/* The status lives in the navigation bar, beside the screen's own name
@@ -1458,6 +1775,10 @@ export default function MatchScreen() {
           // The bar above the board dresses to match the board — without
           // this it keeps the app-wide chrome and the felt starts at a seam.
           headerStyle: { backgroundColor: skin.colors.bg },
+          // The page's own title on the web — "Match", like the bar —
+          // which is what a screen reader announces on arrival and what a
+          // browser tab says.
+          title: t('nav.match'),
           headerTintColor: skin.colors.text,
           // The join code rides in the bar too, for the same reason the
           // status does: the board scrolls to the hand on arrival, and a code
@@ -1467,11 +1788,16 @@ export default function MatchScreen() {
           // explainer.
           headerTitle: () => (
             <View style={styles.headerTitleGroup}>
+              <Tip text={t('a11y.board.tip.status')}>
               <Pressable
                 testID="match-status-dot"
                 onPress={() => setStatusExplainerOpen((v) => !v)}
                 hitSlop={8}
                 style={styles.headerTitleGroup}
+                accessibilityRole="button"
+                accessibilityLabel={`${t('nav.match')}: ${statusExplainer}`}
+                accessibilityState={{ expanded: statusExplainerOpen }}
+                {...((Platform.OS === 'web' ? { 'aria-expanded': statusExplainerOpen } : {}) as object)}
               >
                 <Text style={styles.headerTitleText}>{t('nav.match')}</Text>
                 <View
@@ -1481,6 +1807,7 @@ export default function MatchScreen() {
                   {state.status}
                 </Text>
               </Pressable>
+              </Tip>
               {tableCode ? (
                 <TableCode
                   joinCode={tableCode}
@@ -1531,8 +1858,10 @@ export default function MatchScreen() {
               {state.moduleId}
               {state.variation ? ` · ${state.variation}` : ''}
             </Text>
+            <Tip text={t('a11y.board.tip.rules')}>
             <Pressable
               testID="match-rules"
+              accessibilityRole="link"
               onPress={() =>
                 // One continuous template literal — see the matching comment
                 // in app/lobby/setup.tsx for why a `+` chain fails to typecheck
@@ -1545,13 +1874,43 @@ export default function MatchScreen() {
             >
               <Text style={styles.rulesLink}>{t('nav.rules')}</Text>
             </Pressable>
+            </Tip>
+            {/* The whole table, said — for a screen reader, the one control
+                that answers "where are we?" in one go. Also R, and the iOS
+                magic tap (see the root view). */}
+            <Tip text={t('a11y.board.read.tip')} shortcut={a11yPrefs.shortcuts ? SHORTCUT_KEYS.read : undefined}>
+              <Pressable testID="read-table" accessibilityRole="button" onPress={readTable} hitSlop={8}>
+                <Text style={styles.rulesLink}>{t('a11y.board.read.button')}</Text>
+              </Pressable>
+            </Tip>
+            {Platform.OS === 'web' ? (
+              <Tip text={t('a11y.board.tip.shortcuts')} shortcut={SHORTCUT_KEYS.help}>
+                <Pressable
+                  testID="shortcuts-open"
+                  accessibilityRole="button"
+                  onPress={() => setHelpOpen(true)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.rulesLink}>{t('a11y.board.shortcuts.button')}</Text>
+                </Pressable>
+              </Tip>
+            ) : null}
           </View>
           {/* Which look the board wears, cycled in place. A preference about
               pixels, not about the game — it lives on the device and no
               module knows it exists. */}
-          <Pressable testID="skin-toggle" onPress={cycleSkin} hitSlop={8} style={styles.skinToggle}>
-            <Text style={styles.skinToggleText}>◈ {skin.label}</Text>
-          </Pressable>
+          <Tip text={t('a11y.board.tip.skin')}>
+            <Pressable
+              testID="skin-toggle"
+              onPress={cycleSkin}
+              hitSlop={8}
+              style={styles.skinToggle}
+              accessibilityRole="button"
+              accessibilityLabel={skin.label}
+            >
+              <Text style={styles.skinToggleText}>◈ {skin.label}</Text>
+            </Pressable>
+          </Tip>
         </View>
 
         {(view.header ?? []).length > 0 ? (
@@ -1835,6 +2194,74 @@ export default function MatchScreen() {
 
       <ChoiceSheet spec={asking?.ask[0] ?? null} onPick={answer} onCancel={() => setAsking(null)} />
 
+      {/* "Play where?" — a card from the keyboard that fits more than one
+          place. One answer per place (and per end of a run), each named the
+          way the screen reader's own actions name it. */}
+      <BoardSheet
+        visible={!!chooser}
+        testID="play-where"
+        title={chooser ? t('a11y.board.chooser.title', { cards: cardsSpoken(chooser.cards) }) : ''}
+        options={(chooser?.options ?? []).map((o) => ({
+          key: o.key,
+          label: o.label,
+          testID: `play-where-${o.key}`,
+          onPress: () => {
+            const cards = chooser!.cards;
+            setChooser(null);
+            playOption(o, cards);
+            handFocus.current?.();
+          },
+        }))}
+        cancelLabel={t('a11y.board.chooser.cancel')}
+        onCancel={() => {
+          setChooser(null);
+          handFocus.current?.();
+        }}
+      />
+
+      {/* Settings → Accessibility → Confirm final moves. */}
+      <BoardSheet
+        visible={!!confirming}
+        testID="confirm-final"
+        title={t('a11y.board.confirm.title')}
+        body={
+          confirming
+            ? t('a11y.board.confirm.body', {
+                move: offerLabelFor(state.legalActions, confirming),
+              })
+            : undefined
+        }
+        options={[
+          {
+            key: 'yes',
+            primary: true,
+            testID: 'confirm-final-yes',
+            label: confirming ? t('a11y.board.confirm.yes', { move: offerLabelFor(state.legalActions, confirming) }) : '',
+            onPress: () => {
+              const action = confirming;
+              setConfirming(null);
+              if (action) proceed(action);
+            },
+          },
+        ]}
+        cancelLabel={t('a11y.board.confirm.no')}
+        onCancel={() => setConfirming(null)}
+      />
+
+      {/* The keys, listed: `?` from anywhere on the board, or the Shortcuts
+          control beside the rules. */}
+      <BoardSheet
+        visible={helpOpen}
+        testID="shortcuts-sheet"
+        title={t('a11y.board.shortcuts.title')}
+        body={a11yPrefs.shortcuts ? undefined : t('a11y.board.shortcuts.off')}
+        options={[]}
+        cancelLabel={t('a11y.board.shortcuts.close')}
+        onCancel={() => setHelpOpen(false)}
+      >
+        <ShortcutList />
+      </BoardSheet>
+
       <WhySheet
         refusal={explaining}
         ruleIndex={ruleIndex}
@@ -1885,6 +2312,56 @@ export default function MatchScreen() {
   // Which pack the cards are drawn from — see src/lib/deck.ts.
   return <DeckProvider deck={state.deck}>{screen}</DeckProvider>;
 }
+
+/** An offer's own control label, for a sentence about the move it sends. */
+function offerLabelFor(offers: ActionOffer[], action: MatchAction): string {
+  const offer = offers.find((o) => o.id === action.offerId);
+  if (!offer) return action.verb;
+  return label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb;
+}
+
+/** The keys the board answers to, and what each does — the `?` sheet's list. */
+function ShortcutList() {
+  const rows: [string, string][] = [
+    ['D', t('a11y.board.shortcuts.stack')],
+    ['T', t('a11y.board.shortcuts.pile')],
+    [t('a11y.board.key.enter'), t('a11y.board.shortcuts.primary')],
+    ['U', t('a11y.board.shortcuts.undo')],
+    ['R', t('a11y.board.shortcuts.read')],
+    ['M', t('a11y.board.shortcuts.moves')],
+    [t('a11y.board.key.escape'), t('a11y.board.shortcuts.escape')],
+    ['?', t('a11y.board.shortcuts.help')],
+    ['← →', t('a11y.board.shortcuts.handArrows')],
+    [t('a11y.board.key.space'), t('a11y.board.shortcuts.handSpace')],
+    [`${t('a11y.board.key.shift')} + ← →`, t('a11y.board.shortcuts.handShift')],
+    [t('a11y.board.key.enter'), t('a11y.board.shortcuts.handEnter')],
+    ['I', t('a11y.board.shortcuts.handMark')],
+  ];
+  const skin = useSkin();
+  return (
+    <View testID="shortcuts-list" style={shortcutStyles.list}>
+      {rows.map(([key, what], i) => (
+        <View
+          key={i}
+          style={shortcutStyles.row}
+          // One stop per key on a phone's reader; the web reads the two
+          // words in order anyway.
+          {...((Platform.OS === 'web' ? {} : { accessible: true, accessibilityLabel: `${key}: ${what}` }) as object)}
+        >
+          <Text style={[shortcutStyles.key, { color: skin.colors.gold }]}>{key}</Text>
+          <Text style={[shortcutStyles.what, { color: skin.colors.text }]}>{what}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const shortcutStyles = {
+  list: { gap: 6 },
+  row: { flexDirection: 'row' as const, gap: 12, alignItems: 'flex-start' as const },
+  key: { minWidth: 92, fontSize: 15, fontWeight: '700' as const },
+  what: { flex: 1, fontSize: 15 },
+};
 
 /**
  * The refusal a marked card is heading for, if a control is already greyed

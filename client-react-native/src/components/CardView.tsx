@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { cardSpokenName } from '@/src/a11y/cardNames';
+// Card type, pinned to the card's own size — see CardText.
+import { CardText as Text } from '@/src/components/cards/CardText';
 import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
 import { GermanFace } from '@/src/components/cards/GermanFace';
@@ -12,11 +15,12 @@ import { Suit } from '@/src/components/cards/Suit';
 import { VectorFace } from '@/src/components/cards/VectorFace';
 import { PRINTED } from '@/src/cards/vector/faces';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { useSkin } from '@/src/hooks/useSkin';
+import { useFourColour, useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
 import { germanIndex, useDeck } from '@/src/lib/deck';
 import { isCourt } from '@/src/lib/pips';
 import { CARD_BORDER, INDEX_PADDING, type CardMetrics } from '@/src/lib/layout';
+import { fourColourSkin, germanFourColourInk } from '@/src/skins/fourColour';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -71,7 +75,46 @@ type Props = {
   faceDown?: boolean;
   /** What the card stands for in play, where its face can show it (`CardView.as` on the wire). */
   as?: string;
+  /**
+   * How the card presents itself to assistive technology, where the caller
+   * knows more than the card does — its place in a hand, that it is one of a
+   * listbox's options. Absent, a card describes itself: a face is an image
+   * named in words ("Seven of Clubs"), a back is hidden (whoever holds the
+   * backs says how many there are), and a card with an `onPress` is a toggle
+   * button with the same name. See `CardA11y`.
+   */
+  a11y?: CardA11y;
+  /** Set by `Tip` on the web: the id of the description to link. */
+  'aria-describedby'?: string;
 };
+
+/**
+ * What a caller can tell a card about how it is read.
+ *
+ * Applied to the ring — the element carrying the card's `testID` — on the
+ * web, so that the element a test finds by id is the element a screen reader
+ * lands on. On iOS and Android a card in a hand is announced by the hand's
+ * own wrapper instead (see `HandZone`), and `hidden` is all that applies.
+ */
+export type CardA11y = {
+  /**
+   * `option` for a card in a hand drawn as a listbox; `img` for a card that
+   * is only looked at; `none` for a card inside a control that already names
+   * it (a meld's toggle), which must not be read twice.
+   */
+  role?: 'option' | 'img' | 'none';
+  label?: string;
+  /** Taken out of the accessibility tree entirely. */
+  hidden?: boolean;
+  /** For `option`: the roving tab stop — 0 on the one card the hand's Tab lands on, -1 on the rest. */
+  tabIndex?: 0 | -1;
+  onKeyDown?: (e: { key: string; shiftKey?: boolean; preventDefault: () => void; stopPropagation: () => void }) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
+};
+
+/** The hand on the web: an option pressed directly says it can be (see `ringA11y`). */
+const webPointer = { cursor: 'pointer' } as const;
 
 /** How much of a card's own side shows below and to the right of it. */
 const EDGE = 2;
@@ -314,11 +357,19 @@ export function CardView({
   testID,
   faceDown,
   as,
+  a11y,
+  'aria-describedby': describedBy,
 }: Props) {
   const metrics = useMetrics();
-  const skin = useSkin();
   const deck = useDeck();
   const d = parseCard(card);
+  // The four-colour deck is this skin with a diamond's red turned blue and a
+  // club's black turned green — see `fourColourSkin`. French faces only: the
+  // German pack's index takes its own four inks below, and Last Card is
+  // four-coloured already.
+  const tableSkin = useSkin();
+  const fourColour = useFourColour();
+  const skin = fourColour && deck === 'french' ? fourColourSkin(tableSkin, d.suit) : tableSkin;
   // Recomputed only when the card's own size or the skin changes — every
   // other render of a card reuses the same style objects.
   const styles = useMemo(() => cardStyles(metrics.card, skin), [metrics.card, skin]);
@@ -327,8 +378,18 @@ export function CardView({
     // The same ring wrapper a face gets, so the turned card's box is
     // identical to its neighbours' — the back inside it draws its own
     // border, exactly the size of the face's.
+    // A back says nothing on its own: what it is worth knowing — how many
+    // there are — belongs to whoever holds them, and is said there.
+    const backA11y =
+      a11y?.label && !a11y.hidden
+        ? Platform.OS === 'web'
+          ? { role: 'img', 'aria-label': a11y.label }
+          : { accessible: true, accessibilityRole: 'image', accessibilityLabel: a11y.label }
+        : Platform.OS === 'web'
+          ? { 'aria-hidden': true }
+          : { importantForAccessibility: 'no-hide-descendants', accessibilityElementsHidden: true };
     return (
-      <View testID={testID} style={styles.ring}>
+      <View testID={testID} style={styles.ring} {...(backA11y as object)}>
         <View style={styles.backBox}>
           <CardBack
             width={compact ? metrics.card.compactWidth : metrics.card.width}
@@ -408,7 +469,9 @@ export function CardView({
     !lastCard &&
     (rich || deluxe || vector || germanFull) && !!skin.card.faceGradient && !selected && !d.isJoker;
   const germanLabel = german ? germanIndex(d.rank) : '';
-  const germanColor = german ? germanInk(d.suit, skin.card.red) : '';
+  const germanColor = german
+    ? (fourColour && germanFourColourInk(skin, d.suit)) || germanInk(d.suit, skin.card.red)
+    : '';
 
   const face = lastCard ? (
     <LastCardFace
@@ -543,6 +606,51 @@ export function CardView({
     </View>
   );
 
+  // Who speaks for this card, and how — see `CardA11y`. Selectedness is
+  // always written down as `data-selected` as well, for the tests and the
+  // stylesheet-free checks that used to read `aria-selected` off every card:
+  // the ARIA spelling is only allowed on an element whose role has a
+  // selected state, which on this board is a card in a hand.
+  const spoken = a11y?.label ?? cardSpokenName(card);
+  const role = a11y?.role ?? (onPress ? 'none' : 'img');
+  const ringA11y =
+    Platform.OS === 'web'
+      ? {
+          dataSet: { selected: selected ? 'true' : 'false' },
+          ...(a11y?.hidden
+            ? { 'aria-hidden': true }
+            : role === 'option'
+              ? {
+                  role: 'option',
+                  'aria-label': spoken,
+                  'aria-selected': !!selected,
+                  'aria-describedby': describedBy,
+                  tabIndex: a11y?.tabIndex ?? -1,
+                  onKeyDown: a11y?.onKeyDown,
+                  onFocus: a11y?.onFocus,
+                  onBlur: a11y?.onBlur,
+                  // The option is its own press target on the web: a
+                  // pressable around it would put a second, unnamed focusable
+                  // element inside the listbox, which a listbox may not hold.
+                  // A click is what react-native-web's Pressable answers to as
+                  // well, so nothing about a tap changes.
+                  onClick: onPress,
+                }
+              : role === 'img'
+                ? { role: 'img', 'aria-label': spoken, 'aria-describedby': describedBy }
+                : {}),
+        }
+      : a11y?.hidden
+        ? { importantForAccessibility: 'no-hide-descendants', accessibilityElementsHidden: true }
+        : role === 'img'
+          ? {
+              accessible: true,
+              accessibilityRole: 'image',
+              accessibilityLabel: spoken,
+              accessibilityState: { selected: !!selected },
+            }
+          : {};
+
   const content = (
     // Ring wrapper is always present at a fixed size (border color just
     // toggles transparent<->success/accent) so highlighting a card never
@@ -556,13 +664,11 @@ export function CardView({
       // and those change for design reasons that have nothing to do with
       // whether the card is picked.
       //
-      // `aria-selected` rather than `accessibilityState={{selected}}`: React
-      // Native has taken the aria spelling since 0.71 and maps it back to
-      // accessibilityState on iOS and Android, while react-native-web forwards
-      // it to the DOM. The older spelling reaches native but this version of
-      // react-native-web drops it, so it would leave the web build silently
-      // saying nothing.
-      aria-selected={!!selected}
+      // Said as `aria-selected` only where the role has a selected state (a
+      // card in a hand, a listbox option) — on a plain element it is an ARIA
+      // error a screen reader ignores — and always as `data-selected`, which
+      // is what the end-to-end suite reads. See `ringA11y` above.
+      {...(ringA11y as object)}
       style={[
         styles.ring,
         // Later wins, so this is the precedence read backwards: what your
@@ -572,6 +678,7 @@ export function CardView({
         justDrawn && styles.justDrawnRing,
         badged && styles.badgedRing,
         dragging && styles.draggingRing,
+        role === 'option' && Platform.OS === 'web' && onPress ? webPointer : null,
       ]}
     >
       {/* Drawn before the card, so the card lies on top of its own edge. */}
@@ -600,9 +707,27 @@ export function CardView({
       </View>
     </View>
   );
+  if (onPress && role === 'option' && Platform.OS === 'web') return content;
   if (onPress) {
+    // A card in a hand is pressed through its ring (the listbox option, which
+    // holds the hand's one tab stop), so the pressable around it stays out of
+    // the tab order. Anywhere else the pressable *is* the control: a toggle
+    // button named by the card.
+    const asOption = role === 'option';
+    const pressA11y = asOption
+      ? // On iOS and Android the hand's wrapper is the card's one accessible
+        // element (see `HandZone`); a second, nested one would be read twice.
+        { tabIndex: -1, accessible: false }
+      : a11y?.role === 'none'
+        ? {}
+        : {
+            accessibilityRole: 'button' as const,
+            accessibilityLabel: spoken,
+            'aria-pressed': !!selected,
+            ...(Platform.OS === 'web' ? { 'aria-describedby': describedBy } : {}),
+          };
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
+      <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed} {...(pressA11y as object)}>
         {content}
       </Pressable>
     );

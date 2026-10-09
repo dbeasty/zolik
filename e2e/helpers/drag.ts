@@ -175,8 +175,8 @@ export async function carryPointOver(
 export async function handCards(page: Page): Promise<string[]> {
   const cards = page.locator('[data-testid^="card-hand:"]');
   await expect(cards.first()).toBeVisible({ timeout: 20_000 });
-  // Read off the card's accessibility label, which is the card code itself —
-  // not its rendered text.
+  // Read off the card's `data-card`, which is the card code itself — not its
+  // rendered text, and not its accessibility label, which is its spoken name.
   //
   // This used to be `allTextContents()`, and under the drawn faces that was
   // the card. The engraved deck is SVG and has no text in it at all, so every
@@ -188,8 +188,8 @@ export async function handCards(page: Page): Promise<string[]> {
   // slot the card is, whatever the skin draws.
   return cards.evaluateAll((els) =>
     els.map((el) => {
-      const labelled = el.closest('[aria-label]');
-      const label = labelled?.getAttribute('aria-label')?.trim();
+      const labelled = el.closest('[data-card]');
+      const label = labelled?.getAttribute('data-card')?.trim();
       return label || (el as HTMLElement).innerText.replace(/\s+/g, '');
     }),
   );

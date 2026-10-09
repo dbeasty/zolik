@@ -64,6 +64,7 @@ function Piece({ i, total, fall }: { i: number; total: number; fall: number }) {
   const red = spec.glyph === '♥' || spec.glyph === '♦';
   return (
     <Animated.View
+      aria-hidden
       pointerEvents="none"
       style={[
         styles.piece,

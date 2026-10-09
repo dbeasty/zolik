@@ -20,6 +20,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useMatchSocket, type MatchSocketState } from '@/src/hooks/useMatchSocket';
 import { WS_CLOSE_DISPLACED } from '@/src/net/transport';
+import { ApiError } from '@/src/api/client';
 
 const mockGetCapacity = jest.fn(async () => ({
   accepting: true,
@@ -28,10 +29,30 @@ const mockGetCapacity = jest.fn(async () => ({
   live: 0,
 }));
 
+// The client's session, as far as the socket can see it: the token it holds
+// now, and the call that trades the refresh token for a new one.
+const mockSession = { accessToken: 'a' };
+const mockRenewSession = jest.fn(async () => {
+  mockSession.accessToken = `${mockSession.accessToken}+`;
+});
+
 jest.mock('@/src/api/client', () => ({
+  ApiError: class ApiError extends Error {
+    status: number;
+    constructor(message: string, status: number) {
+      super(message);
+      this.status = status;
+    }
+  },
   apiClient: {
     get getCapacity() {
       return mockGetCapacity;
+    },
+    get renewSession() {
+      return mockRenewSession;
+    },
+    get accessToken() {
+      return mockSession.accessToken;
     },
     // The hook opens sockets through the client's transport; over HTTP that
     // is a plain WebSocket, which is the fake this file installs.
@@ -121,6 +142,11 @@ describe('useMatchSocket', () => {
     jest.useFakeTimers();
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
     mockGetCapacity.mockClear();
+    mockSession.accessToken = 'a';
+    mockRenewSession.mockReset();
+    mockRenewSession.mockImplementation(async () => {
+      mockSession.accessToken = `${mockSession.accessToken}+`;
+    });
     mockGetCapacity.mockResolvedValue({
       accepting: true,
       waitingRoomOpen: true,
@@ -288,5 +314,109 @@ describe('useMatchSocket', () => {
 
     act(() => jest.advanceTimersByTime(25_000));
     expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
+  });
+
+  describe('an access token that has run out', () => {
+    // The server refuses the upgrade once the fifteen-minute access token has
+    // expired, and a refused upgrade reaches the client as a socket that
+    // closes without ever having opened.
+    async function refuse(ws: FakeWebSocket) {
+      act(() => ws.fireClose({ code: 1006 }));
+      await flushClose();
+      await flushClose();
+    }
+
+    it('renews the token and reconnects at once with the new one', async () => {
+      const { probe } = renderProbe('ws://table/1?token=a&x=1');
+      await refuse(FakeWebSocket.instances[0]);
+
+      expect(mockRenewSession).toHaveBeenCalledTimes(1);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(FakeWebSocket.instances[1].url).toBe('ws://table/1?token=a%2B&x=1');
+      // No capacity probe: the refusal was the token's, not the server's.
+      expect(mockGetCapacity).not.toHaveBeenCalled();
+
+      act(() => FakeWebSocket.instances[1].fireOpen());
+      expect(probe.hook!.connected).toBe(true);
+    });
+
+    it('renews once per failure streak, not before every attempt', async () => {
+      renderProbe('ws://table/1?token=a');
+      await refuse(FakeWebSocket.instances[0]);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+
+      // The new token is turned away too, so the token was not the problem.
+      for (let i = 1; i <= 4; i++) {
+        await refuse(FakeWebSocket.instances[i]);
+        act(() => jest.advanceTimersByTime(60_000));
+      }
+
+      expect(mockRenewSession).toHaveBeenCalledTimes(1);
+      expect(FakeWebSocket.instances).toHaveLength(6);
+      for (const ws of FakeWebSocket.instances.slice(1)) {
+        expect(ws.url).toBe('ws://table/1?token=a%2B');
+      }
+    });
+
+    it('renews again in a later streak, once a socket has opened in between', async () => {
+      renderProbe('ws://table/1?token=a');
+      await refuse(FakeWebSocket.instances[0]);
+      act(() => FakeWebSocket.instances[1].fireOpen());
+
+      // Fifteen minutes later the connection drops and the token has run out
+      // again. The drop itself says nothing about the token…
+      act(() => FakeWebSocket.instances[1].fireClose());
+      await flushClose();
+      expect(mockRenewSession).toHaveBeenCalledTimes(1);
+      act(() => jest.advanceTimersByTime(1000));
+      expect(FakeWebSocket.instances).toHaveLength(3);
+
+      // …the refusal that follows does.
+      await refuse(FakeWebSocket.instances[2]);
+      expect(mockRenewSession).toHaveBeenCalledTimes(2);
+      expect(FakeWebSocket.instances[3].url).toBe('ws://table/1?token=a%2B%2B');
+    });
+
+    it('uses a token someone else already renewed instead of renewing it twice', async () => {
+      renderProbe('ws://table/1?token=a');
+      mockSession.accessToken = 'b';
+      await refuse(FakeWebSocket.instances[0]);
+
+      expect(mockRenewSession).not.toHaveBeenCalled();
+      expect(FakeWebSocket.instances[1].url).toBe('ws://table/1?token=b');
+    });
+
+    it('leaves the token alone when an open socket drops', async () => {
+      renderProbe('ws://table/1?token=a');
+      act(() => FakeWebSocket.instances[0].fireOpen());
+      act(() => FakeWebSocket.instances[0].fireClose());
+      await flushClose();
+      act(() => jest.advanceTimersByTime(1000));
+
+      expect(mockRenewSession).not.toHaveBeenCalled();
+      expect(FakeWebSocket.instances[1].url).toBe('ws://table/1?token=a');
+    });
+
+    it('tries again on the next attempt when the renewal itself could not reach the server', async () => {
+      mockRenewSession.mockRejectedValueOnce(new TypeError('Network request failed'));
+      renderProbe('ws://table/1?token=a');
+      await refuse(FakeWebSocket.instances[0]);
+      act(() => jest.advanceTimersByTime(1000));
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(FakeWebSocket.instances[1].url).toBe('ws://table/1?token=a');
+
+      await refuse(FakeWebSocket.instances[1]);
+      expect(mockRenewSession).toHaveBeenCalledTimes(2);
+      expect(FakeWebSocket.instances[2].url).toBe('ws://table/1?token=a%2B');
+    });
+
+    it('stops reconnecting once the refresh token is refused too', async () => {
+      mockRenewSession.mockRejectedValueOnce(new ApiError('session expired', 401));
+      renderProbe('ws://table/1?token=a');
+      await refuse(FakeWebSocket.instances[0]);
+      act(() => jest.advanceTimersByTime(120_000));
+
+      expect(FakeWebSocket.instances).toHaveLength(1);
+    });
   });
 });

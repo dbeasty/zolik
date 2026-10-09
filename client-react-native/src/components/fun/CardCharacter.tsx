@@ -97,6 +97,7 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
 
   return (
     <Animated.View
+      aria-hidden
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"

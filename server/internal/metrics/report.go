@@ -156,6 +156,13 @@ type Reporter struct{ store Store }
 
 func NewReporter(store Store) *Reporter { return &Reporter{store: store} }
 
+// Days returns the raw day documents for a closed range of UTC days, for a
+// reader that needs the player sets themselves rather than their sizes —
+// the console's per-account active days.
+func (r *Reporter) Days(ctx context.Context, from, to time.Time) ([]Day, error) {
+	return r.store.Days(ctx, from.UTC().Format(DayFormat), to.UTC().Format(DayFormat))
+}
+
 // MaxRangeDays is the longest range one report may cover.
 const MaxRangeDays = 400
 

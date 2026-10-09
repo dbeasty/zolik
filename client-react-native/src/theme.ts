@@ -1,6 +1,31 @@
 import { StyleSheet } from 'react-native';
 
+import { STARTUP_HIGH_CONTRAST } from '@/src/a11y/startupContrast';
 import { classic } from '@/src/skins/classic';
+import type { SkinColors } from '@/src/skins/types';
+
+/**
+ * The classic palette, strengthened for a player who asked for high contrast
+ * (Settings → Accessibility, or the system's own setting).
+ *
+ * Not the board's high-contrast skin wholesale: these screens carry a few
+ * hard-coded fills of their own (segment and switch tracks, banners) chosen
+ * against classic's slate, and turning the slate black under them would be
+ * a redesign of every screen nobody has looked at. So the hue stays and the
+ * tokens that carry words and edges go up — every text colour to at least
+ * 7:1 on the surface, every border to at least 3:1 — which is what the
+ * setting promises and all that `contrast.test.ts` holds these to.
+ *
+ * Chosen once, as the app starts (see `startupContrast.ts`).
+ */
+export const highContrastColors: SkinColors = {
+  ...classic.colors,
+  text: '#ffffff',
+  muted: '#c8d3e0',
+  border: '#7f93ad',
+  accent: '#7ab8ff',
+  danger: '#fca5a5',
+};
 
 /**
  * The static palette, kept for every screen *outside* the match: lobby,
@@ -10,8 +35,11 @@ import { classic } from '@/src/skins/classic';
  *
  * The match screen and everything on the board read `useSkin()` instead,
  * which serves the same shape per active skin.
+ *
+ * With high contrast asked for at startup it is `highContrastColors` above
+ * instead — the same slate, louder words and edges.
  */
-export const colors = classic.colors;
+export const colors: SkinColors = STARTUP_HIGH_CONTRAST ? highContrastColors : classic.colors;
 
 // The exact spot a dragged card will land, drawn identically everywhere a
 // card can be dropped — the hand's own reorder gap and every meld or zone on
