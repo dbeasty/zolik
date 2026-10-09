@@ -3094,4 +3094,23 @@ export const de: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Leertaste',
   'a11y.board.key.shift': 'Umschalt',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'KI',
+  'option.canasta.dirtySequences': 'Unreine Folgen',
+  'choice.canasta.dirtySequences.0': 'Aus',
+  'choice.canasta.dirtySequences.1': 'An',
+  'option.canasta.wildMeld': 'Auslage aus Zweien',
+  'choice.canasta.wildMeld.0': 'Aus',
+  'choice.canasta.wildMeld.1': 'An',
+  'option.canasta.rearrange': 'Auslagen umordnen',
+  'choice.canasta.rearrange.0': 'Aus',
+  'choice.canasta.rearrange.1': 'An',
+  'option.canasta.poach': 'Wilde Karten abluchsen',
+  'choice.canasta.poach.0': 'Aus',
+  'choice.canasta.poach.1': 'An',
+  'option.canasta.topOnlyCapture': 'Oberste Karte oder ganzer Stapel',
+  'choice.canasta.topOnlyCapture.0': 'Aus',
+  'choice.canasta.topOnlyCapture.1': 'An',
+  // --- end labels ---
 };

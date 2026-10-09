@@ -3080,4 +3080,23 @@ export const bg: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Интервал',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'ИИ',
+  'option.canasta.dirtySequences': 'Нечисти поредици',
+  'choice.canasta.dirtySequences.0': 'Изкл.',
+  'choice.canasta.dirtySequences.1': 'Вкл.',
+  'option.canasta.wildMeld': 'Комбинация от двойки',
+  'choice.canasta.wildMeld.0': 'Изкл.',
+  'choice.canasta.wildMeld.1': 'Вкл.',
+  'option.canasta.rearrange': 'Пренареждане на комбинации',
+  'choice.canasta.rearrange.0': 'Изкл.',
+  'choice.canasta.rearrange.1': 'Вкл.',
+  'option.canasta.poach': 'Отмъкване на жокери',
+  'choice.canasta.poach.0': 'Изкл.',
+  'choice.canasta.poach.1': 'Вкл.',
+  'option.canasta.topOnlyCapture': 'Горна карта или целия куп',
+  'choice.canasta.topOnlyCapture.0': 'Изкл.',
+  'choice.canasta.topOnlyCapture.1': 'Вкл.',
+  // --- end labels ---
 };
