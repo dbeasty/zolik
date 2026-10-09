@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AccessibilitySettings } from '@/src/a11y/AccessibilitySettings';
 import { AvatarPicker } from '@/src/components/avatars/AvatarPicker';
 import { LanguagePicker } from '@/src/components/LanguagePicker';
 import { LegalLinks } from '@/src/components/LegalLinks';
@@ -97,6 +98,9 @@ export default function SettingsScreen() {
         <Text style={shared.status}>{t('settings.language.status')}</Text>
         <LanguagePicker />
       </View>
+
+      {/* How the game speaks, looks and moves — see docs/accessibility-plan.md. */}
+      <AccessibilitySettings />
 
       {/* Who may tell this player about a table, and how. */}
       <NotificationSettings />

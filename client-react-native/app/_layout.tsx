@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
@@ -162,6 +163,10 @@ export default function RootLayout() {
                 </Stack>
                 </AvailabilityProvider>
                 <InviteBanner />
+                {/* The screen reader's live region and the tooltip bubble —
+                    last, so the bubble paints over the banner too. See
+                    `src/a11y`. */}
+                <A11yRoot />
               </InviteProvider>
             </AvatarProvider>
           </SessionProvider>
