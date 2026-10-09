@@ -18,6 +18,8 @@ import (
 	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -90,6 +92,40 @@ func allModules() []hosted {
 			mod:      okobere.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"continue", "bet", "stand"},
+			finishes: true,
+		},
+		{
+			name:     "sedma",
+			rounds:   true,
+			mod:      sedma.New(),
+			players:  refs("p1", "p2", "p3", "p4"),
+			prefer:   []string{"continue", "end_trick", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "sedma-3",
+			rounds:   true,
+			mod:      sedma.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: "classic"},
+			prefer:   []string{"continue", "end_trick", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "snaps",
+			rounds:   true,
+			mod:      snaps.New(),
+			players:  refs("p1", "p2"),
+			prefer:   []string{"continue", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "snaps-66",
+			rounds:   true,
+			mod:      snaps.New(),
+			players:  refs("p1", "p2"),
+			cfg:      module.MatchConfig{Variation: "sedesatSest"},
+			prefer:   []string{"continue", "play_card"},
 			finishes: true,
 		},
 		{

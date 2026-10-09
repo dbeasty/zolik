@@ -19,6 +19,8 @@ export const DEFAULT_POPULARITY_ORDER: readonly string[] = [
   'prsi',
   'marias',
   'okobere',
+  'sedma',
+  'snaps',
 ];
 
 /**
