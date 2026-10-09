@@ -21,6 +21,7 @@ import { POSITION_PARAM, choicesToAsk, offerGroupKey, submissionFor } from '@/sr
 import type { ParamSpec } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
+import { ColourInPlay } from '@/src/components/cards/LastCardInk';
 import { DeckProvider } from '@/src/lib/deck';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { BoardSheet } from '@/src/components/match/BoardSheet';
@@ -69,6 +70,7 @@ import {
   type FlightPlan,
 } from '@/src/lib/flights';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { lastCardColourOfKey } from '@/src/lib/cards';
 import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
@@ -1898,11 +1900,16 @@ export default function MatchScreen() {
 
         {(view.header ?? []).length > 0 ? (
           <View style={styles.facts} testID="match-header">
-            {(view.header ?? []).map((f, i) => (
-              <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
-                {factText(f, state.players)}
-              </Text>
-            ))}
+            {(view.header ?? []).map((f, i) =>
+              // A Last Card colour in play is shown in that colour, not only named.
+              lastCardColourOfKey(f.value) ? (
+                <ColourInPlay key={`${f.labelKey}-${i}`} fact={f} style={styles.fact} />
+              ) : (
+                <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
+                  {factText(f, state.players)}
+                </Text>
+              ),
+            )}
           </View>
         ) : null}
 

@@ -13,9 +13,9 @@
  * serve all of them.
  */
 
-import { isLastCardCode, parseLastCard, SHAPE_GLYPH } from '@/src/components/cards/lastCardArt';
+import { type Colour, COLOURS, isLastCardCode, parseLastCard, SHAPE_GLYPH } from '@/src/components/cards/lastCardArt';
 import { currentDeck, GERMAN_SUIT_GLYPHS, germanIndex } from '@/src/lib/deck';
-import { t } from '@/src/lib/i18n';
+import { getLocale, t } from '@/src/lib/i18n';
 
 export type CardDisplay = {
   rank: string;
@@ -186,4 +186,60 @@ export function lastCardText(card: string): string {
       return `${SHAPE_GLYPH[c.colour]} ${t('lastcard.card.drawTwo')}`;
   }
   return `${SHAPE_GLYPH[c.colour]}${c.face}`;
+}
+
+/** A stretch of a sentence, and the Last Card colour it names, if any. */
+export type InkRun = { text: string; colour?: Colour };
+
+/**
+ * A sentence cut where it names a Last Card colour — a card ("■4",
+ * "▲ Skip") or the colour itself ("● Coral") — so each such stretch can be
+ * printed in its own ink. Everything else comes back as one plain run.
+ *
+ * Matched against exactly the words `lastCardText` and the colour keys
+ * produce in this locale, longest first, so "■ Draw Two" is one run and
+ * nothing that merely contains a shape is guessed at.
+ */
+export function lastCardInkRuns(text: string): InkRun[] {
+  if (!/[●◆▲■]/.test(text)) return [{ text }];
+  const words = inkWords();
+  const out: InkRun[] = [];
+  let plain = '';
+  let i = 0;
+  while (i < text.length) {
+    const hit = words.find(([w]) => text.startsWith(w, i));
+    if (!hit) {
+      plain += text[i++];
+      continue;
+    }
+    if (plain) out.push({ text: plain });
+    plain = '';
+    out.push({ text: hit[0], colour: hit[1] });
+    i += hit[0].length;
+  }
+  if (plain) out.push({ text: plain });
+  return out;
+}
+
+let inkCache: { locale: string; words: [string, Colour][] } | undefined;
+
+function inkWords(): [string, Colour][] {
+  const locale = getLocale();
+  if (inkCache?.locale === locale) return inkCache.words;
+  const words: [string, Colour][] = [];
+  for (const c of COLOURS) {
+    words.push([t(`lastcard.colour.${c}`), c]);
+    for (const face of ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'R', 'D']) {
+      words.push([lastCardText(`${c}-${face}`), c]);
+    }
+  }
+  words.sort((a, b) => b[0].length - a[0].length);
+  inkCache = { locale, words };
+  return words;
+}
+
+/** The colour a `lastcard.colour.*` key names — a header's value, a choice's label. */
+export function lastCardColourOfKey(key?: string): Colour | undefined {
+  const m = key ? /^lastcard\.colour\.([CTVA])$/.exec(key) : null;
+  return m ? (m[1] as Colour) : undefined;
 }
