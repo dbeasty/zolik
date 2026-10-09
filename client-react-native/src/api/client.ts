@@ -426,6 +426,34 @@ export class ZolikClient {
     return this.refreshInFlight;
   }
 
+  /**
+   * `refreshTokens`, for a caller whose credentials were just refused: a
+   * refresh token the server will not take either ends the session, the same
+   * way however the refusal arrived — a REST call's 401 or a socket upgrade
+   * turned away.
+   */
+  async renewSession(): Promise<void> {
+    try {
+      await this.refreshTokens();
+    } catch (e) {
+      // Only the server refusing the refresh token means the session is
+      // over. A dropped connection, a restart's 502 or a 503 says nothing
+      // about the credentials, and signing the player out for one of those
+      // throws away a perfectly good session in the middle of a game.
+      if (!(e instanceof ApiError) || e.status !== 401) throw e;
+      // The stored refresh token is gone for good: expired and reaped by the
+      // sessions TTL index, rotated away, or issued by a database we are no
+      // longer talking to. Letting it sit in storage wedges the app forever,
+      // since every reload restores it and replays this same failure. Drop it
+      // and surface a session-expired error the UI can route back to sign-in.
+      this.accessToken = '';
+      this.refreshToken = '';
+      this.userId = '';
+      this.onSessionExpired?.();
+      throw new ApiError('session expired, please sign in again', 401);
+    }
+  }
+
   private async exchangeRefreshToken(): Promise<void> {
     const spent = this.refreshToken;
     if (!spent) {
@@ -1060,25 +1088,7 @@ export class ZolikClient {
       if (this.accessToken && this.accessToken !== sentWith) {
         return this.request<T>(method, path, body, auth, true);
       }
-      try {
-        await this.refreshTokens();
-      } catch (e) {
-        // Only the server refusing the refresh token means the session is
-        // over. A dropped connection, a restart's 502 or a 503 says nothing
-        // about the credentials, and signing the player out for one of those
-        // throws away a perfectly good session in the middle of a game.
-        if (!(e instanceof ApiError) || e.status !== 401) throw e;
-        // The stored refresh token is gone for good: expired and reaped by the
-        // sessions TTL index, rotated away, or issued by a database we are no
-        // longer talking to. Letting it sit in storage wedges the app forever,
-        // since every reload restores it and replays this same failure. Drop it
-        // and surface a session-expired error the UI can route back to sign-in.
-        this.accessToken = '';
-        this.refreshToken = '';
-        this.userId = '';
-        this.onSessionExpired?.();
-        throw new ApiError('session expired, please sign in again', 401);
-      }
+      await this.renewSession();
       return this.request<T>(method, path, body, auth, true);
     }
     const text = await res.text();
