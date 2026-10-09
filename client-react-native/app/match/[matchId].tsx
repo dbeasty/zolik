@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -524,10 +525,62 @@ export default function MatchScreen() {
     goTo,
     scrollRef as unknown as RefObject<Measurable | null>,
   );
+  // Carrying a card toward a meld the screen has scrolled away from. The hand
+  // sits above the melds, so dropping on an opponent's meld (a poach, a
+  // lay-off) means getting there while a finger or button is held down — and
+  // nothing else scrolls then. While a drag is in flight, a pointer held near
+  // the top or bottom edge of the window scrolls the board that way, faster
+  // the closer to the edge. A timer rather than the pointer's own moves,
+  // because a pointer resting at the edge sends none.
+  //
+  // An edge is armed only once the pointer has been out of its band: the hand
+  // lives at the bottom of the window, so a drag *starts* in the bottom band
+  // and must not carry the board away before it has gone anywhere.
+  const scrollY = useRef(0);
+  const scrollMax = useRef(Infinity);
+  const dragPoint = useRef<{ x: number; y: number } | null>(null);
+  const dragMoveRef = useRef<((x: number, y: number) => void) | null>(null);
+  const { height: windowHeight } = useWindowDimensions();
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) {
+      dragPoint.current = null;
+      return;
+    }
+    const EDGE = 110;
+    const MAX_STEP = 22;
+    const armed = { top: false, bottom: false };
+    const id = setInterval(() => {
+      const p = dragPoint.current;
+      if (!p) return;
+      const intoTop = EDGE - p.y;
+      const intoBottom = p.y - (windowHeight - EDGE);
+      if (intoTop <= 0) armed.top = true;
+      if (intoBottom <= 0) armed.bottom = true;
+      let step = 0;
+      if (armed.top && intoTop > 0) step = -Math.min(1, intoTop / EDGE) * MAX_STEP;
+      else if (armed.bottom && intoBottom > 0) step = Math.min(1, intoBottom / EDGE) * MAX_STEP;
+      if (!step) return;
+      const next = Math.max(0, Math.min(scrollMax.current, scrollY.current + step));
+      if (next === scrollY.current) return;
+      scrollY.current = next;
+      scrollRef.current?.scrollTo({ y: next, animated: false });
+      // Where the melds are in the window just changed.
+      drops.measure();
+      dragMoveRef.current?.(p.x, p.y);
+    }, 16);
+    return () => clearInterval(id);
+    // `drops.measure` is stable; the registry object around it is not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging, windowHeight]);
+
   // One scroller, two hooks that watch it. Each only wants to know where the
   // board is now, so neither minds the other having been told first.
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      scrollY.current = contentOffset.y;
+      scrollMax.current = Math.max(0, contentSize.height - layoutMeasurement.height);
       ending.scrollProps.onScroll(e);
       opening.scrollProps.onScroll(e);
     },
@@ -1005,6 +1058,7 @@ export default function MatchScreen() {
   const moveDrag = (x: number, y: number) => {
     const current = dragRef.current;
     if (!current) return;
+    dragPoint.current = { x, y };
     const spots = takeableSpots(spotsFor(current.cards, current.fromTable));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     setHoveredDrop((prev) => (prev === over ? prev : over));
@@ -1035,6 +1089,8 @@ export default function MatchScreen() {
         : next,
     );
   };
+
+  dragMoveRef.current = moveDrag;
 
   const endDrag = (x: number, y: number): boolean => {
     const current = dragRef.current;
