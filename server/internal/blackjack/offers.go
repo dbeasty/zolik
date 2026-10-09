@@ -28,6 +28,23 @@ const (
 // would otherwise have to do by eye: what a double costs, what insurance
 // costs, what a surrender hands back.
 func (m *Module) LegalActions(raw module.State, playerID string) ([]module.ActionOffer, error) {
+	offers, err := m.legalActions(raw, playerID)
+	if err != nil {
+		return nil, err
+	}
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	// Getting up, to anybody still seated — last, so it is never the first
+	// control a hand falls on.
+	if seat := s.seat(playerID); seat != nil && !seat.Out && !seat.Leaving && s.Status == "active" {
+		offers = append(offers, module.LeaveOffer(true, ""))
+	}
+	return offers, nil
+}
+
+func (m *Module) legalActions(raw module.State, playerID string) ([]module.ActionOffer, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return nil, err
@@ -291,6 +308,8 @@ func ruleIDsFor(s *GameState, code string) []string {
 			return []string{"blackjack.rules.surrender"}
 		}
 		return nil
+	case ErrAlreadyLeft:
+		return []string{"blackjack.rules.leave"}
 	case ErrInsuranceClosed:
 		if s.AllowInsurance {
 			return []string{"blackjack.rules.insurance"}

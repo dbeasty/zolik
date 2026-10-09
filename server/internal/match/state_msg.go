@@ -95,6 +95,9 @@ type MatchStateMsg struct {
 	// AwayPlayers is who still has to come back, in seat order. Ids, not
 	// names: the client already has the names, in Players.
 	AwayPlayers []string `json:"awayPlayers,omitempty"`
+	// StoodIn is every seat a stand-in bot has played for at this table, so
+	// a results screen can say whose record the match does not count on.
+	StoodIn []string `json:"stoodIn,omitempty"`
 	// Rematch is the table this finished one is being played again at, and
 	// who asked — what turns "Play again" into "Join Bob's rematch" for
 	// everybody else who is still looking at the result.
@@ -141,6 +144,20 @@ type PlayerMsg struct {
 	// Skill is how well a bot seat plays (module.Skill), so the host's
 	// strength picker can show the current choice. Omitted for people.
 	Skill string `json:"skill,omitempty"`
+	// StandIn is a bot playing this person's seat while they are away (see
+	// standin.go); the seat stays theirs. StandInAt is when one will, for a
+	// seat that is away now: what a "a bot plays for them in 0:42" counts
+	// down to. Both are facts about the room, so a replay frame has neither.
+	StandIn   *StandInMsg `json:"standIn,omitempty"`
+	StandInAt *time.Time  `json:"standInAt,omitempty"`
+}
+
+// StandInMsg is a stand-in as the table sees it.
+type StandInMsg struct {
+	Skill string    `json:"skill"`
+	Since time.Time `json:"since"`
+	// By is "timeout" when the wait ran out, "host" when the host put it in.
+	By string `json:"by"`
 }
 
 // BuildStateMsg renders one viewer's state.
@@ -160,6 +177,11 @@ func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMs
 	for i, p := range match.Players {
 		if i < len(msg.Players) {
 			msg.Players[i].SatOut = m.satOut(match, p)
+			if p.StandIn != nil {
+				msg.Players[i].StandIn = &StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
+			} else if due, ok := m.standInDue(match, p); ok {
+				msg.Players[i].StandInAt = &due
+			}
 			if p.IsAI {
 				msg.Players[i].Simplified = m.governor.Reduced(match.ID.Hex(), p.ID)
 			}
@@ -230,6 +252,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	// Asked only where it can be true. A spectator (no viewer id) gets the
 	// same false every other status gets, since bringing a table back is not
 	// something a passer-by does.
+	msg.StoodIn = match.StoodIn
 	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
 		msg.CanResume = m.resumableBy(match, viewerID)
 		if !msg.CanResume {

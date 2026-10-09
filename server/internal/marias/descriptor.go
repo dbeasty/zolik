@@ -102,6 +102,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				},
 			},
 			module.BotSkillOption(),
+			module.StandInOption(),
 			module.PauseOption(),
 		},
 	}
@@ -115,6 +116,7 @@ var variationDefaults = map[string]int{
 	OptZLidu:                     module.OptOn,
 	OptShowCardPoints:            module.OptOff,
 	module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+	module.OptStandInAfter:       module.StandInAfterDefault,
 	module.OptPauseBetweenRounds: module.OptOn,
 }
 

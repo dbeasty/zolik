@@ -619,6 +619,14 @@ type ActionOffer struct {
 	// means "the verb says it well enough", which is true of most offers.
 	LabelKey string `json:"labelKey,omitempty"`
 
+	// Manual is a move only a person makes for themselves — getting up from
+	// the table. No bot, no sat-out seat and no driver ever submits it,
+	// however far down a list of refused moves they have worked: a bot that
+	// fell back on "leave" would walk a person's chips out of a game they are
+	// still in. The runtime submits it on a person's behalf only by name, for
+	// the one rule that says so (see match/leave.go).
+	Manual bool `json:"manual,omitempty"`
+
 	Source *Selector   `json:"source,omitempty"`
 	Target *Selector   `json:"target,omitempty"`
 	Params []ParamSpec `json:"params,omitempty"`

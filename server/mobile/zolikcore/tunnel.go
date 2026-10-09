@@ -155,6 +155,16 @@ func (t *Tunnel) Close() {
 	for _, c := range socks {
 		_ = c.Close()
 	}
+	if c, ok := t.sink.(tunnelCloser); ok {
+		c.TunnelClosed()
+	}
+}
+
+// tunnelCloser is a sink that wants to know when its tunnel ends of its own
+// accord — a failed handshake, a replayed message — so it can hang up the
+// link underneath. The relay does; a BLE link is hung up by the native side.
+type tunnelCloser interface {
+	TunnelClosed()
 }
 
 func (t *Tunnel) handshake(msg []byte) error {

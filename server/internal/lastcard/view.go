@@ -63,6 +63,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 		},
@@ -142,6 +143,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			module.PauseOption(),
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.StandInOption(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,

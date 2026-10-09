@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { announce } from '@/src/a11y/announce';
 import { Tip } from '@/src/a11y/Tip';
 import type { Fact, MatchPlayer, MoveLine } from '@/src/api/matchTypes';
+import { LastCardInk } from '@/src/components/cards/LastCardInk';
 import { useSkin } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
 import { factText, spokenFactText } from '@/src/lib/labels';
@@ -23,6 +24,10 @@ import type { Skin } from '@/src/skins/types';
  * The board's prompts — what the table is waiting on this viewer for — lead
  * the box, since they are the reason to read it.
  *
+ * It starts folded to the newest line, which is most of what a player needs
+ * in the least of the table's room; the arrow opens the whole list, and the
+ * choice holds for every table this session. The prompts show either way.
+ *
  * The lines are the module's own words; this knows nothing of any game.
  */
 export function MoveAnnouncements({
@@ -37,12 +42,17 @@ export function MoveAnnouncements({
   viewerId: string;
 }) {
   const skin = useSkin();
+  const [open, setOpenState] = useState(openPreference);
+  const setOpen = (v: boolean) => {
+    openPreference = v;
+    setOpenState(v);
+  };
   // Four lines' room where the window has it; two on a short one, so the
   // pile, the hand and its controls still fit together. Fixed by the window,
   // never by what is in the box — see below.
   const { height } = useWindowDimensions();
   const short = height < SHORT_WINDOW;
-  const linesHeight = short ? LINE * 2 : LINE * 4;
+  const linesHeight = !open ? undefined : short ? LINE * 2 : LINE * 4;
   const styles = useMemo(() => announceStyles(skin, linesHeight, short), [skin, linesHeight, short]);
 
   // Everything after the viewer's own last move. When their move was the
@@ -52,7 +62,7 @@ export function MoveAnnouncements({
   moves.forEach((m, i) => {
     if (m.playerId === viewerId) lastMine = i;
   });
-  const since = moves.slice(lastMine + 1).slice(-MAX_LINES);
+  const since = moves.slice(lastMine + 1).slice(open ? -MAX_LINES : -1);
   const shown = since.length > 0 ? since : moves.slice(-1);
   const settled = since.length === 0;
 
@@ -89,20 +99,34 @@ export function MoveAnnouncements({
     >
       {/* Repeat-last, over the box's corner rather than in its flow: the box
           keeps one fixed height whatever is in it (see below). */}
-      <Tip text={t('a11y.board.tip.repeat')} style={styles.repeatAt}>
+      <View style={styles.repeatAt}>
+        <Tip text={t('a11y.board.tip.repeat')}>
+          <Pressable
+            testID="moves-repeat"
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.moves.repeat')}
+            onPress={repeat}
+            hitSlop={8}
+            style={styles.repeat}
+          >
+            <Text style={styles.repeatText}>↻</Text>
+          </Pressable>
+        </Tip>
         <Pressable
-          testID="moves-repeat"
+          testID="moves-toggle"
           accessibilityRole="button"
-          accessibilityLabel={t('a11y.board.moves.repeat')}
-          onPress={repeat}
+          accessibilityLabel={t('moves.title')}
+          accessibilityState={{ expanded: open }}
+          onPress={() => setOpen(!open)}
           hitSlop={8}
           style={styles.repeat}
         >
-          <Text style={styles.repeatText}>↻</Text>
+          <Text style={styles.toggleText}>{open ? '▴' : '▾'}</Text>
         </Pressable>
-      </Tip>
-      {/* On a short window the lines speak for themselves; the room goes to the hand. */}
-      {short ? null : (
+      </View>
+      {/* On a short window the lines speak for themselves; the room goes to
+          the hand. Folded, the one line does. */}
+      {short || !open ? null : (
         <Text style={styles.title} {...((Platform.OS === 'web' ? {} : { accessibilityRole: 'header' }) as object)}>
           {t('moves.title')}
         </Text>
@@ -124,8 +148,12 @@ export function MoveAnnouncements({
                 ? { role: 'listitem', 'aria-label': spokenFactText(m.fact, players) }
                 : { accessible: true, accessibilityLabel: spokenFactText(m.fact, players) }) as object)}
             >
-              <Text testID={`announce-${i}`} style={[styles.line, newest && styles.newest, settled && styles.settled]}>
-                {factText(m.fact, players)}
+              <Text
+                testID={`announce-${i}`}
+                numberOfLines={open ? undefined : 1}
+                style={[styles.line, newest && styles.newest, settled && styles.settled, !open && styles.foldedLine]}
+              >
+                <LastCardInk text={factText(m.fact, players)} />
               </Text>
             </View>
           );
@@ -133,13 +161,16 @@ export function MoveAnnouncements({
         </View>
         {prompts.map((f, i) => (
           <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-            {factText(f, players)}
+            <LastCardInk text={factText(f, players)} />
           </Text>
         ))}
       </View>
     </View>
   );
 }
+
+/** Whether the list is open, for every table this session: it starts folded. */
+let openPreference = false;
 
 /** About a round at a full table; older moves are in the strip's own history. */
 const MAX_LINES = 8;
@@ -150,7 +181,7 @@ const LINE = 24;
 /** Below this window height the box keeps two lines' room rather than four. */
 const SHORT_WINDOW = 760;
 
-function announceStyles(s: Skin, linesHeight: number, short: boolean) {
+function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean) {
   const colors = s.colors;
   return StyleSheet.create({
     box: {
@@ -165,7 +196,8 @@ function announceStyles(s: Skin, linesHeight: number, short: boolean) {
     },
     prompt: { color: colors.gold, fontSize: 16, fontWeight: '700', marginTop: 2 },
     // Room for about four lines; see the render for why it never grows.
-    lines: { height: linesHeight, overflow: 'hidden', justifyContent: 'flex-end', gap: 3 },
+    // Folded, it is one line and whatever the prompts take.
+    lines: { height: linesHeight, minHeight: LINE, overflow: 'hidden', justifyContent: 'flex-end', gap: 3 },
     title: {
       color: colors.muted,
       fontSize: 11,
@@ -176,9 +208,12 @@ function announceStyles(s: Skin, linesHeight: number, short: boolean) {
     list: { gap: 3 },
     row: { borderLeftWidth: 3, borderLeftColor: 'transparent', paddingLeft: 8 },
     // In the box's top-right corner, out of the flow — see the render.
-    repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1 },
+    repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1, flexDirection: 'row', gap: 6 },
     repeat: { minWidth: 24, alignItems: 'center' },
     repeatText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+    toggleText: { color: colors.muted, fontSize: 16, fontWeight: '700' },
+    // Clear of the two buttons in the corner.
+    foldedLine: { paddingRight: 64 },
     newestRow: { borderLeftColor: colors.accent },
     line: { color: colors.text, fontSize: 15 },
     newest: { fontSize: 17, fontWeight: '700' },

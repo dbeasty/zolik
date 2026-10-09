@@ -78,7 +78,18 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Rule("blackjack.rules.mostChipsWins", nil),
 			module.Rule("blackjack.rules.bustedOut", map[string]any{"n": t.MinBet}),
 		}),
+		module.SectionOf("blackjack.rules.section.leaving", leaveRules(cfg)),
 	}, nil
+}
+
+// leaveRules say when a player may get up, and what happens to one who has
+// gone away. A literal key per branch: see payoutRule.
+func leaveRules(cfg module.MatchConfig) []module.RuleItem {
+	out := []module.RuleItem{module.Rule("blackjack.rules.leave", nil)}
+	if mins := int(cfg.LeaveAfterAway().Minutes()); mins > 0 {
+		return append(out, module.Rule("blackjack.rules.leaveAway", map[string]any{"minutes": mins}))
+	}
+	return append(out, module.Rule("blackjack.rules.leaveAwayNever", nil))
 }
 
 // payoutRule is the one sentence with three spellings. A key per payout

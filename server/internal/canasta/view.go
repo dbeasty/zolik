@@ -68,6 +68,7 @@ func (m *Module) descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 			{
@@ -93,6 +94,7 @@ func (m *Module) descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 			{
@@ -116,6 +118,7 @@ func (m *Module) descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 			{
@@ -140,6 +143,7 @@ func (m *Module) descriptor() module.ModuleDescriptor {
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					module.OptStandInAfter:       module.StandInAfterDefault,
 				},
 			},
 		},
@@ -151,6 +155,7 @@ func (m *Module) descriptor() module.ModuleDescriptor {
 			// readable says so.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOptionWithAI(),
+			module.StandInOption(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,

@@ -295,7 +295,10 @@ test.describe('blackjack', () => {
         const errors: string[] = [];
 
         for (let step = 0; step < 4000; step++) {
-          const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some((o: any) => o.enabled));
+          // A manual offer — getting up from the table — is open all game and
+          // is nobody's turn; a driver never makes it (module.ActionOffer.Manual).
+          const live = (o: any) => o.enabled && !o.manual;
+          const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some(live));
           if (idx === -1) break;
 
           const seat = seats[idx];
@@ -304,7 +307,7 @@ test.describe('blackjack', () => {
           winnerId = state.winnerId ?? '';
           if (status !== 'active') break;
 
-          const enabled = state.legalActions.filter((o: any) => o.enabled);
+          const enabled = state.legalActions.filter(live);
           enabled.sort((a: any, b: any) => order.indexOf(a.verb) - order.indexOf(b.verb));
 
           let action: any = null;

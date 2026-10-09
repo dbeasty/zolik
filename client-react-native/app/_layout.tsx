@@ -115,6 +115,8 @@ export default function RootLayout() {
                       short, stable and typeable. See src/lib/inviteLink.ts. */}
                   <Stack.Screen name="oauth/consent" options={{ title: t('agent.heading') }} />
                   <Stack.Screen name="join/[code]" options={{ title: t('nav.joining') }} />
+                  {/* Where a link to a table on somebody's phone lands. */}
+                  <Stack.Screen name="r/[code]" options={{ title: t('relay.title') }} />
                   {/* Where a sent deal lands: the same cards somebody else
                       played, at a table of your own. See app/deal. */}
                   <Stack.Screen name="deal/[token]" options={{ title: t('deal.title') }} />
