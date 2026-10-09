@@ -22,6 +22,17 @@ const (
 	// discipline OptOpenDiscardPile keeps. A player whose hand it hides may
 	// still turn it over themselves.
 	OptShowdownReveal = "showdownReveal"
+	// OptFormat is how the table is played for: FormatTournament, the
+	// freeze-out every table has always been — everyone starts level and
+	// plays to the last chip — or FormatCash, where the chips in front of you
+	// are yours to get up and take, and what you leave with is your result.
+	OptFormat = "format"
+)
+
+// The table formats, as OptFormat's values.
+const (
+	FormatTournament = 0
+	FormatCash       = 1
 )
 
 type variationDefaults struct {
@@ -83,11 +94,13 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.noLimit"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:   variations[VarHoldem].startingStack,
-					OptBigBlind:        variations[VarHoldem].bigBlind,
-					OptHandLimit:       variations[VarHoldem].handLimit,
-					OptShowdownReveal:  RevealEveryone,
-					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+					OptStartingStack:         variations[VarHoldem].startingStack,
+					OptBigBlind:              variations[VarHoldem].bigBlind,
+					OptHandLimit:             variations[VarHoldem].handLimit,
+					OptShowdownReveal:        RevealEveryone,
+					module.OptBotSkill:       module.SkillOpt(module.SkillMedium),
+					OptFormat:                FormatTournament,
+					module.OptLeaveAfterAway: module.LeaveAfterAwayDefault,
 				},
 			},
 			{
@@ -102,11 +115,13 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.omaha.useTwo"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:   variations[VarOmaha].startingStack,
-					OptBigBlind:        variations[VarOmaha].bigBlind,
-					OptHandLimit:       variations[VarOmaha].handLimit,
-					OptShowdownReveal:  RevealEveryone,
-					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+					OptStartingStack:         variations[VarOmaha].startingStack,
+					OptBigBlind:              variations[VarOmaha].bigBlind,
+					OptHandLimit:             variations[VarOmaha].handLimit,
+					OptShowdownReveal:        RevealEveryone,
+					module.OptBotSkill:       module.SkillOpt(module.SkillMedium),
+					OptFormat:                FormatTournament,
+					module.OptLeaveAfterAway: module.LeaveAfterAwayDefault,
 				},
 			},
 			{
@@ -121,11 +136,13 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.draw.deal"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:   variations[VarDraw].startingStack,
-					OptBigBlind:        variations[VarDraw].bigBlind,
-					OptHandLimit:       variations[VarDraw].handLimit,
-					OptShowdownReveal:  RevealEveryone,
-					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+					OptStartingStack:         variations[VarDraw].startingStack,
+					OptBigBlind:              variations[VarDraw].bigBlind,
+					OptHandLimit:             variations[VarDraw].handLimit,
+					OptShowdownReveal:        RevealEveryone,
+					module.OptBotSkill:       module.SkillOpt(module.SkillMedium),
+					OptFormat:                FormatTournament,
+					module.OptLeaveAfterAway: module.LeaveAfterAwayDefault,
 				},
 			},
 		},
@@ -136,6 +153,17 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// no option: a lobby renders it as a working control.
 			module.BotSkillOptionWithAI(),
 			module.HintsOption(),
+			{
+				Name:  OptFormat,
+				Type:  module.OptionEnumInt,
+				Label: "Table",
+				Help:  "A tournament is played to the last chip, and nobody can leave with theirs. At a cash table you may get up whenever you like and take your chips with you.",
+				Choices: []module.OptionChoice{
+					{Value: FormatTournament, Label: "Tournament"},
+					{Value: FormatCash, Label: "Cash table"},
+				},
+			},
+			module.LeaveAfterAwayOption(),
 			{
 				Name:  OptShowdownReveal,
 				Type:  module.OptionEnumInt,
@@ -295,7 +323,11 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if st.AllIn {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.allIn")
 		}
-		if st.Out {
+		if st.Left {
+			// Gone with their chips, which are what the stack fact above
+			// still says: a cash table's result for that seat.
+			seat.LabelKeys = append(seat.LabelKeys, "seat.left")
+		} else if st.Out {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.out")
 		}
 		// How many cards a seat drew is the one public fact of a draw, and

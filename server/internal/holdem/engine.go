@@ -36,6 +36,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		StartingStack: cfg.Opt(OptStartingStack, v.startingStack),
 		HandLimit:     cfg.Opt(OptHandLimit, v.handLimit),
 		Reveal:        cfg.Opt(OptShowdownReveal, RevealEveryone),
+		Format:        cfg.Opt(OptFormat, FormatTournament),
 		Button:        (opening - 1 + len(players)) % len(players),
 	}
 	s.SmallBlind = s.BigBlind / 2
@@ -43,7 +44,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		s.SmallBlind = 1
 	}
 	for _, p := range players {
-		s.Seats = append(s.Seats, Seat{PlayerID: p.ID, Stack: s.StartingStack})
+		s.Seats = append(s.Seats, Seat{PlayerID: p.ID, Stack: s.StartingStack, Bot: p.IsAI})
 	}
 
 	startHand(s)
@@ -74,6 +75,11 @@ func matchOverAfterHand(s *GameState) bool {
 		}
 	}
 	if len(s.liveSeats()) < 2 {
+		return true
+	}
+	// Somebody got up and nobody who is a person is still dealt in: the
+	// bots would only be playing to each other, for nobody.
+	if s.anyLeft() && !s.personDealtIn() {
 		return true
 	}
 	return s.HandLimit > 0 && s.HandNumber >= s.HandLimit
@@ -183,6 +189,17 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrGameNotActive)
 	}
 
+	// Getting up is allowed whenever the table allows it at all, on turn or
+	// not, mid-hand or at a showdown — see applyLeave.
+	if a.Verb == module.VerbLeave {
+		events, err := applyLeave(s, playerID)
+		if err != nil {
+			return raw, nil, err
+		}
+		out, err := encode(s)
+		return out, events, err
+	}
+
 	// At a showdown nobody is on turn, so the intermission does the checking
 	// the turn order normally would.
 	if s.Break.Open {
@@ -202,17 +219,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		}
 		var events []module.Event
 		if s.Break.Settled(order(s)) {
-			closing := s.Closing
-			s.Break.Close()
-			s.Closing = false
-			// The last showdown goes on to nothing, so agreeing to go on ends
-			// the match instead of dealing. Which of the two this is was
-			// decided when the hand ended — see endHand.
-			if closing {
-				events = endMatch(s)
-			} else {
-				events = dealHand(s)
-			}
+			events = goOn(s)
 		}
 		out, err := encode(s)
 		return out, events, err
@@ -269,6 +276,79 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	events = append(events, advance(s)...)
 	out, err := encode(s)
 	return out, events, err
+}
+
+// goOn closes a showdown everybody has agreed to go on from.
+func goOn(s *GameState) []module.Event {
+	closing := s.Closing
+	s.Break.Close()
+	s.Closing = false
+	// The last showdown goes on to nothing, so agreeing to go on ends the
+	// match instead of dealing. Which of the two this is was decided when the
+	// hand ended — see endHand.
+	if closing {
+		return endMatch(s)
+	}
+	// Somebody may have got up during the showdown and left too few behind.
+	if matchOverAfterHand(s) {
+		return endMatch(s)
+	}
+	return dealHand(s)
+}
+
+// applyLeave is a player getting up from a cash table with their chips.
+//
+// Whenever they like: on turn or not, mid-hand or at a showdown. A seat still
+// holding cards folds as it goes — what it put in this hand stays in the pot,
+// which is what makes leaving mid-hand no escape from a bet already called —
+// and is out of the match from then on, its stack frozen as its result. The
+// table then carries on exactly as if the seat had folded, or, at a showdown,
+// as if it had agreed to go on.
+func applyLeave(s *GameState, playerID string) ([]module.Event, error) {
+	if s.Format != FormatCash {
+		return nil, errCode(ErrLeaveTournament)
+	}
+	seat := s.seat(playerID)
+	if seat == nil {
+		return nil, errCode(module.ErrNotSeated)
+	}
+	if seat.Left {
+		return nil, errCode(ErrAlreadyLeft)
+	}
+	var events []module.Event
+	if !s.Break.Open && seat.inHand() {
+		evs, _ := applyFold(s, seat)
+		events = append(events, evs...)
+	}
+	seat.Left, seat.Out = true, true
+	events = append(events, module.Event{Type: "left", Data: map[string]any{"playerId": playerID, "chips": seat.Stack}})
+	if s.Break.Open {
+		if s.Break.Settled(order(s)) {
+			events = append(events, goOn(s)...)
+		}
+		return events, nil
+	}
+	return append(events, advance(s)...), nil
+}
+
+// anyLeft reports whether somebody has got up from this table.
+func (s *GameState) anyLeft() bool {
+	for i := range s.Seats {
+		if s.Seats[i].Left {
+			return true
+		}
+	}
+	return false
+}
+
+// personDealtIn reports whether a seat a person plays is still in the match.
+func (s *GameState) personDealtIn() bool {
+	for i := range s.Seats {
+		if !s.Seats[i].Out && !s.Seats[i].Bot {
+			return true
+		}
+	}
+	return false
 }
 
 func applyFold(s *GameState, seat *Seat) ([]module.Event, error) {
@@ -844,6 +924,11 @@ func summarise(s *GameState, res HandResult) HandSummary {
 func order(s *GameState) []string {
 	out := make([]string, 0, len(s.Seats))
 	for i := range s.Seats {
+		// Except a player who got up: they are not reading anything, and
+		// waiting on them to go on would wait for ever.
+		if s.Seats[i].Left {
+			continue
+		}
 		out = append(out, s.Seats[i].PlayerID)
 	}
 	return out

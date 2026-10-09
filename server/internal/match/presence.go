@@ -70,6 +70,17 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 	if err != nil {
 		return
 	}
+	// The stand-in clock starts when they go, whether or not the table is
+	// waiting on them yet: by the time it is, they may have been gone long
+	// enough already.
+	wait := m.standInAfter(e.match)
+	if wait > 0 {
+		if p := playerByID(e.match.Players, playerID); p != nil && !p.IsAI {
+			m.markAway(matchID, playerID, time.Now())
+		}
+	}
+	// And, at a cash table, the clock on getting up for them.
+	m.noteAwayToLeave(e.match, playerID)
 	suspended, ok := m.suspendLocked(ctx, e, playerID)
 	e.mu.Unlock()
 	if !ok {
@@ -77,6 +88,9 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 	}
 	log.Printf("match=%s player=%s suspended (%s)", matchID, playerID, reason)
 	m.Broadcast(suspended)
+	if wait > 0 {
+		m.scheduleStandIn(matchID, playerID, suspended.SuspendedAt.Add(wait))
+	}
 }
 
 func (m *Manager) suspendLocked(ctx context.Context, e *liveMatch, playerID string) (models.Match, bool) {
@@ -128,6 +142,8 @@ func (m *Manager) suspendLocked(ctx context.Context, e *liveMatch, playerID stri
 // different one reconnecting, or by a spectator arriving.
 func (m *Manager) ResumeIfReturning(ctx context.Context, matchID, playerID string) {
 	m.returned(ctx, matchID, playerID)
+	// A seat a bot has been playing is theirs again, from the next decision.
+	m.endStandIn(ctx, matchID, playerID)
 	e, err := m.lockMatch(ctx, matchID)
 	if err != nil {
 		return
@@ -222,7 +238,9 @@ func (m *Manager) resumableBy(match models.Match, playerID string) bool {
 	}
 	room := match.ID.Hex()
 	for _, p := range match.Players {
-		if p.ID == playerID || p.IsAI {
+		// A seat a bot is standing in for is played either way: its
+		// player's absence holds nobody up.
+		if p.ID == playerID || p.IsAI || p.StandIn != nil {
 			continue
 		}
 		if !m.seatHere(room, p.ID) {
@@ -239,7 +257,9 @@ func (m *Manager) playersAway(match models.Match, playerID string) []string {
 	room := match.ID.Hex()
 	var away []string
 	for _, p := range match.Players {
-		if p.ID == playerID || p.IsAI {
+		// A seat a bot is standing in for is played either way: its
+		// player's absence holds nobody up.
+		if p.ID == playerID || p.IsAI || p.StandIn != nil {
 			continue
 		}
 		if !m.seatHere(room, p.ID) {

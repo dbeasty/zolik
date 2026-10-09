@@ -88,6 +88,18 @@ func (t *turnTracker) forget(matchID string) {
 	}
 }
 
+// forgetSeat drops the bot a seat started its turn with, so the next move it
+// makes is not taken for the rest of that turn. For a stand-in ending or
+// changing strength: the seat's next decision is somebody else's.
+func (t *turnTracker) forgetSeat(matchID, seatID string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.bots, seatRef{matchID, seatID})
+	if t.moved[matchID] == seatID {
+		delete(t.moved, matchID)
+	}
+}
+
 func (t *turnTracker) sweep(now time.Time, idle time.Duration) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

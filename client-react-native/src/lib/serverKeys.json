@@ -2,6 +2,7 @@
   "errorCodes": [
     "ACE_BRIDGE",
     "ALREADY_BET",
+    "ALREADY_LEFT",
     "ALREADY_READY",
     "ALREADY_SHOWN",
     "AMOUNT_NOT_A_NUMBER",
@@ -65,6 +66,7 @@
     "LASTCARD_ONLY_DRAWN_CARD",
     "LASTCARD_STACK_OR_TAKE",
     "LASTCARD_UNKNOWN_COLOUR",
+    "LEAVE_TOURNAMENT",
     "LORA_CANNOT_LAY",
     "LORA_MUST_FOLLOW_SUIT",
     "LORA_MUST_LAY",
@@ -172,6 +174,10 @@
     "SEQUENCE_NO_WILDS",
     "SERVER_BUSY",
     "SET_TOO_LARGE",
+    "STAND_IN_ENDED",
+    "STAND_IN_NOT_A_PERSON",
+    "STAND_IN_NOT_OFFERED",
+    "STAND_IN_PLAYER_HERE",
     "STOCK_EMPTY",
     "STOCK_NOT_EMPTY",
     "SUIT_REQUIRED",
@@ -192,6 +198,7 @@
     "UNKNOWN_MODULE",
     "UNKNOWN_OPTION",
     "UNKNOWN_PLAYER",
+    "UNKNOWN_SKILL",
     "UNKNOWN_SUIT",
     "UNKNOWN_VARIATION",
     "UPCARD_DECLINED",
@@ -265,6 +272,9 @@
     "blackjack.rules.hitStand",
     "blackjack.rules.hitsSoft17",
     "blackjack.rules.insurance",
+    "blackjack.rules.leave",
+    "blackjack.rules.leaveAway",
+    "blackjack.rules.leaveAwayNever",
     "blackjack.rules.minBet",
     "blackjack.rules.mostChipsWins",
     "blackjack.rules.noDoubleAfterSplit",
@@ -279,6 +289,7 @@
     "blackjack.rules.rounds",
     "blackjack.rules.section.dealer",
     "blackjack.rules.section.end",
+    "blackjack.rules.section.leaving",
     "blackjack.rules.section.play",
     "blackjack.rules.section.table",
     "blackjack.rules.split",
@@ -525,6 +536,9 @@
     "holdem.round.uncontested",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
+    "holdem.rules.cash.away",
+    "holdem.rules.cash.awayNever",
+    "holdem.rules.cash.leave",
     "holdem.rules.checkOrCall",
     "holdem.rules.draw.deal",
     "holdem.rules.draw.draw",
@@ -548,12 +562,14 @@
     "holdem.rules.section.goal",
     "holdem.rules.section.setup",
     "holdem.rules.section.showdown",
+    "holdem.rules.section.table",
     "holdem.rules.showOnce",
     "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
     "holdem.rules.stack",
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "holdem.rules.tournament",
     "holdem.seat.allIn",
     "holdem.seat.bet",
     "holdem.seat.dealer",
@@ -922,6 +938,7 @@
     "marias.zone.lastTrick",
     "marias.zone.talon",
     "marias.zone.trick",
+    "offer.leave",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -959,6 +976,11 @@
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
     "round.continue",
+    "rules.standIn.after",
+    "rules.standIn.record",
+    "rules.standIn.return",
+    "rules.standIn.section",
+    "rules.standIn.wait",
     "rummytiles.badge.invalid",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
@@ -1021,6 +1043,8 @@
     "rummytiles.zone.table",
     "rummytiles.zone.tray",
     "seat.cards",
+    "seat.leaving",
+    "seat.left",
     "seat.ready",
     "status.lastDeal",
     "status.teamScore",
@@ -1147,6 +1171,9 @@
     "blackjack.rules.hitStand",
     "blackjack.rules.hitsSoft17",
     "blackjack.rules.insurance",
+    "blackjack.rules.leave",
+    "blackjack.rules.leaveAway",
+    "blackjack.rules.leaveAwayNever",
     "blackjack.rules.minBet",
     "blackjack.rules.mostChipsWins",
     "blackjack.rules.noDoubleAfterSplit",
@@ -1161,6 +1188,7 @@
     "blackjack.rules.rounds",
     "blackjack.rules.section.dealer",
     "blackjack.rules.section.end",
+    "blackjack.rules.section.leaving",
     "blackjack.rules.section.play",
     "blackjack.rules.section.table",
     "blackjack.rules.split",
@@ -1282,6 +1310,8 @@
     "holdem.remedy.waitForNextHand",
     "holdem.rules.allIn",
     "holdem.rules.blinds",
+    "holdem.rules.cash.away",
+    "holdem.rules.cash.leave",
     "holdem.rules.checkOrCall",
     "holdem.rules.draw.deal",
     "holdem.rules.draw.draw",
@@ -1305,12 +1335,14 @@
     "holdem.rules.section.goal",
     "holdem.rules.section.setup",
     "holdem.rules.section.showdown",
+    "holdem.rules.section.table",
     "holdem.rules.showOnce",
     "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
     "holdem.rules.stack",
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "holdem.rules.tournament",
     "klondike.remedy.drawFirst",
     "klondike.remedy.playTheTable",
     "klondike.remedy.turnEverythingUp",
@@ -1646,6 +1678,9 @@
     ],
     "blackjack.rules.decks": [
       "n"
+    ],
+    "blackjack.rules.leaveAway": [
+      "minutes"
     ],
     "blackjack.rules.minBet": [
       "n"
@@ -2125,6 +2160,9 @@
     "holdem.rules.blinds": [
       "bb",
       "sb"
+    ],
+    "holdem.rules.cash.away": [
+      "minutes"
     ],
     "holdem.rules.draw.draw": [
       "n"
@@ -2608,6 +2646,9 @@
     "prsi.rules.deck": [
       "value"
     ],
+    "rules.standIn.after": [
+      "seconds"
+    ],
     "rummytiles.fact.setCards": [
       "value"
     ],
@@ -2843,6 +2884,7 @@
     "blackjack.round.dealerTotal",
     "blackjack.rules.bustedOut",
     "blackjack.rules.decks",
+    "blackjack.rules.leaveAway",
     "blackjack.rules.minBet",
     "blackjack.rules.rounds",
     "blackjack.rules.split",
@@ -2975,6 +3017,7 @@
     "holdem.remedy.raiseAtMostPot",
     "holdem.round.pot",
     "holdem.rules.blinds",
+    "holdem.rules.cash.away",
     "holdem.rules.draw.draw",
     "holdem.rules.handLimit",
     "holdem.rules.stack",
@@ -3105,6 +3148,7 @@
     "prsi.remedy.playOrDraw",
     "prsi.rules.deal",
     "prsi.rules.deck",
+    "rules.standIn.after",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",

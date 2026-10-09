@@ -21,6 +21,7 @@ import { POSITION_PARAM, choicesToAsk, offerGroupKey, submissionFor } from '@/sr
 import type { ParamSpec } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
+import { ColourInPlay } from '@/src/components/cards/LastCardInk';
 import { DeckProvider } from '@/src/lib/deck';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { BoardSheet } from '@/src/components/match/BoardSheet';
@@ -42,6 +43,9 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
+import { useStandIn } from '@/src/components/StandInSheet';
+import { TableBanner } from '@/src/components/match/TableBanner';
+import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
@@ -69,6 +73,7 @@ import {
   type FlightPlan,
 } from '@/src/lib/flights';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { lastCardColourOfKey } from '@/src/lib/cards';
 import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
@@ -96,7 +101,7 @@ import {
   yourTurnText,
   type PlayOption,
 } from '@/src/lib/boardSpeech';
-import { turnStep } from '@/src/lib/turnStep';
+import { turnStep, isLive } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
@@ -176,15 +181,22 @@ export default function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, send: sendNow, clearError } = useMatchSocket(url, client);
+  const { state, error, connected, notice, send: sendNow, clearError, clearNotice } = useMatchSocket(url, client);
 
   // Every move leaves through here. A move that plays a card the offer says
   // a question is for — the colour a wild names — waits for the answer
   // (`ChoiceSheet`), however the card was played: a dragged card has no
   // control beside it to answer on.
   const [asking, setAsking] = useState<{ action: MatchAction; ask: ParamSpec[] } | null>(null);
+  // Getting up from the table waits for a yes: it is the one move that
+  // cannot be taken back.
+  const [leaving, setLeaving] = useState<MatchAction | null>(null);
   const proceed = useCallback(
     (action: MatchAction) => {
+      if (action.verb === 'leave') {
+        setLeaving(action);
+        return;
+      }
       const offer = state?.legalActions?.find((o) => o.id === action.offerId);
       const next = choicesToAsk(offer, action);
       if (next.ask.length) setAsking(next);
@@ -268,7 +280,7 @@ export default function MatchScreen() {
   // Only while the table is waiting on this player. A card drawn on a turn
   // that the draw itself ended — nothing playable came — has nowhere to go
   // until the next turn, and a card left picked then is a pick nobody made.
-  const myTurn = (state?.legalActions ?? []).some((o) => o.enabled);
+  const myTurn = (state?.legalActions ?? []).some(isLive);
   useEffect(() => {
     if (autoSelectIds.length && myTurn) {
       setSelected(new Set(autoSelectIds));
@@ -309,6 +321,9 @@ export default function MatchScreen() {
   // The host may change any bot's strength at any point: tapping its face
   // opens the picker. Nobody else's taps do anything.
   const botStrength = useBotStrength(client, String(matchId ?? ''), state?.moduleId, !!state?.hostId && state.hostId === viewerId);
+  // And a person's seat while they are away: a bot now, a different bot, or
+  // none and wait for them. Also the host's alone.
+  const standIn = useStandIn(client, String(matchId ?? ''), !!state?.hostId && state.hostId === viewerId, botStrength.offersAI);
   // Amounts dialled into the controls and not yet sent. Held here, not in the
   // bar, because the bar unmounts when its panel collapses and the collapsed
   // rail's pills send the same offers — both read this one store.
@@ -458,7 +473,7 @@ export default function MatchScreen() {
   }, [state]);
   useEffect(() => {
     setIdle(false);
-    if (!state?.legalActions?.some((o) => o.enabled)) return;
+    if (!state?.legalActions?.some(isLive)) return;
     const timer = setTimeout(() => setIdle(true), IDLE_NUDGE_MS);
     return () => clearTimeout(timer);
   }, [state]);
@@ -548,7 +563,7 @@ export default function MatchScreen() {
     for (const m of fresh) {
       if (m.playerId !== viewerId) announceGame(spokenFactText(m.fact, state.players), 'move');
     }
-    const mine = state.legalActions.some((o) => o.enabled);
+    const mine = state.legalActions.some(isLive);
     if (mine && !turnSeen.current) {
       const text = yourTurnText(state.legalActions, state.players);
       if (text) announceGame(text, 'turn');
@@ -772,7 +787,7 @@ export default function MatchScreen() {
   );
   const liftsOf = (card: string) => liftOffers.filter((o) => o.source!.submit![0] === card);
 
-  const canAct = state.legalActions.some((o) => o.enabled);
+  const canAct = state.legalActions.some(isLive);
   const step = turnStep(state.legalActions);
   // Whose turn it is when it is somebody else's: the first thing a player
   // asking "why can't I?" needs, so a not-your-turn refusal names them.
@@ -1499,6 +1514,7 @@ export default function MatchScreen() {
   // the server would honour it, and when it would not, the line below says
   // who everyone is waiting for instead of leaving them to guess.
   const canResume = wasAbandoned && !!state.canResume;
+  const stoodInNames = (state.stoodIn ?? []).map((id) => playerName(state.players, id)).filter(Boolean);
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
@@ -1526,6 +1542,15 @@ export default function MatchScreen() {
   // had resolved hours earlier, whose every control the engine was refusing.
   // That is the exact failure the comment above `winners` describes being
   // fixed once for finished matches, reappearing for swept-up ones.
+  // Which device the table runs on, said wherever it is not the cloud: a
+  // table on somebody's phone stops when that phone does, and everybody at it
+  // should know that before it happens rather than work it out after.
+  const serverName = offline?.serverName || t('server.hostsPhone');
+  const serverLabel = !offline
+    ? ''
+    : offline.role === 'host'
+      ? t('server.thisPhone')
+      : t('server.named', { name: serverName });
   const statusOk = state.status !== 'suspended' && state.status !== 'abandoned';
   const statusExplainer =
     state.status === 'suspended'
@@ -1535,6 +1560,11 @@ export default function MatchScreen() {
         : state.status === 'completed'
           ? t('match.finished')
           : t('match.inProgress');
+  const serverExplainer = !offline
+    ? ''
+    : offline.role === 'host'
+      ? t('server.explainHost')
+      : t('server.explainGuest', { name: serverName });
 
   // The controls, built once and rendered in one of two places.
   //
@@ -1800,6 +1830,11 @@ export default function MatchScreen() {
                 <Text testID="match-status" style={styles.status}>
                   {state.status}
                 </Text>
+                {serverLabel ? (
+                  <Text testID="match-server" style={styles.status} numberOfLines={1}>
+                    {`· ${serverLabel}`}
+                  </Text>
+                ) : null}
               </Pressable>
               </Tip>
               {tableCode ? (
@@ -1819,9 +1854,21 @@ export default function MatchScreen() {
           the tap wherever the player happens to be scrolled to. */}
       {statusExplainerOpen ? (
         <Text testID="match-status-explainer" style={styles.statusExplainer}>
-          {statusExplainer}
+          {serverExplainer ? `${statusExplainer} ${serverExplainer}` : statusExplainer}
         </Text>
       ) : null}
+      {/* Why nothing is moving, when nothing is: outside the board, so it is
+          in view wherever the player is scrolled to. */}
+      <TableBanner
+        state={state}
+        seats={view.seats ?? []}
+        viewerId={viewerId}
+        connected={connected}
+        serverGone={offline?.serverGone ? { name: serverName } : undefined}
+        notice={notice}
+        onDismissNotice={clearNotice}
+        onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
+      />
       <ScrollView
         ref={scrollRef}
         // Wide enough for the table and no wider. On a large monitor the felt
@@ -1898,11 +1945,16 @@ export default function MatchScreen() {
 
         {(view.header ?? []).length > 0 ? (
           <View style={styles.facts} testID="match-header">
-            {(view.header ?? []).map((f, i) => (
-              <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
-                {factText(f, state.players)}
-              </Text>
-            ))}
+            {(view.header ?? []).map((f, i) =>
+              // A Last Card colour in play is shown in that colour, not only named.
+              lastCardColourOfKey(f.value) ? (
+                <ColourInPlay key={`${f.labelKey}-${i}`} fact={f} style={styles.fact} />
+              ) : (
+                <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
+                  {factText(f, state.players)}
+                </Text>
+              ),
+            )}
           </View>
         ) : null}
 
@@ -1929,6 +1981,14 @@ export default function MatchScreen() {
             {/* Why there is no resume above. Only on a swept-up table, and
                 only when somebody is actually missing — a table nobody is
                 waiting for has no one to name. */}
+            {/* Whose record this game does not count on, because a bot
+                played part of it for them — said here so the history
+                that leaves it out is not a surprise later. */}
+            {!wasAbandoned && stoodInNames.length ? (
+              <Text testID="match-over-stood-in" style={styles.overOutcome}>
+                {t('results.stoodIn', { names: stoodInNames.join(', ') })}
+              </Text>
+            ) : null}
             {wasAbandoned && !canResume && awayNames.length ? (
               <Text testID="match-over-waiting" style={styles.overOutcome}>
                 {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
@@ -2133,6 +2193,7 @@ export default function MatchScreen() {
           // it — Prší's, which is a card count — has nothing to open.
           onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
           onPickBot={botStrength.open}
+          onPickStandIn={standIn.open}
         />
 
       </ScrollView>
@@ -2142,6 +2203,15 @@ export default function MatchScreen() {
           refused drop, or a submission the server turned down — one component
           for all three, because they are one question. */}
       {botStrength.sheet}
+      {standIn.sheet}
+      <LeaveSheet
+        visible={!!leaving}
+        onCancel={() => setLeaving(null)}
+        onLeave={() => {
+          if (leaving) sendNow(leaving);
+          setLeaving(null);
+        }}
+      />
       <ScoreSheet
         subjectId={scoreOf?.playerId ?? null}
         focusRound={scoreOf?.round}

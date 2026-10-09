@@ -217,6 +217,9 @@ type MatchRef struct {
 	// Repeat marks a deal played again (MatchResult.DealFrom): a score made on
 	// cards already seen is not shown as a first attempt.
 	Repeat bool `bson:"repeat,omitempty" json:"repeat,omitempty"`
+	// StandIn marks a match a bot played part of for this player, which
+	// counts towards none of their totals.
+	StandIn bool `bson:"standIn,omitempty" json:"standIn,omitempty"`
 }
 
 // recentMatchesKept caps the inline recent-form list on a lifetime record.

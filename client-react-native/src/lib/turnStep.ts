@@ -20,8 +20,16 @@ import { offerGroupKey } from '@/src/api/matchTypes';
  */
 export type TurnStep = { obligation?: Fact; moves: ActionOffer[] };
 
+/**
+ * Whether an offer is a move this player is being asked to make now. Getting
+ * up from the table is enabled all game, and is nobody's turn.
+ */
+export function isLive(o: ActionOffer): boolean {
+  return o.enabled && !o.manual;
+}
+
 export function turnStep(offers: ActionOffer[]): TurnStep | null {
-  const live = offers.filter((o) => o.enabled);
+  const live = offers.filter(isLive);
   if (!live.length) return null;
 
   const undos = new Set(offers.filter((o) => o.undo).map((o) => o.id));

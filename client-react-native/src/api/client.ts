@@ -569,6 +569,23 @@ export class ZolikClient {
   }
 
   /** Change how well a seated bot plays — the host's, at any point in a match. */
+  /**
+   * The host's say over the seat of a person who is away: put a bot in now,
+   * or change how well it plays (`on`), or take it out to wait for them.
+   */
+  async setStandIn(
+    idOrCode: string,
+    playerId: string,
+    on: boolean,
+    skill?: string,
+  ): Promise<{ playerId: string; standIn?: { skill: string; since: string; by: string } }> {
+    return this.post(
+      `/matches/${encodeURIComponent(idOrCode)}/seats/${encodeURIComponent(playerId)}/stand-in`,
+      { on, skill },
+      true,
+    );
+  }
+
   async setBotSkill(
     idOrCode: string,
     playerId: string,

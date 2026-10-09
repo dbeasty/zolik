@@ -89,6 +89,11 @@ const (
 	// rule that stops them is a different one.
 	ErrOverPotLimit  = "OVER_POT_LIMIT"
 	ErrSeatNotInHand = "SEAT_NOT_IN_HAND"
+	// ErrLeaveTournament is getting up from a tournament, where your chips are
+	// not yours to take: they are what you are playing for.
+	ErrLeaveTournament = "LEAVE_TOURNAMENT"
+	// ErrAlreadyLeft is a second "leave" from a seat already got up.
+	ErrAlreadyLeft = "ALREADY_LEFT"
 
 	// --- showing a hand ----------------------------------------------------
 	//
@@ -128,8 +133,14 @@ type Seat struct {
 	// Acted is whether this seat has had its turn on the current street. It is
 	// what gives the big blind its option: posting a blind is not acting.
 	Acted bool `json:"acted,omitempty"`
-	// Out is eliminated from the match — no chips, no way back.
-	Out  bool     `json:"out,omitempty"`
+	// Out is eliminated from the match — no chips, no way back — or gone:
+	// Left is a player who got up from a cash table, and is Out too, with the
+	// chips they left with frozen in Stack as their result.
+	Out  bool `json:"out,omitempty"`
+	Left bool `json:"left,omitempty"`
+	// Bot is a seat the server plays, recorded at the deal so a cash table
+	// with no person left at it can end instead of playing on to nobody.
+	Bot  bool     `json:"bot,omitempty"`
 	Hole []string `json:"hole,omitempty"`
 
 	// Drawn is whether this seat has had its draw this hand, and Drew how
@@ -259,6 +270,9 @@ type GameState struct {
 	// one player holds every chip.
 	HandLimit  int `json:"handLimit"`
 	HandNumber int `json:"handNumber"`
+	// Format is FormatTournament or FormatCash (OptFormat). A state stored
+	// before it existed reads as a tournament, which is what every table was.
+	Format int `json:"format,omitempty"`
 
 	LastHand *HandResult `json:"lastHand,omitempty"`
 	// Hands is every hand that has been played, oldest first — deliberately a

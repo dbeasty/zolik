@@ -96,6 +96,7 @@ func defaultsFor(id string) map[string]int {
 		OptInsurance:                 module.BoolOpt(v.insurance),
 		module.OptPauseBetweenRounds: module.OptOn,
 		module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+		module.OptLeaveAfterAway:     module.LeaveAfterAwayDefault,
 	}
 }
 
@@ -136,6 +137,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			module.PauseOption(),
 			module.BotSkillOption(),
 			module.HintsOption(),
+			module.LeaveAfterAwayOption(),
 			{
 				Name: OptStartingStack, Type: module.OptionEnumInt,
 				Label: "Starting chips", Help: "How many chips each seat sits down with.",
@@ -362,7 +364,13 @@ func seatView(s *GameState, i int) module.Seat {
 		}
 		seat.Facts = append(seat.Facts, fact)
 	}
-	if st.Out {
+	switch {
+	case st.Left:
+		// Gone with their chips, which the stack fact above still states.
+		seat.LabelKeys = append(seat.LabelKeys, "seat.left")
+	case st.Leaving:
+		seat.LabelKeys = append(seat.LabelKeys, "seat.leaving")
+	case st.Out:
 		seat.LabelKeys = append(seat.LabelKeys, "blackjack.seat.out")
 	}
 	return seat
