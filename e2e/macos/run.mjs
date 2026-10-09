@@ -364,6 +364,66 @@ async function main() {
   }, [a]);
 
   let invite = '';
+  await step('View › Hide/Show Hand, Table and Log; Help › Rules for this game', async () => {
+    // Window 1 is at its Last Card match.
+    const panels = `(() => Object.fromEntries([...document.querySelectorAll('[data-testid^="panel-toggle-zone:"]')]
+      .map((e) => [e.dataset.testid.slice('panel-toggle-zone:'.length), e.getAttribute('aria-expanded')])))()`;
+    let view = await a.native('menuitems View');
+    for (const want of ['Hide Hand', 'Hide Table', 'Show Log']) {
+      expect(view.includes(want), `View lacks "${want}": ${JSON.stringify(view)}`);
+    }
+    const before = await a.js(`return ${panels}`);
+    expect(before['section:table'] === 'true', `table panel ${JSON.stringify(before)}`);
+    const hands = Object.keys(before).filter((k) => k !== 'section:table' && before[k] === 'true');
+
+    await a.native('menu Hide Hand');
+    const hidden = await a.js(`
+      await e2e.waitFor(() => { const p = ${panels}; return ${JSON.stringify(hands)}.some((h) => p[h] === 'false'); }, 'the hand to fold', 5000);
+      return ${panels};
+    `);
+    expect(hidden['section:table'] === 'true', 'hiding the hand folded the table');
+    view = await a.native('menuitems View');
+    expect(view.includes('Show Hand'), `after hiding: ${JSON.stringify(view)}`);
+    await a.native('menu Show Hand');
+    await a.js(`await e2e.waitFor(() => { const p = ${panels}; return ${JSON.stringify(hands)}.every((h) => p[h] !== 'false'); }, 'the hand back', 5000); return 1`);
+
+    await a.native('menu Hide Table');
+    await a.js(`await e2e.waitFor(() => ${panels}['section:table'] === 'false', 'the table to fold', 5000); return 1`);
+    await a.native('menu Show Table');
+    await a.js(`await e2e.waitFor(() => ${panels}['section:table'] === 'true', 'the table back', 5000); return 1`);
+
+    await a.native('menu Show Log');
+    await a.js(`await e2e.waitFor(() => document.querySelector('[data-testid="moves-toggle"]')?.getAttribute('aria-expanded') === 'true', 'the log to open', 5000); return 1`);
+    view = await a.native('menuitems View');
+    expect(view.includes('Hide Log'), `after showing the log: ${JSON.stringify(view)}`);
+    await a.native('menu Hide Log');
+
+    const rules = await a.native('menuitems Rules');
+    expect(rules[0] === '✓ Last Card' && rules.length > 5, `Rules menu ${JSON.stringify(rules)}`);
+    await a.native('menu Last Card');
+    const page = await a.js(`
+      await e2e.waitFor(() => location.pathname === '/rules', 'the rules', 15000);
+      await e2e.waitFor(() => e2e.text().length > 400, 'the rules to load', 15000);
+      return { search: location.search, text: e2e.text().slice(0, 400) };
+    `);
+    expect(/moduleId=lastcard/.test(page.search), `rules opened ${page.search}`);
+    expect(!/error|failed|not found/i.test(page.text), `rules page: ${page.text}`);
+    view = await a.native('menuitems View');
+    for (const part of ['Hand', 'Table', 'Log']) {
+      expect(view.some((t) => t.startsWith('(disabled)') && t.endsWith(part)), `off the game, View shows ${JSON.stringify(view)}`);
+    }
+    await a.screenshot('rules');
+    // Back and Forward undo each other.
+    await a.native('menu Back');
+    await a.js(`await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'back at the match', 15000); return 1`);
+    view = await a.native('menuitems View');
+    expect(view.includes('Forward'), `Forward is not offered after Back: ${JSON.stringify(view)}`);
+    await a.native('menu Forward');
+    await a.js(`await e2e.waitFor(() => location.pathname === '/rules', 'forward to the rules', 15000); return 1`);
+    await a.native('menu Back');
+    await a.js(`await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'back at the match again', 15000); return 1`);
+  }, [a]);
+
   await step('the menu bar opens Play offline, and the Mac hosts a table', async () => {
     await a.native('menu Start an offline table');
     await a.js(`await e2e.waitForText('Your name at the table'); return 1`);
@@ -447,6 +507,21 @@ async function main() {
     await a.screenshot('host-match');
     await b.screenshot('guest-match');
   }, [a, b]);
+
+  await step('View › Home from a game, then Back to it and Forward again', async () => {
+    await a.native('window select 2');
+    const game = await a.js(`return location.pathname`);
+    expect(game.startsWith('/match/'), `window 2 is at ${game}`);
+    await a.native('menu Home');
+    await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+    await a.native('menu Back');
+    await a.js(`await e2e.waitFor(() => location.pathname === ${JSON.stringify(game)}, 'back at the game', 15000); await e2e.waitForText('active'); return 1`);
+    await a.native('menu Forward');
+    await a.js(`await e2e.waitFor(() => location.pathname === '/', 'forward to home', 15000); return 1`);
+    await a.native('menu Back');
+    await a.js(`await e2e.waitFor(() => location.pathname === ${JSON.stringify(game)}, 'back at the game again', 15000); return 1`);
+    await a.native('window select 1');
+  }, [a]);
 
   await step('View › Zoom In and Actual Size; Account › Sign out', async () => {
     await a.native('window select 2');

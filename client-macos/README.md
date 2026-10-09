@@ -26,8 +26,11 @@ Go core (Zolikcore.xcframework): hosts tables, and makes every network request
   playing, My games, Game circle, Sign in / Account, Sign out), worded by the
   page in the player's language (`src/desktop/DesktopMenuBridge.tsx`). The
   page does not show that face in the app.
-- **View**: Back (⌘[), Home (⇧⌘H), Actual Size / Zoom In / Zoom Out, Reload,
-  Full Screen. **Table**: Start an offline table (⇧⌘N), Back to online play.
+- **View**: Hide/Show Hand, Table and Log (⌥⌘1–3) for the game in front
+  (`src/desktop/useDesktopMatchView.ts`); Back (⌘[) and Forward (⌘]), which
+  always undo each other; Home (⇧⌘H); Actual Size / Zoom In / Zoom Out;
+  Reload; Full Screen.
+- **Help › Rules** lists every game, the one in front first (⌥⌘/). **Table**: Start an offline table (⇧⌘N), Back to online play.
   **Jokerless › About** shows the app's and the server's versions.
 - The page sits below the title bar, which takes the header's colour.
 

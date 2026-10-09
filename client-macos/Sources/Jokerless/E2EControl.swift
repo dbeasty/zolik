@@ -157,6 +157,8 @@ final class E2EControl {
       done(.success((app?.windows ?? []).map { $0.window?.title ?? "" }))
     case "account":
       done(.success(app?.accountMenuTitles() ?? []))
+    case "menuitems":
+      done(.success(app?.menuTitles(arg) ?? []))
     case "state":
       done(.success(web?.nearby.snapshot()))
     case "quit":

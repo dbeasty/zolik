@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { CLIENT_VERSION } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useServerBuild } from '@/src/hooks/useServerBuild';
+import { moduleLabel } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { useInvites } from '@/src/notify/InviteProvider';
 
@@ -22,6 +23,8 @@ export type DesktopMenuState = {
   /** The About panel's line: this app's version and the server's. */
   versions: string;
   more: { label: string; path: string };
+  /** Help › Rules: every game this server hosts, by name. */
+  rules: { label: string; path: string }[];
 };
 
 type Handler = { postMessage(msg: unknown): unknown };
@@ -39,7 +42,21 @@ function handler(): Handler | null {
  * Draws nothing.
  */
 export function DesktopMenuBridge() {
-  const { session, onlineSession, logout } = useSession();
+  const { session, onlineSession, logout, client } = useSession();
+  const [games, setGames] = useState<{ id: string; label: string }[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    client
+      .modules()
+      .then((mods) => {
+        if (live) setGames(mods.map((m) => ({ id: m.id, label: m.label })));
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [client]);
   const { circleRequests } = useInvites();
   const server = useServerBuild();
   const locale = useLocale();
@@ -79,9 +96,12 @@ export function DesktopMenuBridge() {
       account,
       versions: `${t('build.app')} ${CLIENT_VERSION} · ${t('build.server')} ${server ? server.version : '…'}`,
       more: { label: t('nav.more'), path: '/more' },
+      rules: games
+        .map((m) => ({ label: moduleLabel(m), path: `/rules?moduleId=${encodeURIComponent(m.id)}` }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
     };
     handler()?.postMessage({ op: 'menu', state });
-  }, [session, onlineSession, circleRequests, server, locale]);
+  }, [session, onlineSession, circleRequests, server, locale, games]);
 
   return null;
 }

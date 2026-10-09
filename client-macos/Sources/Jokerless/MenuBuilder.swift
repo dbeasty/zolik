@@ -6,7 +6,11 @@ import AppKit
 /// between screens. File › New Window opens a second table alongside the
 /// first.
 enum MenuBuilder {
-  static func build(target: AppDelegate, account: NSMenu) -> NSMenu {
+  /// Tags of View's show/hide items, whose titles follow what is showing.
+  static let viewTags: [Int: String] = [101: "hand", 102: "table", 103: "log"]
+  static let viewNames: [String: String] = ["hand": "Hand", "table": "Table", "log": "Log"]
+
+  static func build(target: AppDelegate, account: NSMenu, view: NSMenu, rules: NSMenu) -> NSMenu {
     let main = NSMenu()
 
     let appMenu = NSMenu(title: "Jokerless")
@@ -42,8 +46,18 @@ enum MenuBuilder {
     edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
     add(edit, to: main)
 
-    let view = NSMenu(title: "View")
+    // Show/Hide Hand, Table and Log first: the game's own parts, titled and
+    // enabled by AppDelegate from what the game in front says it has.
+    for (tag, key) in [(101, "1"), (102, "2"), (103, "3")] {
+      let part = item("Hide", #selector(AppDelegate.toggleViewPart(_:)), key, target)
+      part.keyEquivalentModifierMask = [.command, .option]
+      part.tag = tag
+      view.addItem(part)
+    }
+    view.addItem(.separator())
+    // Both ways, always: whatever Back leaves, Forward returns to.
     view.addItem(item("Back", #selector(AppDelegate.goBack(_:)), "[", target))
+    view.addItem(item("Forward", #selector(AppDelegate.goForward(_:)), "]", target))
     let home = item("Home", #selector(AppDelegate.goHome(_:)), "h", target)
     home.keyEquivalentModifierMask = [.command, .shift]
     view.addItem(home)
@@ -53,9 +67,7 @@ enum MenuBuilder {
     view.addItem(item("Zoom Out", #selector(AppDelegate.zoomOut(_:)), "-", target))
     view.addItem(.separator())
     view.addItem(item("Reload", #selector(AppDelegate.reloadPage(_:)), "r", target))
-    let full = view.addItem(
-      withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
-    full.keyEquivalentModifierMask = [.command, .control]
+    // macOS adds Enter Full Screen to a menu titled View by itself.
     add(view, to: main)
 
     let table = NSMenu(title: "Table")
@@ -80,7 +92,10 @@ enum MenuBuilder {
     NSApp.windowsMenu = window
 
     let help = NSMenu(title: "Help")
-    help.addItem(item("Rules", #selector(AppDelegate.showRules(_:)), "", target))
+    // Every game's rules, the one in front first (AppDelegate fills it).
+    let rulesHolder = NSMenuItem(title: "Rules", action: nil, keyEquivalent: "")
+    rulesHolder.submenu = rules
+    help.addItem(rulesHolder)
     help.addItem(item("More", #selector(AppDelegate.showMore(_:)), "", target))
     help.addItem(item("Jokerless Website", #selector(AppDelegate.openWebsite(_:)), "", target))
     add(help, to: main)

@@ -9,6 +9,8 @@ final class GameWindowController: NSWindowController, NSWindowDelegate {
   let web: WebController
   /// What the page last said the Account menu should hold, in its language.
   private(set) var menuState: [String: Any]?
+  /// What the game in front can show or hide, and whose rules; nil off a game.
+  private(set) var viewState: [String: Any]?
   var onActivate: ((GameWindowController) -> Void)?
   var onClose: ((GameWindowController) -> Void)?
   private var titleWatch: NSKeyValueObservation?
@@ -49,10 +51,8 @@ final class GameWindowController: NSWindowController, NSWindowDelegate {
       let title = (view.title ?? "").trimmingCharacters(in: .whitespaces)
       window?.title = title.isEmpty ? "Jokerless" : title
     }
-    web.onMenuState = { [weak self] state in
-      guard let self else { return }
-      self.menuState = state
-    }
+    web.onMenuState = { [weak self] state in self?.menuState = state }
+    web.onViewState = { [weak self] state in self?.viewState = state }
   }
 
   required init?(coder: NSCoder) { fatalError("not used") }

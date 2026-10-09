@@ -106,6 +106,9 @@ import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
 import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
+import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
+import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
+import { isTableZone } from '@/src/lib/board';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -264,6 +267,36 @@ export default function MatchScreen() {
   // Keyed by match, so an arrangement is remembered across a reload but never
   // carried into a different deal, where it would mean nothing.
   const { slotsFor, move, arrange, autoSelectIds } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
+
+  // The Mac app's View › Show/Hide Hand, Table and Log, and Help › Rules for
+  // this game. The hand and the table are the same panels the ▾ on each puts
+  // away; the log is the list of recent moves. Before the early returns
+  // below, because it is a hook.
+  const handPanelIds = myHands.map((z) => `zone:${z.id}`);
+  const handShown = handPanelIds.some((id) => !panels.isMinimized(id));
+  const logOpen = useMovesOpen();
+  useDesktopMatchView(
+    {
+      hand: handPanelIds.length
+        ? {
+            shown: handShown,
+            toggle: () => {
+              // Every hand panel to the same state: the open ones folded, or the
+              // folded ones opened.
+              for (const id of handPanelIds) if (panels.isMinimized(id) !== handShown) panels.toggle(id);
+            },
+          }
+        : undefined,
+      table: zones.some(isTableZone)
+        ? {
+            shown: !panels.isMinimized('zone:section:table'),
+            toggle: () => panels.toggle('zone:section:table'),
+          }
+        : undefined,
+      log: { shown: logOpen, toggle: () => setMovesOpen(!logOpen) },
+    },
+    state ? { moduleId: state.moduleId, variation: state.variation ?? '', options: state.options ?? {} } : null,
+  );
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
 

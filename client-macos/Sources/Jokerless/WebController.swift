@@ -25,6 +25,10 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   var onMenuState: (([String: Any]) -> Void)? {
     didSet { bridge.onMenuState = onMenuState }
   }
+  /// Called when the game screen in front changes what it can show or hide.
+  var onViewState: (([String: Any]?) -> Void)? {
+    didSet { bridge.onViewState = onViewState }
+  }
 
   var view: NSView { webView }
 
@@ -72,6 +76,12 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     webView.configuration.userContentController.removeAllScriptMessageHandlers()
     nearby.remove(bridge)
     webView.stopLoading()
+  }
+
+  /// Shows or hides a part of the game in front: "hand", "table" or "log".
+  func toggleView(_ part: String) {
+    let quoted = (try? JSONSerialization.data(withJSONObject: [part])).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+    webView.evaluateJavaScript("window.__zolikView && window.__zolikView(\(quoted)[0])")
   }
 
   /// Runs one of the page's own commands (DesktopMenuBridge): "signOut", "back".
@@ -141,7 +151,11 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   ) {
     guard let url = action.request.url else { return decisionHandler(.cancel) }
     if url.scheme == Self.scheme {
-      if action.targetFrame?.isMainFrame ?? true { refreshBootScript() }
+      if action.targetFrame?.isMainFrame ?? true {
+        refreshBootScript()
+        // A new page has no game in front until it says so.
+        bridge.onViewState?(nil)
+      }
       return decisionHandler(.allow)
     }
     if url.scheme == "about" || url.scheme == "blob" || url.scheme == "data" {
