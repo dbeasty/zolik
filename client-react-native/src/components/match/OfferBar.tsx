@@ -1480,7 +1480,16 @@ function ReasonLine({
     );
   }
   return (
-    <Pressable onPress={onPress} testID={`${testID}-press`} accessibilityRole="button">
+    <Pressable
+      onPress={onPress}
+      testID={`${testID}-press`}
+      // On the web the pointer's way to the sheet, and only the pointer's:
+      // the control above it is focusable while it is off, says this same
+      // sentence as its description, and opens the same sheet on Enter. A
+      // second stop for every disabled control — saying the reason a second
+      // time — was noise, and a small one crowded against its control.
+      {...((Platform.OS === 'web' ? { tabIndex: -1, 'aria-hidden': true } : { accessibilityRole: 'button' }) as object)}
+    >
       <Text testID={testID} style={styles.why} numberOfLines={2}>
         {text} <Text style={styles.whyMore}>{t('why.open')} ›</Text>
       </Text>
