@@ -3101,4 +3101,23 @@ export const en: Record<string, string> = {
   'a11y.settings.contrast.later': 'The game table changes now. Other screens follow the next time the app opens.',
   // a11y: statement (Phase 6)
   'a11y.statement.title': 'Accessibility',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Dirty sequences',
+  'choice.canasta.dirtySequences.0': 'Off',
+  'choice.canasta.dirtySequences.1': 'On',
+  'option.canasta.wildMeld': 'Meld of 2s',
+  'choice.canasta.wildMeld.0': 'Off',
+  'choice.canasta.wildMeld.1': 'On',
+  'option.canasta.rearrange': 'Rearrange melds',
+  'choice.canasta.rearrange.0': 'Off',
+  'choice.canasta.rearrange.1': 'On',
+  'option.canasta.poach': 'Poach wilds',
+  'choice.canasta.poach.0': 'Off',
+  'choice.canasta.poach.1': 'On',
+  'option.canasta.topOnlyCapture': 'Top card or whole pile',
+  'choice.canasta.topOnlyCapture.0': 'Off',
+  'choice.canasta.topOnlyCapture.1': 'On',
+  // --- end labels ---
 };

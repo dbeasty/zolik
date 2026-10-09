@@ -3099,4 +3099,23 @@ export const ga: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Spás',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Sraitheanna salacha',
+  'choice.canasta.dirtySequences.0': 'As',
+  'choice.canasta.dirtySequences.1': 'Ann',
+  'option.canasta.wildMeld': 'Cumasc de chártaí a dó',
+  'choice.canasta.wildMeld.0': 'As',
+  'choice.canasta.wildMeld.1': 'Ann',
+  'option.canasta.rearrange': 'Atheagraigh na cumaisc',
+  'choice.canasta.rearrange.0': 'As',
+  'choice.canasta.rearrange.1': 'Ann',
+  'option.canasta.poach': 'Fuadach cártaí fiáine',
+  'choice.canasta.poach.0': 'As',
+  'choice.canasta.poach.1': 'Ann',
+  'option.canasta.topOnlyCapture': 'An cárta barr nó an carn ar fad',
+  'choice.canasta.topOnlyCapture.0': 'As',
+  'choice.canasta.topOnlyCapture.1': 'Ann',
+  // --- end labels ---
 };

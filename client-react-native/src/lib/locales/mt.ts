@@ -3087,4 +3087,23 @@ export const mt: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Space',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Sekwenzi maħmuġin',
+  'choice.canasta.dirtySequences.0': 'Mitfijin',
+  'choice.canasta.dirtySequences.1': 'Mixgħulin',
+  'option.canasta.wildMeld': 'Kombinazzjoni ta\' tnejnijiet',
+  'choice.canasta.wildMeld.0': 'Mitfijin',
+  'choice.canasta.wildMeld.1': 'Mixgħulin',
+  'option.canasta.rearrange': 'Irranġa mill-ġdid il-kombinazzjonijiet',
+  'choice.canasta.rearrange.0': 'Mitfijin',
+  'choice.canasta.rearrange.1': 'Mixgħulin',
+  'option.canasta.poach': 'Aqbad is-salvaġġi',
+  'choice.canasta.poach.0': 'Mitfijin',
+  'choice.canasta.poach.1': 'Mixgħulin',
+  'option.canasta.topOnlyCapture': 'Il-karta ta\' fuq jew il-munzell kollu',
+  'choice.canasta.topOnlyCapture.0': 'Mitfijin',
+  'choice.canasta.topOnlyCapture.1': 'Mixgħulin',
+  // --- end labels ---
 };
