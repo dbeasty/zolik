@@ -31,7 +31,7 @@ export function GameButtons({ onPick }: { onPick: (mod: MatchModule) => void }) 
       </Text>
     );
   }
-  if (!modules) return <ActivityIndicator color={colors.accent} />;
+  if (!modules) return <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />;
 
   return (
     <View style={styles.grid} testID="game-buttons">

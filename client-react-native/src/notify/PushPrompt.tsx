@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { heading } from '@/src/a11y/props';
 import { useSession } from '@/src/context/SessionContext';
 import { t } from '@/src/lib/i18n';
 import type { SkinColors } from '@/src/skins/types';
@@ -49,7 +50,9 @@ export function PushPrompt({ palette = colors }: { palette?: SkinColors }) {
       testID="push-prompt"
       style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
     >
-      <Text style={[styles.title, { color: palette.text }]}>{t('notify.prompt.title')}</Text>
+      <Text style={[styles.title, { color: palette.text }]} {...heading(3)}>
+        {t('notify.prompt.title')}
+      </Text>
       <Text style={[styles.body, { color: palette.muted }]}>{t('notify.prompt.body')}</Text>
       <View style={styles.actions}>
         <Pressable

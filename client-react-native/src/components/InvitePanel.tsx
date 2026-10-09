@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
+import { announce } from '@/src/a11y/announce';
+import { heading } from '@/src/a11y/props';
 import { inviteUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
@@ -61,7 +63,7 @@ export function InvitePanel({
 
   return (
     <View style={[shared.card, { marginTop: 12 }]} testID="invite-panel">
-      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
+      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }} {...heading(3)}>
         {t('invite.heading')}
       </Text>
       <Text style={shared.status}>
@@ -96,10 +98,15 @@ export function InvitePanel({
             {url}
           </Text>
           <Pressable
+            role="button"
             testID="invite-share"
             style={[shared.button, { marginTop: 12, marginBottom: 0 }]}
             onPress={async () => {
-              setDone(await shareInviteLink(url, 'Join my table on Žolíky'));
+              const ok = await shareInviteLink(url, 'Join my table on Žolíky');
+              setDone(ok);
+              // The button's words change to say it worked; a screen reader
+              // on the button would not otherwise hear the change.
+              if (ok) announce(doneLabel);
             }}
           >
             <Text style={shared.buttonText}>{done ? doneLabel : actionLabel}</Text>

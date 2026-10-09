@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { useRouteDocumentTitle } from '@/src/a11y/documentTitle';
 import { LiveRegion } from '@/src/a11y/LiveRegion';
 import { loadA11yPrefs } from '@/src/a11y/prefs';
 import { TipHost } from '@/src/a11y/Tip';
@@ -9,10 +10,12 @@ import { useLocale } from '@/src/hooks/useLocale';
 /**
  * Everything accessibility needs mounted once, at the root, over every screen:
  * the live region `announce()` writes to on the web, the tooltip bubble, the
- * document's language, and the focus ring.
+ * document's language and title, and the focus ring.
  */
 export function A11yRoot() {
   const locale = useLocale();
+  // The tab's title follows the screen's — see `documentTitle.ts`.
+  useRouteDocumentTitle(locale);
 
   useEffect(() => {
     void loadA11yPrefs();

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import type { ClaimedSeat } from '@/src/api/types';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -70,13 +71,14 @@ export default function ClaimScreen() {
 
   return (
     <Screen title={t('claim.title')} scroll>
-      {state === 'reading' || state === 'claiming' ? <ActivityIndicator testID="claim-busy" /> : null}
+      {state === 'reading' || state === 'claiming' ? <ActivityIndicator aria-label={t('a11y.loading')} testID="claim-busy" /> : null}
       {state === 'signIn' ? (
         <>
           <Text style={shared.status} testID="claim-sign-in">
             {t('claim.signIn')}
           </Text>
           <Pressable
+            role="button"
             testID="claim-sign-in-button"
             style={[shared.button, { marginTop: 12 }]}
             onPress={async () => {
@@ -98,9 +100,9 @@ export default function ClaimScreen() {
           {t('claim.none')}
         </Text>
       ) : null}
-      {state === 'error' ? <Text style={shared.error}>{error}</Text> : null}
+      {state === 'error' ? <FormError message={error} /> : null}
       {state === 'done' || state === 'none' ? (
-        <Pressable testID="claim-home" onPress={() => router.replace('/')}>
+        <Pressable role="button" testID="claim-home" onPress={() => router.replace('/')}>
           <Text style={[shared.status, { marginTop: 12 }]}>{t('join.backToMenu')}</Text>
         </Pressable>
       ) : null}

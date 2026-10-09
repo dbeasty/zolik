@@ -131,6 +131,10 @@ export default function RootLayout() {
                       `LEGAL_LOCALES`. */}
                   <Stack.Screen name="legal/terms" options={{ title: t('legal.terms') }} />
                   <Stack.Screen name="legal/privacy" options={{ title: t('legal.privacy') }} />
+                  {/* What works with assistive technology, what does not yet,
+                      and how to say so — linked beside the other notices and
+                      from About. */}
+                  <Stack.Screen name="legal/accessibility" options={{ title: t('a11y.statement.title') }} />
                   <Stack.Screen
                     name="match/[matchId]"
                     options={{ title: t('nav.match'), headerBackVisible: true }}

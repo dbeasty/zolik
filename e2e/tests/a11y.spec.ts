@@ -54,6 +54,14 @@ test.describe('axe: screens outside a match', () => {
     ['/more', 'more'],
     ['/lobby/join', 'join'],
     ['/legal/terms', 'terms'],
+    ['/legal/privacy', 'privacy'],
+    ['/legal/accessibility', 'accessibility statement'],
+    ['/lobby/games?moduleId=zolik', 'game page'],
+    ['/lobby/mine', 'my games'],
+    ['/account', 'account'],
+    ['/circle', 'circle'],
+    ['/scoring', 'score table'],
+    ['/local-games', 'local games'],
   ] as const) {
     test(`${ready} has no serious violations`, async ({ page }) => {
       await page.goto(path);
@@ -69,6 +77,31 @@ test.describe('axe: screens outside a match', () => {
     await expect(page.getByTestId('deal-me-in-zolik')).toBeVisible({ timeout: 30_000 });
     await scan(page, 'setup');
   });
+
+  test('table lobby has no serious violations', async ({ page }) => {
+    await openGame(page, 'zolik');
+    await page.getByTestId('play-friends-zolik').click();
+    await page.getByTestId('open-table-zolik').click();
+    await expect(page.getByTestId('table-add-bot')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('table-add-bot').click();
+    await expect(page.locator('[data-testid^="bot-strength-open-"]').first()).toBeVisible();
+    await scan(page, 'table lobby');
+    // The bot strength sheet, open: a named dialog over the table.
+    await page.locator('[data-testid^="bot-strength-open-"]').first().click();
+    await expect(page.getByTestId('bot-strength-sheet')).toBeVisible();
+    // Past the fade-in: mid-fade the text is half its colour, and the dialog
+    // has no role until react-native-web marks it active at the end.
+    await page.waitForTimeout(800);
+    await scan(page, 'bot strength sheet');
+  });
+
+  test('account menu, open, has no serious violations', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('account-menu-button').click();
+    await expect(page.getByTestId('account-menu')).toBeVisible();
+    await page.waitForTimeout(800);
+    await scan(page, 'account menu');
+  });
 });
 
 test.describe('axe: signed-out screens', () => {
@@ -80,6 +113,17 @@ test.describe('axe: signed-out screens', () => {
     await page.goto('/auth/login');
     await page.waitForTimeout(800);
     await scan(page, 'login');
+    for (const [path, what] of [
+      ['/auth/email', 'email sign-in'],
+      ['/auth/guest', 'guest'],
+      ['/auth/username-login', 'username sign-in'],
+      ['/auth/register', 'register'],
+      ['/lobby/join', 'join (signed out)'],
+    ] as const) {
+      await page.goto(path);
+      await page.waitForTimeout(800);
+      await scan(page, what);
+    }
   });
 });
 

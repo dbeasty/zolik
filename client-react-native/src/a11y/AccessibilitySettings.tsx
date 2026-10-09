@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { setA11yPref, useA11yPrefs, type A11yPrefs } from '@/src/a11y/prefs';
+import { heading } from '@/src/a11y/props';
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import { STARTUP_HIGH_CONTRAST } from '@/src/a11y/startupContrast';
 import { useSystemContrast } from '@/src/a11y/systemContrast';
 import { t } from '@/src/lib/i18n';
@@ -21,7 +23,7 @@ export function AccessibilitySettings() {
 
   return (
     <View style={shared.card} testID="a11y-settings">
-      <Text style={styles.heading} accessibilityRole="header">
+      <Text style={styles.heading} {...heading(3)}>
         {t('a11y.settings.heading')}
       </Text>
       <Text style={shared.status}>{t('a11y.settings.status')}</Text>
@@ -130,22 +132,14 @@ function Choice({
         {label}
       </Text>
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-      <View
-        style={styles.segments}
-        accessibilityRole="radiogroup"
-        accessibilityLabel={label}
-        aria-labelledby={`a11y-${id}-label`}
-      >
+      <RadioGroup style={styles.segments} label={label} labelledBy={`a11y-${id}-label`}>
         {options.map(([v, text]) => {
           const picked = v === value;
           return (
             <Pressable
               key={v}
               testID={`a11y-${id}-${v}`}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: picked }}
-              aria-checked={picked}
-              accessibilityLabel={text}
+              {...radioProps(picked, text)}
               onPress={() => onChange(v)}
               style={[styles.segment, picked && styles.segmentPicked]}
             >
@@ -153,7 +147,7 @@ function Choice({
             </Pressable>
           );
         })}
-      </View>
+      </RadioGroup>
     </View>
   );
 }
