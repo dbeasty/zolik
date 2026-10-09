@@ -113,9 +113,15 @@ type Props = {
    * avatar and BOT badge are a control that opens it.
    */
   onPickBot?: (bot: { id: string; name: string; skill?: string }) => void;
+  /**
+   * The host's sheet for an away person's seat — let a bot play it, change
+   * the bot, or take it out. Where it is given, the seat's stand-in or away
+   * badge is a control that opens it.
+   */
+  onPickStandIn?: (seat: { id: string; name: string; skill?: string; on: boolean }) => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot, onPickStandIn }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   // Asked for stillness, the seat on turn keeps its outline and its shadow
@@ -202,7 +208,33 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         </Text>
       </Tip>
     ) : null;
-    const away = player?.satOut ? (
+    // A person's seat a bot is playing while they are away, or one a bot is
+    // about to: the seat stays theirs, so this is a mark on it rather than a
+    // change of who sits there. The host taps it to decide about the seat.
+    const pickStandIn =
+      onPickStandIn && player && !player.isAI && (player.standIn || player.standInAt)
+        ? () => onPickStandIn({ id: player.id, name, skill: player.standIn?.skill, on: !!player.standIn })
+        : undefined;
+    const standIn = player?.standIn ? (
+      <BotPress onPress={pickStandIn} testID={`standin-open-${seat.playerId}`} name={name}>
+        <Text
+          style={[styles.badge, pickStandIn && styles.badgeLink]}
+          testID={`standin-badge-${seat.playerId}`}
+          accessibilityLabel={t('seat.standInHint', { name })}
+        >
+          {`\u{1F916} ${t('seat.standInBadge')}`}
+          {pickStandIn ? ' ▾' : ''}
+        </Text>
+      </BotPress>
+    ) : player?.standInAt ? (
+      <BotPress onPress={pickStandIn} testID={`standin-open-${seat.playerId}`} name={name}>
+        <Text style={[styles.badge, pickStandIn && styles.badgeLink]} testID={`away-badge-${seat.playerId}`}>
+          {t('seat.awayBadge')}
+          {pickStandIn ? ' ▾' : ''}
+        </Text>
+      </BotPress>
+    ) : null;
+    const away = standIn ?? (player?.satOut ? (
       <Tip text={t('a11y.board.tip.paused')} focusable label={t('a11y.board.seat.badge.paused')} style={badgeTipStyle}>
         <Text style={styles.badge} testID={`paused-badge-${seat.playerId}`}>
           {t('a11y.board.seat.badge.paused')}
@@ -221,7 +253,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           {t('seat.simplifiedBadge')}
         </Text>
       </Tip>
-    ) : null;
+    ) : null);
     // The bot's badge: a control for the host (it opens the strength picker,
     // and the tip says so), a plain mark with the same tip for everyone else.
     const botBadge = bot ? (

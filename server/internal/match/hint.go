@@ -123,7 +123,7 @@ func (m *Manager) hintInput(ctx context.Context, idOrCode, playerID string) (hin
 	}
 	live := false
 	for _, o := range offers {
-		if o.Enabled {
+		if o.Live() {
 			live = true
 			break
 		}

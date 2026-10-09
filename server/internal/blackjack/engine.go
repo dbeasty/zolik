@@ -25,7 +25,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	s.Current, s.CurrentHand = -1, -1
 
 	for _, p := range players {
-		s.Seats = append(s.Seats, Seat{PlayerID: p.ID, Stack: s.StartingStack})
+		s.Seats = append(s.Seats, Seat{PlayerID: p.ID, Stack: s.StartingStack, Bot: p.IsAI})
 	}
 	s.Shoe = buildShoe(s.Decks, seed)
 
@@ -42,6 +42,16 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	}
 	if s.Status != "active" {
 		return raw, nil, errCode(ErrGameNotActive)
+	}
+
+	// Getting up is allowed at any point of a round — see applyLeave.
+	if a.Verb == module.VerbLeave {
+		events, err := applyLeave(s, playerID)
+		if err != nil {
+			return raw, nil, err
+		}
+		out, err := encode(s)
+		return out, events, err
 	}
 
 	// Between rounds nobody is on turn, so the intermission does the checking
@@ -127,16 +137,32 @@ func startRound(s *GameState) []module.Event {
 // screen, or the last round puts up an interstitial for a round that will
 // never be dealt.
 func matchOverBeforeRound(s *GameState) bool {
-	live := 0
+	live, people, left := 0, 0, false
 	for i := range s.Seats {
+		// A seat that asked to go mid-round gets up now the round is over.
+		if s.Seats[i].Leaving {
+			s.Seats[i].Leaving, s.Seats[i].Left = false, true
+		}
+		if s.Seats[i].Left {
+			s.Seats[i].Out = true
+			left = true
+		}
 		if s.Seats[i].Stack < s.MinBet {
 			s.Seats[i].Out = true
 		}
 		if !s.Seats[i].Out {
 			live++
+			if !s.Seats[i].Bot {
+				people++
+			}
 		}
 	}
 	if live == 0 {
+		return true
+	}
+	// Somebody got up and no person is still dealt in: the bots would only be
+	// playing the house for nobody.
+	if left && people == 0 {
 		return true
 	}
 	return s.RoundLimit > 0 && s.RoundNumber >= s.RoundLimit
@@ -176,6 +202,51 @@ func applyBet(s *GameState, seat *Seat, a module.Action) ([]module.Event, error)
 
 	if betsIn(s) {
 		return append(events, deal(s)...), nil
+	}
+	return events, nil
+}
+
+// applyLeave is a player getting up from the table with their chips.
+//
+// Whenever they like. Between rounds, or before their stake is down, they go
+// at once — a stake already put up but not yet dealt to is handed back — and
+// the table carries on as if they had agreed to go on, or as if their stake
+// were in. With cards in front of them they play the round out, sat out if
+// they have gone, and get up when it settles: the cards are dealt, and a hand
+// walked away from would be a stake nobody could settle.
+func applyLeave(s *GameState, playerID string) ([]module.Event, error) {
+	seat := s.seat(playerID)
+	if seat == nil {
+		return nil, errCode(module.ErrNotSeated)
+	}
+	if seat.Left || seat.Leaving {
+		return nil, errCode(ErrAlreadyLeft)
+	}
+	if !s.Break.Open && s.Phase != phaseBets && seat.inRound() {
+		seat.Leaving = true
+		return []module.Event{{Type: "leaving", Data: map[string]any{"playerId": playerID}}}, nil
+	}
+	if !s.Break.Open && seat.Bet > 0 {
+		seat.Stack += seat.Bet
+		seat.Staked -= seat.Bet
+		seat.Bet = 0
+	}
+	seat.Left, seat.Out = true, true
+	events := []module.Event{{Type: "left", Data: map[string]any{"playerId": playerID, "chips": seat.Stack}}}
+	switch {
+	case s.Break.Open:
+		if s.Break.Settled(order(s)) {
+			s.Break.Close()
+			events = append(events, startRound(s)...)
+		}
+	case s.Phase == phaseBets:
+		// They may have been the stake the deal was waiting on — or the
+		// last person at the table.
+		if matchOverBeforeRound(s) {
+			events = append(events, endMatch(s)...)
+		} else if betsIn(s) {
+			events = append(events, deal(s)...)
+		}
 	}
 	return events, nil
 }

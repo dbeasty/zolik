@@ -136,9 +136,9 @@ func (m *Manager) returned(ctx context.Context, matchID, playerID string) {
 	}
 }
 
-// drivenSeat picks the first awaited seat the server plays: a bot's, or a
-// sat-out seat's. passive is true for the latter, which is played by the
-// module's sit-out verbs rather than its bot.
+// drivenSeat picks the first awaited seat the server plays: a bot's, a
+// stand-in's (see standin.go), or a sat-out seat's. passive is true for the
+// last, which is played by the module's sit-out verbs rather than its bot.
 func (m *Manager) drivenSeat(match models.Match, mod module.GameModule, awaited []string) (actor string, passive bool) {
 	if id := firstBot(awaited, match.Players); id != "" {
 		return id, false
@@ -148,13 +148,19 @@ func (m *Manager) drivenSeat(match models.Match, mod module.GameModule, awaited 
 		if p == nil {
 			continue
 		}
+		if m.standInPlaying(match, *p) {
+			return id, false
+		}
 		if m.satOut(match, *p) {
+			m.noteAwayToLeave(match, id)
 			return id, true
 		}
 		// Away, but not for long enough yet: come back when it is.
 		if !p.IsAI && !m.seatHere(match.ID.Hex(), id) {
 			if _, dropIn := module.SitOutVerbs(mod); dropIn {
 				m.scheduleSitOut(match.ID.Hex())
+			} else if due, ok := m.standInDue(match, *p); ok {
+				m.scheduleStandIn(match.ID.Hex(), id, due)
 			}
 		}
 	}

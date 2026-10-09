@@ -42,6 +42,10 @@ type Standing struct {
 	Rank int  `bson:"rank" json:"rank"`
 	Won  bool `bson:"won,omitempty" json:"won,omitempty"`
 	Drew bool `bson:"drew,omitempty" json:"drew,omitempty"`
+	// StandIn is a seat a stand-in bot played for at some point while its
+	// player was away (models.Match.StoodIn). The match is in their history,
+	// and counts towards nothing: see ApplyMatch.
+	StandIn bool `bson:"standIn,omitempty" json:"standIn,omitempty"`
 }
 
 // Scoreboard is a match's standings at whatever point it has reached.
@@ -137,6 +141,10 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 	for _, w := range sb.Winners {
 		won[w] = true
 	}
+	stoodIn := map[string]bool{}
+	for _, id := range m.StoodIn {
+		stoodIn[id] = true
+	}
 
 	for _, s := range standings {
 		p := byID[s.PlayerID]
@@ -152,8 +160,9 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 			// not whoever the ranking put first: a match can end on a rule the
 			// scoreboard does not model, and a record has to agree with the
 			// match the players actually watched end.
-			Won:  boolOr(sb.Complete, won[s.PlayerID], s.Won),
-			Drew: sb.IsDraw && won[s.PlayerID],
+			Won:     boolOr(sb.Complete, won[s.PlayerID], s.Won),
+			Drew:    sb.IsDraw && won[s.PlayerID],
+			StandIn: stoodIn[s.PlayerID],
 		})
 	}
 

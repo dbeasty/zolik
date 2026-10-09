@@ -92,6 +92,21 @@ type Manager struct {
 	awaySince     map[string]time.Time
 	agentTables   map[string]map[string]bool
 	sitOutTimers  map[string]bool
+	// standInTimers and standInHeld are standin.go's, under awayMu: the seats
+	// with a stand-in check pending, and the seats whose host took the bot out
+	// to wait for them. standInWait overrides the option's wait, for tests.
+	standInTimers map[string]bool
+	standInHeld   map[string]bool
+	standInWait   time.Duration
+	// leaveTimers and leaveWait are leave.go's: the seats with a cash-out
+	// check pending, and an override of the option's wait, for tests.
+	leaveTimers map[string]bool
+	leaveWait   time.Duration
+	// standInsHeld and resumedAt are hostpause.go's: a phone host whose
+	// internet is down holds every stand-in, and one that has just come back
+	// gives every away clock a fresh start.
+	standInsHeld bool
+	resumedAt    time.Time
 
 	// live holds the state of every match in play; see live.go.
 	live liveMatches
@@ -634,6 +649,13 @@ func (m *Manager) ExplainRefusal(ctx context.Context, idOrCode, code string) []s
 }
 
 func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a module.Action) error {
+	return m.handleAction(ctx, idOrCode, playerID, a, false)
+}
+
+// handleAction is HandleAction, and standIn says the move is a stand-in bot's:
+// it is refused with errStandInEnded once the seat has gone back to its
+// player, checked under the same lock the move is applied under.
+func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a module.Action, standIn bool) error {
 	e, err := m.lockMatch(ctx, idOrCode)
 	if err != nil {
 		// A late action against a table that vanished under it — most often a
@@ -646,6 +668,12 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 			return module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
 		}
 		return err
+	}
+	if standIn {
+		if p := playerByID(e.match.Players, playerID); p == nil || p.StandIn == nil {
+			e.mu.Unlock()
+			return errStandInEnded
+		}
 	}
 	match, rounds, events, err := m.applyLocked(ctx, e, playerID, a)
 	e.mu.Unlock()

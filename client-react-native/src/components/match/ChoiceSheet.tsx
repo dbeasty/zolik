@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ParamSpec } from '@/src/api/matchTypes';
+import { DUSK, INKS } from '@/src/components/cards/lastCardArt';
+import { lastCardColourOfKey } from '@/src/lib/cards';
 import { Sheet } from '@/src/a11y/Sheet';
 import { t } from '@/src/lib/i18n';
 import { label } from '@/src/lib/labels';
@@ -18,7 +20,8 @@ import type { Skin } from '@/src/skins/types';
  * was asked for is a choice the player never made. Answering sends the move;
  * dismissing sends nothing, and the card stays in hand.
  *
- * The question and the answers are the module's own keys.
+ * The question and the answers are the module's own keys. An answer that is
+ * a Last Card colour is a button of that colour.
  */
 export function ChoiceSheet({
   spec,
@@ -45,21 +48,25 @@ export function ChoiceSheet({
     >
       <Text style={styles.title}>{label(spec.labelKey)}</Text>
       <View style={styles.grid}>
-        {(spec.choices ?? []).map((c) => (
-          <Pressable
-            key={c.value}
-            testID={`choice-${spec.name}-${c.value}`}
-            accessibilityRole="button"
-            onPress={() => onPick(spec.name, c.value)}
-            style={({ pressed }) => [
-              styles.option,
-              c.value === spec.defaultChoice && styles.suggested,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.optionText}>{label(c.labelKey)}</Text>
-          </Pressable>
-        ))}
+        {(spec.choices ?? []).map((c) => {
+          const colour = lastCardColourOfKey(c.labelKey);
+          return (
+            <Pressable
+              key={c.value}
+              testID={`choice-${spec.name}-${c.value}`}
+              accessibilityRole="button"
+              onPress={() => onPick(spec.name, c.value)}
+              style={({ pressed }) => [
+                styles.option,
+                colour && { backgroundColor: INKS[colour].main, borderColor: INKS[colour].deep },
+                c.value === spec.defaultChoice && styles.suggested,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.optionText, colour && styles.inkedText]}>{label(c.labelKey)}</Text>
+            </Pressable>
+          );
+        })}
       </View>
       <Pressable onPress={onCancel} testID="choice-cancel" accessibilityRole="button" style={styles.cancel}>
         <Text style={styles.cancelText}>{t('choice.cancel')}</Text>
@@ -98,6 +105,7 @@ function choiceStyles(s: Skin) {
     suggested: { borderColor: colors.accent, borderWidth: 2 },
     pressed: { opacity: 0.8, transform: [{ scale: 0.97 }] },
     optionText: { color: colors.text, fontSize: 20, fontWeight: '700' },
+    inkedText: { color: DUSK.field, fontWeight: '800' },
     cancel: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 16 },
     cancelText: { color: colors.muted, fontSize: 15 },
   });

@@ -82,6 +82,11 @@ type Match struct {
 	SuspendedAt     *time.Time `bson:"suspendedAt,omitempty" json:"suspendedAt,omitempty"`
 	AbandonAt       *time.Time `bson:"abandonAt,omitempty" json:"abandonAt,omitempty"`
 	SuspendedPlayer string     `bson:"suspendedPlayer,omitempty" json:"suspendedPlayer,omitempty"`
+	// StoodIn is every seat a stand-in bot has played for at this table, in the
+	// order they were first stood in for. Kept after the stand-in ends, because
+	// the result needs it: a seat a bot played is not that person's win or
+	// loss alone (see match/standin.go).
+	StoodIn []string `bson:"stoodIn,omitempty" json:"stoodIn,omitempty"`
 
 	// Rematch is the table this one is being played again at, once a seated
 	// player asked for it. Set once, so everybody who presses "play again"
