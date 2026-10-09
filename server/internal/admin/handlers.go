@@ -67,6 +67,10 @@ type Deps struct {
 	// Optional: nil leaves the governor panel out of the Bots card.
 	Governor    func(ctx context.Context) (GovernorView, error)
 	SetGovernor func(ctx context.Context, c GovernorChange) (from string, err error)
+	// Accounts reads every account, their lifetime statistics and the daily
+	// player sets between from and to, for the Accounts card. Optional: nil
+	// answers that card with a 503.
+	Accounts AccountsSource
 	// Version is what this build calls itself, shown in the console footer so
 	// an operator can tell which release the numbers came from.
 	Version string
@@ -104,6 +108,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 				r.Get("/session", h.session)
 				r.Get("/report", h.report)
 				r.Get("/status", h.status)
+				r.Get("/accounts", h.accounts)
 				// AI seats' trained model, per game. The only writes the
 				// console has besides signing in; both audited in bots.go.
 				r.Get("/bots", h.bots)

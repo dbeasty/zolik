@@ -553,6 +553,215 @@
     });
   }
 
+  /* ------------------------------------------------------------- accounts */
+
+  /* Country names come from the browser rather than a table shipped here: the
+   * server only knows ISO codes, and Intl already knows every name. */
+  var regionNames = null;
+  try { regionNames = new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { regionNames = null; }
+
+  function regionName(code) {
+    if (!code) return 'unknown';
+    try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }
+  }
+
+  function flag(code) {
+    if (!code || code.length !== 2) return '';
+    return String.fromCodePoint.apply(null, code.toUpperCase().split('').map(function (c) {
+      return 0x1f1e6 + c.charCodeAt(0) - 65;
+    })) + ' ';
+  }
+
+  function day(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    return isNaN(d) ? iso : d.toISOString().slice(0, 10);
+  }
+
+  /* "3 days ago" for anything recent, the date for anything older: the
+   * question is usually "are they still here", which a date makes you work out. */
+  function ago(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d)) return iso;
+    var mins = Math.round((Date.now() - d.getTime()) / 60000);
+    if (mins < 2) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    var hours = Math.round(mins / 60);
+    if (hours < 36) return hours + ' h ago';
+    var days = Math.round(hours / 24);
+    if (days < 45) return days + ' days ago';
+    return day(iso);
+  }
+
+  function hbars(el, rows, total, label) {
+    clear(el);
+    var peak = rows.reduce(function (m, r) { return Math.max(m, r.count); }, 0);
+    if (!rows.length) {
+      el.appendChild(document.createTextNode('No accounts yet.'));
+      return;
+    }
+    rows.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'hbar';
+      if (!r.key) row.setAttribute('data-unknown', '1');
+      var name = document.createElement('div');
+      name.className = 'hbar-label';
+      name.textContent = label(r.key);
+      name.title = r.key || 'no time zone reported yet';
+      var track = document.createElement('div');
+      track.className = 'hbar-track';
+      var fill = document.createElement('div');
+      fill.className = 'hbar-fill';
+      fill.style.width = (peak ? Math.round((r.count / peak) * 100) : 0) + '%';
+      track.appendChild(fill);
+      var n = document.createElement('div');
+      n.className = 'hbar-n';
+      n.textContent = num(r.count);
+      n.title = total ? Math.round((r.count / total) * 100) + '% of accounts' : '';
+      row.appendChild(name);
+      row.appendChild(track);
+      row.appendChild(n);
+      el.appendChild(row);
+    });
+  }
+
+  function renderSignups(rows) {
+    var el = $('signups');
+    clear(el);
+    var peak = rows.reduce(function (m, r) { return Math.max(m, r.count); }, 0);
+    rows.forEach(function (r) {
+      var col = document.createElement('div');
+      col.className = 'chart-col';
+      var bar = document.createElement('div');
+      bar.className = 'chart-bar';
+      bar.style.height = (peak ? Math.round((r.count / peak) * 100) : 0) + '%';
+      if (!r.count) bar.setAttribute('data-empty', '1');
+      bar.title = r.key + ': ' + num(r.count) + ' new accounts';
+      col.appendChild(bar);
+      var label = document.createElement('div');
+      label.className = 'muted';
+      label.textContent = r.key.slice(5);
+      col.appendChild(label);
+      el.appendChild(col);
+    });
+  }
+
+  function renderAccounts(rep) {
+    var t = rep.totals;
+    $('accounts-note').textContent = 'active = played on that UTC day; window ' + rep.windowDays + ' days';
+
+    var el = $('account-tiles');
+    clear(el);
+    tile(el, 'accounts', num(t.accounts),
+      num(t.verifiedEmail) + ' with a verified email');
+    tile(el, 'have played', num(t.played),
+      num(t.neverPlayed) + ' never finished a match');
+    tile(el, 'active today', num(t.active1), num(t.guests1) + ' guests too');
+    tile(el, 'active 7 days', num(t.active7), num(t.guests7) + ' guests too');
+    tile(el, 'active 30 days', num(t.active30), num(t.guests30) + ' guests too');
+    tile(el, 'returning', num(t.returning30), 'active, joined before the window');
+    tile(el, 'new 7 days', num(t.new7), num(t.new30) + ' in 30 days');
+
+    hbars($('regions'), rep.byRegion, t.accounts, function (code) {
+      return code ? flag(code) + regionName(code) : 'unknown';
+    });
+    $('region-note').textContent =
+      'From the time zone each device reports when it refreshes its session — never from an IP. ' +
+      num(t.regionKnown) + ' of ' + num(t.accounts) + ' accounts have reported one so far.';
+
+    renderSignups(rep.signups || []);
+
+    var games = $('account-games');
+    clear(games);
+    if (!rep.byGame.length) games.appendChild(document.createTextNode('No account has finished a match yet.'));
+    rep.byGame.forEach(function (g) {
+      chip(games, g.moduleId, num(g.accounts) + ' players · ' + num(g.matches) + ' matches');
+    });
+
+    var eng = $('engagement');
+    clear(eng);
+    rep.engagement.forEach(function (b) { chip(eng, b.key, num(b.count) + ' accounts'); });
+
+    var prov = $('providers');
+    clear(prov);
+    rep.byProvider.forEach(function (c) { chip(prov, c.key, num(c.count)); });
+
+    var lang = $('languages');
+    clear(lang);
+    rep.byLanguage.forEach(function (c) { chip(lang, c.key, num(c.count)); });
+
+    renderPlayers(rep);
+  }
+
+  function renderPlayers(rep) {
+    var shown = rep.users.length;
+    $('players-note').textContent = rep.matched === shown
+      ? num(shown) + ' accounts'
+      : 'Top ' + num(shown) + ' of ' + num(rep.matched) + ' accounts';
+
+    var table = $('players');
+    clear(table);
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    ['#', 'player', 'where', 'joined', 'last seen', 'last match', 'matches', 'won',
+      'vs people', 'vs bots', 'favourite game', 'active days'].forEach(function (h) {
+      var th = document.createElement('th');
+      th.textContent = h;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    rep.users.forEach(function (u, i) {
+      var tr = document.createElement('tr');
+      cell(tr).textContent = String(i + 1);
+      var who = cell(tr, 'player');
+      line(who, u.username, 'name');
+      line(who, (u.email || 'no email') + (u.email && !u.emailVerified ? ' (unverified)' : '') +
+        ' · ' + (u.provider || 'unknown'), 'sub');
+      var where = cell(tr);
+      where.textContent = u.region ? flag(u.region) + regionName(u.region) : '—';
+      if (u.timeZone) where.title = u.timeZone + (u.language ? ' · ' + u.language : '');
+      cell(tr).textContent = day(u.createdAt);
+      var seen = cell(tr);
+      seen.textContent = ago(u.lastSeenAt);
+      seen.title = when(u.lastSeenAt);
+      var last = cell(tr);
+      last.textContent = ago(u.lastMatchAt);
+      last.title = when(u.lastMatchAt);
+      cell(tr).textContent = num(u.matches);
+      cell(tr).textContent = u.matches ? percent(u.winRate) : '—';
+      cell(tr).textContent = num(u.vsHumans);
+      cell(tr).textContent = num(u.vsAI);
+      var fav = cell(tr);
+      fav.textContent = u.favouriteGame || '—';
+      if (u.games > 1) fav.textContent += ' +' + (u.games - 1);
+      cell(tr).textContent = u.activeDays + ' / ' + rep.windowDays;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+  }
+
+  function loadAccounts() {
+    fail($('accounts-error'), '');
+    var q = '?sort=' + encodeURIComponent($('players-sort').value) +
+      '&limit=' + encodeURIComponent($('players-limit').value);
+    var search = $('players-search').value.trim();
+    if (search) q += '&q=' + encodeURIComponent(search);
+    api('/accounts' + q).then(renderAccounts).catch(function (err) {
+      fail($('accounts-error'), err.message);
+    });
+  }
+
+  $('players-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    loadAccounts();
+  });
+  $('players-sort').addEventListener('change', loadAccounts);
+  $('players-limit').addEventListener('change', loadAccounts);
+
   /* ----------------------------------------------------------------- load */
 
   function query() {
@@ -571,6 +780,7 @@
       fail($('error'), err.message);
     });
     loadBots();
+    loadAccounts();
   }
 
   $('refresh').addEventListener('click', load);

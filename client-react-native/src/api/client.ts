@@ -45,6 +45,19 @@ export type AgentInvite = {
   prompt: string;
 };
 
+/**
+ * The device's IANA time zone, sent with each session refresh so the operator
+ * console can count players by country without anybody's IP being looked up.
+ * Empty where the runtime cannot say, which the server treats as "not told".
+ */
+function deviceTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -422,7 +435,7 @@ export class ZolikClient {
       accessToken: string;
       refreshToken: string;
       offlinePass?: string;
-    }>('/auth/refresh', { refreshToken: spent }, false);
+    }>('/auth/refresh', { refreshToken: spent, timeZone: deviceTimeZone() }, false);
     // Signed out or signed in as someone else while this was in the air: the
     // answer belongs to a session that is no longer bound.
     if (this.refreshToken !== spent) return;
