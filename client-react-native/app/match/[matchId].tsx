@@ -75,7 +75,7 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
-import { moduleName } from '@/src/lib/gameLabels';
+import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
@@ -592,12 +592,27 @@ export default function MatchScreen() {
 
   // The page's title on the web — the game's name, so a screen reader says
   // where it has arrived and a browser tab says which table it is.
+  // Game names are the server's own labels (see `gameLabels.ts`), so a game
+  // without a key of its own is named from `/modules` rather than by its id.
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const moduleId = state?.moduleId;
     document.title = t('a11y.page.title', {
-      screen: state?.moduleId ? moduleName(state.moduleId) : t('nav.match'),
+      screen: moduleId ? moduleName(moduleId) : t('nav.match'),
     });
-  }, [state?.moduleId]);
+    if (!moduleId) return;
+    let live = true;
+    client
+      .modules()
+      .then((mods) => {
+        const mod = mods.find((m) => m.id === moduleId);
+        if (live && mod) document.title = t('a11y.page.title', { screen: moduleLabel(mod) });
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [state?.moduleId, client]);
 
   // The board's own keys on the web. Assigned below, once everything they act
   // on has been worked out; listened for here, once.
