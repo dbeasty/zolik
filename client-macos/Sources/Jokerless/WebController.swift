@@ -68,11 +68,41 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     webView.navigationDelegate = self
     webView.uiDelegate = self
     refreshBootScript()
+
+    bridge.onNav = { [weak self] dir in
+      if dir == "forward" { self?.goForward() } else { self?.goBack() }
+    }
+    // The header's arrows follow the window's history as it changes.
+    navWatch = [
+      webView.observe(\.canGoBack) { [weak self] _, _ in self?.emitNav() },
+      webView.observe(\.canGoForward) { [weak self] _, _ in self?.emitNav() },
+    ]
+  }
+
+  private var navWatch: [NSKeyValueObservation] = []
+
+  private var navState: [String: Any] {
+    ["canGoBack": webView.canGoBack, "canGoForward": webView.canGoForward]
+  }
+
+  private func emitNav() {
+    bridge.emit("nav", navState)
+  }
+
+  /// Back through the window's history; with nothing behind, the page's own
+  /// rule (home). Forward can always return to where Back left.
+  func goBack() {
+    if webView.canGoBack { webView.goBack() } else { command("back") }
+  }
+
+  func goForward() {
+    if webView.canGoForward { webView.goForward() }
   }
 
   /// Lets go of the page when its window closes: the script handler would
   /// otherwise keep the bridge, and through it this controller, alive.
   func detach() {
+    navWatch = []
     webView.configuration.userContentController.removeAllScriptMessageHandlers()
     nearby.remove(bridge)
     webView.stopLoading()
@@ -114,7 +144,9 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     let controller = webView.configuration.userContentController
     controller.removeAllUserScripts()
     controller.addUserScript(
-      WKUserScript(source: Self.bootScript(state: nearby.snapshot()), injectionTime: .atDocumentStart, forMainFrameOnly: true))
+      WKUserScript(
+        source: Self.bootScript(state: nearby.snapshot().merging(["nav": navState]) { a, _ in a }),
+        injectionTime: .atDocumentStart, forMainFrameOnly: true))
     if AppConfig.isE2E, let e2e = Self.resource("e2e.js") {
       controller.addUserScript(WKUserScript(source: e2e, injectionTime: .atDocumentStart, forMainFrameOnly: true))
     }
@@ -164,6 +196,8 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     Self.openExternally(url)
     decisionHandler(.cancel)
   }
+
+  func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { emitNav() }
 
   func webView(_ webView: WKWebView, webContentProcessDidTerminate: WKWebView) {
     // The page's process can be ended by the system under memory pressure.

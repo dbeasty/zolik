@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { CLIENT_VERSION } from '@/src/config';
+import { CLIENT_COMMIT, CLIENT_VERSION, SOURCE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useServerBuild } from '@/src/hooks/useServerBuild';
@@ -20,8 +20,12 @@ export type DesktopMenuState = {
   /** Who is playing: the disabled first line of the Account menu. */
   who: string;
   account: DesktopMenuItem[];
-  /** The About panel's line: this app's version and the server's. */
-  versions: string;
+  /** The About panel: this app's version and commit, and the server's line. */
+  about: { version: string; commit: string; server: string };
+  /** Help's legal notices, as the footer links to them on the phones. */
+  legal: ({ label: string; path: string } | { label: string; url: string })[];
+  /** Every menu bar title, in the player's language, by the app's own key. */
+  labels: Record<string, string>;
   more: { label: string; path: string };
   /** Help › Rules: every game this server hosts, by name. */
   rules: { label: string; path: string }[];
@@ -94,7 +98,18 @@ export function DesktopMenuBridge() {
     const state: DesktopMenuState = {
       who: session ? `${session.username} · ${status}` : t('menu.notSignedIn'),
       account,
-      versions: `${t('build.app')} ${CLIENT_VERSION} · ${t('build.server')} ${server ? server.version : '…'}`,
+      about: {
+        version: CLIENT_VERSION,
+        commit: CLIENT_COMMIT,
+        server: `${t('build.server')} ${server ? `${server.version} · ${server.commit}` : '…'}`,
+      },
+      legal: [
+        { label: t('legal.terms'), path: '/legal/terms' },
+        { label: t('legal.privacy'), path: '/legal/privacy' },
+        { label: t('a11y.statement.title'), path: '/legal/accessibility' },
+        { label: t('legal.source'), url: SOURCE_URL },
+      ],
+      labels: menuLabels(),
       more: { label: t('nav.more'), path: '/more' },
       rules: games
         .map((m) => ({ label: moduleLabel(m), path: `/rules?moduleId=${encodeURIComponent(m.id)}` }))
@@ -104,4 +119,22 @@ export function DesktopMenuBridge() {
   }, [session, onlineSession, circleRequests, server, locale, games]);
 
   return null;
+}
+
+/** The menu bar's own words (`desktop.menu.*`), plus the few it shares with the page. */
+function menuLabels(): Record<string, string> {
+  const own = [
+    'about', 'settings', 'hideApp', 'hideOthers', 'showAll', 'quit', 'file', 'newWindow', 'closeWindow',
+    'edit', 'undo', 'redo', 'cut', 'copy', 'paste', 'selectAll', 'view', 'hideHand', 'showHand',
+    'hideTable', 'showTable', 'hideLog', 'showLog', 'back', 'forward', 'home', 'actualSize', 'zoomIn',
+    'zoomOut', 'reload', 'table', 'account', 'window', 'minimize', 'zoom', 'bringAllToFront', 'help', 'website',
+  ];
+  const labels: Record<string, string> = {};
+  for (const k of own) labels[k] = t(`desktop.menu.${k}`);
+  labels.rules = t('nav.rules');
+  labels.more = t('nav.more');
+  labels.stats = t('nav.stats');
+  labels.startOffline = t('offline.start');
+  labels.backOnline = t('offline.backOnline');
+  return labels;
 }

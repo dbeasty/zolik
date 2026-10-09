@@ -16,13 +16,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   /// they open too.
   let viewMenu = NSMenu(title: "View")
   let rulesMenu = NSMenu(title: "Rules")
+  let helpMenu = NSMenu(title: "Help")
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     AppConfig.configureCore()
     accountMenu.delegate = self
     viewMenu.delegate = self
     rulesMenu.delegate = self
-    NSApp.mainMenu = MenuBuilder.build(target: self, account: accountMenu, view: viewMenu, rules: rulesMenu)
+    helpMenu.delegate = self
+    NSApp.mainMenu = MenuBuilder.build(
+      target: self, account: accountMenu, view: viewMenu, rules: rulesMenu, help: helpMenu)
     let first = openWindow()
 
     if let dir = AppConfig.e2eControlDir {
@@ -44,7 +47,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   func openWindow() -> GameWindowController {
     let controller = GameWindowController(
       nearby: NearbyService.shared, cascadeFrom: active?.window ?? windows.last?.window)
-    controller.onActivate = { [weak self] c in self?.active = c }
+    controller.onActivate = { [weak self] c in
+      self?.active = c
+      self?.applyLabels()
+    }
+    controller.onMenuChange = { [weak self] c in
+      if self?.active === c { self?.applyLabels() }
+    }
     controller.onClose = { [weak self] c in
       guard let self else { return }
       self.windows.removeAll { $0 === c }
@@ -60,8 +69,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     return controller
   }
 
+  /// The menu bar in the front window's player's language.
+  private func applyLabels() {
+    guard let labels = active?.menuState?["labels"] as? [String: String], let main = NSApp.mainMenu else { return }
+    MenuBuilder.apply(labels, to: main)
+    refreshViewMenu()
+  }
+
+  private func label(_ key: String, _ english: String) -> String {
+    (active?.menuState?["labels"] as? [String: String])?[key] ?? english
+  }
+
   func select(_ controller: GameWindowController) {
     active = controller
+    applyLabels()
     controller.window?.orderFront(nil)
   }
 
@@ -88,11 +109,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   /// screen the page moved to, so one always undoes the other. With nothing
   /// behind, Back goes home (the page's own rule), and Forward can then
   /// return to where it left.
-  @objc func goBack(_ sender: Any?) {
-    guard let view = web?.webView else { return }
-    if view.canGoBack { view.goBack() } else { web?.command("back") }
-  }
-  @objc func goForward(_ sender: Any?) { web?.webView.goForward() }
+  @objc func goBack(_ sender: Any?) { web?.goBack() }
+  @objc func goForward(_ sender: Any?) { web?.goForward() }
   @objc func showStats(_ sender: Any?) { web?.navigate(to: "/stats") }
   @objc func showSettings(_ sender: Any?) { web?.navigate(to: "/settings") }
   @objc func reloadPage(_ sender: Any?) { web?.webView.reload() }
@@ -107,16 +125,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     web?.webView.pageZoom = min(2.5, max(0.5, z))
   }
 
-  /// About, with this app's and the server's versions as the page words them.
-  @objc func showAbout(_ sender: Any?) {
+  /// The standard About panel: this build's version, with its commit where
+  /// macOS puts the build number, and the server's version and commit
+  /// underneath, as the footer shows them on the phones.
+  func aboutOptions() -> [NSApplication.AboutPanelOptionKey: Any] {
     var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
-    if let versions = active?.menuState?["versions"] as? String {
+    guard let about = active?.menuState?["about"] as? [String: Any] else { return options }
+    if let v = about["version"] as? String { options[.applicationVersion] = v }
+    if let c = about["commit"] as? String { options[.version] = c }
+    if let server = about["server"] as? String {
+      let style = NSMutableParagraphStyle()
+      style.alignment = .center
       options[.credits] = NSAttributedString(
-        string: versions,
-        attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
+        string: server,
+        attributes: [
+          .font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: style,
+        ])
     }
-    NSApp.orderFrontStandardAboutPanel(options: options)
+    return options
+  }
+
+  @objc func showAbout(_ sender: Any?) {
+    NSApp.orderFrontStandardAboutPanel(options: aboutOptions())
     NSApp.activate(ignoringOtherApps: true)
+  }
+
+  @objc private func openLegal(_ sender: NSMenuItem) {
+    guard let entry = sender.representedObject as? [String: Any] else { return }
+    if let path = entry["path"] as? String {
+      web?.navigate(to: path)
+    } else if let raw = entry["url"] as? String, let url = URL(string: raw) {
+      WebController.openExternally(url)
+    }
+  }
+
+  /// Help's notices, after its own items: Terms, Privacy, Accessibility, Source.
+  private func refreshHelpMenu() {
+    for item in helpMenu.items where item.tag == MenuBuilder.legalTag { helpMenu.removeItem(item) }
+    let legal = active?.menuState?["legal"] as? [[String: Any]] ?? []
+    guard !legal.isEmpty else { return }
+    let rule = NSMenuItem.separator()
+    rule.tag = MenuBuilder.legalTag
+    helpMenu.addItem(rule)
+    for entry in legal {
+      let item = NSMenuItem(title: entry["label"] as? String ?? "", action: #selector(openLegal(_:)), keyEquivalent: "")
+      item.target = self
+      item.tag = MenuBuilder.legalTag
+      item.representedObject = entry
+      helpMenu.addItem(item)
+    }
   }
 
   @objc func showMore(_ sender: Any?) {
@@ -161,8 +218,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
   private func refreshViewMenu() {
     for item in viewMenu.items {
-      guard let part = MenuBuilder.viewTags[item.tag], let name = MenuBuilder.viewNames[part] else { continue }
-      item.title = viewPart(part) == false ? "Show \(name)" : "Hide \(name)"
+      guard let part = MenuBuilder.viewTags[item.tag] else { continue }
+      let Part = part.prefix(1).uppercased() + part.dropFirst()
+      item.title = viewPart(part) == false
+        ? label("show\(Part)", "Show \(Part)") : label("hide\(Part)", "Hide \(Part)")
     }
   }
 
@@ -209,6 +268,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     switch which {
     case "View": refreshViewMenu(); menu = viewMenu
     case "Rules": refreshRulesMenu(); menu = rulesMenu
+    case "Help": refreshHelpMenu(); menu = helpMenu
+    case "bar": menu = NSApp.mainMenu ?? accountMenu
     default: menuNeedsUpdate(accountMenu); menu = accountMenu
     }
     return menu.items.map { item in
@@ -225,6 +286,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   func menuNeedsUpdate(_ menu: NSMenu) {
     if menu === viewMenu { return refreshViewMenu() }
     if menu === rulesMenu { return refreshRulesMenu() }
+    if menu === helpMenu { return refreshHelpMenu() }
     guard menu === accountMenu else { return }
     menu.removeAllItems()
     let state = active?.menuState ?? [:]
@@ -256,6 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     menuNeedsUpdate(accountMenu)
     refreshViewMenu()
     refreshRulesMenu()
+    refreshHelpMenu()
     func find(_ menu: NSMenu) -> NSMenuItem? {
       for item in menu.items {
         if item.title == title { return item }

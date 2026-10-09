@@ -157,6 +157,13 @@ final class E2EControl {
       done(.success((app?.windows ?? []).map { $0.window?.title ?? "" }))
     case "account":
       done(.success(app?.accountMenuTitles() ?? []))
+    case "about":
+      let o = app?.aboutOptions() ?? [:]
+      done(.success([
+        "version": o[.applicationVersion] as? String ?? "",
+        "build": o[.version] as? String ?? "",
+        "credits": (o[.credits] as? NSAttributedString)?.string ?? "",
+      ]))
     case "menuitems":
       done(.success(app?.menuTitles(arg) ?? []))
     case "state":

@@ -15,6 +15,7 @@ import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
+import { IS_DESKTOP } from '@/src/config';
 import { useAvailability } from '@/src/context/AvailabilityContext';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
@@ -149,7 +150,9 @@ export default function MainMenu() {
         </>
       )}
 
-      <BuildFooter onPressVersions={() => router.push('/about')} />
+      {/* In the Mac app the versions are in About and the notices in Help,
+          where a Mac app keeps them. */}
+      {IS_DESKTOP ? null : <BuildFooter onPressVersions={() => router.push('/about')} />}
     </Screen>
   );
 }

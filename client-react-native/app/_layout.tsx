@@ -9,6 +9,7 @@ import { AccountMenu } from '@/src/components/AccountMenu';
 import { IS_DESKTOP } from '@/src/config';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
+import { NavArrows, NavHistoryTracker } from '@/src/desktop/NavArrows';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
 import { AvatarProvider } from '@/src/hooks/useAvatar';
@@ -77,7 +78,7 @@ export default function RootLayout() {
                     the screens so leaving a game's page does not end it. See
                     `src/context/AvailabilityContext.tsx`. */}
                 <AvailabilityProvider>
-                {IS_DESKTOP ? <DesktopMenuBridge /> : null}
+                {IS_DESKTOP ? <DesktopMenuBridge /> : <NavHistoryTracker />}
                 <Stack
                   screenOptions={{
                     headerStyle: { backgroundColor: colors.surface },
@@ -90,6 +91,9 @@ export default function RootLayout() {
                     // In the Mac app the same menu is the menu bar's Account
                     // menu instead (src/desktop/DesktopMenuBridge.tsx).
                     headerRight: IS_DESKTOP ? undefined : () => <AccountMenu />,
+                    // Back and forward together, on every platform: going
+                    // back always has a way forward (src/desktop/NavArrows.tsx).
+                    headerLeft: () => <NavArrows />,
                   }}
                 >
                   <Stack.Screen name="index" options={{ title: t('nav.home') }} />

@@ -278,6 +278,25 @@
   });
   Object.defineProperty(globalThis, 'ZolikNearbyDesktop', { value: Object.freeze(nearby) });
 
+  // ---- back and forward (the header's arrows, src/desktop/NavArrows.tsx) ----
+
+  var navState = Object.assign({ canGoBack: false, canGoForward: false },
+    (window.__ZOLIK_DESKTOP_STATE__ || {}).nav);
+  var navListeners = [];
+  Object.defineProperty(globalThis, 'ZolikDesktopNav', {
+    value: Object.freeze({
+      state: function () { return navState; },
+      subscribe: function (cb) {
+        navListeners.push(cb);
+        return function () {
+          var i = navListeners.indexOf(cb);
+          if (i >= 0) navListeners.splice(i, 1);
+        };
+      },
+      go: function (dir) { post({ op: 'nav', dir: dir }); },
+    }),
+  });
+
   // ---- events from the app --------------------------------------------------
 
   window.__zolikDesktop = Object.freeze({
@@ -300,6 +319,9 @@
         });
       } else if (name === 'state') {
         applyState(p);
+      } else if (name === 'nav') {
+        navState = p;
+        navListeners.slice().forEach(function (cb) { cb(p); });
       }
     },
   });

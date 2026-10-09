@@ -302,9 +302,15 @@ async function main() {
     await a.js(`await e2e.waitForText('Display name'); await e2e.click('Continue', { exact: true }); return 1`);
     const v = await a.js(`
       await e2e.waitFor(() => location.pathname === '/', 'the home screen', 20000);
-      await e2e.waitForText('server ${server.version}');
-      return { session: !!localStorage.getItem('zolik_session'), account: e2e.buttons()[0] };
+      return { session: !!localStorage.getItem('zolik_session') };
     `);
+    // The server's version, fetched through the core, is in About.
+    let about = {};
+    for (let i = 0; i < 100 && !(about.credits || '').includes(server.version); i++) {
+      await sleep(100);
+      about = await a.native('about');
+    }
+    expect((about.credits || '').includes(server.version), `About says ${JSON.stringify(about)}`);
     expect(v.session, 'no session was stored');
     const header = await a.js(`return !!document.querySelector('[data-testid="account-menu-button"]')`);
     expect(!header, 'the page still shows its own account menu');
@@ -518,8 +524,54 @@ async function main() {
     await a.js(`await e2e.waitFor(() => location.pathname === ${JSON.stringify(game)}, 'back at the game', 15000); await e2e.waitForText('active'); return 1`);
     await a.native('menu Forward');
     await a.js(`await e2e.waitFor(() => location.pathname === '/', 'forward to home', 15000); return 1`);
+    // The same both ways from the header's own arrows, on the main screen.
+    const arrow = (id) => `document.querySelector('[data-testid="${id}"]')?.getAttribute('aria-disabled') !== 'true'`;
+    const onHome = await a.js(`return { back: ${arrow('nav-back')}, forward: ${arrow('nav-forward')} }`);
+    expect(onHome.back && !onHome.forward, `arrows on the main screen ${JSON.stringify(onHome)}`);
+    await a.js(`await e2e.clickTestId('nav-back'); return 1`);
+    await a.js(`await e2e.waitFor(() => location.pathname === ${JSON.stringify(game)}, 'the header arrow back to the game', 15000); return 1`);
+    await a.js(`await e2e.waitFor(() => ${arrow('nav-forward')}, 'a forward arrow at the game', 5000); return 1`);
+    await a.js(`await e2e.clickTestId('nav-forward'); return 1`);
+    await a.js(`await e2e.waitFor(() => location.pathname === '/', 'the header arrow forward to home', 15000); return 1`);
+    await a.screenshot('home-arrows');
     await a.native('menu Back');
     await a.js(`await e2e.waitFor(() => location.pathname === ${JSON.stringify(game)}, 'back at the game again', 15000); return 1`);
+    await a.native('window select 1');
+  }, [a]);
+
+  await step('versions in About, notices in Help, none in a footer; the menu bar speaks Czech', async () => {
+    await a.native('window select 2');
+    await a.native('menu Home');
+    const footer = await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(300); return !!document.querySelector('[data-testid="build-footer"]')`);
+    expect(!footer, 'the home screen still has the version footer');
+    const about = await a.native('about');
+    expect(about.version && about.build && about.credits.includes(server.version), `About ${JSON.stringify(about)}`);
+    const help = await a.native('menuitems Help');
+    for (const want of ['Terms', 'Privacy', 'Accessibility', 'Source']) {
+      expect(help.includes(want), `Help lacks ${want}: ${JSON.stringify(help)}`);
+    }
+    await a.native('menu Terms');
+    await a.js(`await e2e.waitFor(() => location.pathname === '/legal/terms', 'the terms', 15000); return 1`);
+
+    await a.native('menu Settings…');
+    await a.js(`await e2e.clickTestId('language-choice-cs'); return 1`);
+    const cs = readFileSync(path.join(ROOT, 'client-react-native/src/lib/locales/cs.ts'), 'utf8');
+    const csWord = (k) => (cs.match(new RegExp(`'desktop\\.menu\\.${k}': '([^']*)'`)) || [])[1];
+    let bar = [];
+    for (let i = 0; i < 50 && !bar.includes(csWord('view')); i++) {
+      await sleep(100);
+      bar = await a.native('menuitems bar');
+    }
+    for (const k of ['file', 'edit', 'view', 'table', 'window', 'help']) {
+      expect(bar.includes(csWord(k)), `the menu bar is not in Czech (${k} → ${csWord(k)}): ${JSON.stringify(bar)}`);
+    }
+    // And back to English for the rest of the run.
+    await a.js(`await e2e.clickTestId('language-choice-en'); return 1`);
+    for (let i = 0; i < 50 && !bar.includes('View'); i++) {
+      await sleep(100);
+      bar = await a.native('menuitems bar');
+    }
+    expect(bar.includes('View'), `back in English: ${JSON.stringify(bar)}`);
     await a.native('window select 1');
   }, [a]);
 

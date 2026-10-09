@@ -30,7 +30,14 @@ Go core (Zolikcore.xcframework): hosts tables, and makes every network request
   (`src/desktop/useDesktopMatchView.ts`); Back (⌘[) and Forward (⌘]), which
   always undo each other; Home (⇧⌘H); Actual Size / Zoom In / Zoom Out;
   Reload; Full Screen.
-- **Help › Rules** lists every game, the one in front first (⌥⌘/). **Table**: Start an offline table (⇧⌘N), Back to online play.
+- **Help › Rules** lists every game, the one in front first (⌥⌘/). Help also
+  holds Terms, Privacy, Accessibility and Source, and **About** shows this
+  build's version and commit and the server's: what the footer shows on the
+  phones, which the app does not show.
+- The header has back and forward arrows on every platform; in the app they
+  walk the window's history, the same one View › Back and Forward do.
+- Every menu bar title follows the player's language (`desktop.menu.*`).
+ **Table**: Start an offline table (⇧⌘N), Back to online play.
   **Jokerless › About** shows the app's and the server's versions.
 - The page sits below the title bar, which takes the header's colour.
 

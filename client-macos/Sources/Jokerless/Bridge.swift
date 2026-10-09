@@ -17,6 +17,8 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
   var onMenuState: (([String: Any]) -> Void)?
   /// The match screen's parts and rules target, or nil when no game is in front.
   var onViewState: (([String: Any]?) -> Void)?
+  /// The header's arrows: "back" or "forward".
+  var onNav: ((String) -> Void)?
   private let nearby: NearbyService
   private lazy var sink = NetSinkBridge(bridge: self)
   /// Fetches waiting for the core's answer, by the page's request id.
@@ -73,6 +75,9 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
       }
     case "open":
       if let raw = body["url"] as? String, let url = URL(string: raw) { WebController.openExternally(url) }
+      replyHandler(true, nil)
+    case "nav":
+      onNav?(body["dir"] as? String ?? "")
       replyHandler(true, nil)
     case "view":
       onViewState?(body["state"] as? [String: Any])

@@ -13,6 +13,8 @@ final class GameWindowController: NSWindowController, NSWindowDelegate {
   private(set) var viewState: [String: Any]?
   var onActivate: ((GameWindowController) -> Void)?
   var onClose: ((GameWindowController) -> Void)?
+  /// The page has new words for the menu bar, or a new account state.
+  var onMenuChange: ((GameWindowController) -> Void)?
   private var titleWatch: NSKeyValueObservation?
 
   init(nearby: NearbyService, cascadeFrom previous: NSWindow?) {
@@ -51,7 +53,11 @@ final class GameWindowController: NSWindowController, NSWindowDelegate {
       let title = (view.title ?? "").trimmingCharacters(in: .whitespaces)
       window?.title = title.isEmpty ? "Jokerless" : title
     }
-    web.onMenuState = { [weak self] state in self?.menuState = state }
+    web.onMenuState = { [weak self] state in
+      guard let self else { return }
+      self.menuState = state
+      self.onMenuChange?(self)
+    }
     web.onViewState = { [weak self] state in self?.viewState = state }
   }
 
