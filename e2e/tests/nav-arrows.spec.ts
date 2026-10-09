@@ -30,6 +30,8 @@ test('back to the main screen, then forward to where the player was', async ({ p
 
   await arrow(page, 'nav-back').click();
   await onPath(page, /^\/$/);
+  // Home is where Back stops, even with history still behind it.
+  await expect(arrow(page, 'nav-back')).toHaveAttribute('aria-disabled', 'true');
   await expect(arrow(page, 'nav-forward')).not.toHaveAttribute('aria-disabled', 'true');
 
   await arrow(page, 'nav-forward').click();

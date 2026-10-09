@@ -420,7 +420,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
   func validateMenuItem(_ item: NSMenuItem) -> Bool {
     // A game window is one game: it has no history to walk.
-    if item.action == #selector(goBack(_:)) { return active?.role != .game }
+    if item.action == #selector(goBack(_:)) { return active?.role != .game && !(web?.atHome ?? false) }
     if item.action == #selector(goForward(_:)) { return active?.role != .game && (web?.webView.canGoForward ?? false) }
     if item.action == #selector(toggleViewPart(_:)), let part = MenuBuilder.viewTags[item.tag] {
       return viewPart(part) != nil

@@ -112,14 +112,24 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     navWatch = [
       webView.observe(\.canGoBack) { [weak self] _, _ in self?.emitNav() },
       webView.observe(\.canGoForward) { [weak self] _, _ in self?.emitNav() },
+      webView.observe(\.url) { [weak self] _, _ in self?.emitNav() },
     ]
   }
 
   private var navWatch: [NSKeyValueObservation] = []
 
   private var navState: [String: Any] {
-    ["canGoBack": webView.canGoBack, "canGoForward": webView.canGoForward]
+    ["canGoBack": canBack, "canGoForward": webView.canGoForward]
   }
+
+  /// The home screen is where Back stops: there is nowhere further back to go,
+  /// whatever the window's history still holds.
+  var atHome: Bool {
+    guard let path = webView.url?.path else { return false }
+    return path.isEmpty || path == "/" || path == "/index.html"
+  }
+
+  var canBack: Bool { !atHome && webView.canGoBack }
 
   private func emitNav() {
     bridge.emit("nav", navState)
@@ -128,6 +138,7 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   /// Back through the window's history; with nothing behind, the page's own
   /// rule (home). Forward can always return to where Back left.
   func goBack() {
+    if atHome { return }
     if webView.canGoBack { webView.goBack() } else { command("back") }
   }
 
