@@ -4,11 +4,15 @@ import (
 	"testing"
 
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/ferbl"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/lastcard"
 	"zolik/server/internal/lora"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -44,6 +48,10 @@ func botCases() []botCase {
 		{name: "zolik", mod: zolikmod.New(), players: botRefs("b1", "b2"), carries: false},
 		{name: "prsi", mod: prsi.New(), players: botRefs("b1", "b2", "b3"), carries: true},
 		{name: "lastcard", mod: lastcard.New(), players: botRefs("b1", "b2", "b3"), carries: true},
+		{name: "ferbl", mod: ferbl.New(), players: botRefs("b1", "b2", "b3"), carries: true},
+		{name: "okobere", mod: okobere.New(), players: botRefs("b1", "b2", "b3"), carries: true},
+		{name: "sedma", mod: sedma.New(), players: botRefs("b1", "b2", "b3", "b4"), carries: true},
+		{name: "snaps", mod: snaps.New(), players: botRefs("b1", "b2"), carries: true},
 		{
 			name: "lora", mod: lora.New(), players: botRefs("b1", "b2", "b3", "b4"),
 			cfg: module.MatchConfig{Options: module.Options{"talie": 1}}, carries: true,

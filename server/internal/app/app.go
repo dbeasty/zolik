@@ -28,6 +28,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/capacity"
 	"zolik/server/internal/db"
+	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/identity"
@@ -41,9 +42,12 @@ import (
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
 	"zolik/server/internal/notify"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/scoring"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/stats"
 	zsync "zolik/server/internal/sync"
 	userrepo "zolik/server/internal/user"
@@ -661,7 +665,7 @@ func (a *App) matchManager() *match.Manager {
 func (a *App) hostedModules() []module.GameModule {
 	all := []module.GameModule{
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(),
-		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), lora.New(),
+		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(),
 	}
 	if a.outbox() == nil {
 		return all

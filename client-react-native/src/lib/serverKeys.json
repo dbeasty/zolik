@@ -38,6 +38,12 @@
     "DRAW_NOT_NOW",
     "DRAW_PENDING",
     "DRAW_TOO_MANY",
+    "FERBL_CANNOT_BET",
+    "FERBL_CANNOT_CHECK",
+    "FERBL_CANNOT_RAISE",
+    "FERBL_NOTHING_TO_CALL",
+    "FERBL_NO_NEED_TO_FOLD",
+    "FERBL_RAISES_CLOSED",
     "FOUNDATION_ORDER",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
@@ -151,6 +157,13 @@
     "NO_SUCH_CARD",
     "NO_SUCH_MELD",
     "NO_SUCH_SET",
+    "OKO_ALREADY_BET",
+    "OKO_BET_ABOVE_BANK",
+    "OKO_BET_ABOVE_STACK",
+    "OKO_BET_BELOW_MINIMUM",
+    "OKO_BET_FIRST",
+    "OKO_BET_NOT_A_NUMBER",
+    "OKO_DECK_EMPTY",
     "OPTION_NOT_ALLOWED",
     "OVER_POT_LIMIT",
     "PILE_BLOCKED",
@@ -170,10 +183,21 @@
     "SEAT_IN_USE",
     "SEAT_LINK_EXPIRED",
     "SEAT_NOT_IN_HAND",
+    "SEDMA_CONTINUE_WITH_RANK_OR_SEVEN",
+    "SEDMA_NOTHING_TO_STOP",
+    "SEDMA_PICK_ONE_CARD",
     "SEQUENCE_NEEDS_ONE_SUIT",
     "SEQUENCE_NO_WILDS",
     "SERVER_BUSY",
     "SET_TOO_LARGE",
+    "SNAPS_EXCHANGE_NEEDS_A_TRICK",
+    "SNAPS_MUST_BEAT",
+    "SNAPS_MUST_FOLLOW_SUIT",
+    "SNAPS_MUST_TRUMP",
+    "SNAPS_NOT_ON_LEAD",
+    "SNAPS_NO_EXCHANGE_CARD",
+    "SNAPS_PICK_ONE_CARD",
+    "SNAPS_TALON_CLOSED",
     "STAND_IN_ENDED",
     "STAND_IN_NOT_A_PERSON",
     "STAND_IN_NOT_OFFERED",
@@ -423,6 +447,58 @@
     "canasta.seat.notOpened",
     "canasta.seat.teamScore",
     "canasta.seat.toOpen",
+    "ferbl.fact.chips",
+    "ferbl.hand.banda",
+    "ferbl.hand.fourKind",
+    "ferbl.hand.suits",
+    "ferbl.hand.threeKind",
+    "ferbl.hand.threeSuited",
+    "ferbl.hand.twoAces",
+    "ferbl.hand.twoSuited",
+    "ferbl.header.bet",
+    "ferbl.header.hand",
+    "ferbl.header.pot",
+    "ferbl.offer.bet",
+    "ferbl.offer.call",
+    "ferbl.offer.check",
+    "ferbl.offer.fold",
+    "ferbl.offer.raise",
+    "ferbl.prompt.facing",
+    "ferbl.prompt.open",
+    "ferbl.round.hand",
+    "ferbl.round.pot",
+    "ferbl.round.shown",
+    "ferbl.rules.allIn",
+    "ferbl.rules.ante",
+    "ferbl.rules.banda",
+    "ferbl.rules.cap",
+    "ferbl.rules.deck",
+    "ferbl.rules.end",
+    "ferbl.rules.fourKind",
+    "ferbl.rules.goal",
+    "ferbl.rules.ignored",
+    "ferbl.rules.round1",
+    "ferbl.rules.round2",
+    "ferbl.rules.section.betting",
+    "ferbl.rules.section.cards",
+    "ferbl.rules.section.end",
+    "ferbl.rules.section.goal",
+    "ferbl.rules.section.hands",
+    "ferbl.rules.section.showdown",
+    "ferbl.rules.showdown",
+    "ferbl.rules.suits",
+    "ferbl.rules.threeKind",
+    "ferbl.rules.threeSuited",
+    "ferbl.rules.twoAces",
+    "ferbl.rules.twoSuited",
+    "ferbl.rules.values",
+    "ferbl.seat.allIn",
+    "ferbl.seat.chips",
+    "ferbl.seat.dealer",
+    "ferbl.seat.folded",
+    "ferbl.seat.inPot",
+    "ferbl.seat.out",
+    "ferbl.zone.hand",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
@@ -903,6 +979,7 @@
     "marias.rules.play.follow",
     "marias.rules.play.lead",
     "marias.rules.play.marriage",
+    "marias.rules.play.openHand",
     "marias.rules.play.seven",
     "marias.rules.play.trump",
     "marias.rules.points",
@@ -939,6 +1016,61 @@
     "marias.zone.talon",
     "marias.zone.trick",
     "offer.leave",
+    "okobere.fact.bankFree",
+    "okobere.header.bankFree",
+    "okobere.header.bankRound",
+    "okobere.header.banker",
+    "okobere.header.round",
+    "okobere.offer.bet",
+    "okobere.offer.card",
+    "okobere.offer.stand",
+    "okobere.param.stake",
+    "okobere.prompt.bank",
+    "okobere.prompt.bet",
+    "okobere.prompt.draw",
+    "okobere.quick.allIn",
+    "okobere.quick.double",
+    "okobere.quick.vaBanque",
+    "okobere.round.banker",
+    "okobere.round.bankerOko",
+    "okobere.round.broken",
+    "okobere.round.punter",
+    "okobere.round.round",
+    "okobere.rules.bank",
+    "okobere.rules.banker",
+    "okobere.rules.bankerOko",
+    "okobere.rules.bust",
+    "okobere.rules.deal",
+    "okobere.rules.deck",
+    "okobere.rules.end",
+    "okobere.rules.goal",
+    "okobere.rules.oko",
+    "okobere.rules.okoPays1",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.section.bank",
+    "okobere.rules.section.cards",
+    "okobere.rules.section.end",
+    "okobere.rules.section.goal",
+    "okobere.rules.section.play",
+    "okobere.rules.section.settle",
+    "okobere.rules.settle",
+    "okobere.rules.stake",
+    "okobere.rules.turn",
+    "okobere.rules.values",
+    "okobere.seat.bank",
+    "okobere.seat.banker",
+    "okobere.seat.bust",
+    "okobere.seat.chips",
+    "okobere.seat.lost",
+    "okobere.seat.oko",
+    "okobere.seat.satOut",
+    "okobere.seat.stake",
+    "okobere.seat.total",
+    "okobere.seat.won",
+    "okobere.zone.bankerHand",
+    "okobere.zone.deck",
+    "okobere.zone.hand",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -1046,6 +1178,110 @@
     "seat.leaving",
     "seat.left",
     "seat.ready",
+    "sedma.fact.trickPoints",
+    "sedma.header.hand",
+    "sedma.header.led",
+    "sedma.header.sidePoints",
+    "sedma.header.yourPoints",
+    "sedma.offer.continue",
+    "sedma.offer.play",
+    "sedma.offer.stop",
+    "sedma.prompt.decide",
+    "sedma.prompt.lead",
+    "sedma.prompt.play",
+    "sedma.round.allCards",
+    "sedma.round.allPoints",
+    "sedma.round.hand",
+    "sedma.round.none",
+    "sedma.round.points",
+    "sedma.round.tie",
+    "sedma.round.won",
+    "sedma.rules.capture",
+    "sedma.rules.continue",
+    "sedma.rules.deal",
+    "sedma.rules.deck",
+    "sedma.rules.draw",
+    "sedma.rules.end",
+    "sedma.rules.goal",
+    "sedma.rules.play",
+    "sedma.rules.points",
+    "sedma.rules.score",
+    "sedma.rules.score3",
+    "sedma.rules.section.cards",
+    "sedma.rules.section.deal",
+    "sedma.rules.section.end",
+    "sedma.rules.section.goal",
+    "sedma.rules.section.play",
+    "sedma.rules.section.scoring",
+    "sedma.rules.teams",
+    "sedma.seat.dealer",
+    "sedma.seat.points",
+    "sedma.seat.winning",
+    "sedma.zone.lastTrick",
+    "sedma.zone.partnerHand",
+    "sedma.zone.stock",
+    "sedma.zone.trick",
+    "snaps.fact.exchange",
+    "snaps.header.closed",
+    "snaps.header.deal",
+    "snaps.header.talonOut",
+    "snaps.header.trumps",
+    "snaps.header.yourPoints",
+    "snaps.offer.close",
+    "snaps.offer.exchange",
+    "snaps.offer.play",
+    "snaps.prompt.follow",
+    "snaps.prompt.followStrict",
+    "snaps.prompt.lead",
+    "snaps.round.closerFailed",
+    "snaps.round.deal",
+    "snaps.round.draw",
+    "snaps.round.drawn",
+    "snaps.round.headline",
+    "snaps.round.higher",
+    "snaps.round.lastTrick",
+    "snaps.round.out",
+    "snaps.round.points",
+    "snaps.rules.close",
+    "snaps.rules.deal.turns",
+    "snaps.rules.deal5",
+    "snaps.rules.deal6",
+    "snaps.rules.deck20",
+    "snaps.rules.deck24",
+    "snaps.rules.end",
+    "snaps.rules.exchange",
+    "snaps.rules.exchange66",
+    "snaps.rules.goal",
+    "snaps.rules.lastTrick66",
+    "snaps.rules.lastTrickSnaps",
+    "snaps.rules.marriage",
+    "snaps.rules.marriageOpenOnly",
+    "snaps.rules.out",
+    "snaps.rules.play.draw",
+    "snaps.rules.play.open",
+    "snaps.rules.play.strict",
+    "snaps.rules.points",
+    "snaps.rules.points66",
+    "snaps.rules.score.closedAtClosing",
+    "snaps.rules.score.closedAtEnd",
+    "snaps.rules.score.closerFailed",
+    "snaps.rules.score.out",
+    "snaps.rules.section.cards",
+    "snaps.rules.section.deal",
+    "snaps.rules.section.end",
+    "snaps.rules.section.ending",
+    "snaps.rules.section.goal",
+    "snaps.rules.section.play",
+    "snaps.seat.closed",
+    "snaps.seat.dealer",
+    "snaps.seat.marriage",
+    "snaps.seat.points",
+    "snaps.seat.tricks",
+    "snaps.zone.lastTrick",
+    "snaps.zone.talon",
+    "snaps.zone.talonClosed",
+    "snaps.zone.trick",
+    "snaps.zone.trumpCard",
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
@@ -1261,6 +1497,30 @@
     "canasta.rules.wildLimit",
     "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
+    "ferbl.rules.allIn",
+    "ferbl.rules.ante",
+    "ferbl.rules.banda",
+    "ferbl.rules.cap",
+    "ferbl.rules.deck",
+    "ferbl.rules.end",
+    "ferbl.rules.fourKind",
+    "ferbl.rules.goal",
+    "ferbl.rules.ignored",
+    "ferbl.rules.round1",
+    "ferbl.rules.round2",
+    "ferbl.rules.section.betting",
+    "ferbl.rules.section.cards",
+    "ferbl.rules.section.end",
+    "ferbl.rules.section.goal",
+    "ferbl.rules.section.hands",
+    "ferbl.rules.section.showdown",
+    "ferbl.rules.showdown",
+    "ferbl.rules.suits",
+    "ferbl.rules.threeKind",
+    "ferbl.rules.threeSuited",
+    "ferbl.rules.twoAces",
+    "ferbl.rules.twoSuited",
+    "ferbl.rules.values",
     "ginrummy.remedy.discardToEndTurn",
     "ginrummy.remedy.drawElsewhere",
     "ginrummy.remedy.drawFirst",
@@ -1490,6 +1750,7 @@
     "marias.rules.play.follow",
     "marias.rules.play.lead",
     "marias.rules.play.marriage",
+    "marias.rules.play.openHand",
     "marias.rules.play.seven",
     "marias.rules.play.trump",
     "marias.rules.points",
@@ -1512,6 +1773,28 @@
     "marias.rules.section.goal",
     "marias.rules.section.play",
     "marias.rules.section.scoring",
+    "okobere.rules.bank",
+    "okobere.rules.banker",
+    "okobere.rules.bankerOko",
+    "okobere.rules.bust",
+    "okobere.rules.deal",
+    "okobere.rules.deck",
+    "okobere.rules.end",
+    "okobere.rules.goal",
+    "okobere.rules.oko",
+    "okobere.rules.okoPays1",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.section.bank",
+    "okobere.rules.section.cards",
+    "okobere.rules.section.end",
+    "okobere.rules.section.goal",
+    "okobere.rules.section.play",
+    "okobere.rules.section.settle",
+    "okobere.rules.settle",
+    "okobere.rules.stake",
+    "okobere.rules.turn",
+    "okobere.rules.values",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.nameASuit",
@@ -1562,6 +1845,54 @@
     "rummytiles.rules.tiles",
     "rummytiles.rules.turn",
     "rummytiles.rules.turnDescription",
+    "sedma.rules.capture",
+    "sedma.rules.continue",
+    "sedma.rules.deal",
+    "sedma.rules.deck",
+    "sedma.rules.draw",
+    "sedma.rules.end",
+    "sedma.rules.goal",
+    "sedma.rules.play",
+    "sedma.rules.points",
+    "sedma.rules.score",
+    "sedma.rules.score3",
+    "sedma.rules.section.cards",
+    "sedma.rules.section.deal",
+    "sedma.rules.section.end",
+    "sedma.rules.section.goal",
+    "sedma.rules.section.play",
+    "sedma.rules.section.scoring",
+    "sedma.rules.teams",
+    "snaps.rules.close",
+    "snaps.rules.deal.turns",
+    "snaps.rules.deal5",
+    "snaps.rules.deal6",
+    "snaps.rules.deck20",
+    "snaps.rules.deck24",
+    "snaps.rules.end",
+    "snaps.rules.exchange",
+    "snaps.rules.exchange66",
+    "snaps.rules.goal",
+    "snaps.rules.lastTrick66",
+    "snaps.rules.lastTrickSnaps",
+    "snaps.rules.marriage",
+    "snaps.rules.marriageOpenOnly",
+    "snaps.rules.out",
+    "snaps.rules.play.draw",
+    "snaps.rules.play.open",
+    "snaps.rules.play.strict",
+    "snaps.rules.points",
+    "snaps.rules.points66",
+    "snaps.rules.score.closedAtClosing",
+    "snaps.rules.score.closedAtEnd",
+    "snaps.rules.score.closerFailed",
+    "snaps.rules.score.out",
+    "snaps.rules.section.cards",
+    "snaps.rules.section.deal",
+    "snaps.rules.section.end",
+    "snaps.rules.section.ending",
+    "snaps.rules.section.goal",
+    "snaps.rules.section.play",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFirst",
@@ -1970,6 +2301,68 @@
     "canasta.seat.toOpen": [
       "n",
       "value"
+    ],
+    "ferbl.fact.chips": [
+      "n"
+    ],
+    "ferbl.hand.banda": [
+      "n"
+    ],
+    "ferbl.hand.suits": [
+      "n"
+    ],
+    "ferbl.hand.threeSuited": [
+      "n"
+    ],
+    "ferbl.hand.twoSuited": [
+      "n"
+    ],
+    "ferbl.header.bet": [
+      "n",
+      "raises"
+    ],
+    "ferbl.header.hand": [
+      "n",
+      "of"
+    ],
+    "ferbl.header.pot": [
+      "n"
+    ],
+    "ferbl.prompt.facing": [
+      "n"
+    ],
+    "ferbl.prompt.open": [
+      "n"
+    ],
+    "ferbl.round.pot": [
+      "n"
+    ],
+    "ferbl.round.shown": [
+      "hand",
+      "player"
+    ],
+    "ferbl.rules.ante": [
+      "n"
+    ],
+    "ferbl.rules.cap": [
+      "n"
+    ],
+    "ferbl.rules.end": [
+      "chips",
+      "n"
+    ],
+    "ferbl.rules.round1": [
+      "n"
+    ],
+    "ferbl.rules.round2": [
+      "n"
+    ],
+    "ferbl.seat.chips": [
+      "n",
+      "value"
+    ],
+    "ferbl.seat.inPot": [
+      "n"
     ],
     "ginrummy.fact.deadwood": [
       "n",
@@ -2581,6 +2974,81 @@
     "marias.seat.tricks": [
       "n"
     ],
+    "okobere.fact.bankFree": [
+      "n"
+    ],
+    "okobere.header.bankFree": [
+      "n"
+    ],
+    "okobere.header.bankRound": [
+      "n",
+      "of"
+    ],
+    "okobere.header.banker": [
+      "player"
+    ],
+    "okobere.header.round": [
+      "n"
+    ],
+    "okobere.prompt.bank": [
+      "n"
+    ],
+    "okobere.prompt.bet": [
+      "n"
+    ],
+    "okobere.prompt.draw": [
+      "n"
+    ],
+    "okobere.quick.allIn": [
+      "value"
+    ],
+    "okobere.quick.double": [
+      "value"
+    ],
+    "okobere.quick.vaBanque": [
+      "value"
+    ],
+    "okobere.round.banker": [
+      "n",
+      "player"
+    ],
+    "okobere.round.bankerOko": [
+      "player"
+    ],
+    "okobere.round.punter": [
+      "player",
+      "result"
+    ],
+    "okobere.rules.bank": [
+      "bank"
+    ],
+    "okobere.rules.end": [
+      "chips",
+      "n"
+    ],
+    "okobere.rules.okoPays3": [
+      "n"
+    ],
+    "okobere.rules.rotation": [
+      "n"
+    ],
+    "okobere.rules.stake": [
+      "n"
+    ],
+    "okobere.seat.bank": [
+      "n",
+      "value"
+    ],
+    "okobere.seat.chips": [
+      "n",
+      "value"
+    ],
+    "okobere.seat.stake": [
+      "n"
+    ],
+    "okobere.seat.total": [
+      "n"
+    ],
     "prompt.canastasNeeded": [
       "n"
     ],
@@ -2731,6 +3199,83 @@
     "seat.cards": [
       "n",
       "value"
+    ],
+    "sedma.fact.trickPoints": [
+      "n"
+    ],
+    "sedma.header.hand": [
+      "n"
+    ],
+    "sedma.header.led": [
+      "rank"
+    ],
+    "sedma.header.sidePoints": [
+      "n"
+    ],
+    "sedma.header.yourPoints": [
+      "n"
+    ],
+    "sedma.prompt.decide": [
+      "rank"
+    ],
+    "sedma.round.points": [
+      "n",
+      "player"
+    ],
+    "sedma.rules.end": [
+      "n"
+    ],
+    "sedma.seat.points": [
+      "n"
+    ],
+    "snaps.fact.exchange": [
+      "card"
+    ],
+    "snaps.header.closed": [
+      "player"
+    ],
+    "snaps.header.deal": [
+      "n"
+    ],
+    "snaps.header.trumps": [
+      "suit"
+    ],
+    "snaps.header.yourPoints": [
+      "n"
+    ],
+    "snaps.round.headline": [
+      "n",
+      "player"
+    ],
+    "snaps.round.points": [
+      "n",
+      "player"
+    ],
+    "snaps.rules.end": [
+      "n"
+    ],
+    "snaps.rules.lastTrick66": [
+      "n"
+    ],
+    "snaps.rules.marriage": [
+      "plain",
+      "trump"
+    ],
+    "snaps.rules.out": [
+      "n"
+    ],
+    "snaps.rules.score.out": [
+      "n"
+    ],
+    "snaps.seat.marriage": [
+      "n",
+      "suit"
+    ],
+    "snaps.seat.points": [
+      "n"
+    ],
+    "snaps.seat.tricks": [
+      "n"
     ],
     "status.lastDeal": [
       "canastas",
@@ -2962,6 +3507,25 @@
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
     "canasta.seat.toOpen",
+    "ferbl.fact.chips",
+    "ferbl.hand.banda",
+    "ferbl.hand.suits",
+    "ferbl.hand.threeSuited",
+    "ferbl.hand.twoSuited",
+    "ferbl.header.bet",
+    "ferbl.header.hand",
+    "ferbl.header.pot",
+    "ferbl.prompt.facing",
+    "ferbl.prompt.open",
+    "ferbl.round.pot",
+    "ferbl.round.shown",
+    "ferbl.rules.ante",
+    "ferbl.rules.cap",
+    "ferbl.rules.end",
+    "ferbl.rules.round1",
+    "ferbl.rules.round2",
+    "ferbl.seat.chips",
+    "ferbl.seat.inPot",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
@@ -3130,6 +3694,29 @@
     "marias.seat.marriage",
     "marias.seat.points",
     "marias.seat.tricks",
+    "okobere.fact.bankFree",
+    "okobere.header.bankFree",
+    "okobere.header.bankRound",
+    "okobere.header.banker",
+    "okobere.header.round",
+    "okobere.prompt.bank",
+    "okobere.prompt.bet",
+    "okobere.prompt.draw",
+    "okobere.quick.allIn",
+    "okobere.quick.double",
+    "okobere.quick.vaBanque",
+    "okobere.round.banker",
+    "okobere.round.bankerOko",
+    "okobere.round.punter",
+    "okobere.rules.bank",
+    "okobere.rules.end",
+    "okobere.rules.okoPays3",
+    "okobere.rules.rotation",
+    "okobere.rules.stake",
+    "okobere.seat.bank",
+    "okobere.seat.chips",
+    "okobere.seat.stake",
+    "okobere.seat.total",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
@@ -3173,6 +3760,30 @@
     "rummytiles.seat.score",
     "rummytiles.status.lastRound",
     "seat.cards",
+    "sedma.fact.trickPoints",
+    "sedma.header.hand",
+    "sedma.header.led",
+    "sedma.header.sidePoints",
+    "sedma.header.yourPoints",
+    "sedma.prompt.decide",
+    "sedma.round.points",
+    "sedma.rules.end",
+    "sedma.seat.points",
+    "snaps.fact.exchange",
+    "snaps.header.closed",
+    "snaps.header.deal",
+    "snaps.header.trumps",
+    "snaps.header.yourPoints",
+    "snaps.round.headline",
+    "snaps.round.points",
+    "snaps.rules.end",
+    "snaps.rules.lastTrick66",
+    "snaps.rules.marriage",
+    "snaps.rules.out",
+    "snaps.rules.score.out",
+    "snaps.seat.marriage",
+    "snaps.seat.points",
+    "snaps.seat.tricks",
     "status.lastDeal",
     "status.teamScore",
     "status.winner",

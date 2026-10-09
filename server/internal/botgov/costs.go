@@ -32,6 +32,15 @@ func DefaultCosts() map[Class]time.Duration {
 		{"zolik", "hard", EngineRule}:   890 * time.Microsecond,
 		{"zolik", "medium", EngineRule}: 750 * time.Microsecond,
 		{"zolik", "easy", EngineRule}:   700 * time.Microsecond,
+		// Ferbl Hard samples the hidden cards, weighted by how each player
+		// has bet; six seats is the dearest table.
+		{"ferbl", "hard", EngineRule}: 1310 * time.Microsecond,
+		// Sedma Hard plays every choice out over 24 sampled deals; the
+		// two-seat table, with the longest stock, is the dearest.
+		{"sedma", "hard", EngineRule}: 1220 * time.Microsecond,
+		// Šnaps Hard solves the endgame over sampled hands; Šedesát šest,
+		// with six cards a hand, is the dearer variation (p99 6 ms).
+		{"snaps", "hard", EngineRule}: 990 * time.Microsecond,
 	}
 }
 

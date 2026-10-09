@@ -11,6 +11,7 @@ import (
 
 	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/lastcard"
@@ -18,8 +19,11 @@ import (
 	"zolik/server/internal/marias"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -92,6 +96,14 @@ func replayables() []replayable {
 			[]string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"}, nil},
 		{"lora", lora.New(), refs("p1", "p2", "p3", "p4"), module.MatchConfig{Options: module.Options{"talie": 1}},
 			[]string{"continue", "choose_game", "play_card", "tuk", "end_turn"}, nil},
+		{"ferbl", ferbl.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
+			[]string{"continue", "check", "call"}, nil},
+		{"okobere", okobere.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
+			[]string{"continue", "bet", "stand"}, nil},
+		{"sedma", sedma.New(), refs("p1", "p2", "p3", "p4"), module.MatchConfig{},
+			[]string{"continue", "end_trick", "play_card"}, nil},
+		{"snaps", snaps.New(), refs("p1", "p2"), module.MatchConfig{},
+			[]string{"continue", "play_card"}, nil},
 	}
 }
 
@@ -173,7 +185,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 func replayManager() *Manager {
 	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), lora.New(),
+		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(),
 	)}
 }
 

@@ -13,7 +13,7 @@ import { loginAsFreshGuest } from '../helpers/login';
 test.describe('the first-run intro', () => {
   test('lists every hosted game as a button', async ({ page }) => {
     await page.goto('/intro');
-    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack', 'lastcard', 'lora']) {
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack', 'lastcard', 'snaps', 'sedma', 'okobere', 'ferbl', 'lora']) {
       await expect(page.getByTestId(`game-${id}`)).toBeVisible({ timeout: 30_000 });
     }
     await expect(page.getByTestId('intro-join')).toBeVisible();

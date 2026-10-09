@@ -29,14 +29,18 @@ import (
 	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
+	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/lastcard"
 	"zolik/server/internal/lora"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/stats"
 	"zolik/server/internal/zolikmod"
 )
@@ -49,7 +53,7 @@ func main() {
 	flag.Parse()
 
 	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), lastcard.New(), lora.New())
+		ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New())
 	sidesOf := func(m stats.MatchResult) [][]string {
 		mod := modules.Get(m.ModuleID)
 		if mod == nil {

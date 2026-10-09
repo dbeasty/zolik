@@ -18,6 +18,7 @@ import (
 
 	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/klondike"
@@ -26,14 +27,17 @@ import (
 	"zolik/server/internal/lora"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
+	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/sedma"
+	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
 
 // registry is every game the server hosts, as cmd/server registers them.
 var registry = module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-	ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), lora.New())
+	ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New())
 
 // game is one module, with its learn adapter when it has one.
 type game struct {

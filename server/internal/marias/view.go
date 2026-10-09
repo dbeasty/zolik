@@ -28,7 +28,8 @@ var (
 // chooser's unseen five, the talon (known to the declarer who laid it), and
 // the trump suit until the game is agreed — the chooser's trump card lies
 // face down until then, so the others bid against a game whose trumps they
-// do not know.
+// do not know. At a table that plays betl and durch open, the declarer's
+// hand is everyone's once the first trick of one has been taken.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
 	return m.view(raw, viewerID, false)
 }
@@ -72,7 +73,11 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
 		}
-		if reveal {
+		shown := p == s.Declarer && s.declarerShown()
+		if shown {
+			z.LabelKey = "zone.shownHand"
+		}
+		if reveal || shown {
 			for _, c := range s.Hands[p] {
 				z.Cards = append(z.Cards, module.CardView{Card: c})
 			}

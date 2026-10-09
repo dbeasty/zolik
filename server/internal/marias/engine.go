@@ -39,6 +39,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		FlekLimit:      c.flekLimit,
 		ZLidu:          c.zLidu,
 		ShowCardPoints: c.showCardPoints,
+		OpenBetlDurch:  c.openBetlDurch,
 		Pause:          cfg.PauseBetweenRounds(true),
 		FirstChooser:   module.StartingSeat(seed, len(players)),
 		Scores:         map[string]int{},
