@@ -61,6 +61,67 @@
 
     <div class="card">
       <div class="section-head">
+        <h2>Accounts</h2>
+        <span class="muted" id="accounts-note"></span>
+      </div>
+      <p class="error" id="accounts-error" hidden></p>
+      <div class="tiles" id="account-tiles"></div>
+
+      <div class="split">
+        <div>
+          <h3>Where</h3>
+          <div class="hbars" id="regions"></div>
+          <p class="muted small" id="region-note"></p>
+        </div>
+        <div>
+          <h3>Signed up</h3>
+          <div class="chart chart-short" id="signups"></div>
+        </div>
+      </div>
+
+      <h3>Games played</h3>
+      <div class="chipset" id="account-games"></div>
+
+      <h3>Matches finished per account</h3>
+      <div class="chipset" id="engagement"></div>
+
+      <h3>Sign-in method</h3>
+      <div class="chipset" id="providers"></div>
+
+      <h3>Language</h3>
+      <div class="chipset" id="languages"></div>
+
+      <div class="section-head players-head">
+        <h3>Players</h3>
+        <form class="filters" id="players-form">
+          <label><span class="muted">Sort</span>
+            <select id="players-sort">
+              <option value="matches">most matches</option>
+              <option value="active">most active days</option>
+              <option value="recent">last seen</option>
+              <option value="new">newest</option>
+            </select>
+          </label>
+          <label><span class="muted">Show</span>
+            <select id="players-limit">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="200">200</option>
+              <option value="1000">1000</option>
+            </select>
+          </label>
+          <input type="search" id="players-search" placeholder="name or email">
+          <button type="submit">Find</button>
+        </form>
+      </div>
+      <p class="muted small" id="players-note"></p>
+      <div class="scroller">
+        <table id="players" class="players"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
         <h2>Bots</h2>
         <span class="muted">How much CPU bots may use, and which bot plays the AI seats</span>
       </div>

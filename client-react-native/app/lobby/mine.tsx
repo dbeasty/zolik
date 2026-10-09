@@ -1,7 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
+import { Sheet } from '@/src/a11y/Sheet';
 import type { StoredTable } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -50,7 +53,7 @@ export default function MyGamesScreen() {
         const rows = await client.listMyTables(s);
         setTables(moduleId ? rows.filter((r) => r.moduleId === moduleId) : rows);
       } catch (e) {
-        setError(formatApiError(e, 'Could not load your games'));
+        setError(formatApiError(e, t('a11y.error.loadGames')));
       } finally {
         setLoading(false);
       }
@@ -74,7 +77,7 @@ export default function MyGamesScreen() {
         await client.resumeMatch(row.matchId);
         router.push(routeForMatch('active', row.isHost, row.matchId));
       } catch (e) {
-        setError(formatApiError(e, 'Could not resume that table'));
+        setError(formatApiError(e, t('a11y.error.resume')));
         // The row may be stale — someone else got there first, or it moved
         // on its own — so reload rather than leave a button that will only
         // fail the same way again.
@@ -96,7 +99,7 @@ export default function MyGamesScreen() {
       await client.deleteMatch(row.matchId);
       setTables((prev) => prev.filter((r) => r.matchId !== row.matchId));
     } catch (e) {
-      setError(formatApiError(e, 'Could not delete that table'));
+      setError(formatApiError(e, t('a11y.error.delete')));
     } finally {
       setBusyId('');
     }
@@ -104,9 +107,13 @@ export default function MyGamesScreen() {
 
   return (
     <Screen title={t('nav.myGames')} subtitle={t('mine.subtitle')} scroll>
-      <View style={styles.tabs}>
+      {/* Tabs to a screen reader as well as to the eye: the pill that is lit
+          is the one `aria-selected` names. */}
+      <View style={styles.tabs} role="tablist">
         <Pressable
           testID="mine-tab-unfinished"
+          role="tab"
+          aria-selected={scope === 'unfinished'}
           style={[styles.pill, scope === 'unfinished' && styles.pillOn]}
           onPress={() => setScope('unfinished')}
         >
@@ -114,6 +121,8 @@ export default function MyGamesScreen() {
         </Pressable>
         <Pressable
           testID="mine-tab-finished"
+          role="tab"
+          aria-selected={scope === 'finished'}
           style={[styles.pill, scope === 'finished' && styles.pillOn]}
           onPress={() => setScope('finished')}
         >
@@ -122,13 +131,11 @@ export default function MyGamesScreen() {
       </View>
 
       {error ? (
-        <Text testID="mine-error" style={shared.error}>
-          {error}
-        </Text>
+        <FormError testID="mine-error" message={error} />
       ) : null}
 
       {loading ? (
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
       ) : tables.length === 0 ? (
         <Text style={shared.status} testID="mine-empty">
           {scope === 'unfinished' ? t('mine.emptyUnfinished') : t('mine.emptyFinished')}
@@ -136,19 +143,21 @@ export default function MyGamesScreen() {
       ) : (
         tables.map((row) => (
           <View key={row.matchId} style={shared.card} testID={`mine-row-${row.matchId}`}>
-            <Text style={styles.rowTitle}>
+            <Text style={styles.rowTitle} {...heading(3)}>
               {moduleName(row.moduleId)}
               {row.variation ? ` · ${variationName(row.moduleId, row.variation)}` : ''}
             </Text>
             <Text style={styles.rowMeta}>{t(`mine.status.${row.status}`, undefined, row.status)}</Text>
-            <Text style={styles.rowPlayers} numberOfLines={1}>
-              {row.players.map((p) => p.name + (p.isAI ? ' 🤖' : '')).join(', ')}
+            <Text style={styles.rowPlayers} numberOfLines={2}>
+              {row.players.map((p) => (p.isAI ? t('a11y.player.bot', { name: p.name }) : p.name)).join(', ')}
             </Text>
 
             <View style={styles.rowActions}>
               {row.canResume ? (
                 <Pressable
                   testID={`mine-resume-${row.matchId}`}
+                  role="button"
+                  aria-label={t('a11y.actionFor', { action: t('mine.resume'), what: moduleName(row.moduleId) })}
                   disabled={busyId === row.matchId}
                   style={[shared.button, styles.rowButton]}
                   onPress={() => resume(row)}
@@ -158,6 +167,8 @@ export default function MyGamesScreen() {
               ) : (
                 <Pressable
                   testID={`mine-open-${row.matchId}`}
+                  role="button"
+                  aria-label={t('a11y.actionFor', { action: t('mine.open'), what: moduleName(row.moduleId) })}
                   disabled={busyId === row.matchId}
                   style={[shared.button, shared.buttonSecondary, styles.rowButton]}
                   onPress={() => open(row)}
@@ -172,6 +183,8 @@ export default function MyGamesScreen() {
               {row.canReplay ? (
                 <Pressable
                   testID={`mine-replay-${row.matchId}`}
+                  role="button"
+                  aria-label={t('a11y.actionFor', { action: t('mine.replay'), what: moduleName(row.moduleId) })}
                   disabled={busyId === row.matchId}
                   style={[shared.button, shared.buttonSecondary, styles.rowButton]}
                   onPress={() => router.push(routeForReplay(row.matchId))}
@@ -182,6 +195,8 @@ export default function MyGamesScreen() {
               {row.canDelete ? (
                 <Pressable
                   testID={`mine-delete-${row.matchId}`}
+                  role="button"
+                  aria-label={t('a11y.actionFor', { action: t('mine.delete'), what: moduleName(row.moduleId) })}
                   disabled={busyId === row.matchId}
                   style={styles.deleteLink}
                   onPress={() => setPendingDelete(row)}
@@ -194,42 +209,40 @@ export default function MyGamesScreen() {
         ))
       )}
 
-      <Modal
-        transparent
-        animationType="fade"
+      <Sheet
         visible={!!pendingDelete}
-        onRequestClose={() => setPendingDelete(null)}
+        onClose={() => setPendingDelete(null)}
+        label={t('mine.deleteConfirmTitle')}
+        backdropStyle={modalStyles.backdrop}
+        style={modalStyles.sheet}
+        backdropTestID="mine-delete-backdrop"
+        testID="mine-delete-confirm"
       >
-        <Pressable
-          style={modalStyles.backdrop}
-          onPress={() => setPendingDelete(null)}
-          testID="mine-delete-backdrop"
-        >
-          {/* Stops a press inside the sheet from closing it. */}
-          <Pressable style={modalStyles.sheet} onPress={() => {}} testID="mine-delete-confirm">
-            <Text style={modalStyles.title}>{t('mine.deleteConfirmTitle')}</Text>
-            <Text style={modalStyles.body}>{t('mine.deleteConfirmBody')}</Text>
-            <View style={modalStyles.actions}>
-              <Pressable
-                testID="mine-delete-cancel"
-                onPress={() => setPendingDelete(null)}
-                style={[shared.button, shared.buttonSecondary, modalStyles.actionButton]}
-              >
-                <Text style={[shared.buttonText, shared.buttonTextSecondary]}>
-                  {t('mine.deleteCancel')}
-                </Text>
-              </Pressable>
-              <Pressable
-                testID="mine-delete-yes"
-                onPress={confirmDelete}
-                style={[shared.button, modalStyles.dangerButton, modalStyles.actionButton]}
-              >
-                <Text style={shared.buttonText}>{t('mine.deleteConfirm')}</Text>
-              </Pressable>
-            </View>
+        <Text style={modalStyles.title} {...heading(2)}>
+          {t('mine.deleteConfirmTitle')}
+        </Text>
+        <Text style={modalStyles.body}>{t('mine.deleteConfirmBody')}</Text>
+        <View style={modalStyles.actions}>
+          {/* Cancel first, so the focus a dialog opens on is the harmless
+              answer. */}
+          <Pressable
+            testID="mine-delete-cancel"
+            role="button"
+            onPress={() => setPendingDelete(null)}
+            style={[shared.button, shared.buttonSecondary, modalStyles.actionButton]}
+          >
+            <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('mine.deleteCancel')}</Text>
           </Pressable>
-        </Pressable>
-      </Modal>
+          <Pressable
+            testID="mine-delete-yes"
+            role="button"
+            onPress={confirmDelete}
+            style={[shared.button, modalStyles.dangerButton, modalStyles.actionButton]}
+          >
+            <Text style={shared.buttonText}>{t('mine.deleteConfirm')}</Text>
+          </Pressable>
+        </View>
+      </Sheet>
     </Screen>
   );
 }
@@ -249,7 +262,7 @@ const styles = StyleSheet.create({
   rowTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
   rowMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
   rowPlayers: { color: colors.muted, fontSize: 13, marginTop: 6 },
-  rowActions: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 16 },
+  rowActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10, gap: 16 },
   // `flex: 0` here would set flex-basis to 0% (CSS shorthand, not "don't
   // grow") and collapse the button to its padding alone on web, with the
   // label text overflowing outside it. flexGrow: 0 alone leaves the basis
@@ -279,7 +292,7 @@ const modalStyles = StyleSheet.create({
   },
   title: { color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 8 },
   body: { color: colors.muted, fontSize: 14, marginBottom: 16 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
   actionButton: { flexGrow: 0, marginBottom: 0 },
   dangerButton: { backgroundColor: colors.danger },
 });

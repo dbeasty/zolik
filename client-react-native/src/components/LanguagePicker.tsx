@@ -1,5 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { webAttrs } from '@/src/a11y/props';
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
+import { Tip } from '@/src/a11y/Tip';
 import { useLocaleControls } from '@/src/hooks/useLocale';
 import { LOCALES, t, type Locale } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
@@ -22,33 +25,40 @@ export function LanguagePicker() {
 
   const automatic = LOCALES.find((l) => l.id === detected);
 
+  // One radio group, "Automatic" included: it is one of the choices, and
+  // arrowing through the list should reach it like any other.
   return (
-    <View>
+    <RadioGroup label={t('settings.language.heading')} testID="language-picker">
       {/* Not styled as one of the language rows, because it is not one: it is
           the absence of a choice. Someone whose phone is in Polish and who
           picks the Polish row sees the same screen — and then changes their
           phone to German and sees a Polish app, which is not what they meant
           when they picked "the language my phone is in". */}
-      <Row
-        testID="language-choice-auto"
-        label={t('settings.language.auto')}
-        detail={automatic ? t('settings.language.auto.now', { language: automatic.label }) : undefined}
-        picked={override === null}
-        onPress={() => chooseLocale(null)}
-      />
+      {/* The one row whose meaning is not its name, so the one with a
+          tooltip saying what "Automatic" follows. */}
+      <Tip text={t('a11y.language.autoTip')}>
+        <Row
+          testID="language-choice-auto"
+          label={t('settings.language.auto')}
+          detail={automatic ? t('settings.language.auto.now', { language: automatic.label }) : undefined}
+          picked={override === null}
+          onPress={() => chooseLocale(null)}
+        />
+      </Tip>
 
-      <View style={styles.rule} />
+      <View style={styles.rule} aria-hidden />
 
       {LOCALES.map((l) => (
         <Row
           key={l.id}
           testID={`language-choice-${l.id}`}
           label={l.label}
+          lang={l.id}
           picked={override === l.id}
           onPress={() => chooseLocale(l.id as Locale)}
         />
       ))}
-    </View>
+    </RadioGroup>
   );
 }
 
@@ -58,9 +68,13 @@ function Row({
   detail,
   picked,
   onPress,
+  lang,
+  ...described
 }: {
   testID: string;
   label: string;
+  /** The language the label is written in, so a screen reader says "Suomi" in a Finnish voice. */
+  lang?: string;
   detail?: string;
   picked: boolean;
   onPress: () => void;
@@ -68,19 +82,26 @@ function Row({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: picked }}
-      accessibilityLabel={detail ? `${label}, ${detail}` : label}
+      // Named by its own text rather than an `aria-label`, so the label's
+      // `lang` reaches the screen reader with it.
+      {...radioProps(picked)}
+      {...(described as object)}
       onPress={onPress}
       style={[styles.row, picked && styles.rowPicked]}
     >
       <View style={styles.rowText}>
-        <Text style={[styles.label, picked && styles.labelPicked]}>{label}</Text>
+        <Text style={[styles.label, picked && styles.labelPicked]} {...webAttrs({ lang })}>
+          {label}
+        </Text>
         {detail ? <Text style={styles.detail}>{detail}</Text> : null}
       </View>
       {/* A tick rather than a radio ring: it survives being the only thing on
           the row a player can interpret without reading the language. */}
-      {picked ? <Text style={styles.tick}>✓</Text> : null}
+      {picked ? (
+        <Text style={styles.tick} aria-hidden>
+          ✓
+        </Text>
+      ) : null}
     </Pressable>
   );
 }

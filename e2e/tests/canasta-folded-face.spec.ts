@@ -118,8 +118,8 @@ async function openMatch(page: Page, host: any, matchId: string, width: number) 
 async function drawnCards(page: Page, groupId: string): Promise<string[]> {
   const toggle = page.getByTestId(`group-toggle-${groupId}`);
   await expect(toggle).toBeVisible();
-  return toggle.locator('[aria-label]').evaluateAll((els) =>
-    els.map((e) => e.getAttribute('aria-label') ?? '').filter((l) => /^[0-9TJQKA]+[HDSC]$|^JOKER/.test(l)),
+  return toggle.locator('[data-card]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-card') ?? '').filter((l) => /^[0-9TJQKA]+[HDSC]$|^JOKER/.test(l)),
   );
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { apiClient } from '@/src/api/client';
 import type { MatchPlayer } from '@/src/api/matchTypes';
 import { useSession } from '@/src/context/SessionContext';
@@ -76,7 +77,12 @@ export function AddToCircle({
     <View style={styles.wrap} testID="match-add-to-circle">
       {offered.map((p) =>
         added.has(p.id) ? (
-          <Text key={p.id} style={[styles.done, { color: palette.success }]} testID={`match-added-to-circle-${p.id}`}>
+          <Text
+            key={p.id}
+            style={[styles.done, { color: palette.success }]}
+            testID={`match-added-to-circle-${p.id}`}
+            aria-live="polite"
+          >
             {t('notify.addedToCircle', { name: p.name })}
           </Text>
         ) : (
@@ -84,6 +90,8 @@ export function AddToCircle({
             key={p.id}
             testID={`match-add-to-circle-${p.id}`}
             accessibilityRole="button"
+            aria-label={t('notify.addToCircle', { name: p.name })}
+            aria-busy={busy === p.id}
             disabled={busy === p.id}
             onPress={() => void add(p)}
             style={[styles.button, { borderColor: palette.accent, backgroundColor: palette.surface }]}
@@ -94,7 +102,7 @@ export function AddToCircle({
           </Pressable>
         ),
       )}
-      {error ? <Text style={[styles.done, { color: palette.danger }]}>{error}</Text> : null}
+      {error ? <FormError style={[styles.done, { color: palette.danger }]} message={error} /> : null}
       {/* A game against a person just ended: the first of the three moments
           the pre-prompt is allowed to appear. */}
       <PushPrompt palette={palette} />

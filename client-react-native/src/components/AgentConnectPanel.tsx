@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
+import { announce } from '@/src/a11y/announce';
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
 import type { AgentInvite } from '@/src/api/client';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -54,14 +57,25 @@ export function AgentConnectPanel({ matchId }: { matchId: string }) {
 
   async function copy(which: 'claudeCode' | 'configJson') {
     if (!invite) return;
-    if (await copyToClipboard(invite[which])) setCopied(which);
+    if (await copyToClipboard(invite[which])) {
+      setCopied(which);
+      // The button now says "Copied"; say it to a screen reader too.
+      announce(t('agent.copied'));
+    }
   }
 
   if (!open) {
     return (
       <>
-        {error ? <Text style={shared.error}>{error}</Text> : null}
-        <Pressable testID="table-connect-agent" style={shared.button} onPress={show} disabled={busy}>
+        {error ? <FormError message={error} /> : null}
+        <Pressable
+          role="button"
+          testID="table-connect-agent"
+          aria-expanded={false}
+          style={shared.button}
+          onPress={show}
+          disabled={busy}
+        >
           <Text style={shared.buttonText}>{t('lobby.table.connectAgent')}</Text>
         </Pressable>
       </>
@@ -70,7 +84,7 @@ export function AgentConnectPanel({ matchId }: { matchId: string }) {
 
   return (
     <View style={[shared.card, { marginTop: 12, marginBottom: 12 }]} testID="agent-connect-panel">
-      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
+      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }} {...heading(3)}>
         {t('agent.heading')}
       </Text>
       <Text style={shared.status}>{t('agent.explain')}</Text>
@@ -84,6 +98,7 @@ export function AgentConnectPanel({ matchId }: { matchId: string }) {
             {invite.claudeCode}
           </Text>
           <Pressable
+            role="button"
             testID="agent-copy-command"
             style={[shared.button, { marginTop: 12, marginBottom: 0 }]}
             onPress={() => copy('claudeCode')}
@@ -93,6 +108,7 @@ export function AgentConnectPanel({ matchId }: { matchId: string }) {
             </Text>
           </Pressable>
           <Pressable
+            role="button"
             testID="agent-copy-config"
             style={[shared.button, { marginTop: 8, marginBottom: 0 }]}
             onPress={() => copy('configJson')}
@@ -110,9 +126,12 @@ export function AgentConnectPanel({ matchId }: { matchId: string }) {
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>{t('agent.secret')}</Text>
         </>
       ) : (
-        <Text style={shared.status}>…</Text>
+        <Text style={shared.status} aria-label={t('a11y.loading')} role="progressbar">
+          …
+        </Text>
       )}
       <Pressable
+        role="button"
         testID="agent-close"
         style={[shared.button, { marginTop: 12, marginBottom: 0 }]}
         onPress={() => setOpen(false)}

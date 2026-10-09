@@ -1,8 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { choicesFor, type AvatarSpec } from '@/src/components/avatars/catalogue';
 import { useSkin } from '@/src/hooks/useSkin';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Choosing a face.
@@ -23,26 +25,27 @@ type Props = {
   /** Faces offered. Only people, in every place this is used by a person. */
   isAI?: boolean;
   size?: number;
+  /** The group's name for a screen reader — the heading above the faces. */
+  label?: string;
 };
 
-export function AvatarPicker({ value, onChange, isAI = false, size = 56 }: Props) {
+export function AvatarPicker({ value, onChange, isAI = false, size = 56, label }: Props) {
   const skin = useSkin();
   const options = choicesFor(isAI);
 
   return (
-    <View style={styles.row} testID="avatar-picker">
+    <RadioGroup style={styles.row} testID="avatar-picker" label={label ?? t('settings.face.heading')}>
       {options.map((spec: AvatarSpec) => {
         const picked = spec.id === value;
         return (
           <Pressable
             key={spec.id}
             testID={`avatar-choice-${spec.id}`}
-            accessibilityRole="radio"
-            // `checked`, not `selected`: react-native-web renders the latter
-            // as nothing at all on a radio, which leaves a screen reader with
-            // six equal options and no way to hear which one is taken.
-            accessibilityState={{ checked: picked }}
-            accessibilityLabel={spec.label}
+            // `aria-checked`, not `accessibilityState`: react-native-web
+            // renders the latter as nothing at all, which left a screen reader
+            // with six equal options and no way to hear which one is taken
+            // (and axe with 36 radios missing a required attribute).
+            {...radioProps(picked, spec.label)}
             onPress={() => onChange(spec.id)}
             style={styles.choice}
           >
@@ -57,7 +60,7 @@ export function AvatarPicker({ value, onChange, isAI = false, size = 56 }: Props
           </Pressable>
         );
       })}
-    </View>
+    </RadioGroup>
   );
 }
 

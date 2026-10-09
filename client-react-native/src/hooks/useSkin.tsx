@@ -1,7 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Dimensions } from 'react-native';
 
-import { DEFAULT_SKIN, SKINS, defaultSkinFor, loadSkinId, saveSkinId, skinById } from '@/src/skins';
+import { getA11yPrefs, useA11yPrefs } from '@/src/a11y/prefs';
+import { useSystemContrast } from '@/src/a11y/systemContrast';
+import {
+  DEFAULT_SKIN,
+  HIGH_CONTRAST_SKIN,
+  SKINS,
+  defaultSkinFor,
+  loadSkinId,
+  saveSkinId,
+  skinById,
+} from '@/src/skins';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -13,12 +23,22 @@ import type { Skin } from '@/src/skins/types';
  * The choice is remembered on the device (see `src/skins/index.ts`) and
  * applies everywhere at once: a skin is a look for the product, not a
  * per-match setting.
+ *
+ * High contrast sits over the choice rather than replacing it. Asked for —
+ * Settings → Accessibility → High contrast on, or Automatic on a system set
+ * to more contrast — the board wears the high-contrast skin whatever was
+ * picked; stop asking and the picked skin comes back, because it was never
+ * overwritten. While it is forced the switcher offers only that one skin:
+ * cycling to a look the board then refuses to wear would be a button that
+ * does nothing.
  */
 
 type SkinState = {
   skin: Skin;
   skins: readonly Skin[];
   setSkinId: (id: string) => void;
+  /** The four-colour deck (Settings → Accessibility); see `fourColourSkin`. */
+  fourColour: boolean;
 };
 
 const SkinContext = createContext<SkinState | null>(null);
@@ -29,7 +49,10 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   // that restyled itself when the window crossed 768 would be a look changing
   // under their hands mid-deal. Resizing is free to change every *size*; that
   // is `useMetrics`'s job and it does follow the window.
-  const [skin, setSkin] = useState<Skin>(() => defaultSkinFor(Dimensions.get('window').width));
+  const [chosen, setChosen] = useState<Skin>(() => defaultSkinFor(Dimensions.get('window').width));
+  const { contrast, fourColour } = useA11yPrefs();
+  const systemContrast = useSystemContrast();
+  const forced = contrast === 'on' || (contrast === 'auto' && systemContrast);
 
   // The saved choice arrives a tick after first render, which means one frame
   // of the default skin for someone who picked the other one. Cheaper than
@@ -38,7 +61,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     let live = true;
     loadSkinId().then((id) => {
       const saved = skinById(id);
-      if (live && saved) setSkin(saved);
+      if (live && saved) setChosen(saved);
     });
     return () => {
       live = false;
@@ -47,16 +70,17 @@ export function SkinProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SkinState>(
     () => ({
-      skin,
-      skins: SKINS,
+      skin: forced ? HIGH_CONTRAST_SKIN : chosen,
+      skins: forced ? [HIGH_CONTRAST_SKIN] : SKINS,
       setSkinId: (id: string) => {
         const next = skinById(id);
         if (!next) return;
-        setSkin(next);
+        setChosen(next);
         saveSkinId(next.id);
       },
+      fourColour,
     }),
-    [skin],
+    [chosen, forced, fourColour],
   );
 
   return <SkinContext.Provider value={value}>{children}</SkinContext.Provider>;
@@ -75,5 +99,10 @@ export function useSkin(): Skin {
 export function useSkinControls(): SkinState {
   const fromContext = useContext(SkinContext);
   if (fromContext) return fromContext;
-  return { skin: DEFAULT_SKIN, skins: SKINS, setSkinId: () => {} };
+  return { skin: DEFAULT_SKIN, skins: SKINS, setSkinId: () => {}, fourColour: getA11yPrefs().fourColour };
+}
+
+/** Whether cards are drawn in the four-colour deck. */
+export function useFourColour(): boolean {
+  return useContext(SkinContext)?.fourColour ?? getA11yPrefs().fourColour;
 }
