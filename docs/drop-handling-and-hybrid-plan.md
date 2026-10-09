@@ -194,69 +194,62 @@ Playwright:
 
 ## Part D: hybrid tables (phone is the server, the cloud relays remote players)
 
-This is the detail behind Phase 2d of the mobile plan.
+**As built.** This is the detail behind Phase 2d of the mobile plan.
 
 ### Transport
-
-- **Cloud relay** (new `internal/relay` on the cloud server only, not in `RegisterMobileRoutes`):
-  - `GET /relay/host` (WSS) is authenticated with the node credential from node mode. It returns a relay code, valid while the socket lives plus 10 min for reconnects.
-  - `GET /relay/join/{code}` (WSS) is for each remote guest.
-  - Frames are `connId(4) | payload` and are opaque. The relay never opens them.
-  - Control frames: `guestOpen/guestClose(connId)` to the host, and `hostGone`/`hostBack` to every guest.
-  - Limits: 8 guests per relay, 64 KiB per frame, a frame-rate cap, and enrolled nodes only. Relays are counted in `/debug/memory`-style metrics.
-  - Single-process is fine: relays live in the process the host's socket reached. Multi-instance needs sticky routing by code, which is out of scope while there is one deployment (no-staging-environment-exists).
-- **Go core** (`server/mobile/zolikcore/relay.go`): `Host.OpenRelay(cloudURL) (code string, err)`, `CloseRelay()`, `RelayStatus()`. Each `guestOpen` creates a `Tunnel` (`tunnel.go`, unchanged) whose `TunnelSink` writes to the relay socket. Reconnects with backoff and keeps the same code.
-- **TS** (`src/net/relay/transport.ts`): `RelayTransport` reuses `src/net/ble/crypto.ts` and the tunnel message format, without the chunking. The `transport.ts` abstraction already exists.
-- **Web guest:** jokerless.com serves `/r/{code}`, which opens the normal web app with a relay endpoint. It is a secure context, so push and clipboard work.
-- **Version gate:** the first tunnel request is `GET /version`. Outside the compatibility window, show "The host's app is older/newer — ask them to update." Define the window in one constant, next to `tunnelVersion`.
+- **Cloud relay, `internal/relay`.** Mounted on the full server only, never in `RegisterMobileRoutes`.
+  - `GET /relay/host` (WSS) is for the phone. It needs `Authorization: Bearer <node credential>`, checked with `auth.VerifyNodeCredential` against this server's own keys, so only an enrolled phone can open a table to the internet. The first frame back is `{"t":"code"}`.
+  - `GET /relay/join/{code}` (WSS) is for each guest. It answers 404, 503 (`RELAY_HOST_AWAY`) or 409 (`RELAY_FULL`) *before* upgrading, so a browser gets a status rather than a socket that opens and closes.
+  - `GET /relay/info/{code}` returns online, name, instanceId, guests and protocol.
+  - Frames: binary `id(4) ‖ payload` to and from the host, raw payload to the guest. Text `open`, `close` and `end` frames are for the host only.
+  - Guests are closed with **4002** when the phone drops and **4003** when it ends the table. A dropped phone's code is kept for 10 minutes and given back to the same node, and only that node.
+  - Limits: 8 guests per table, 256 KiB per frame, a per-guest token bucket, and pings every 25 s.
+  - Tests: `internal/relay/relay_test.go` covers both directions, the host leaving, the same code reclaimed, a different node refused, non-nodes refused, and the guest cap.
+- **Go core, `zolikcore/relay.go`.**
+  - `OpenRelay(name)`, `CloseRelay()`, `RelayStatus()`, `RelayCode()`, `RelayURL()`, `RelayGuests()` and `Resumed()`.
+  - Each `open` creates a `Tunnel`; `tunnel.go` is unchanged apart from a `tunnelCloser` hook, so the relay can hang up a guest whose handshake fails.
+  - It redials with backoff and asks for the same code.
+  - `Host` now keeps the node credential and the cloud URL from `StartNode`.
+  - Test: `relay_test.go` signs in a remote guest through a real relay, and closing ends the table.
+- **Native module.** `openRelay`, `closeRelay`, `relayStatus` and `hostResumed` in `index.ts`, Swift and Kotlin. The rebuilt iOS framework's header names every method as the Swift calls it. *Not verified:* a device build and run.
+- **TS:**
+  - `src/net/relay/link.ts` gives `BleTransport` a WebSocket link (`relayLink`). It asks `/relay/info` first, so "server offline" and "you're offline" can be told apart.
+  - `SessionContext.joinRelay` sits the player down `via: 'internet'` with the table's `serverName`, and sets `serverGone` from the link.
+- **Version gate:** the `protocol` in `/relay/info` is compared before joining, and a mismatch reuses the nearby "update the app" message.
 
 ### Identity and results
-- Signed-in remote guests present a pass (node mode already verifies passes against the cloud JWKS) and sit as their account.
-- Guests who aren't signed in sit as guests.
-- Uploading the finished match goes through Phase 2c consent, unchanged. There is no new upload path.
+Unchanged from the plan. A signed-in guest presents their offline pass (`sitAt`); everyone else sits as a guest. The Phase 2c consent flow applies.
 
 ### Drops on a hybrid table
-- **A remote or local player drops:** Part A/B rules, exactly as on a cloud table.
-- **The host phone loses internet but keeps running:** every remote seat goes at once. The core knows the relay is down (`RelayStatus`), so **stand-in timers for remote seats are frozen while the relay is down**, and for 60 s after it comes back. Local seats are unaffected and play on until the game waits on a remote seat.
-- **The host phone itself goes away** (backgrounded/suspended, app closed, dead battery): **the whole game is paused**. The phone *is* the server.
-  - The relay sends `hostGone` to remote guests. Local guests lose their LAN/BLE connection and see the same banner, because their client can't reach the server.
-  - **On return:** the core resumes from its kdb file, and before the reaper or any timer runs, `Manager.HostResumed()` resets every seat's away clock, every pending stand-in timer and every `AbandonAt`. Absence caused by the host is never charged to the guests.
-  - No stand-in ever starts because of time the host was away.
-- **The host leaves for good** (the host stops hosting): the table is closed. Remote guests get "The host ended the table". The match is `abandoned` with the usual rules, and Phase 2c consent applies to anything worth keeping.
+- **A player drops:** the Part A/B rules apply.
+- **The host's relay link drops** (`HoldStandIns(true)` from the core): no stand-in and no cash-out starts. When it is back (`HoldStandIns(false)`), every away clock starts again from zero.
+- **The host app returns to the foreground** (`AppState` → `nearby.hostResumed` → `Manager.HostResumed`): every away clock restarts, and the reaper abandons nothing for one abandon window. Tests: `match/hostpause_test.go`.
+- **The phone dies or is put away:** guests see "The server (Ada's phone) is offline". Coming back under the same code restores the game.
+- **The host stops the table:** the relay closes guests with 4003, and the code is gone.
 
-### UI: "this phone is the server"
-- **Where the table lives:** the same three names everywhere, at setup, in the table header and in the lobby list.
-  - **Nearby**: the server is this phone; only people here can join.
-  - **Nearby + Online**: the server is this phone; anyone with the link can join.
-  - **Online**: the server is jokerless.com.
-- **Table header chip:** `Server: David's phone` (phone icon) or `Server: jokerless.com` (cloud icon). Tapping it explains: "Everything runs on David's phone. If it goes offline, the game pauses for everyone and continues when it's back."
-- **The host's own screen:**
-  - A server badge on their seat.
-  - A permanent strip: "Your phone is the server. Keep the app open."
-  - A relay pill: Online ✓ / reconnecting… / off.
-  - The toggle "Let people join over the internet".
-  - keep-awake stays on while hosting.
-  - Backgrounding the app while remote guests are seated triggers a local notification: "Your game is paused for 3 players. Come back to continue."
-- **Invite sheet:** *In this room* (LAN QR code / Bluetooth) | *Anywhere* (a `jokerless.com/r/ABC123` link and Share). The Anywhere tab explains why it is unavailable when the host is offline or not signed in.
-- **Per-seat connection badge:** Wi-Fi · Bluetooth · Internet · server (the host) · bot. It shows who disappears if the internet goes.
-- **Guests' banners** (Part C, plus the server case):
-  - "You're offline"
-  - "The server (David's phone) is offline. Paused, and nothing is lost."
-  - "Waiting for Jana. A bot plays in 0:42"
+### UI
+- **Guest join page `app/r/[code]`:** "This table runs on Ada's phone", what happens if that phone goes offline, a name field, and "Join the table". It then goes to the guest's offline screen, which names the table's phone.
+- **Hosting screen:** an "Anywhere" card.
+  - Needs sign-in.
+  - "Let people join over the internet".
+  - Status (open, N joined / reconnecting).
+  - "Your phone is the server…"
+  - Link, QR code, Share and Close.
+- **Match header:** "Server: this phone" or "Server: Ada's phone". The status explainer says what that means.
+- **Banner:** "The server (Ada's phone) is offline. The game is paused and nothing is lost." This is checked *before* "you're offline", because the server going takes this player's socket down too.
 
 ### Tests
-- Go:
-  - A full match through an in-process relay.
-  - Relay down → remote stand-in timers frozen, and local play continues until it waits on a remote seat.
-  - Host stop/restart → nothing abandoned, timers reset, guests reattach to their seats.
-  - Version gate refuses outside the window.
-  - Relay limits.
-- Playwright (private stack): a browser joins a core-hosted table through the relay. Kill the core → the guest sees the server-offline banner. Restart → play continues.
-- Devices: an iPhone host on mobile data, a Bluetooth guest and a remote browser guest.
-  - The remote guest closes the tab → the bot takes over after 60 s → they return and take the seat back.
-  - The host backgrounds for 2 min → everyone sees "server offline" → it resumes.
+- `e2e/tests/relay.spec.ts`, with `ZOLIK_E2E_PHONEHOST` set to a built `cmd/phonehost`; it is skipped otherwise:
+  - A real account enrols a desktop "phone" with the cloud. The cloud needs `JWT_SIGNING_KEY_FILE` to issue node credentials.
+  - The phone opens its relay.
+  - A browser on the cloud's web client joins by link, takes a seat, and plays.
+  - The phone is killed: the server-offline banner shows.
+  - The phone restarts: the same code comes back, and the game with it.
+  - Passed 4 times out of 4.
 
----
+### Not done
+- Per-seat connection badges (Wi-Fi / Bluetooth / Internet). The runtime does not know which transport a socket came over, and the relay status shows the remote count instead.
+- A device build of the new native calls.
 
 ## Part E: later, not planned in detail
 

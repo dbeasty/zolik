@@ -27,7 +27,7 @@ const boOnTurn: Seat[] = [
 const base = { seats: boOnTurn, viewerId: 'ada', connected: true, notice: null, now: NOW };
 
 describe('tableBanner', () => {
-  it('says you are offline before anything else, because then nothing else is known', () => {
+  it('says you are offline before naming a missing player', () => {
     const b = tableBanner({ ...base, state: table({ status: 'suspended', suspendedPlayer: 'bo' }), connected: false });
     expect(b?.kind).toBe('offline');
   });
@@ -36,6 +36,11 @@ describe('tableBanner', () => {
     const b = tableBanner({ ...base, state: table({ status: 'suspended', suspendedPlayer: 'bo' }), serverGone: { name: "Ada's phone" } });
     expect(b?.kind).toBe('server');
     expect(b?.text).toContain("Ada's phone");
+  });
+
+  it('blames the server, not this player, when the server going took the socket down', () => {
+    const b = tableBanner({ ...base, state: table(), connected: false, serverGone: { name: "Ada's phone" } });
+    expect(b?.kind).toBe('server');
   });
 
   it('names who the table is waiting for, with the countdown to the bot', () => {

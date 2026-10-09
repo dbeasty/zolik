@@ -1542,6 +1542,15 @@ export default function MatchScreen() {
   // had resolved hours earlier, whose every control the engine was refusing.
   // That is the exact failure the comment above `winners` describes being
   // fixed once for finished matches, reappearing for swept-up ones.
+  // Which device the table runs on, said wherever it is not the cloud: a
+  // table on somebody's phone stops when that phone does, and everybody at it
+  // should know that before it happens rather than work it out after.
+  const serverName = offline?.serverName || t('server.hostsPhone');
+  const serverLabel = !offline
+    ? ''
+    : offline.role === 'host'
+      ? t('server.thisPhone')
+      : t('server.named', { name: serverName });
   const statusOk = state.status !== 'suspended' && state.status !== 'abandoned';
   const statusExplainer =
     state.status === 'suspended'
@@ -1551,6 +1560,11 @@ export default function MatchScreen() {
         : state.status === 'completed'
           ? t('match.finished')
           : t('match.inProgress');
+  const serverExplainer = !offline
+    ? ''
+    : offline.role === 'host'
+      ? t('server.explainHost')
+      : t('server.explainGuest', { name: serverName });
 
   // The controls, built once and rendered in one of two places.
   //
@@ -1816,6 +1830,11 @@ export default function MatchScreen() {
                 <Text testID="match-status" style={styles.status}>
                   {state.status}
                 </Text>
+                {serverLabel ? (
+                  <Text testID="match-server" style={styles.status} numberOfLines={1}>
+                    {`· ${serverLabel}`}
+                  </Text>
+                ) : null}
               </Pressable>
               </Tip>
               {tableCode ? (
@@ -1835,7 +1854,7 @@ export default function MatchScreen() {
           the tap wherever the player happens to be scrolled to. */}
       {statusExplainerOpen ? (
         <Text testID="match-status-explainer" style={styles.statusExplainer}>
-          {statusExplainer}
+          {serverExplainer ? `${statusExplainer} ${serverExplainer}` : statusExplainer}
         </Text>
       ) : null}
       {/* Why nothing is moving, when nothing is: outside the board, so it is
@@ -1845,6 +1864,7 @@ export default function MatchScreen() {
         seats={view.seats ?? []}
         viewerId={viewerId}
         connected={connected}
+        serverGone={offline?.serverGone ? { name: serverName } : undefined}
         notice={notice}
         onDismissNotice={clearNotice}
         onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
