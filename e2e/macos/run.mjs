@@ -410,6 +410,7 @@ async function main() {
     expect('back' in bar && 'forward' in bar, `the title bar has no arrows: ${JSON.stringify(bar)}`);
     // Fresh at home: nowhere back, nowhere forward.
     expect(bar.back === false && bar.forward === false, `at home with no history the arrows are ${JSON.stringify(bar)}`);
+    await a.screenshot('home-arrows');
     const titles = await a.native('account');
     expect(/· Guest$/.test(titles[0]), `Account menu begins ${JSON.stringify(titles)}`);
     for (const want of ['My games', 'Sign in', 'Sign out']) {
