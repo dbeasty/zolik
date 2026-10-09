@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Sheet } from '@/src/a11y/Sheet';
 import type { ZolikClient } from '@/src/api/client';
 import { ApiError } from '@/src/api/client';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { useSession } from '@/src/context/SessionContext';
+import { roomInviteUrl } from '@/src/lib/roomInvite';
 import { reasonText, t } from '@/src/lib/i18n';
 import { inviteUrlFor, seatUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import type { Metrics } from '@/src/lib/layout';
@@ -58,62 +60,65 @@ export function InviteBackSheet({
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => sheetStyles(metrics, skin), [metrics, skin]);
-  const offline = !!useSession().offline;
-  const tableUrl = offline ? '' : inviteUrlFor({ joinCode, inviteUrl });
+  const { offline: table, servedByTable } = useSession();
+  const tableUrl = table ? roomInviteUrl(table, joinCode, servedByTable) : inviteUrlFor({ joinCode, inviteUrl });
 
   if (!open) return null;
 
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} testID="invite-back-backdrop">
-        {/* Stops a press inside the sheet from closing it. */}
-        <Pressable style={styles.sheet} onPress={() => {}} testID="invite-back-sheet">
-          <ScrollView contentContainerStyle={styles.body}>
-            <Text style={styles.title}>{t('invite.backTitle')}</Text>
+    <Sheet
+      visible
+      onClose={onClose}
+      label={t('invite.backTitle')}
+      backdropStyle={styles.backdrop}
+      backdropTestID="invite-back-backdrop"
+      style={styles.sheet}
+      testID="invite-back-sheet"
+    >
+      <ScrollView contentContainerStyle={styles.body}>
+        <Text style={styles.title}>{t('invite.backTitle')}</Text>
 
-            <View style={styles.section}>
-              <Text style={styles.key}>{t('invite.backTableHeading')}</Text>
-              <Text style={styles.value}>{t('invite.backTableExplain')}</Text>
-              {tableUrl ? (
-                <Text testID="invite-back-table-url" selectable style={styles.url}>
-                  {tableUrl}
-                </Text>
-              ) : null}
-              <Text style={styles.value}>
-                {t('invite.offlineCode')}{' '}
-                <Text testID="invite-back-code" selectable style={styles.code}>
-                  {joinCode}
-                </Text>
-              </Text>
-              {tableUrl ? (
-                <ShareButton
-                  testID="invite-back-table-share"
-                  url={tableUrl}
-                  message={t('match.tableCodeShare')}
-                  styles={styles}
-                />
-              ) : null}
-            </View>
+        <View style={styles.section}>
+          <Text style={styles.key}>{t('invite.backTableHeading')}</Text>
+          <Text style={styles.value}>{t('invite.backTableExplain')}</Text>
+          {tableUrl ? (
+            <Text testID="invite-back-table-url" selectable style={styles.url}>
+              {tableUrl}
+            </Text>
+          ) : null}
+          <Text style={styles.value}>
+            {t('invite.offlineCode')}{' '}
+            <Text testID="invite-back-code" selectable style={styles.code}>
+              {joinCode}
+            </Text>
+          </Text>
+          {tableUrl ? (
+            <ShareButton
+              testID="invite-back-table-share"
+              url={tableUrl}
+              message={t('match.tableCodeShare')}
+              styles={styles}
+            />
+          ) : null}
+        </View>
 
-            {/* A seat link is an online thing: an offline table lives on one
-                phone, and everybody at it is already there. */}
-            {offline || !players.length ? null : (
-              <View style={styles.section}>
-                <Text style={styles.key}>{t('invite.backSeatHeading')}</Text>
-                <Text style={styles.value}>{t('invite.backSeatExplain')}</Text>
-                {players.map((p) => (
-                  <SeatLinkRow key={p.id} client={client} matchId={matchId} player={p} styles={styles} />
-                ))}
-              </View>
-            )}
+        {/* A seat link is an online thing: an offline table lives on one
+            phone, and everybody at it is already there. */}
+        {table || !players.length ? null : (
+          <View style={styles.section}>
+            <Text style={styles.key}>{t('invite.backSeatHeading')}</Text>
+            <Text style={styles.value}>{t('invite.backSeatExplain')}</Text>
+            {players.map((p) => (
+              <SeatLinkRow key={p.id} client={client} matchId={matchId} player={p} styles={styles} />
+            ))}
+          </View>
+        )}
 
-            <Pressable testID="invite-back-close" onPress={onClose} style={styles.ghost}>
-              <Text style={styles.ghostText}>{t('why.close')}</Text>
-            </Pressable>
-          </ScrollView>
+        <Pressable testID="invite-back-close" onPress={onClose} style={styles.ghost}>
+          <Text style={styles.ghostText}>{t('why.close')}</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+      </ScrollView>
+    </Sheet>
   );
 }
 

@@ -153,6 +153,19 @@ async function playAFewMoves(page: Page, max: number): Promise<number> {
     // that the selector was matching the scrolling container too.
     try {
       await page.getByTestId(ids[0]).click({ timeout: 5000 });
+      // A card that asks a question — the suit a queen names — asks it now,
+      // as a sheet of answers. The shell knows nothing of what is asked; it
+      // answers with the first offered, as a player in a hurry would.
+      const answer = page.locator('[data-testid^="choice-"][data-testid*="-"]:not([data-testid="choice-cancel"]):not([data-testid="choice-scrim"])');
+      if (await page.getByTestId('choice-cancel').isVisible({ timeout: 800 }).catch(() => false)) {
+        const sheet = await page.locator('[data-testid^="choice-"]').evaluateAll((els) =>
+          els.map((e) => e.getAttribute('data-testid') ?? ''),
+        );
+        const name = sheet.find((id) => id !== 'choice-cancel' && id !== 'choice-scrim' && id.split('-').length === 2);
+        const first = sheet.find((id) => name && id.startsWith(`${name}-`));
+        if (first) await page.getByTestId(first).click();
+        else await answer.first().click();
+      }
       moves++;
     } catch {
       break; // the board moved under us; the server-side check below decides

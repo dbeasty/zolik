@@ -1,6 +1,7 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { heading } from '@/src/a11y/props';
 import { LegalLinks } from '@/src/components/LegalLinks';
 import { Screen } from '@/src/components/Screen';
 import { CLIENT_COMMIT, CLIENT_VERSION } from '@/src/config';
@@ -36,7 +37,7 @@ export default function AboutScreen() {
       <View style={shared.card}>
         {/* `nav.home` rather than `config.APP_NAME`: this is the same word
             the navigation bar calls the app by, so the two cannot drift. */}
-        <Text style={styles.appName} testID="about-app-name">
+        <Text style={styles.appName} testID="about-app-name" {...heading(3)}>
           {t('nav.home')}
         </Text>
 
@@ -58,9 +59,16 @@ export default function AboutScreen() {
       {/* The same three links the footer carries, for the same reason: the
           notices and the AGPL's offer of source have to be permanently
           reachable, and this is now the screen that is about the app itself. */}
+      {/* Spelled out as well as sitting among the notices below: "does this
+          work with my screen reader?" is a question about the app, and this
+          is the screen about the app. */}
+      <Link href="/legal/accessibility" style={styles.statement} testID="about-accessibility">
+        {t('a11y.about.statement')} ›
+      </Link>
+
       <LegalLinks />
 
-      <Pressable style={{ marginTop: 16 }} onPress={() => router.back()}>
+      <Pressable style={{ marginTop: 16 }} role="button" onPress={() => router.back()}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>
@@ -85,6 +93,7 @@ function Row({ label, value, testID }: { label: string; value: string; testID: s
 }
 
 const styles = StyleSheet.create({
+  statement: { color: colors.accentButton, fontSize: 14, fontWeight: '600', marginTop: 4, marginBottom: 4 },
   appName: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 10 },
   row: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 },
   // A fixed column so the two values line up under each other; the labels are

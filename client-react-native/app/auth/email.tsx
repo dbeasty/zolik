@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, TextInput } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
+import { Field } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimedMessage } from '@/src/lib/auth';
@@ -57,19 +58,26 @@ export default function EmailSignInScreen() {
   if (step === 'email') {
     return (
       <Screen title={t('auth.email.title')} subtitle={t('auth.email.subtitle')} scroll>
-        <TextInput
-          style={shared.input}
+        <Field
+          label={t('auth.email.address')}
+          error={error}
           placeholder={t('auth.email.address')}
-          placeholderTextColor="#8b9cb3"
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
+          inputMode="email"
           value={email}
           onChangeText={setEmail}
+          onSubmitEditing={() => {
+            if (!busy && email.trim()) void requestCode();
+          }}
         />
-        {error ? <Text style={shared.error}>{error}</Text> : null}
         <Pressable
           style={shared.button}
+          role="button"
+          // The action's name while it runs, not "…"; `aria-busy` says it is running.
+          aria-label={t('auth.email.send')}
+          aria-busy={busy}
           onPress={requestCode}
           disabled={busy || !email.trim()}
         >
@@ -81,21 +89,36 @@ export default function EmailSignInScreen() {
 
   return (
     <Screen title={t('auth.email.codeTitle')} subtitle={t('auth.email.sentTo', { email: email.trim() })} scroll>
-      <TextInput
-        style={shared.input}
+      <Field
+        label={t('auth.email.codePlaceholder')}
+        error={error}
         placeholder={t('auth.email.codePlaceholder')}
-        placeholderTextColor="#8b9cb3"
         keyboardType="number-pad"
+        autoComplete="one-time-code"
         maxLength={6}
         value={code}
         onChangeText={setCode}
+        onSubmitEditing={() => {
+          if (!busy && code.trim().length >= 6) void submitCode();
+        }}
       />
-      {error ? <Text style={shared.error}>{error}</Text> : null}
-      {notice ? <Text style={shared.status}>{notice}</Text> : null}
-      <Pressable style={shared.button} onPress={submitCode} disabled={busy || code.trim().length < 6}>
+      {notice ? (
+        <Text style={shared.status} aria-live="polite">
+          {notice}
+        </Text>
+      ) : null}
+      <Pressable
+        style={shared.button}
+        role="button"
+        aria-label={t('auth.email.continue')}
+        aria-busy={busy}
+        onPress={submitCode}
+        disabled={busy || code.trim().length < 6}
+      >
         <Text style={shared.buttonText}>{busy ? '…' : t('auth.email.continue')}</Text>
       </Pressable>
       <Pressable
+        role="button"
         onPress={() => {
           setStep('email');
           setCode('');

@@ -80,6 +80,12 @@ type User struct {
 	CreatedAt    time.Time       `bson:"createdAt" json:"createdAt"`
 	LastSeenAt   time.Time       `bson:"lastSeenAt" json:"lastSeenAt"`
 	Preferences  UserPreferences `bson:"preferences" json:"preferences"`
+	// TimeZone is the IANA zone the account's device last reported on a
+	// session refresh. Kept so the operator console can say roughly where
+	// players are (geo.CountryForTimeZone) without an IP lookup; the country
+	// is derived on read, so a better table fixes every account at once.
+	// Never sent to clients.
+	TimeZone string `bson:"timeZone,omitempty" json:"-"`
 }
 
 type UserPreferences struct {

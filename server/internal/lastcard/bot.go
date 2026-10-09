@@ -130,6 +130,11 @@ type profile struct {
 	// attackFirst plays a Skip, Reverse or Draw Two ahead of a plain card.
 	attackFirst bool
 
+	// dumpsWhenThreatened, where everyone pays for their own hand, plays the
+	// costliest card first once another player is down to two cards — a wild
+	// kept for later is fifty points if later never comes.
+	dumpsWhenThreatened bool
+
 	// swapsDown plays a 7 first, where sevens swap hands, when it would trade
 	// for a hand at least two cards shorter.
 	swapsDown bool
@@ -173,6 +178,9 @@ var profiles = map[module.Skill]profile{
 		skill:        module.SkillMedium,
 		keepsTheWild: true,
 		catches:      true,
+		// Where everyone pays for their own hand: 38.4% against three-seat
+		// Hard tables without it (1 800 games to 200, par 33.3%).
+		dumpsWhenThreatened: true,
 	},
 	module.SkillHard: {
 		skill:        module.SkillHard,
@@ -191,7 +199,8 @@ var profiles = map[module.Skill]profile{
 		challengeAt: 8,
 		// Where sevens swap hands: 36.1% against three-seat Hard tables
 		// without it (6 000 games, par 33.3%).
-		swapsDown: true,
+		swapsDown:           true,
+		dumpsWhenThreatened: true,
 	},
 }
 
@@ -231,6 +240,15 @@ func (b bot) choose(s *GameState, playerID string, p profile, playable []string)
 				shortest = len(s.Hands[q])
 			}
 		}
+	}
+	if p.dumpsWhenThreatened && s.Scoring == scoreLowest && s.TargetScore > 0 && someoneNearlyOut(s, playerID) {
+		best := playable[0]
+		for _, c := range playable {
+			if cardPoints(c) > cardPoints(best) {
+				best = c
+			}
+		}
+		return best
 	}
 	cands := make([]candidate, 0, len(playable))
 	for _, c := range playable {
@@ -300,4 +318,15 @@ func findOffer(offers []module.ActionOffer, id string) *module.ActionOffer {
 		}
 	}
 	return nil
+}
+
+// someoneNearlyOut is whether another player holds two cards or fewer — a
+// count every player can see.
+func someoneNearlyOut(s *GameState, playerID string) bool {
+	for _, p := range s.TurnOrder {
+		if p != playerID && len(s.Hands[p]) <= 2 {
+			return true
+		}
+	}
+	return false
 }

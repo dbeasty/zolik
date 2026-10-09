@@ -45,6 +45,10 @@ const ALLOWED = [
   /^variation\./,
   /^option\./,
   /^choice\./,
+  // A setting's one-line explanation (its tooltip on the setup screen), the
+  // module's own `help` text — the same fall-through-to-the-server rule as the
+  // option's name above. See `optionHelp`.
+  /^optionHelp\./,
 ];
 
 function collect(text: string, into: Set<string>) {

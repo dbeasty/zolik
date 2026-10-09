@@ -43,7 +43,7 @@ export default function MoreScreen() {
         onPress={() => router.push('/stats')}
       />
 
-      <Pressable style={{ marginTop: 16 }} onPress={() => router.back()}>
+      <Pressable style={{ marginTop: 16 }} role="button" onPress={() => router.back()}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>
@@ -66,11 +66,10 @@ function Entry({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="button"
-      // Both halves, because they answer different questions: the state is
-      // what a screen reader announces, and the flag is what stops the tap.
-      accessibilityState={{ disabled: !enabled }}
-      accessibilityLabel={enabled ? label : `${label} (${t('more.needsAccount')})`}
+      role="button"
+      // `disabled` is both halves on every platform: it stops the tap, and
+      // React Native (and react-native-web, as `aria-disabled`) announces it.
+      aria-label={enabled ? label : `${label} (${t('more.needsAccount')})`}
       disabled={!enabled}
       onPress={onPress}
       // A disabled entry always wears the secondary look, never the primary

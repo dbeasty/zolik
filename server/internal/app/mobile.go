@@ -3,7 +3,6 @@ package app
 import (
 	"errors"
 	"log/slog"
-	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -69,11 +68,16 @@ func MobileConfig(dataDir string) Config {
 }
 
 // RegisterMobileRoutes mounts what an offline table needs: health and version,
-// a guest seat, and the match runtime with its socket. It leaves out accounts,
-// stats, the waiting room, scoring, the operator's endpoints and the web
-// bundle. They mean nothing without the internet, and a phone's listener can
-// be reached from the local network, so everything left out is surface that
-// does not exist.
+// a guest seat, the match runtime with its socket, the finished games waiting
+// for their players to save them, and the web client. It leaves out accounts,
+// stats, the waiting room, scoring and the operator's endpoints. They mean
+// nothing without the internet, and a phone's listener can be reached from the
+// local network, so everything left out is surface that does not exist.
+//
+// The web client is there so that somebody in the room with no app can play
+// in a browser: the host shares http://<phone>:<port>/join/<code>, and the
+// page that opens talks to the phone that served it. It adds files and
+// nothing else - every route it could reach is one of the above.
 func (a *App) RegisterMobileRoutes(r chi.Router) {
 	for _, g := range a.routeGroups() {
 		switch g.name {
@@ -82,9 +86,8 @@ func (a *App) RegisterMobileRoutes(r chi.Router) {
 		}
 	}
 	a.auth.RegisterLocalRoutes(r)
-	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-	})
+	a.registerLocalSaves(r)
+	a.registerWebUI(r)
 }
 
 // DefaultCloudBaseURL is where an embedded host expects to find the cloud.
@@ -260,9 +263,8 @@ func (a *App) RegisterNodeRoutes(r chi.Router) {
 	local := replica.NewHandlers(a.Replica)
 	local.SetWriter(a.ReplicaWriter)
 	local.RegisterRoutes(r)
-	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-	})
+	a.registerLocalSaves(r)
+	a.registerWebUI(r)
 }
 
 // Replica is this device's copy of the signed-in account's data.

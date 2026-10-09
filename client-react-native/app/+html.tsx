@@ -12,6 +12,9 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        {/* Every page has a title (WCAG 2.4.2); `A11yRoot` replaces it with
+            the screen's own once the app is running. */}
+        <title>Jokerless</title>
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.

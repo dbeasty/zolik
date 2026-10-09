@@ -71,7 +71,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	}
 	play.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 	if containsWild(playable) {
-		play.Params = []module.ParamSpec{colourParam(s.Hands[playerID])}
+		play.Params = []module.ParamSpec{colourParam(s.Hands[playerID], wildsIn(playable))}
 	}
 	offers = append(offers, play)
 
@@ -170,8 +170,8 @@ func containsWild(cards []string) bool {
 // It starts on the colour the hand holds most of — what a player almost always
 // wants to name, and what a wild played without a second thought should name
 // rather than whichever colour heads the list.
-func colourParam(hand []string) module.ParamSpec {
-	return module.ParamSpec{Name: "colour", LabelKey: "lastcard.prompt.chooseColour", DefaultChoice: longestColour(hand), Choices: []module.ParamChoice{
+func colourParam(hand, wilds []string) module.ParamSpec {
+	return module.ParamSpec{Name: "colour", LabelKey: "lastcard.prompt.chooseColour", DefaultChoice: longestColour(hand), Cards: wilds, Choices: []module.ParamChoice{
 		{Value: "C", LabelKey: "lastcard.colour.C"},
 		{Value: "T", LabelKey: "lastcard.colour.T"},
 		{Value: "V", LabelKey: "lastcard.colour.V"},
@@ -190,4 +190,16 @@ func longestColour(hand []string) string {
 		}
 	}
 	return best
+}
+
+// wildsIn is the wilds among the playable cards — the cards the colour
+// parameter is asked for.
+func wildsIn(cards []string) []string {
+	var out []string
+	for _, c := range cards {
+		if isWild(c) {
+			out = append(out, c)
+		}
+	}
+	return out
 }

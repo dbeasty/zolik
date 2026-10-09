@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
+import { Sheet } from '@/src/a11y/Sheet';
 import type { ZolikClient } from '@/src/api/client';
 import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
@@ -65,7 +68,7 @@ export function useBotStrength(
         setError('');
         onChanged?.();
       } catch (e) {
-        setError(formatApiError(e, 'Could not change the bot'));
+        setError(formatApiError(e, t('a11y.bot.changeFailed')));
       }
     },
     [client, matchId, target, onChanged],
@@ -91,33 +94,44 @@ function BotStrengthSheet({
   onClose: () => void;
 }) {
   const skills: readonly string[] = offersAI || target?.skill === 'ai' ? [...SKILLS, 'ai'] : SKILLS;
+  const title = t('bot.strength.title', { name: target?.name ?? '' });
   return (
     <>
-      {error ? (
-        <Text testID="bot-strength-error" style={shared.error}>
-          {error}
+      {error ? <FormError testID="bot-strength-error" message={error} /> : null}
+      <Sheet
+        visible={!!target}
+        onClose={onClose}
+        label={title}
+        backdropStyle={styles.backdrop}
+        style={styles.sheet}
+        backdropTestID="bot-strength-backdrop"
+        testID="bot-strength-sheet"
+      >
+        <Text style={styles.title} nativeID="bot-strength-title" {...heading(2)}>
+          {title}
         </Text>
-      ) : null}
-      <Modal transparent animationType="fade" visible={!!target} onRequestClose={onClose}>
-        <Pressable style={styles.backdrop} onPress={onClose} testID="bot-strength-backdrop">
-          {/* Stops a press inside the panel from closing it. */}
-          <Pressable style={styles.sheet} onPress={() => {}} testID="bot-strength-sheet">
-            <Text style={styles.title}>{t('bot.strength.title', { name: target?.name ?? '' })}</Text>
-            <View style={styles.row}>
-              {skills.map((s) => (
-                <Pressable
-                  key={s}
-                  testID={`bot-strength-${s}`}
-                  onPress={() => onPick(s)}
-                  style={[styles.pill, target?.skill === s && styles.pillOn]}
-                >
-                  <Text style={styles.pillText}>{t(`setup.botSkill.${s}`)}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        {/* Buttons, not radios: a pick here is sent and the sheet closes, so
+            arrowing through radios would change the bot on the first arrow.
+            The one in force says so, since its highlight is colour alone. */}
+        <View style={styles.row}>
+          {skills.map((s) => (
+            <Pressable
+              key={s}
+              testID={`bot-strength-${s}`}
+              role="button"
+              aria-label={
+                target?.skill === s
+                  ? t('a11y.bot.current', { skill: t(`setup.botSkill.${s}`) })
+                  : t(`setup.botSkill.${s}`)
+              }
+              onPress={() => onPick(s)}
+              style={[styles.pill, target?.skill === s && styles.pillOn]}
+            >
+              <Text style={styles.pillText}>{t(`setup.botSkill.${s}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Sheet>
     </>
   );
 }
@@ -149,6 +163,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  pillOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  // The setup screen's picked pill: the bright accent under light text was
+  // 3.3:1, short of the 4.5:1 body text needs; the dim one clears it.
+  pillOn: { backgroundColor: colors.accentDim, borderColor: colors.accent },
   pillText: { color: colors.text, fontWeight: '600' },
 });

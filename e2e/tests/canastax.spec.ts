@@ -138,8 +138,9 @@ async function openMeld(page: Page, meldId: string) {
   const toggle = page.getByTestId(`group-toggle-${meldId}`);
   await toggle.scrollIntoViewIfNeeded();
   await toggle.click();
-  // Read off its label: this react-native-web drops aria-expanded on the web build.
-  await expect(toggle).toHaveAttribute('aria-label', 'Collapse this group');
+  // Read off `data-expanded`: once open its cards can be picked, and a group
+  // holding controls is not a button, so it has no aria-expanded to read.
+  await expect(toggle).toHaveAttribute('data-expanded', 'true');
 }
 
 test('the lobby offers CanastaX and states its rules', async ({ page, request }) => {
