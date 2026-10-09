@@ -140,7 +140,7 @@ test.describe('the card you just drew', () => {
     // Tap some other card — the one the player actually means to play.
     const other = (await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid^="card-hand:"]')].map(
-        (c) => c.closest('[aria-label]')?.getAttribute('aria-label') ?? '',
+        (c) => c.closest('[data-card]')?.getAttribute('data-card') ?? '',
       ),
     )).find((c) => c !== drawn);
     expect(other, 'the hand holds a card other than the drawn one').toBeTruthy();
@@ -176,7 +176,7 @@ test.describe('the card you just drew', () => {
     await clearHandSelection(page);
     const codes = await page.evaluate(() =>
       [...document.querySelectorAll('[data-testid^="card-hand:"]')].map(
-        (c) => c.closest('[aria-label]')?.getAttribute('aria-label') ?? '',
+        (c) => c.closest('[data-card]')?.getAttribute('data-card') ?? '',
       ),
     );
     // Two distinct codes, so clicking "the card labelled X" cannot land twice

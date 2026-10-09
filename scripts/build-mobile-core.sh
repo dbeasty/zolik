@@ -23,11 +23,36 @@ WHICH="${1:-all}"
 command -v gomobile >/dev/null || { echo "gomobile not found: go install golang.org/x/mobile/cmd/gomobile@latest" >&2; exit 1; }
 [ -f "$ROOT/../kdb/go/go.mod" ] || { echo "the kdb sibling checkout is missing at $ROOT/../kdb" >&2; exit 1; }
 
-# The web bundle is //go:embed-ded into the server for Docker builds. A phone
-# has its own client, so a stray export here would ship twice.
-if [ "$(ls -A "$ROOT/server/internal/webui/dist" | grep -v '^.gitkeep$' || true)" ]; then
+# The web client is compiled into the core too, so that a phone hosting a
+# table can serve it to browsers in the room: somebody without the app opens
+# the host's link and plays in their browser. It is exported here, the same way
+# server/Dockerfile does it, so the page and the phone's server are always one
+# build. A stray export already in dist/ is refused rather than shipped,
+# because nothing would say which commit it came from.
+#
+#   ZOLIK_MOBILE_WEB=0 scripts/build-mobile-core.sh   leaves it out
+WEBDIST="$ROOT/server/internal/webui/dist"
+if [ "$(ls -A "$WEBDIST" | grep -v '^.gitkeep$' || true)" ]; then
   echo "server/internal/webui/dist holds a web export; clear it first" >&2
   exit 1
+fi
+clean_web() {
+  find "$WEBDIST" -mindepth 1 ! -name .gitkeep -exec rm -rf {} + 2>/dev/null || true
+}
+trap clean_web EXIT
+if [ "${ZOLIK_MOBILE_WEB:-1}" != 0 ]; then
+  eval "$("$ROOT/scripts/version.sh" --export)"
+  (
+    cd "$ROOT/client-react-native"
+    rm -rf dist
+    EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN=1 \
+      EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION" \
+      EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT" \
+      npx expo export --platform web
+  )
+  test -f "$ROOT/client-react-native/dist/index.html" || { echo "expo export produced no dist/index.html" >&2; exit 1; }
+  cp -R "$ROOT/client-react-native/dist/." "$WEBDIST/"
+  echo "web: $(du -sh "$WEBDIST" | cut -f1) compiled into the core"
 fi
 
 # Stamped the same way the Docker image is, so the footer and the About

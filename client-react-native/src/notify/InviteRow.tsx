@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Tip } from '@/src/a11y/Tip';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
 import { moduleLabel } from '@/src/lib/gameLabels';
@@ -63,13 +64,19 @@ export function InviteRow({
         <Text style={[styles.headline, { color: palette.text }]} numberOfLines={2}>
           {inviteHeadline(invite)}
         </Text>
-        <Text style={[styles.detail, { color: palette.muted }]} numberOfLines={1}>
+        <Text style={[styles.detail, { color: palette.muted }]} numberOfLines={2}>
           {inviteDetail(invite)}
         </Text>
       </View>
       <Pressable
         testID={`invite-row-join-${invite.id}`}
         accessibilityRole="button"
+        // Which invite: a list of them is a list of identical "Join"s.
+        aria-label={t('a11y.actionFor', {
+          action: invite.source === 'waiting-room' ? t('notify.goToTable') : t('notify.join'),
+          what: inviteHeadline(invite),
+        })}
+        aria-busy={busy}
         disabled={busy}
         onPress={onJoin}
         style={[styles.join, { backgroundColor: palette.accentButton }]}
@@ -78,15 +85,20 @@ export function InviteRow({
           {busy ? '…' : invite.source === 'waiting-room' ? t('notify.goToTable') : t('notify.join')}
         </Text>
       </Pressable>
-      <Pressable
-        testID={`invite-row-dismiss-${invite.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={t('notify.notNow')}
-        onPress={onDismiss}
-        style={styles.dismiss}
-      >
-        <Text style={[styles.dismissText, { color: palette.muted }]}>✕</Text>
-      </Pressable>
+      {/* Icon-only, so a name and a tooltip. */}
+      <Tip text={t('notify.notNow')}>
+        <Pressable
+          testID={`invite-row-dismiss-${invite.id}`}
+          accessibilityRole="button"
+          aria-label={t('a11y.actionFor', { action: t('notify.notNow'), what: inviteHeadline(invite) })}
+          onPress={onDismiss}
+          style={styles.dismiss}
+        >
+          <Text style={[styles.dismissText, { color: palette.muted }]} aria-hidden>
+            ✕
+          </Text>
+        </Pressable>
+      </Tip>
     </View>
   );
 }

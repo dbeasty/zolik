@@ -123,8 +123,9 @@ test.describe('solitaire', () => {
       })
       .toContain(head);
     // And the player sees it there.
-    // `.first()`: a card that can move again is labelled by its lift control too.
-    await expect(page.getByTestId(`group-${to}`).getByLabel(head, { exact: true }).first()).toBeVisible();
+    // Found by `data-card`, the card's code — what a screen reader hears is its
+    // spoken name. `.first()`: a two-place card carries the code once per box.
+    await expect(page.getByTestId(`group-${to}`).locator(`[data-card="${head}"]`).first()).toBeVisible();
 
     // Giving up ends the game, lost and won by nobody.
     await page.getByTestId('offer-giveup').click();

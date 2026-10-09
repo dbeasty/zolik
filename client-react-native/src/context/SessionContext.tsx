@@ -21,6 +21,7 @@ import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
 import { guestIdOfKey } from '@/src/lib/inviteLink';
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
+import { servingTable } from '@/src/net/servingTable';
 import { useReplicaSync } from '@/src/net/useReplicaSync';
 import type {
   AccountProfile,
@@ -194,8 +195,17 @@ type SessionContextValue = {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email?: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** The offline table this phone is hosting, or null when playing online. */
+  /**
+   * The offline table this phone is hosting or sitting at, or null when
+   * playing online. A page served by a phone to a browser in the room is a
+   * guest at that phone's table too.
+   */
   offline: OfflineTable | null;
+  /**
+   * Whether this page was served by a phone hosting a table, to a browser in
+   * the room. There is no account to sign in to there, only that table.
+   */
+  servedByTable: boolean;
   /** Starts this phone's own server and seats the player at it. */
   playOffline: (name: string) => Promise<void>;
   /** Seats the player at a table another phone in the room is hosting. */
@@ -375,6 +385,40 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   useReplicaSync(localNodeReady);
+
+  // A page served by somebody's phone, in a browser in the room: the phone is
+  // this page's whole server, and the screens behave as they do for a guest
+  // at that phone's table. Read once, from the page's own origin.
+  const [servedBy, setServedBy] = useState<{ instanceId: string } | null>(null);
+  useEffect(() => {
+    void servingTable().then(setServedBy);
+  }, []);
+
+  // Seats the player agreed to keep, at tables with no internet, are added to
+  // their account the first time this device is signed in to one online:
+  // at sign-in, at start-up, and on leaving a table in the room.
+  const atTable = !!offline;
+  useEffect(() => {
+    if (!session || session.isGuest || servedBy || atTable) return;
+    let cancelled = false;
+    void (async () => {
+      const { pendingReceipts, forgetReceipts } = await import('@/src/lib/seatReceipts');
+      const receipts = await pendingReceipts();
+      if (!receipts.length || cancelled) return;
+      try {
+        const seats = await apiClient.claimOfflineSeats(receipts);
+        // Every receipt has had its answer, yes or no: a refused one (a
+        // table nobody enrolled, a seat already somebody else's) will not
+        // be accepted on a later try either.
+        if (seats) await forgetReceipts(receipts);
+      } catch {
+        // Offline, or the server is busy: they wait for the next time.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, servedBy, atTable]);
 
   useEffect(() => {
     void loadGuestIdentity().then((g) => setGuestKey(g?.guestKey ?? null));
@@ -782,7 +826,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
-      offline: offlineTable,
+      offline:
+        offlineTable ??
+        (servedBy
+          ? {
+              instanceId: servedBy.instanceId,
+              baseUrl: ZOLIK_BASE_URL,
+              role: 'guest' as const,
+              via: 'wifi' as const,
+              checkCode: '',
+            }
+          : null),
+      servedByTable: !!servedBy,
       playOffline,
       joinNearby,
       joinBluetooth,
@@ -791,6 +846,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [
       offline,
       offlineTable,
+      servedBy,
       playOffline,
       joinNearby,
       joinBluetooth,

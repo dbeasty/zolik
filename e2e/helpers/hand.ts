@@ -21,7 +21,8 @@ import { tapCard } from './drag';
  * something the app never promised.
  *
  * The fix for both is to work in the server's own vocabulary — the card code,
- * which the app publishes as each slot's accessibility label — and to say
+ * which the app publishes on each slot as `data-card` (its accessibility label
+ * is the card's spoken name, "Ten of Diamonds") — and to say
  * explicitly when a clean selection is wanted.
  *
  * **A card cannot be clicked in the middle.** The hand is held closed, so all
@@ -36,7 +37,7 @@ import { tapCard } from './drag';
 export async function handCodes(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     [...document.querySelectorAll('[data-testid^="card-hand:"]')].map(
-      (c) => c.closest('[aria-label]')?.getAttribute('aria-label') ?? '',
+      (c) => c.closest('[data-card]')?.getAttribute('data-card') ?? '',
     ),
   );
 }
@@ -51,14 +52,14 @@ export async function handCodes(page: Page): Promise<string[]> {
  * fits here".
  */
 export function cardByCode(page: Page, code: string): Locator {
-  return page.locator(`[aria-label="${code}"] [data-testid^="card-hand:"]`).first();
+  return page.locator(`[data-card="${code}"] [data-testid^="card-hand:"]`).first();
 }
 
 /** The codes of the cards currently selected. */
 export async function selectedCodes(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     [...document.querySelectorAll('[data-testid^="card-hand:"][aria-selected="true"]')].map(
-      (c) => c.closest('[aria-label]')?.getAttribute('aria-label') ?? '',
+      (c) => c.closest('[data-card]')?.getAttribute('data-card') ?? '',
     ),
   );
 }

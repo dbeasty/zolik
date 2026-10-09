@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Sheet } from '@/src/a11y/Sheet';
 import type { ActionOffer, Fact, MatchAction, RuleItem } from '@/src/api/matchTypes';
 import { submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
@@ -98,63 +99,66 @@ export function WhySheet({
   };
 
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} testID="why-sheet-backdrop">
-        {/* Stops a press inside the sheet from closing it. */}
-        <Pressable style={styles.sheet} onPress={() => {}} testID="why-sheet">
-          <ScrollView contentContainerStyle={styles.body}>
-            <View style={styles.layer}>
-              <Text style={styles.key}>{t('why.reason')}</Text>
-              <Text testID="why-reason" style={styles.reason}>
-                {reason}
-              </Text>
-            </View>
+    <Sheet
+      visible
+      onClose={onClose}
+      label={t('why.reason')}
+      backdropStyle={styles.backdrop}
+      backdropTestID="why-sheet-backdrop"
+      style={styles.sheet}
+      testID="why-sheet"
+    >
+      <ScrollView contentContainerStyle={styles.body}>
+        <View style={styles.layer}>
+          <Text style={styles.key}>{t('why.reason')}</Text>
+          <Text testID="why-reason" style={styles.reason}>
+            {reason}
+          </Text>
+        </View>
 
-            {/* One heading however many rules there are. A code can point at
-                more than one — the rule that refused you and the house rule
-                that set it up — and two blocks each headed "The rule" reads
-                as a bug rather than as two rules. */}
-            {rules.length > 0 ? (
-              <View style={styles.layer}>
-                <Text style={styles.key}>{rules.length > 1 ? t('why.rules') : t('why.rule')}</Text>
-                {rules.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={onOpenRules ? () => onOpenRules(item.id) : undefined}
-                    testID={`why-rule-${item.id}`}
-                  >
-                    <Text style={styles.value}>
-                      {factText(item, players)}
-                      {onOpenRules ? <Text style={styles.link}> {t('why.readTheRules')}</Text> : null}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            {refusal.remedy ? (
-              <View style={styles.layer}>
-                <Text style={styles.key}>{t('why.remedy')}</Text>
-                <Text testID="why-remedy" style={styles.value}>
-                  {factText(refusal.remedy, players)}
+        {/* One heading however many rules there are. A code can point at
+            more than one — the rule that refused you and the house rule
+            that set it up — and two blocks each headed "The rule" reads
+            as a bug rather than as two rules. */}
+        {rules.length > 0 ? (
+          <View style={styles.layer}>
+            <Text style={styles.key}>{rules.length > 1 ? t('why.rules') : t('why.rule')}</Text>
+            {rules.map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={onOpenRules ? () => onOpenRules(item.id) : undefined}
+                testID={`why-rule-${item.id}`}
+              >
+                <Text style={styles.value}>
+                  {factText(item, players)}
+                  {onOpenRules ? <Text style={styles.link}> {t('why.readTheRules')}</Text> : null}
                 </Text>
-              </View>
-            ) : null}
-          </ScrollView>
-
-          <View style={styles.actions}>
-            {remedyOffer ? (
-              <Pressable style={styles.primary} onPress={sendRemedy} testID="why-remedy-action">
-                <Text style={styles.primaryText}>{remedyLabel(remedyOffer)}</Text>
               </Pressable>
-            ) : null}
-            <Pressable style={styles.ghost} onPress={onClose} testID="why-close">
-              <Text style={styles.ghostText}>{t('why.close')}</Text>
-            </Pressable>
+            ))}
           </View>
+        ) : null}
+
+        {refusal.remedy ? (
+          <View style={styles.layer}>
+            <Text style={styles.key}>{t('why.remedy')}</Text>
+            <Text testID="why-remedy" style={styles.value}>
+              {factText(refusal.remedy, players)}
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View style={styles.actions}>
+        {remedyOffer ? (
+          <Pressable style={styles.primary} onPress={sendRemedy} testID="why-remedy-action">
+            <Text style={styles.primaryText}>{remedyLabel(remedyOffer)}</Text>
+          </Pressable>
+        ) : null}
+        <Pressable style={styles.ghost} onPress={onClose} testID="why-close">
+          <Text style={styles.ghostText}>{t('why.close')}</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+      </View>
+    </Sheet>
   );
 }
 

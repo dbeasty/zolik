@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { LastCardBack } from '@/src/components/cards/LastCardFace';
+import { LastCardBack, lastCardSetFor } from '@/src/components/cards/LastCardFace';
 import { useSkin } from '@/src/hooks/useSkin';
 import { useDeck } from '@/src/lib/deck';
 
@@ -15,14 +15,15 @@ import { useDeck } from '@/src/lib/deck';
  * there and the whole point of a back is to match the face beside it.
  */
 export function CardBack({ width, height }: { width: number; height: number }) {
-  const { back, bevel } = useSkin().card;
+  const skin = useSkin();
+  const { back, bevel } = skin.card;
   const deck = useDeck();
   if (deck === 'lastcard') {
     // That pack's own back, in place of the skin's: a back is part of a
     // pack's design, and this one is printed to match its faces.
     return (
       <View style={[styles.card, { width, height, borderColor: back.frame }]}>
-        <LastCardBack width={width - 4} height={height - 4} />
+        <LastCardBack width={width - 4} height={height - 4} set={lastCardSetFor(skin)} />
       </View>
     );
   }

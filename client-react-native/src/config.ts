@@ -38,6 +38,16 @@ export const ZOLIK_BASE_URL = (sameOriginBaseUrl() || envUrl || defaultBaseUrl()
   '',
 );
 
+/**
+ * Where the cloud is, for the few things that must go there even from a page
+ * that is not served by it: a page a phone serves to the room has the phone
+ * as its API, and the link a guest takes away to keep a game has to name the
+ * cloud instead.
+ */
+export const CLOUD_BASE_URL = (
+  process.env.EXPO_PUBLIC_ZOLIK_CLOUD_URL || 'https://jokerless.com'
+).replace(/\/$/, '');
+
 export const APP_NAME =
   (Constants.expoConfig?.name as string | undefined) ?? 'Jokerless';
 

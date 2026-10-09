@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
+import { Sheet } from '@/src/a11y/Sheet';
+import { Tip } from '@/src/a11y/Tip';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
@@ -87,34 +91,37 @@ export function InviteBanner() {
   const others = invites.length - (shown ? 1 : 0);
 
   const list = (
-    <Modal transparent animationType={stillness ? 'none' : 'fade'} visible={listOpen} onRequestClose={() => setListOpen(false)}>
-      <Pressable style={styles.backdrop} onPress={() => setListOpen(false)} testID="invite-list-backdrop">
-        <Pressable
-          style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border, marginTop: insets.top + 48 }]}
-          onPress={() => {}}
-          testID="invite-list"
-        >
-          <Text style={[styles.sheetTitle, { color: palette.text }]}>{t('notify.waitingCard.title')}</Text>
-          {invites.length === 0 ? (
-            <Text style={[styles.detail, { color: palette.muted }]}>{t('notify.waitingCard.empty')}</Text>
-          ) : (
-            invites.map((i) => (
-              <InviteRow
-                key={i.id}
-                invite={i}
-                palette={palette}
-                busy={joiningId === i.id}
-                onJoin={() => {
-                  setListOpen(false);
-                  void join(i.id);
-                }}
-                onDismiss={() => dismiss(i.id)}
-              />
-            ))
-          )}
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <Sheet
+      visible={listOpen}
+      onClose={() => setListOpen(false)}
+      label={t('notify.waitingCard.title')}
+      animationType={stillness ? 'none' : 'fade'}
+      backdropStyle={styles.backdrop}
+      style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border, marginTop: insets.top + 48 }]}
+      backdropTestID="invite-list-backdrop"
+      testID="invite-list"
+    >
+      <Text style={[styles.sheetTitle, { color: palette.text }]} {...heading(2)}>
+        {t('notify.waitingCard.title')}
+      </Text>
+      {invites.length === 0 ? (
+        <Text style={[styles.detail, { color: palette.muted }]}>{t('notify.waitingCard.empty')}</Text>
+      ) : (
+        invites.map((i) => (
+          <InviteRow
+            key={i.id}
+            invite={i}
+            palette={palette}
+            busy={joiningId === i.id}
+            onJoin={() => {
+              setListOpen(false);
+              void join(i.id);
+            }}
+            onDismiss={() => dismiss(i.id)}
+          />
+        ))
+      )}
+    </Sheet>
   );
 
   if (inMatch) {
@@ -125,6 +132,7 @@ export function InviteBanner() {
           <Pressable
             testID="invite-pill"
             accessibilityRole="button"
+            aria-expanded={listOpen}
             onPress={() => setListOpen(true)}
             style={[styles.pill, { backgroundColor: palette.surface, borderColor: palette.accent }]}
           >
@@ -142,9 +150,7 @@ export function InviteBanner() {
     return error ? (
       <View pointerEvents="box-none" style={[styles.layer, { top: insets.top + 6 }]}>
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.danger }]}>
-          <Text style={[styles.error, { color: palette.danger }]} testID="invite-banner-error">
-            {error}
-          </Text>
+          <FormError style={[styles.error, { color: palette.danger }]} testID="invite-banner-error" message={error} />
         </View>
         {list}
       </View>
@@ -175,20 +181,27 @@ export function InviteBanner() {
             <Text testID="invite-banner-text" style={[styles.headline, { color: palette.text }]} numberOfLines={2}>
               {inviteHeadline(shown)}
             </Text>
-            <Text style={[styles.detail, { color: palette.muted }]} numberOfLines={1}>
+            <Text style={[styles.detail, { color: palette.muted }]} numberOfLines={2}>
               {inviteDetail(shown)}
             </Text>
           </View>
           {muteable ? (
-            <Pressable
-              testID="invite-banner-menu"
-              accessibilityRole="button"
-              accessibilityLabel={t('notify.moreOptions')}
-              onPress={() => setMenuOpen((o) => !o)}
-              style={styles.menuButton}
-            >
-              <Text style={[styles.menuGlyph, { color: palette.muted }]}>⋯</Text>
-            </Pressable>
+            // Icon-only: named, and a tooltip saying the same for a sighted
+            // player who does not read "⋯" as "more".
+            <Tip text={t('notify.moreOptions')}>
+              <Pressable
+                testID="invite-banner-menu"
+                accessibilityRole="button"
+                accessibilityLabel={t('notify.moreOptions')}
+                aria-expanded={menuOpen}
+                onPress={() => setMenuOpen((o) => !o)}
+                style={styles.menuButton}
+              >
+                <Text style={[styles.menuGlyph, { color: palette.muted }]} aria-hidden>
+                  ⋯
+                </Text>
+              </Pressable>
+            </Tip>
           ) : null}
         </View>
 
@@ -206,9 +219,7 @@ export function InviteBanner() {
         ) : null}
 
         {error ? (
-          <Text style={[styles.error, { color: palette.danger }]} testID="invite-banner-error">
-            {error}
-          </Text>
+          <FormError style={[styles.error, { color: palette.danger }]} testID="invite-banner-error" message={error} />
         ) : null}
 
         <View style={styles.actions}>

@@ -6,6 +6,9 @@ import { nearbyAvailable } from '@/modules/zolik-nearby';
 import { apiClient } from '@/src/api/client';
 import type { InvitePreference, NotifyProfile } from '@/src/api/types';
 import { useSession } from '@/src/context/SessionContext';
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
@@ -78,13 +81,17 @@ export function NotificationSettings() {
 
   return (
     <View style={shared.card} testID="settings-notifications">
-      <Text style={styles.heading}>{t('notify.settings.heading')}</Text>
+      <Text style={styles.heading} {...heading(3)}>
+        {t('notify.settings.heading')}
+      </Text>
 
-      <Text style={styles.label}>{t('notify.settings.invites')}</Text>
+      <Text style={styles.label} nativeID="settings-invites-label">
+        {t('notify.settings.invites')}
+      </Text>
       {onlineSession ? (
         <>
           <Text style={shared.status}>{t('notify.settings.invitesBody')}</Text>
-          <View style={styles.choices}>
+          <RadioGroup style={styles.choices} label={t('notify.settings.invites')} labelledBy="settings-invites-label">
             <Choice
               label={t('notify.settings.invitesCircle')}
               picked={profile?.invites === 'circle'}
@@ -99,8 +106,8 @@ export function NotificationSettings() {
               testID="settings-invites-off"
               onPress={() => setInvites('off')}
             />
-          </View>
-          <Pressable onPress={() => router.push('/circle')} testID="settings-open-circle">
+          </RadioGroup>
+          <Pressable role="link" onPress={() => router.push('/circle')} testID="settings-open-circle">
             <Text style={[shared.status, { color: colors.accent }]}>{t('circle.title')} ›</Text>
           </Pressable>
         </>
@@ -110,9 +117,11 @@ export function NotificationSettings() {
 
       {nearbyAvailable ? (
         <>
-          <Text style={styles.label}>{t('notify.settings.nearby')}</Text>
+          <Text style={styles.label} nativeID="settings-nearby-label">
+            {t('notify.settings.nearby')}
+          </Text>
           <Text style={shared.status}>{t('notify.settings.nearbyBody')}</Text>
-          <View style={styles.choices}>
+          <RadioGroup style={styles.choices} label={t('notify.settings.nearby')} labelledBy="settings-nearby-label">
             <Choice
               label={t('notify.on')}
               picked={nearbyOn === true}
@@ -125,7 +134,7 @@ export function NotificationSettings() {
               testID="settings-nearby-off"
               onPress={() => setNearby(false)}
             />
-          </View>
+          </RadioGroup>
         </>
       ) : null}
 
@@ -135,6 +144,7 @@ export function NotificationSettings() {
       </Text>
       {push === 'default' && onlineSession ? (
         <Pressable
+          role="button"
           testID="settings-push-enable"
           style={[shared.button, { marginTop: 8, marginBottom: 0 }]}
           disabled={busy}
@@ -144,7 +154,7 @@ export function NotificationSettings() {
         </Pressable>
       ) : null}
 
-      {error ? <Text style={[shared.error, { marginTop: 8 }]}>{error}</Text> : null}
+      {error ? <FormError style={{ marginTop: 8 }} message={error} /> : null}
     </View>
   );
 }
@@ -184,8 +194,7 @@ function Choice({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: picked, disabled }}
+      {...radioProps(picked)}
       disabled={disabled}
       onPress={onPress}
       style={[styles.choice, picked && styles.choicePicked]}
@@ -198,7 +207,7 @@ function Choice({
 const styles = StyleSheet.create({
   heading: { color: colors.text, fontSize: 15, fontWeight: '700', marginBottom: 4 },
   label: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: 14 },
-  choices: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   // Two pixels of border always, transparent until picked — picking one must
   // not move the other, the same rule the skin chooser above keeps.
   choice: {

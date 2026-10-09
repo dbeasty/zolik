@@ -95,20 +95,51 @@ name, pack and art. No commercial game's name or design is used anywhere, and
     can carry today. It is also the swap a player would almost always choose.
 - **0**: every hand passes to the next player in the direction of play.
 
-## Scoring (option: one deal, 200 or 500; default 500)
+## Scoring (options: target one deal, 200 or 500 — default 500; scoring method — default winner takes)
 
-- The deal's winner scores every card left in the other hands:
+| Card left in a hand | Points |
+|---|---|
+| Number cards | Face value |
+| Skip, Reverse, Draw Two | 20 |
+| Wild, Wild Draw Four | 50 |
 
-  | Card | Points |
-  |---|---|
-  | Number cards | Face value |
-  | Skip, Reverse, Draw Two | 20 |
-  | Wild, Wild Draw Four | 50 |
+There are two scoring methods, chosen per table with the **Scoring** option.
 
-- First to the target wins the match.
+**Winner takes the points (default).**
+- The deal's winner scores every card left in the other hands. Everyone else
+  scores 0 for that deal.
+- Totals only go up. The first player to reach the target wins.
+
+**Lowest total wins.**
+- Each player who didn't go out is charged the points left in their **own**
+  hand. The player who went out is charged nothing.
+- When anyone's total reaches the target, the **lowest** total wins. If the
+  deal's winner is tied for lowest, they take it, then the earliest seat.
+- Here holding fewer, cheaper cards when someone goes out matters. Medium and
+  Hard bots shed their costliest card first once another player is down to two
+  cards (+5 points over par in three-seat sweeps).
+
+Either way:
+- A draw card played as the last card still makes the next player draw first,
+  and those cards count.
 - Between deals the table pauses on a score sheet until everyone continues
-  (option). The sheet breaks each win into number cards, action cards and wilds.
-- In a single deal the standings are cards left, fewest first.
+  (option). Each line is broken down into number cards, action cards and wilds.
+- In a single deal (target "One deal") the standings are cards left, fewest
+  first.
+
+## What the table says
+
+- Every move is narrated in one line, with what it did, in the status box
+  between the pile and the hand. For example: "Bo played ● Draw Two — Cy
+  draws 2 and misses a turn", "… play now goes anticlockwise ↺", "… the colour
+  is now ▲ Violet". The box lists every move since your own last one, then
+  anything the table is waiting on you for.
+- The box keeps one height (two lines on short windows), so the hand never
+  moves under a finger.
+- A wild on the pile shows the colour it named on the card itself: the frame,
+  the named quarter of its wheel, and that colour's shape at the hub.
+- Playing a wild, whether by dragging, tapping or the Play button, asks which
+  colour first. The colour you hold most of is suggested.
 
 ## Bots
 
