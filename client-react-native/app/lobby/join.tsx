@@ -1,7 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { Field, FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
 import type { MatchState } from '@/src/api/matchTypes';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
@@ -39,7 +41,7 @@ export default function JoinMatchScreen() {
       // The host started it. Everything from here is the shell's job.
       if (m.status !== 'lobby') router.replace(`/match/${matchId}`);
     } catch (e) {
-      setError(formatApiError(e, 'Could not read the table'));
+      setError(formatApiError(e, t('a11y.error.readTable')));
     }
   }, [client, matchId]);
 
@@ -63,18 +65,18 @@ export default function JoinMatchScreen() {
     try {
       setMatchId(await client.joinMatch(trimmed));
     } catch (e) {
-      setError(formatApiError(e, 'Join failed'));
+      setError(formatApiError(e, t('a11y.error.join')));
     }
   }
 
   if (!matchId) {
     return (
       <Screen title={t('nav.join')} scroll>
-        <TextInput
+        <Field
           testID="join-code"
-          style={shared.input}
+          label={t('lobby.join.placeholder')}
+          error={error}
           placeholder={t('lobby.join.placeholder')}
-          placeholderTextColor={colors.muted}
           // Kept at "characters" even though this box now also takes a URL:
           // it is a soft-keyboard hint, so it still helps somebody typing a
           // six-character code by hand — which the server resolves
@@ -85,9 +87,9 @@ export default function JoinMatchScreen() {
           autoCorrect={false}
           value={code}
           onChangeText={setCode}
+          onSubmitEditing={() => void join()}
         />
-        {error ? <Text style={shared.error}>{error}</Text> : null}
-        <Pressable testID="join-submit" style={shared.button} onPress={join}>
+        <Pressable testID="join-submit" role="button" style={shared.button} onPress={join}>
           <Text style={shared.buttonText}>{t('lobby.join.action')}</Text>
         </Pressable>
       </Screen>
@@ -101,7 +103,7 @@ export default function JoinMatchScreen() {
           ? t('lobby.join.joinedGame', { game: state.moduleId })
           : t('lobby.join.joinedTable')}
       </Text>
-      {error ? <Text style={shared.error}>{error}</Text> : null}
+      {error ? <FormError message={error} /> : null}
 
       {/* Anybody at the table can pull in the next player — see the same
           panel on the host's screen. */}
@@ -109,14 +111,13 @@ export default function JoinMatchScreen() {
         <InvitePanel joinCode={state.joinCode} inviteUrl={state.inviteUrl} />
       ) : null}
 
-      <Text style={[shared.status, { marginTop: 12 }]}>
-        Players ({state?.players.length ?? 0})
+      <Text style={[shared.status, { marginTop: 12 }]} {...heading(3)}>
+        {t('a11y.table.players', { n: state?.players.length ?? 0 })}
       </Text>
       {(state?.players ?? []).map((p, i) => (
         <View key={p.id} testID={`lobby-player-${p.id}`}>
           <Text style={{ color: colors.text, marginBottom: 4 }}>
-            {i + 1}. {p.name}
-            {p.isAI ? ' 🤖' : ''}
+            {i + 1}. {p.isAI ? t('a11y.player.bot', { name: p.name }) : p.name}
           </Text>
         </View>
       ))}

@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { heading } from '@/src/a11y/props';
 import { Screen } from '@/src/components/Screen';
 import { useLocale } from '@/src/hooks/useLocale';
 import { legalDocument, legalIsTranslated, operatorIsNamed, type LegalDocId } from '@/src/legal';
@@ -53,7 +54,7 @@ export function LegalDocumentScreen({ id }: { id: LegalDocId }) {
 
         {doc.sections.map((section, i) => (
           <View key={section.id} style={styles.section} testID={`legal-section-${section.id}`}>
-            <Text style={styles.heading}>
+            <Text style={styles.heading} {...heading(3)}>
               <Text style={styles.number}>{i + 1}. </Text>
               {section.heading}
             </Text>

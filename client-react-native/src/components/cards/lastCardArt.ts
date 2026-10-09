@@ -270,7 +270,7 @@ export function duskStars(h: number): Piece[] {
  * carrying its colour's shape in cream, turned a quarter-step so it reads as
  * a wheel rather than a flag. Every colour at once, which is what a wild is.
  */
-export function pinwheel(cx: number, cy: number, size: number): Piece[] {
+export function pinwheel(cx: number, cy: number, size: number, named?: Colour): Piece[] {
   const out: Piece[] = [];
   const r = size / 2;
   const turn = -Math.PI / 4;
@@ -279,19 +279,28 @@ export function pinwheel(cx: number, cy: number, size: number): Piece[] {
     const a1 = a0 + Math.PI / 2;
     const p0 = { x: cx + r * Math.cos(a0), y: cy + r * Math.sin(a0) };
     const p1 = { x: cx + r * Math.cos(a1), y: cy + r * Math.sin(a1) };
+    // Once the wild has named its colour, the other three fade back.
+    const faded = named !== undefined && c !== named ? 0.2 : undefined;
     out.push({
       d: `M${f(cx)} ${f(cy)}L${f(p0.x)} ${f(p0.y)}A${f(r)} ${f(r)} 0 0 1 ${f(p1.x)} ${f(p1.y)}Z`,
       fill: INKS[c].main,
+      opacity: faded,
     });
     const mid = (a0 + a1) / 2;
     out.push({
       d: shapePath(c, cx + r * 0.55 * Math.cos(mid), cy + r * 0.55 * Math.sin(mid), size * 0.2),
       fill: CREAM,
+      opacity: faded,
     });
   });
-  // The rim, and the hub the quarters meet at.
-  out.push({ d: shapePath('C', cx, cy, size), stroke: CREAM, sw: Math.max(1, size * 0.04) });
-  out.push({ d: shapePath('C', cx, cy, size * 0.16), fill: DUSK.field, stroke: CREAM, sw: Math.max(0.6, size * 0.025) });
+  // The rim, and the hub the quarters meet at — where a named colour's own
+  // shape sits, large, so the card says which colour from across the table.
+  out.push({ d: shapePath('C', cx, cy, size), stroke: named ? INKS[named].main : CREAM, sw: Math.max(1, size * (named ? 0.07 : 0.04)) });
+  if (named) {
+    out.push({ d: shapePath(named, cx, cy, size * 0.46), fill: INKS[named].main, stroke: CREAM, sw: Math.max(1, size * 0.04) });
+  } else {
+    out.push({ d: shapePath('C', cx, cy, size * 0.16), fill: DUSK.field, stroke: CREAM, sw: Math.max(0.6, size * 0.025) });
+  }
   return out;
 }
 

@@ -1,5 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { Tip } from '@/src/a11y/Tip';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
 import { Avatar } from '@/src/components/avatars/Avatar';
@@ -11,6 +13,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
+import { scoreText, seatSpokenLabel } from '@/src/lib/boardSpeech';
 import { factText, isDealerLabel, label, playerName, shownScore } from '@/src/lib/labels';
 import { partnerText, partnersOf } from '@/src/lib/sides';
 import type { Skin } from '@/src/skins/types';
@@ -52,7 +55,21 @@ import { t } from '@/src/lib/i18n';
  */
 
 /** A bot's face or badge, made a control when the viewer may change its strength. */
-function BotPress({ onPress, testID, name, children }: { onPress?: () => void; testID: string; name: string; children: ReactNode }) {
+function BotPress({
+  onPress,
+  testID,
+  name,
+  children,
+  ...rest
+}: {
+  onPress?: () => void;
+  testID: string;
+  name: string;
+  children: ReactNode;
+  // A tooltip's description, passed on to the control it describes.
+  'aria-describedby'?: string;
+  accessibilityHint?: string;
+}) {
   if (!onPress || !children) return <>{children}</>;
   return (
     <Pressable
@@ -61,11 +78,15 @@ function BotPress({ onPress, testID, name, children }: { onPress?: () => void; t
       accessibilityRole="button"
       accessibilityLabel={t('bot.strength.title', { name })}
       testID={testID}
+      {...(rest as object)}
     >
       {children}
     </Pressable>
   );
 }
+
+/** A badge wears its tooltip as a wrapper; a badge is a word, so the wrapper never shrinks either. */
+const badgeTipStyle = { flexShrink: 0 };
 
 type Props = {
   seats: Seat[];
@@ -141,6 +162,18 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     const pickBot =
       player?.isAI && onPickBot ? () => onPickBot({ id: player.id, name, skill: player.skill }) : undefined;
     const rank = standing ? <Text style={styles.rank}>{standing.rank}</Text> : null;
+    // The whole tile as one sentence — name, kind of player, numbers, marks,
+    // whose turn — for a screen reader, which otherwise reads a tile as a
+    // dozen loose words in layout order. See `seatSpokenLabel`.
+    const spoken = seatSpokenLabel({ seat, seats, players, viewerId, standing });
+    const botTip = player?.isAI
+      ? [
+          player.skill ? t('a11y.board.tip.bot', { skill: t(`setup.botSkill.${player.skill}`) }) : t('a11y.board.tip.botPlain'),
+          pickBot ? t('a11y.board.tip.botChange') : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : undefined;
     // An AI client playing over MCP wears its own mark, and a seat the table
     // is playing on without says so — it checks or folds until its player is
     // back (see module.DropIn on the server).
@@ -148,35 +181,70 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     // change that (see onPickBot).
     const bot = player?.isAI ? (
       <Text style={[styles.badge, pickBot && styles.badgeLink]} testID={`bot-badge-${seat.playerId}`}>
-        {player.skill ? `BOT · ${t(`setup.botSkill.${player.skill}`)}` : 'BOT'}
+        {player.skill
+          ? `${t('a11y.board.seat.badge.bot')} · ${t(`setup.botSkill.${player.skill}`)}`
+          : t('a11y.board.seat.badge.bot')}
         {pickBot ? ' ▾' : ''}
       </Text>
     ) : player?.isAgent ? (
-      <Text style={styles.badge} testID={`agent-badge-${seat.playerId}`} accessibilityLabel={player.agentLabel ?? 'AI agent'}>
-        {'\u2726 AGENT'}
-      </Text>
+      <Tip
+        text={t('a11y.board.tip.agent', { label: player.agentLabel ?? t('a11y.board.seat.agentPlain') })}
+        focusable
+        label={player.agentLabel ?? t('a11y.board.seat.agentPlain')}
+        style={badgeTipStyle}
+      >
+        <Text
+          style={styles.badge}
+          testID={`agent-badge-${seat.playerId}`}
+          accessibilityLabel={player.agentLabel ?? t('a11y.board.seat.agentPlain')}
+        >
+          {t('a11y.board.seat.badge.agent')}
+        </Text>
+      </Tip>
     ) : null;
     const away = player?.satOut ? (
-      <Text style={styles.badge} testID={`paused-badge-${seat.playerId}`}>
-        PAUSED
-      </Text>
+      <Tip text={t('a11y.board.tip.paused')} focusable label={t('a11y.board.seat.badge.paused')} style={badgeTipStyle}>
+        <Text style={styles.badge} testID={`paused-badge-${seat.playerId}`}>
+          {t('a11y.board.seat.badge.paused')}
+        </Text>
+      </Tip>
     ) : player?.simplified ? (
       // A bot the server is playing more simply while it is short of room
       // (server/internal/botgov). Said, not hidden: the player is facing a
       // weaker opponent than the one they seated, and should know why.
-      <Text
-        style={styles.badge}
-        testID={`simplified-badge-${seat.playerId}`}
-        accessibilityLabel={t('seat.simplifiedHint')}
-      >
-        {t('seat.simplifiedBadge')}
-      </Text>
+      <Tip text={t('seat.simplifiedHint')} focusable label={t('seat.simplifiedBadge')} style={badgeTipStyle}>
+        <Text
+          style={styles.badge}
+          testID={`simplified-badge-${seat.playerId}`}
+          accessibilityLabel={t('seat.simplifiedHint')}
+        >
+          {t('seat.simplifiedBadge')}
+        </Text>
+      </Tip>
+    ) : null;
+    // The bot's badge: a control for the host (it opens the strength picker,
+    // and the tip says so), a plain mark with the same tip for everyone else.
+    const botBadge = bot ? (
+      player?.isAI ? (
+        <Tip text={botTip} focusable={!pickBot} label={t('a11y.board.seat.badge.bot')} style={badgeTipStyle}>
+          {pickBot ? (
+            <BotPress onPress={pickBot} testID={`bot-strength-badge-${seat.playerId}`} name={name}>
+              {bot}
+            </BotPress>
+          ) : (
+            bot
+          )}
+        </Tip>
+      ) : (
+        bot
+      )
     ) : null;
     return (
       <View
         key={seat.playerId}
         ref={(n) => registerSpot?.(seatElementId(seat.playerId), n as unknown as Measurable | null)}
         testID={`seat-${seat.playerId}`}
+        {...((Platform.OS === 'web' ? { role: 'group', 'aria-label': spoken } : {}) as object)}
         style={[
           styles.seat,
           metrics.narrow ? styles.seatNarrow : share ? { width: share, minWidth: 0 } : styles.seatShared,
@@ -200,12 +268,14 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                 {avatar}
               </BotPress>
               {rank}
-              <BotPress onPress={pickBot} testID={`bot-strength-badge-${seat.playerId}`} name={name}>
-                {bot}
-              </BotPress>
+              {botBadge}
               {away}
             </View>
-            <Text style={[styles.name, styles.nameCrowded]} numberOfLines={1}>
+            <Text
+              style={[styles.name, styles.nameCrowded]}
+              numberOfLines={1}
+              {...((Platform.OS === 'web' ? {} : { accessibilityLabel: spoken }) as object)}
+            >
               {name}
             </Text>
           </>
@@ -215,32 +285,42 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {avatar}
             </BotPress>
             {rank}
-            <Text style={styles.name} numberOfLines={1}>
+            {/* On iOS and Android the name is where the tile's sentence is
+                read: the tile itself cannot be one element, because the bot
+                badge and the score inside it are controls of their own. */}
+            <Text
+              style={styles.name}
+              numberOfLines={1}
+              {...((Platform.OS === 'web' ? {} : { accessibilityLabel: spoken }) as object)}
+            >
               {name}
             </Text>
-            <BotPress onPress={pickBot} testID={`bot-strength-badge-${seat.playerId}`} name={name}>
-              {bot}
-            </BotPress>
+            {botBadge}
             {away}
           </View>
         )}
 
         {standing && onOpenScore ? (
-          <Pressable
-            onPress={() => onOpenScore(seat.playerId)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityHint={t('score.open')}
-            testID={`standing-open-${seat.playerId}`}
-          >
-            <Text testID={`standing-${seat.playerId}`} style={[styles.score, styles.scoreLink]}>
+          <Tip text={t('a11y.board.tip.score', { what: scoreText(standing) })} style={badgeTipStyle}>
+            <Pressable
+              onPress={() => onOpenScore(seat.playerId)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`${name}: ${scoreText(standing)}`}
+              accessibilityHint={t('score.open')}
+              testID={`standing-open-${seat.playerId}`}
+            >
+              <Text testID={`standing-${seat.playerId}`} style={[styles.score, styles.scoreLink]}>
+                {shownScore(standing)} {label(standing.labelKey)}
+              </Text>
+            </Pressable>
+          </Tip>
+        ) : standing ? (
+          <Tip text={t('a11y.board.tip.scorePlain', { what: scoreText(standing) })} focusable style={badgeTipStyle}>
+            <Text testID={`standing-${seat.playerId}`} style={styles.score}>
               {shownScore(standing)} {label(standing.labelKey)}
             </Text>
-          </Pressable>
-        ) : standing ? (
-          <Text testID={`standing-${seat.playerId}`} style={styles.score}>
-            {shownScore(standing)} {label(standing.labelKey)}
-          </Text>
+          </Tip>
         ) : null}
 
         {/* What the ranking was decided on, where the module says so — a
@@ -279,10 +359,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             seen one. */}
         {(seat.labelKeys ?? []).map((key) =>
           isDealerLabel(key) ? (
-            <View key={key} style={styles.dealerRow} testID={`seat-dealer-${seat.playerId}`}>
-              <DealerButton size={metrics.seat.avatarCompact} skin={skin} />
-              <Text style={styles.tag}>{label(key)}</Text>
-            </View>
+            <Tip key={key} text={t('a11y.board.tip.dealer')} focusable label={label(key)}>
+              <View style={styles.dealerRow} testID={`seat-dealer-${seat.playerId}`}>
+                <DealerButton size={metrics.seat.avatarCompact} skin={skin} />
+                <Text style={styles.tag}>{label(key)}</Text>
+              </View>
+            </Tip>
           ) : (
             <Text key={key} style={styles.tag}>
               {label(key)}
@@ -304,6 +386,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     <Panel
       panelId={panelId}
       title={t('match.players')}
+      region={t('a11y.board.region.seats')}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
       testID="match-standings"
@@ -407,6 +490,8 @@ function SeatScroller({
   children: ReactNode;
 }) {
   const scroller = useRef<ScrollView>(null);
+  // Stepped rather than swept for someone who asked for stillness.
+  const stillness = useReducedMotion();
   const [view, setView] = useState(0);
   const [content, setContent] = useState(0);
   const [x, setX] = useState(0);
@@ -415,7 +500,7 @@ function SeatScroller({
   // Most of a viewport at a time, so the seat cut off at the edge is still in
   // sight after the step and a reader keeps their place.
   const step = (dir: 1 | -1) =>
-    scroller.current?.scrollTo({ x: Math.max(0, Math.min(content - view, x + dir * view * 0.8)), animated: true });
+    scroller.current?.scrollTo({ x: Math.max(0, Math.min(content - view, x + dir * view * 0.8)), animated: !stillness });
 
   return (
     <View style={styles.scroller}>

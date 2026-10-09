@@ -129,6 +129,9 @@ type GameState struct {
 	// TargetScore ends the match when a player's total reaches it. Zero is
 	// a single deal.
 	TargetScore int `json:"targetScore,omitempty"`
+	// Scoring is how points are kept across deals: scoreWinnerTakes or
+	// scoreLowest. Resolved once at NewMatch.
+	Scoring int `json:"scoring,omitempty"`
 	// HandSize is how many cards each deal gives each player.
 	HandSize int `json:"handSize,omitempty"`
 	// DealNumber counts deals from zero.
@@ -175,7 +178,46 @@ type DealResult struct {
 	Numbers int `json:"numbers,omitempty"`
 	Actions int `json:"actions,omitempty"`
 	Wilds   int `json:"wilds,omitempty"`
+	// Charged is each player's own leftover cards, where the table scores
+	// by penalty (scoreLowest): what that player was charged for the deal.
+	Charged map[string]Breakdown `json:"charged,omitempty"`
 }
+
+// Breakdown is one hand's leftover points, by kind of card.
+type Breakdown struct {
+	Numbers int `json:"numbers,omitempty"`
+	Actions int `json:"actions,omitempty"`
+	Wilds   int `json:"wilds,omitempty"`
+}
+
+// Total is the breakdown's sum.
+func (b Breakdown) Total() int { return b.Numbers + b.Actions + b.Wilds }
+
+// breakdownOf is what a hand left over is worth, by kind of card.
+func breakdownOf(hand []string) Breakdown {
+	var b Breakdown
+	for _, c := range hand {
+		switch {
+		case isWild(c):
+			b.Wilds += cardPoints(c)
+		case cardPoints(c) == pointsAction:
+			b.Actions += cardPoints(c)
+		default:
+			b.Numbers += cardPoints(c)
+		}
+	}
+	return b
+}
+
+// Ways of keeping score across deals.
+const (
+	// scoreWinnerTakes: the deal's winner scores everything left in the
+	// other hands; first to the target wins.
+	scoreWinnerTakes = 0
+	// scoreLowest: every player is charged what is left in their own hand;
+	// when a total reaches the target, the lowest total wins.
+	scoreLowest = 1
+)
 
 // Error codes. Stable keys, rendered by the client's locale bundle.
 const (

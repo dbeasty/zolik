@@ -100,6 +100,18 @@ func CreateOfflinePass(userID, username string, credentialVersion int, ttl time.
 // issue. And a key set that has never been populated verifies nothing, rather
 // than verifying everything.
 func VerifyOfflinePass(token string, keys PublicKeys) (*OfflinePassClaims, error) {
+	return verifyOfflinePass(token, keys)
+}
+
+// VerifyOfflinePassAt checks a pass as of the moment it was presented, for the
+// cloud reading a match that reaches it long after it was played: a pass that
+// seated somebody on the day was good evidence then, and a phone that spent a
+// month in a drawer before syncing must not turn it into none.
+func VerifyOfflinePassAt(token string, keys PublicKeys, at time.Time) (*OfflinePassClaims, error) {
+	return verifyOfflinePass(token, keys, jwt.WithTimeFunc(func() time.Time { return at }))
+}
+
+func verifyOfflinePass(token string, keys PublicKeys, extra ...jwt.ParserOption) (*OfflinePassClaims, error) {
 	if keys == nil {
 		return nil, errors.New("offline pass: no keys to check against")
 	}
@@ -115,9 +127,11 @@ func VerifyOfflinePass(token string, keys PublicKeys) (*OfflinePassClaims, error
 			}
 			return pub, nil
 		},
-		jwt.WithValidMethods([]string{jwt.SigningMethodEdDSA.Alg()}),
-		jwt.WithAudience(AudienceOffline),
-		jwt.WithExpirationRequired(),
+		append([]jwt.ParserOption{
+			jwt.WithValidMethods([]string{jwt.SigningMethodEdDSA.Alg()}),
+			jwt.WithAudience(AudienceOffline),
+			jwt.WithExpirationRequired(),
+		}, extra...)...,
 	)
 	if err != nil {
 		return nil, err

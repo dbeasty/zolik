@@ -2,6 +2,7 @@ import { storage } from '@/src/context/SessionContext';
 import { metricsFor } from '@/src/lib/layout';
 import { casino } from '@/src/skins/casino';
 import { classic } from '@/src/skins/classic';
+import { contrast } from '@/src/skins/contrast';
 import { heirloom } from '@/src/skins/heirloom';
 import type { Skin } from '@/src/skins/types';
 
@@ -10,7 +11,14 @@ import type { Skin } from '@/src/skins/types';
  * skin is adding a file next to `casino.ts` and a line here — nothing else
  * knows how many there are.
  */
-export const SKINS: readonly Skin[] = [heirloom, casino, classic];
+export const SKINS: readonly Skin[] = [heirloom, casino, classic, contrast];
+
+/**
+ * The board worn when a player asks for contrast — see `useSkin`, which puts
+ * it on over whatever they chose, and gives their choice back when they stop
+ * asking. Also in `SKINS`, so it can simply be picked like any other look.
+ */
+export const HIGH_CONTRAST_SKIN = contrast;
 
 /**
  * What the board wears for somebody who has never chosen.

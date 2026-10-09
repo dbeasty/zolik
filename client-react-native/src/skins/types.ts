@@ -148,6 +148,24 @@ export type Skin = {
      * has never been allowed to change a shape or a size.
      */
     cardPalette?: CardPalette;
+    /**
+     * The four-colour deck's extra inks on this skin (Settings →
+     * Accessibility → Four-colour deck): diamonds stop sharing hearts' red
+     * and clubs stop sharing spades' black, so no two suits are one colour —
+     * which is what a player who cannot tell red from black at a glance, or
+     * cannot see a pip at all at this size, reads a suit by.
+     *
+     * Per skin rather than one pair for every board, because each card stock
+     * is a different cream and each ink has to hold 4.5:1 against all of
+     * them (`contrast.test.ts` walks every skin). `bells` is the German
+     * pack's: there the hearts are red and the leaves green already, and the
+     * bells and acorns were both printed brown — so under this setting the
+     * bells take an amber of their own and the acorns the skin's black ink.
+     *
+     * Colours only, like the rest of a skin. A four-colour card is the same
+     * card in the same box.
+     */
+    fourColour: { diamonds: string; clubs: string; bells: string };
     selectedFace: string;
     jokerFace: string;
     /** Cards cast a small shadow, and the one being dragged casts a bigger one. */

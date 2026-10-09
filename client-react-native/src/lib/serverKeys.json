@@ -629,6 +629,30 @@
     "lastcard.header.clockwise",
     "lastcard.header.colour",
     "lastcard.header.deal",
+    "lastcard.move.accepted",
+    "lastcard.move.called",
+    "lastcard.move.caught",
+    "lastcard.move.challengeLost",
+    "lastcard.move.challengeWon",
+    "lastcard.move.drew",
+    "lastcard.move.drewMany",
+    "lastcard.move.kept",
+    "lastcard.move.nothingToDraw",
+    "lastcard.move.passedHands",
+    "lastcard.move.played",
+    "lastcard.move.playedDraw",
+    "lastcard.move.playedDrawColour",
+    "lastcard.move.playedDrawFour",
+    "lastcard.move.playedReverseAnticlockwise",
+    "lastcard.move.playedReverseClockwise",
+    "lastcard.move.playedSkip",
+    "lastcard.move.playedStack",
+    "lastcard.move.playedStackColour",
+    "lastcard.move.playedWild",
+    "lastcard.move.swapped",
+    "lastcard.move.tookStack",
+    "lastcard.move.wentOut",
+    "lastcard.move.wentOutLowest",
     "lastcard.offer.accept",
     "lastcard.offer.call",
     "lastcard.offer.catch",
@@ -658,11 +682,14 @@
     "lastcard.rules.deck",
     "lastcard.rules.drawTwo",
     "lastcard.rules.end",
+    "lastcard.rules.end.lowest",
     "lastcard.rules.end.points",
     "lastcard.rules.goal",
+    "lastcard.rules.goal.lowest",
     "lastcard.rules.goal.points",
     "lastcard.rules.reverse",
     "lastcard.rules.scoring",
+    "lastcard.rules.scoring.lowest",
     "lastcard.rules.section.call",
     "lastcard.rules.section.challenge",
     "lastcard.rules.section.end",
@@ -688,6 +715,7 @@
     "lastcard.score.numbers",
     "lastcard.score.wilds",
     "lastcard.seat.lastCard",
+    "lastcard.seat.penalty",
     "lastcard.seat.points",
     "marias.badge.trumpCard",
     "marias.fact.rung",
@@ -831,6 +859,14 @@
     "prompt.skipPending",
     "prompt.yourTurnDraw",
     "prompt.yourTurnMeld",
+    "prsi.move.drew",
+    "prsi.move.missedTurn",
+    "prsi.move.played",
+    "prsi.move.playedAce",
+    "prsi.move.playedQueen",
+    "prsi.move.playedSeven",
+    "prsi.move.tookMany",
+    "prsi.move.wentOut",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.nameASuit",
@@ -1295,11 +1331,14 @@
     "lastcard.rules.deck",
     "lastcard.rules.drawTwo",
     "lastcard.rules.end",
+    "lastcard.rules.end.lowest",
     "lastcard.rules.end.points",
     "lastcard.rules.goal",
+    "lastcard.rules.goal.lowest",
     "lastcard.rules.goal.points",
     "lastcard.rules.reverse",
     "lastcard.rules.scoring",
+    "lastcard.rules.scoring.lowest",
     "lastcard.rules.section.call",
     "lastcard.rules.section.challenge",
     "lastcard.rules.section.end",
@@ -2140,6 +2179,113 @@
     "lastcard.header.deal": [
       "n"
     ],
+    "lastcard.move.accepted": [
+      "n",
+      "player"
+    ],
+    "lastcard.move.called": [
+      "player"
+    ],
+    "lastcard.move.caught": [
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.challengeLost": [
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.challengeWon": [
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.drew": [
+      "player"
+    ],
+    "lastcard.move.drewMany": [
+      "n",
+      "player"
+    ],
+    "lastcard.move.kept": [
+      "player"
+    ],
+    "lastcard.move.nothingToDraw": [
+      "player"
+    ],
+    "lastcard.move.passedHands": [
+      "player"
+    ],
+    "lastcard.move.played": [
+      "card",
+      "player"
+    ],
+    "lastcard.move.playedDraw": [
+      "card",
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.playedDrawColour": [
+      "card",
+      "colour",
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.playedDrawFour": [
+      "card",
+      "colour",
+      "player",
+      "target"
+    ],
+    "lastcard.move.playedReverseAnticlockwise": [
+      "card",
+      "player"
+    ],
+    "lastcard.move.playedReverseClockwise": [
+      "card",
+      "player"
+    ],
+    "lastcard.move.playedSkip": [
+      "card",
+      "player",
+      "target"
+    ],
+    "lastcard.move.playedStack": [
+      "card",
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.playedStackColour": [
+      "card",
+      "colour",
+      "n",
+      "player",
+      "target"
+    ],
+    "lastcard.move.playedWild": [
+      "card",
+      "colour",
+      "player"
+    ],
+    "lastcard.move.swapped": [
+      "player",
+      "target"
+    ],
+    "lastcard.move.tookStack": [
+      "n",
+      "player"
+    ],
+    "lastcard.move.wentOut": [
+      "n",
+      "player"
+    ],
+    "lastcard.move.wentOutLowest": [
+      "player"
+    ],
     "lastcard.prompt.bluffCaught": [
       "cards",
       "player"
@@ -2182,7 +2328,13 @@
     "lastcard.rules.deck": [
       "value"
     ],
+    "lastcard.rules.end.lowest": [
+      "target"
+    ],
     "lastcard.rules.end.points": [
+      "target"
+    ],
+    "lastcard.rules.goal.lowest": [
       "target"
     ],
     "lastcard.rules.goal.points": [
@@ -2190,6 +2342,13 @@
     ],
     "lastcard.rules.scoring": [
       "target"
+    ],
+    "lastcard.rules.scoring.lowest": [
+      "target"
+    ],
+    "lastcard.seat.penalty": [
+      "n",
+      "value"
     ],
     "lastcard.seat.points": [
       "n",
@@ -2324,6 +2483,40 @@
     ],
     "prompt.pickupMustBeMelded": [
       "value"
+    ],
+    "prsi.move.drew": [
+      "player"
+    ],
+    "prsi.move.missedTurn": [
+      "player"
+    ],
+    "prsi.move.played": [
+      "card",
+      "player"
+    ],
+    "prsi.move.playedAce": [
+      "card",
+      "player",
+      "target"
+    ],
+    "prsi.move.playedQueen": [
+      "card",
+      "player",
+      "suit"
+    ],
+    "prsi.move.playedSeven": [
+      "card",
+      "n",
+      "player",
+      "target"
+    ],
+    "prsi.move.tookMany": [
+      "n",
+      "player"
+    ],
+    "prsi.move.wentOut": [
+      "card",
+      "player"
     ],
     "prsi.remedy.answerSevenOrTake": [
       "n"
@@ -2762,6 +2955,30 @@
     "lastcard.colour.V",
     "lastcard.header.colour",
     "lastcard.header.deal",
+    "lastcard.move.accepted",
+    "lastcard.move.called",
+    "lastcard.move.caught",
+    "lastcard.move.challengeLost",
+    "lastcard.move.challengeWon",
+    "lastcard.move.drew",
+    "lastcard.move.drewMany",
+    "lastcard.move.kept",
+    "lastcard.move.nothingToDraw",
+    "lastcard.move.passedHands",
+    "lastcard.move.played",
+    "lastcard.move.playedDraw",
+    "lastcard.move.playedDrawColour",
+    "lastcard.move.playedDrawFour",
+    "lastcard.move.playedReverseAnticlockwise",
+    "lastcard.move.playedReverseClockwise",
+    "lastcard.move.playedSkip",
+    "lastcard.move.playedStack",
+    "lastcard.move.playedStackColour",
+    "lastcard.move.playedWild",
+    "lastcard.move.swapped",
+    "lastcard.move.tookStack",
+    "lastcard.move.wentOut",
+    "lastcard.move.wentOutLowest",
     "lastcard.prompt.bluffCaught",
     "lastcard.prompt.catch",
     "lastcard.prompt.drawFour",
@@ -2775,9 +2992,13 @@
     "lastcard.remedy.stackOrTake",
     "lastcard.rules.deal",
     "lastcard.rules.deck",
+    "lastcard.rules.end.lowest",
     "lastcard.rules.end.points",
+    "lastcard.rules.goal.lowest",
     "lastcard.rules.goal.points",
     "lastcard.rules.scoring",
+    "lastcard.rules.scoring.lowest",
+    "lastcard.seat.penalty",
     "lastcard.seat.points",
     "marias.fact.rung",
     "marias.fact.times",
@@ -2815,6 +3036,14 @@
     "prompt.jokerMustBePlayed",
     "prompt.mustDrawOrAnswerSeven",
     "prompt.pickupMustBeMelded",
+    "prsi.move.drew",
+    "prsi.move.missedTurn",
+    "prsi.move.played",
+    "prsi.move.playedAce",
+    "prsi.move.playedQueen",
+    "prsi.move.playedSeven",
+    "prsi.move.tookMany",
+    "prsi.move.wentOut",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.playOrDraw",
