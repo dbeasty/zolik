@@ -8,6 +8,7 @@ import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
 import { IS_DESKTOP } from '@/src/config';
 import { SessionProvider } from '@/src/context/SessionContext';
+import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
 import { AvatarProvider } from '@/src/hooks/useAvatar';
@@ -76,6 +77,7 @@ export default function RootLayout() {
                     the screens so leaving a game's page does not end it. See
                     `src/context/AvailabilityContext.tsx`. */}
                 <AvailabilityProvider>
+                {IS_DESKTOP ? <DesktopMenuBridge /> : null}
                 <Stack
                   screenOptions={{
                     headerStyle: { backgroundColor: colors.surface },
@@ -85,7 +87,9 @@ export default function RootLayout() {
                     // are, and everything that is about you rather than about
                     // playing. Set here, not per-screen, so every route gets it
                     // for free — see `src/components/AccountMenu.tsx`.
-                    headerRight: () => <AccountMenu />,
+                    // In the Mac app the same menu is the menu bar's Account
+                    // menu instead (src/desktop/DesktopMenuBridge.tsx).
+                    headerRight: IS_DESKTOP ? undefined : () => <AccountMenu />,
                   }}
                 >
                   <Stack.Screen name="index" options={{ title: t('nav.home') }} />

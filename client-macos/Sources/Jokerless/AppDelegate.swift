@@ -2,44 +2,61 @@ import AppKit
 import WebKit
 import Zolikcore
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
-  private var window: NSWindow!
-  private var web: WebController!
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+  private(set) var windows: [GameWindowController] = []
+  /// The window menu commands act on: the frontmost one, or the one an
+  /// end-to-end run selected.
+  private(set) var active: GameWindowController?
   private var e2e: E2EControl?
   private var activity: NSObjectProtocol?
+  /// The menu bar's Account menu, rebuilt from the active page's state
+  /// whenever it is about to open.
+  let accountMenu = NSMenu(title: "Account")
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     AppConfig.configureCore()
-    web = WebController()
-
-    window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820),
-      styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-      backing: .buffered, defer: false)
-    window.title = "Jokerless"
-    window.minSize = NSSize(width: 720, height: 560)
-    window.appearance = NSAppearance(named: .darkAqua)
-    window.backgroundColor = NSColor(red: 0x0f / 255, green: 0x14 / 255, blue: 0x19 / 255, alpha: 1)
-    window.titlebarAppearsTransparent = true
-    window.tabbingMode = .disallowed
-    window.contentView = web.view
-    window.center()
-    window.setFrameAutosaveName("JokerlessMain")
-    window.makeKeyAndOrderFront(nil)
-
-    NSApp.mainMenu = MenuBuilder.build(target: self)
+    accountMenu.delegate = self
+    NSApp.mainMenu = MenuBuilder.build(target: self, account: accountMenu)
+    let first = openWindow()
 
     if let dir = AppConfig.e2eControlDir {
       // A test run must not be slowed by App Nap while its window sits
       // behind whatever the person at the Mac is doing.
       activity = ProcessInfo.processInfo.beginActivity(
         options: [.userInitiated, .idleSystemSleepDisabled], reason: "end-to-end run")
-      e2e = E2EControl(dir: dir, web: web, app: self)
+      e2e = E2EControl(dir: dir, app: self)
       e2e?.start()
     } else {
       NSApp.activate(ignoringOtherApps: true)
     }
-    web.load()
+    first.web.load()
+  }
+
+  /// A new window at the home screen. Every window shares the player, the
+  /// core and any offline table this Mac hosts.
+  @discardableResult
+  func openWindow() -> GameWindowController {
+    let controller = GameWindowController(
+      nearby: NearbyService.shared, cascadeFrom: active?.window ?? windows.last?.window)
+    controller.onActivate = { [weak self] c in self?.active = c }
+    controller.onClose = { [weak self] c in
+      guard let self else { return }
+      self.windows.removeAll { $0 === c }
+      if self.active === c { self.active = self.windows.last }
+    }
+    windows.append(controller)
+    active = controller
+    if AppConfig.isE2E {
+      controller.window?.orderFront(nil)
+    } else {
+      controller.showWindow(nil)
+    }
+    return controller
+  }
+
+  func select(_ controller: GameWindowController) {
+    active = controller
+    controller.window?.orderFront(nil)
   }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -47,23 +64,96 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationWillTerminate(_ notification: Notification) {
     // The table lives in this process; quitting ends it for everyone, so it
     // is closed properly rather than dropped.
-    web.nearby.shutdown()
+    NearbyService.shared.shutdown()
   }
+
+  private var web: WebController? { active?.web }
 
   // MARK: menu actions
 
-  @objc func startOfflineTable(_ sender: Any?) { web.navigate(to: "/offline") }
-  @objc func backOnline(_ sender: Any?) { web.navigate(to: "/") }
-  @objc func showRules(_ sender: Any?) { web.navigate(to: "/rules") }
-  @objc func showStats(_ sender: Any?) { web.navigate(to: "/stats") }
-  @objc func showSettings(_ sender: Any?) { web.navigate(to: "/settings") }
-  @objc func reloadPage(_ sender: Any?) { web.webView.reload() }
+  @objc func newWindow(_ sender: Any?) {
+    openWindow().web.load()
+  }
+
+  @objc func startOfflineTable(_ sender: Any?) { web?.navigate(to: "/offline") }
+  @objc func backOnline(_ sender: Any?) { web?.navigate(to: "/") }
+  @objc func goHome(_ sender: Any?) { web?.navigate(to: "/") }
+  @objc func goBack(_ sender: Any?) { web?.command("back") }
+  @objc func showRules(_ sender: Any?) { web?.navigate(to: "/rules") }
+  @objc func showStats(_ sender: Any?) { web?.navigate(to: "/stats") }
+  @objc func showSettings(_ sender: Any?) { web?.navigate(to: "/settings") }
+  @objc func reloadPage(_ sender: Any?) { web?.webView.reload() }
+  @objc func zoomIn(_ sender: Any?) { setZoom((web?.webView.pageZoom ?? 1) * 1.1) }
+  @objc func zoomOut(_ sender: Any?) { setZoom((web?.webView.pageZoom ?? 1) / 1.1) }
+  @objc func actualSize(_ sender: Any?) { setZoom(1) }
   @objc func openWebsite(_ sender: Any?) {
     if let url = URL(string: AppConfig.serverURL) { NSWorkspace.shared.open(url) }
   }
 
+  private func setZoom(_ z: CGFloat) {
+    web?.webView.pageZoom = min(2.5, max(0.5, z))
+  }
+
+  /// About, with this app's and the server's versions as the page words them.
+  @objc func showAbout(_ sender: Any?) {
+    var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
+    if let versions = active?.menuState?["versions"] as? String {
+      options[.credits] = NSAttributedString(
+        string: versions,
+        attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
+    }
+    NSApp.orderFrontStandardAboutPanel(options: options)
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
+  @objc func showMore(_ sender: Any?) {
+    let path = (active?.menuState?["more"] as? [String: Any])?["path"] as? String ?? "/more"
+    web?.navigate(to: path)
+  }
+
+  @objc private func accountItem(_ sender: NSMenuItem) {
+    guard let item = sender.representedObject as? [String: Any] else { return }
+    if let path = item["path"] as? String {
+      web?.navigate(to: path)
+    } else if let command = item["command"] as? String {
+      web?.command(command)
+    }
+  }
+
+  // MARK: Account menu
+
+  /// The Account menu holds what the account menu behind the face holds on
+  /// the phones, in the player's language, for the frontmost window's page.
+  func menuNeedsUpdate(_ menu: NSMenu) {
+    guard menu === accountMenu else { return }
+    menu.removeAllItems()
+    let state = active?.menuState ?? [:]
+    let who = NSMenuItem(title: state["who"] as? String ?? "Jokerless", action: nil, keyEquivalent: "")
+    who.isEnabled = false
+    menu.addItem(who)
+    menu.addItem(.separator())
+    for entry in state["account"] as? [[String: Any]] ?? [] {
+      if entry["separator"] as? Bool == true {
+        if menu.items.last?.isSeparatorItem == false { menu.addItem(.separator()) }
+        continue
+      }
+      let item = NSMenuItem(
+        title: entry["label"] as? String ?? "", action: #selector(accountItem(_:)), keyEquivalent: "")
+      item.target = self
+      item.representedObject = entry
+      menu.addItem(item)
+    }
+  }
+
+  /// The Account menu's items as the menu would show them now, for tests.
+  func accountMenuTitles() -> [String] {
+    menuNeedsUpdate(accountMenu)
+    return accountMenu.items.map { $0.isSeparatorItem ? "—" : $0.title }
+  }
+
   /// Menu items by title, for the end-to-end runner.
   func performMenuItem(titled title: String) -> Bool {
+    menuNeedsUpdate(accountMenu)
     func find(_ menu: NSMenu) -> NSMenuItem? {
       for item in menu.items {
         if item.title == title { return item }

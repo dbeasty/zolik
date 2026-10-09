@@ -10,6 +10,7 @@ import Zolikcore
 /// engine refuse anything else, whatever the page tries.
 final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   static let scheme = "app"
+  private static let testStore = WKWebsiteDataStore.nonPersistent()
   static let origin = "app://jokerless"
 
   let webView: WKWebView
@@ -17,15 +18,22 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   private let bridge: Bridge
   private let schemeHandler = AppSchemeHandler()
   /// Called for console output and policy violations in an end-to-end run.
-  var onLog: ((String) -> Void)?
+  var onLog: ((String) -> Void)? {
+    didSet { bridge.onLog = onLog }
+  }
+  /// Called when the page says what the Account menu should hold.
+  var onMenuState: (([String: Any]) -> Void)? {
+    didSet { bridge.onMenuState = onMenuState }
+  }
 
   var view: NSView { webView }
 
-  override init() {
+  init(nearby: NearbyService) {
     let config = WKWebViewConfiguration()
     config.setURLSchemeHandler(schemeHandler, forURLScheme: Self.scheme)
-    // A test run starts with nothing stored, and leaves nothing behind.
-    config.websiteDataStore = AppConfig.isE2E ? .nonPersistent() : .default()
+    // Every window shares one store, so they share the signed-in player. A
+    // test run's store is in memory: it starts empty and leaves nothing behind.
+    config.websiteDataStore = AppConfig.isE2E ? Self.testStore : .default()
     config.preferences.javaScriptCanOpenWindowsAutomatically = false
     config.preferences.isElementFullscreenEnabled = true
     config.mediaTypesRequiringUserActionForPlayback = []
@@ -47,16 +55,29 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
       }
     #endif
 
-    nearby = NearbyService()
+    self.nearby = nearby
     bridge = Bridge(nearby: nearby)
     super.init()
 
     bridge.webView = webView
-    bridge.onLog = { [weak self] line in self?.onLog?(line) }
     controller.addScriptMessageHandler(bridge, contentWorld: .page, name: "zolik")
     webView.navigationDelegate = self
     webView.uiDelegate = self
     refreshBootScript()
+  }
+
+  /// Lets go of the page when its window closes: the script handler would
+  /// otherwise keep the bridge, and through it this controller, alive.
+  func detach() {
+    webView.configuration.userContentController.removeAllScriptMessageHandlers()
+    nearby.remove(bridge)
+    webView.stopLoading()
+  }
+
+  /// Runs one of the page's own commands (DesktopMenuBridge): "signOut", "back".
+  func command(_ name: String) {
+    let quoted = (try? JSONSerialization.data(withJSONObject: [name])).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+    webView.evaluateJavaScript("window.__zolikCommand && window.__zolikCommand(\(quoted)[0])")
   }
 
   func load() {

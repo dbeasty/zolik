@@ -16,22 +16,32 @@ import WebKit
 /// and the folder is never polled.
 final class E2EControl {
   private let dir: URL
-  private weak var web: WebController?
   private weak var app: AppDelegate?
+  /// Commands run in the active window (`window select N` changes it).
+  private var web: WebController? { app?.active?.web }
+  private var logged = Set<ObjectIdentifier>()
   private var timer: Timer?
   private var busy = false
   private var next = 1
   private let log: FileHandle?
 
-  init(dir: URL, web: WebController, app: AppDelegate) {
+  init(dir: URL, app: AppDelegate) {
     self.dir = dir
-    self.web = web
     self.app = app
     try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     let logURL = dir.appendingPathComponent("console.log")
     FileManager.default.createFile(atPath: logURL.path, contents: nil)
     log = try? FileHandle(forWritingTo: logURL)
-    web.onLog = { [weak self] line in self?.append(line) }
+    hookLogs()
+  }
+
+  /// Every window's console goes to console.log, prefixed with its number.
+  private func hookLogs() {
+    for (i, w) in (app?.windows ?? []).enumerated() where !logged.contains(ObjectIdentifier(w)) {
+      logged.insert(ObjectIdentifier(w))
+      let prefix = i == 0 ? "" : "[window \(i + 1)] "
+      w.web.onLog = { [weak self] line in self?.append(prefix + line) }
+    }
   }
 
   func start() {
@@ -47,6 +57,7 @@ final class E2EControl {
 
   private func poll() {
     guard !busy else { return }
+    hookLogs()
     let js = dir.appendingPathComponent("cmd-\(next).js")
     let native = dir.appendingPathComponent("cmd-\(next).native")
     let n = next
@@ -140,17 +151,53 @@ final class E2EControl {
           done(.success(arg))
         } catch { done(.failure(error)) }
       }
+    case "window":
+      handleWindow(arg, done: done)
+    case "windows":
+      done(.success((app?.windows ?? []).map { $0.window?.title ?? "" }))
+    case "account":
+      done(.success(app?.accountMenuTitles() ?? []))
     case "state":
       done(.success(web?.nearby.snapshot()))
-    case "window":
-      let w = NSApp.windows.first
-      done(.success(["title": w?.title ?? "", "visible": w?.isVisible ?? false,
-                     "width": w?.frame.width ?? 0, "height": w?.frame.height ?? 0]))
     case "quit":
       done(.success(true))
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { NSApp.terminate(nil) }
     default:
       done(.failure(E2EError("unknown native command \(line)")))
+    }
+  }
+}
+
+extension E2EControl {
+  /// `window` describes the active window; `window new` opens another and
+  /// makes it active; `window select N` (1-based) switches to one.
+  fileprivate func handleWindow(_ arg: String, done: @escaping (Result<Any?, Error>) -> Void) {
+    guard let app else { return done(.failure(E2EError("no app"))) }
+    let parts = arg.split(separator: " ").map(String.init)
+    switch parts.first ?? "" {
+    case "new":
+      let c = app.openWindow()
+      hookLogs()
+      c.web.load()
+      done(.success(app.windows.count))
+    case "select":
+      guard parts.count > 1, let n = Int(parts[1]), n >= 1, n <= app.windows.count else {
+        return done(.failure(E2EError("no window \(arg)")))
+      }
+      app.select(app.windows[n - 1])
+      done(.success(n))
+    default:
+      guard let c = app.active, let w = c.window else { return done(.failure(E2EError("no window"))) }
+      let content = w.contentLayoutRect
+      let view = c.web.webView.frame
+      done(.success([
+        "title": w.title, "visible": w.isVisible, "count": app.windows.count,
+        "width": w.frame.width, "height": w.frame.height,
+        // Where the page sits: entirely below the title bar when its top
+        // edge is no higher than the content area's.
+        "pageTop": view.maxY, "contentTop": content.maxY,
+        "zoom": c.web.webView.pageZoom,
+      ]))
     }
   }
 }

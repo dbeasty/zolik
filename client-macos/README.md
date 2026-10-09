@@ -17,6 +17,20 @@ Go core (Zolikcore.xcframework): hosts tables, and makes every network request
    the page asks for: jokerless.com, this Mac, the local network, nothing else
 ```
 
+## Windows and menus
+
+- **File › New Window** (⌘N) opens another window with its own screen, so two
+  games can be played side by side. Windows share the player, the core and
+  any offline table this Mac hosts; each is named after its screen.
+- **Account** holds what the phones keep behind the face in the header (who is
+  playing, My games, Game circle, Sign in / Account, Sign out), worded by the
+  page in the player's language (`src/desktop/DesktopMenuBridge.tsx`). The
+  page does not show that face in the app.
+- **View**: Back (⌘[), Home (⇧⌘H), Actual Size / Zoom In / Zoom Out, Reload,
+  Full Screen. **Table**: Start an offline table (⇧⌘N), Back to online play.
+  **Jokerless › About** shows the app's and the server's versions.
+- The page sits below the title bar, which takes the header's colour.
+
 ## The web view has no network
 
 - Pages load from `app://jokerless/`, answered in process by the core
@@ -60,7 +74,8 @@ Chromium plays a browser in the room. It covers: pages served from inside the
 app; the web view refused the network directly; guest sign-in and an online
 game against a bot through the core; hosting an offline table from the menu
 bar; a browser joining by the room link; a second Mac finding the table over
-Bonjour and joining; the deal reaching all three; quitting ending the table.
+Bonjour and joining; the deal reaching all three; a second window playing a
+second game; zoom and the Account menu's sign-out; quitting ending the table.
 
 The copies run as `com.jokerless.mac.e2e`, so the Local Network permission
 macOS keeps for the real app is never consulted or changed by a test run.

@@ -14,6 +14,7 @@ import Zolikcore
 final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
   weak var webView: WKWebView?
   var onLog: ((String) -> Void)?
+  var onMenuState: (([String: Any]) -> Void)?
   private let nearby: NearbyService
   private lazy var sink = NetSinkBridge(bridge: self)
   /// Fetches waiting for the core's answer, by the page's request id.
@@ -22,7 +23,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
   init(nearby: NearbyService) {
     self.nearby = nearby
     super.init()
-    nearby.emit = { [weak self] name, payload in self?.emit(name, payload) }
+    nearby.add(self)
   }
 
   func userContentController(
@@ -70,6 +71,9 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
       }
     case "open":
       if let raw = body["url"] as? String, let url = URL(string: raw) { WebController.openExternally(url) }
+      replyHandler(true, nil)
+    case "menu":
+      onMenuState?(body["state"] as? [String: Any] ?? [:])
       replyHandler(true, nil)
     case "log":
       onLog?(body["line"] as? String ?? "")

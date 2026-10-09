@@ -11,7 +11,28 @@ import Zolikcore
 /// with every reply and is pushed as a "state" event when something changes
 /// on its own.
 final class NearbyService {
-  var emit: ((String, Any) -> Void)?
+  /// One per app: the core hosts one table per process, and every window
+  /// sees the same one. Events go to every window's page.
+  static let shared = NearbyService()
+
+  private final class WeakBridge {
+    weak var bridge: Bridge?
+    init(_ b: Bridge) { bridge = b }
+  }
+  private var bridges: [WeakBridge] = []
+
+  func add(_ bridge: Bridge) {
+    bridges.removeAll { $0.bridge == nil }
+    bridges.append(WeakBridge(bridge))
+  }
+
+  func remove(_ bridge: Bridge) {
+    bridges.removeAll { $0.bridge == nil || $0.bridge === bridge }
+  }
+
+  private func emit(_ name: String, _ payload: Any) {
+    for b in bridges { b.bridge?.emit(name, payload) }
+  }
 
   private let bonjour = NearbyBonjour()
   private let bleHost = NearbyBleHost()
@@ -181,11 +202,11 @@ final class NearbyService {
   }
 
   private func event(_ name: String, _ payload: Any) {
-    DispatchQueue.main.async { self.emit?("nearby", ["event": name, "payload": payload]) }
+    DispatchQueue.main.async { self.emit("nearby", ["event": name, "payload": payload]) }
   }
 
   private func pushState() {
-    DispatchQueue.main.async { self.emit?("state", self.snapshot()) }
+    DispatchQueue.main.async { self.emit("state", self.snapshot()) }
   }
 
   /// While a table is up, the relay's guest count and the like change with

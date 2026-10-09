@@ -262,7 +262,8 @@ async function main() {
     expect(v.secure, 'the page is not a secure context');
     expect(v.desktop && v.desktop.platform === 'mac', 'the page was not told it is in the Mac app');
     const w = await a.native('window');
-    expect(w.title === 'Jokerless' && w.visible, `window: ${JSON.stringify(w)}`);
+    expect(w.visible && /Jokerless/.test(w.title), `window: ${JSON.stringify(w)}`);
+    expect(w.pageTop <= w.contentTop + 0.5, `the page runs under the title bar: ${JSON.stringify(w)}`);
     await a.screenshot('intro');
   }, [a]);
 
@@ -305,7 +306,13 @@ async function main() {
       return { session: !!localStorage.getItem('zolik_session'), account: e2e.buttons()[0] };
     `);
     expect(v.session, 'no session was stored');
-    expect(/Guest/.test(v.account), `account menu says ${v.account}`);
+    const header = await a.js(`return !!document.querySelector('[data-testid="account-menu-button"]')`);
+    expect(!header, 'the page still shows its own account menu');
+    const titles = await a.native('account');
+    expect(/· Guest$/.test(titles[0]), `Account menu begins ${JSON.stringify(titles)}`);
+    for (const want of ['My games', 'Sign in', 'Sign out']) {
+      expect(titles.includes(want), `Account menu lacks "${want}": ${JSON.stringify(titles)}`);
+    }
   }, [a]);
 
   await step('plays online against a bot; the match socket runs through the core', async () => {
@@ -328,6 +335,32 @@ async function main() {
     `);
     expect(after < v.stock, `stock ${v.stock} → ${after}`);
     await a.screenshot('online-match');
+  }, [a]);
+
+  await step('File › New Window: a second game alongside the first', async () => {
+    const first = await a.js(`return location.pathname`);
+    expect(first.startsWith('/match/'), `window 1 is at ${first}`);
+    await a.native('menu New Window');
+    const count = (await a.native('window')).count;
+    expect(count === 2, `${count} windows`);
+    // The new window shares the player, so it can go straight to a game.
+    // A different game in the second window: Last Card is in progress in
+    // the first, and the home screen offers to resume it.
+    await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 20000); await e2e.click('Prší', { exact: true }); return 1`);
+    await a.js(`await e2e.click('Play against bots', { exact: true }); return 1`);
+    await a.js(`await e2e.click('Deal me in', { exact: true }); return 1`);
+    const second = await a.js(`
+      await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'the match', 20000);
+      await e2e.waitForText('active');
+      return location.pathname;
+    `);
+    expect(second !== first, 'both windows are at the same match');
+    const titles = await a.native('windows');
+    expect(titles.length === 2 && titles.every((t) => /Jokerless/.test(t)), `window titles ${JSON.stringify(titles)}`);
+    await a.screenshot('second-window');
+    // The first game is still live in its own window.
+    await a.native('window select 1');
+    await a.js(`await e2e.waitForText('active'); return location.pathname`).then((p) => expect(p === first, `window 1 moved to ${p}`));
   }, [a]);
 
   let invite = '';
@@ -414,6 +447,24 @@ async function main() {
     await a.screenshot('host-match');
     await b.screenshot('guest-match');
   }, [a, b]);
+
+  await step('View › Zoom In and Actual Size; Account › Sign out', async () => {
+    await a.native('window select 2');
+    await a.native('menu Zoom In');
+    expect((await a.native('window')).zoom > 1, 'Zoom In did nothing');
+    await a.native('menu Actual Size');
+    expect((await a.native('window')).zoom === 1, 'Actual Size did not reset the zoom');
+    await a.native('menu Sign out');
+    let titles = [];
+    for (let i = 0; i < 100 && titles[0] !== 'Not signed in'; i++) {
+      await sleep(100);
+      titles = await a.native('account');
+    }
+    expect(titles[0] === 'Not signed in' && titles.includes('Sign in'), `after signing out: ${JSON.stringify(titles)}`);
+    await a.native('menu Home');
+    await a.js(`await e2e.waitForText('Continue as guest', 20000); return 1`);
+    await a.native('window select 1');
+  }, [a]);
 
   await step('quitting the host ends the table for the room', async () => {
     await a.quit();
