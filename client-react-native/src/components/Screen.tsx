@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { heading } from '@/src/a11y/props';
 import { shared } from '@/src/theme';
 
 type Props = {
@@ -16,7 +17,13 @@ type Props = {
 export function Screen({ title, subtitle, children, scroll, wide }: Props) {
   const body = (
     <>
-      {title ? <Text style={shared.title}>{title}</Text> : null}
+      {/* A heading, so a screen reader's heading list starts here. Level 2:
+          the navigation bar's title above it is the page's `<h1>`. */}
+      {title ? (
+        <Text style={shared.title} {...heading(2)}>
+          {title}
+        </Text>
+      ) : null}
       {subtitle ? <Text style={shared.subtitle}>{subtitle}</Text> : null}
       {children}
     </>
@@ -29,7 +36,16 @@ export function Screen({ title, subtitle, children, scroll, wide }: Props) {
   return (
     <SafeAreaView style={shared.screen} edges={['top', 'left', 'right']}>
       {scroll ? (
-        <ScrollView keyboardShouldPersistTaps="handled">{content}</ScrollView>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          // A Tab stop on the web, so the arrow keys and Page Down scroll a
+          // screen of prose — the rules, a legal notice — that has no control
+          // of its own to put focus inside it (WCAG 2.1.1; axe
+          // `scrollable-region-focusable`).
+          {...(Platform.OS === 'web' ? { tabIndex: 0 as const } : {})}
+        >
+          {content}
+        </ScrollView>
       ) : (
         <View style={{ flex: 1 }}>{content}</View>
       )}

@@ -1,6 +1,9 @@
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { heading } from '@/src/a11y/props';
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
+import { Tip } from '@/src/a11y/Tip';
 import type { TallyView } from '@/src/api/types';
 import { t } from '@/src/lib/i18n';
 import { avgRankText, winPercentText } from '@/src/lib/stats';
@@ -29,7 +32,9 @@ export function Section({
 }) {
   return (
     <View style={{ marginBottom: 24 }} testID={testID}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionTitle} {...heading(3)}>
+        {title}
+      </Text>
       {note ? <Text style={styles.sectionNote}>{note}</Text> : null}
       {children}
     </View>
@@ -46,10 +51,16 @@ export function Section({
 export function Headline({ tally }: { tally: TallyView }) {
   return (
     <View style={styles.headlineRow} testID="stats-headline">
-      <Tile label={t('record.played')} value={String(tally.matches)} testID="stats-played" />
-      <Tile label={t('record.won')} value={String(tally.wins)} tone={colors.success} testID="stats-won" />
-      <Tile label={t('record.lost')} value={String(tally.losses)} testID="stats-lost" />
-      <Tile label={t('stats.drawn')} value={String(tally.draws)} testID="stats-drawn" />
+      <Tile label={t('record.played')} value={String(tally.matches)} tip={t('a11y.stats.tip.played')} testID="stats-played" />
+      <Tile
+        label={t('record.won')}
+        value={String(tally.wins)}
+        tone={colors.success}
+        tip={t('a11y.stats.tip.won')}
+        testID="stats-won"
+      />
+      <Tile label={t('record.lost')} value={String(tally.losses)} tip={t('a11y.stats.tip.lost')} testID="stats-lost" />
+      <Tile label={t('stats.drawn')} value={String(tally.draws)} tip={t('a11y.stats.tip.drawn')} testID="stats-drawn" />
     </View>
   );
 }
@@ -58,18 +69,26 @@ function Tile({
   label,
   value,
   tone,
+  tip,
   testID,
 }: {
   label: string;
   value: string;
   tone?: string;
+  /** What the number counts, as the tile's tooltip. */
+  tip?: string;
   testID?: string;
 }) {
+  // Read label first ("Won: 12"): the big number comes first on screen, and a
+  // bare "12" heard before its label means nothing yet. A Tab stop of its own
+  // so a keyboard user can bring up the tooltip too.
   return (
-    <View style={styles.tile} testID={testID}>
-      <Text style={[styles.tileValue, tone ? { color: tone } : null]}>{value}</Text>
-      <Text style={styles.tileLabel}>{label}</Text>
-    </View>
+    <Tip text={tip} focusable label={`${label}: ${value}`} style={styles.tileWrap}>
+      <View style={styles.tile} testID={testID}>
+        <Text style={[styles.tileValue, tone ? { color: tone } : null]}>{value}</Text>
+        <Text style={styles.tileLabel}>{label}</Text>
+      </View>
+    </Tip>
   );
 }
 
@@ -78,19 +97,27 @@ export function Line({
   label,
   value,
   tone,
+  tip,
   testID,
 }: {
   label: string;
   value: string;
   tone?: string;
+  /** How the number is worked out, as the value's tooltip. */
+  tip?: string;
   testID?: string;
 }) {
+  const shown = <Text style={[styles.lineValue, tone ? { color: tone } : null]}>{value}</Text>;
   return (
     <View style={styles.line} testID={testID}>
-      <Text style={styles.lineLabel} numberOfLines={2}>
-        {label}
-      </Text>
-      <Text style={[styles.lineValue, tone ? { color: tone } : null]}>{value}</Text>
+      <Text style={styles.lineLabel}>{label}</Text>
+      {tip ? (
+        <Tip text={tip} focusable label={`${label}: ${value}`}>
+          {shown}
+        </Tip>
+      ) : (
+        shown
+      )}
     </View>
   );
 }
@@ -105,31 +132,55 @@ export function Line({
  */
 export function SplitTable({
   rows,
+  title,
   testID,
 }: {
   rows: { key: string; label: string; tally: TallyView }[];
+  /** What the rows are — the section title above — as the table's name. */
+  title?: string;
   testID?: string;
 }) {
+  // A table to a screen reader as well: `table`/`row`/`columnheader`/`cell`,
+  // so "Won, 12" is read with its column and a row can be walked cell by
+  // cell. The header cells may wrap at a large text size rather than lose
+  // their ends.
   return (
-    <View style={styles.table} testID={testID}>
-      <View style={[styles.row, styles.headRow]}>
-        {/* The label column has no heading of its own — what the rows are is
-            said by the section title above the table. */}
-        <View style={styles.cellLabel} />
-        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.played')}</Text>
-        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.won')}</Text>
-        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.winPct')}</Text>
-        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.finish')}</Text>
+    <View style={styles.table} testID={testID} role="table" aria-label={title}>
+      <View style={[styles.row, styles.headRow]} role="row">
+        {/* The label column has no heading on screen — what the rows are is
+            said by the section title above the table — but it has one for a
+            screen reader, which announces the column by it. */}
+        <View style={styles.cellLabel} role="columnheader" aria-label={title} />
+        <Text style={[styles.cellNum, styles.headText]} role="columnheader">
+          {t('stats.col.played')}
+        </Text>
+        <Text style={[styles.cellNum, styles.headText]} role="columnheader">
+          {t('stats.col.won')}
+        </Text>
+        <Text style={[styles.cellNum, styles.headText]} role="columnheader">
+          {t('stats.col.winPct')}
+        </Text>
+        <Text style={[styles.cellNum, styles.headText]} role="columnheader">
+          {t('stats.col.finish')}
+        </Text>
       </View>
       {rows.map((r) => (
-        <View key={r.key} style={styles.row} testID={`split-row-${r.key}`}>
-          <Text style={styles.cellLabel} numberOfLines={2}>
+        <View key={r.key} style={styles.row} testID={`split-row-${r.key}`} role="row">
+          <Text style={styles.cellLabel} role="rowheader">
             {r.label}
           </Text>
-          <Text style={styles.cellNum}>{r.tally.matches}</Text>
-          <Text style={styles.cellNum}>{r.tally.wins}</Text>
-          <Text style={styles.cellNum}>{winPercentText(r.tally)}</Text>
-          <Text style={styles.cellNum}>{avgRankText(r.tally)}</Text>
+          <Text style={styles.cellNum} role="cell">
+            {r.tally.matches}
+          </Text>
+          <Text style={styles.cellNum} role="cell">
+            {r.tally.wins}
+          </Text>
+          <Text style={styles.cellNum} role="cell">
+            {winPercentText(r.tally)}
+          </Text>
+          <Text style={styles.cellNum} role="cell">
+            {avgRankText(r.tally)}
+          </Text>
         </View>
       ))}
     </View>
@@ -141,15 +192,19 @@ export function Toggle<T extends string>({
   options,
   value,
   onChange,
+  label,
   testID,
 }: {
   options: { id: T; label: string }[];
   value: T;
   onChange: (id: T) => void;
+  /** What is being chosen, for a screen reader — the segments say only the choices. */
+  label?: string;
   testID?: string;
 }) {
+  // A segmented control is a radio group: one of these, never none or two.
   return (
-    <View style={styles.toggle} testID={testID}>
+    <RadioGroup style={styles.toggle} testID={testID} label={label}>
       {options.map((o) => {
         const on = o.id === value;
         return (
@@ -158,14 +213,13 @@ export function Toggle<T extends string>({
             onPress={() => onChange(o.id)}
             style={[styles.toggleItem, on && styles.toggleItemOn]}
             testID={`${testID ?? 'toggle'}-${o.id}`}
-            accessibilityRole="button"
-            accessibilityState={{ selected: on }}
+            {...radioProps(on)}
           >
             <Text style={[styles.toggleText, on && styles.toggleTextOn]}>{o.label}</Text>
           </Pressable>
         );
       })}
-    </View>
+    </RadioGroup>
   );
 }
 
@@ -195,9 +249,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  tile: {
+  tileWrap: {
     flexGrow: 1,
     flexBasis: 72,
+  },
+  tile: {
+    flexGrow: 1,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -281,7 +338,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   toggleItem: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 0,
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',

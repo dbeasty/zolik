@@ -51,6 +51,7 @@ export function StartHero() {
     <View
       testID="start-hero"
       pointerEvents="none"
+      aria-hidden
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={styles.stage}

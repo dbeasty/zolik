@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchModule } from '@/src/api/matchTypes';
+import { heading } from '@/src/a11y/props';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
@@ -80,7 +81,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
   if (!mod) {
     return (
       <Screen title={t('nav.games')}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
       </Screen>
     );
   }
@@ -94,7 +95,9 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
 
   const actions = (
     <>
-      <Text style={styles.heading}>{t('game.startYourOwn')}</Text>
+      <Text style={styles.heading} {...heading(3)}>
+        {t('game.startYourOwn')}
+      </Text>
       {mod.maxPlayers === 1 ? (
         // A one-seat game has no table to open and no bots to play: one
         // button, which deals.
@@ -182,7 +185,9 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
     <SettleIn kind="deal">
       <View style={styles.header} testID={`module-${mod.id}`}>
         <View style={{ flexShrink: 1 }}>
-          <Text style={shared.title}>{moduleLabel(mod)}</Text>
+          <Text style={shared.title} {...heading(2)}>
+            {moduleLabel(mod)}
+          </Text>
           <Text style={styles.meta}>
             {mod.minPlayers === mod.maxPlayers
               ? mod.minPlayers === 1
@@ -194,6 +199,8 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
         <Pressable
           testID={`rules-${mod.id}`}
           accessibilityRole="link"
+          // "Rules" of which game, for a screen reader's list of links.
+          aria-label={t('a11y.actionFor', { action: t('nav.rules'), what: moduleLabel(mod) })}
           onPress={() => router.push(`/rules?moduleId=${encodeURIComponent(mod.id)}`)}
           style={({ pressed }) => [styles.rulesLink, pressed && styles.pressed]}
         >
@@ -228,7 +235,9 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
         <View style={styles.wideRight} testID={`game-side-${mod.id}`}>
           {mine.length > 0 ? (
             <SettleIn kind="deal" delay={140}>
-              <Text style={[styles.heading, { marginTop: 0 }]}>{t('mine.tabUnfinished')}</Text>
+              <Text style={[styles.heading, { marginTop: 0 }]} {...heading(3)}>
+                {t('mine.tabUnfinished')}
+              </Text>
               <View style={styles.panelCard}>
                 {mine.map((row) => (
                   <TableRow key={row.matchId} row={row} selfId={session?.userId} />
@@ -239,10 +248,11 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
           {recent.length > 0 ? (
             <SettleIn kind="deal" delay={210}>
               <View style={styles.recentHead}>
-                <Text style={[styles.heading, { marginTop: 16, marginBottom: 0 }]}>
+                <Text style={[styles.heading, { marginTop: 16, marginBottom: 0 }]} {...heading(3)}>
                   {t('mine.tabFinished')}
                 </Text>
                 <Pressable
+                  role="link"
                   onPress={() =>
                     router.push(`/lobby/mine?moduleId=${encodeURIComponent(mod.id)}&scope=finished`)
                   }

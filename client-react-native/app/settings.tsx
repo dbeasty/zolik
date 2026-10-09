@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccessibilitySettings } from '@/src/a11y/AccessibilitySettings';
+import { heading } from '@/src/a11y/props';
+import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import { AvatarPicker } from '@/src/components/avatars/AvatarPicker';
 import { LanguagePicker } from '@/src/components/LanguagePicker';
 import { LegalLinks } from '@/src/components/LegalLinks';
@@ -53,7 +55,9 @@ export default function SettingsScreen() {
       </Text>
 
       <View style={shared.card}>
-        <Text style={styles.heading}>{t('settings.face.heading')}</Text>
+        <Text style={styles.heading} {...heading(3)}>
+          {t('settings.face.heading')}
+        </Text>
         <Text style={shared.status}>
           {signedIn ? t('settings.face.account') : t('settings.face.device')}
         </Text>
@@ -61,16 +65,17 @@ export default function SettingsScreen() {
       </View>
 
       <View style={shared.card}>
-        <Text style={styles.heading}>{t('settings.skin.heading')}</Text>
-        <View style={styles.skins}>
+        <Text style={styles.heading} {...heading(3)}>
+          {t('settings.skin.heading')}
+        </Text>
+        <RadioGroup style={styles.skins} label={t('settings.skin.heading')}>
           {skins.map((s) => {
             const picked = s.id === skin.id;
             return (
               <Pressable
                 key={s.id}
                 testID={`skin-choice-${s.id}`}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: picked }}
+                {...radioProps(picked, s.label)}
                 onPress={() => setSkinId(s.id)}
                 style={[styles.skin, picked && styles.skinPicked]}
               >
@@ -79,6 +84,7 @@ export default function SettingsScreen() {
                     the first: a felt's gradient runs dark at the edges, and
                     the darkest end of it says nothing about the colour. */}
                 <View
+                  aria-hidden
                   style={[
                     styles.swatch,
                     { backgroundColor: s.table.background[Math.floor(s.table.background.length / 2)] },
@@ -90,11 +96,13 @@ export default function SettingsScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </RadioGroup>
       </View>
 
       <View style={shared.card}>
-        <Text style={styles.heading}>{t('settings.language.heading')}</Text>
+        <Text style={styles.heading} {...heading(3)}>
+          {t('settings.language.heading')}
+        </Text>
         <Text style={shared.status}>{t('settings.language.status')}</Text>
         <LanguagePicker />
       </View>
@@ -108,17 +116,19 @@ export default function SettingsScreen() {
       {/* Where a player goes looking for the notices once the sign-in screen
           that first showed them is behind them. */}
       <View style={shared.card}>
-        <Text style={styles.heading}>{t('settings.legal.heading')}</Text>
+        <Text style={styles.heading} {...heading(3)}>
+          {t('settings.legal.heading')}
+        </Text>
         <Text style={shared.status}>{t('settings.legal.status')}</Text>
         <LegalLinks style={{ marginTop: 10 }} />
       </View>
 
       {!signedIn ? (
-        <Pressable style={shared.button} onPress={() => router.push('/auth/login')}>
+        <Pressable style={shared.button} role="button" onPress={() => router.push('/auth/login')}>
           <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
         </Pressable>
       ) : null}
-      <Pressable onPress={() => router.back()}>
+      <Pressable role="button" onPress={() => router.back()}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>
@@ -127,7 +137,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   heading: { color: colors.text, fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  skins: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  skins: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   // Two pixels of border always, transparent when unpicked — picking one must
   // not move the one beside it.
   skin: { alignItems: 'center', gap: 4, borderWidth: 2, borderColor: 'transparent', borderRadius: 10, padding: 6 },

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { heading } from '@/src/a11y/props';
 import { Screen } from '@/src/components/Screen';
 import { useLocale } from '@/src/hooks/useLocale';
 import { t } from '@/src/lib/i18n';
@@ -26,17 +27,20 @@ export function SignInRequired({ title }: { title: string }) {
   return (
     <Screen title={title}>
       <View style={shared.card} testID="sign-in-required">
-        <Text style={styles.heading}>{t('gate.title')}</Text>
+        <Text style={styles.heading} {...heading(3)}>
+          {t('gate.title')}
+        </Text>
         <Text style={shared.status}>{t('gate.body')}</Text>
       </View>
       <Pressable
         style={shared.button}
         testID="sign-in-required-signin"
+        role="button"
         onPress={() => router.push('/auth/login')}
       >
         <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
       </Pressable>
-      <Pressable onPress={() => router.back()}>
+      <Pressable role="button" onPress={() => router.back()}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>

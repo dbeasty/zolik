@@ -5,6 +5,8 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { apiClient } from '@/src/api/client';
 import type { CircleEntry, CircleLists, CircleSuggestion, NotifyProfile } from '@/src/api/types';
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
 import { Screen } from '@/src/components/Screen';
@@ -77,7 +79,7 @@ export default function CircleScreen() {
     return (
       <Screen title={t('circle.title')} scroll>
         <Text style={shared.status}>{t('circle.signInRequired')}</Text>
-        <Pressable style={[shared.button, { marginTop: 12 }]} onPress={() => router.push('/auth/guest')}>
+        <Pressable role="button" style={[shared.button, { marginTop: 12 }]} onPress={() => router.push('/auth/guest')}>
           <Text style={shared.buttonText}>{t('home.continueAsGuest')}</Text>
         </Pressable>
       </Screen>
@@ -114,19 +116,28 @@ export default function CircleScreen() {
   return (
     <Screen title={t('circle.title')} subtitle={t('circle.subtitle')} scroll>
       <View testID="circle-screen">
-        {error ? <Text style={shared.error} testID="circle-error">{error}</Text> : null}
-        {notice ? <Text style={[shared.status, { color: colors.success }]} testID="circle-notice">{notice}</Text> : null}
+        {error ? <FormError testID="circle-error" message={error} /> : null}
+        {/* Spoken when it appears: "Anna added" is the answer to a button
+            the player just pressed. */}
+        {notice ? (
+          <Text style={[shared.status, { color: colors.success }]} testID="circle-notice" aria-live="polite">
+            {notice}
+          </Text>
+        ) : null}
         {added ? <PushPrompt /> : null}
 
         {requests.length > 0 ? (
           <View style={[shared.card, { marginTop: 12 }]} testID="circle-requests">
-            <Text style={styles.heading}>{t('circle.requests.heading')}</Text>
+            <Text style={styles.heading} {...heading(3)}>
+              {t('circle.requests.heading')}
+            </Text>
             <Text style={shared.status}>{t('circle.requests.body')}</Text>
             {requests.map((r) => (
               <PersonRow key={r.key} name={r.name} avatarKey={r.key} avatar={r.avatar} testID={`circle-request-${r.key}`}>
                 <SmallButton
                   label={t('circle.accept')}
                   testID={`circle-request-accept-${r.key}`}
+                  who={r.name}
                   disabled={busyKey === r.key}
                   onPress={() =>
                     act(r.key, () => apiClient.acceptCircleRequest(r.key), t('circle.added', { name: r.name }))
@@ -136,6 +147,7 @@ export default function CircleScreen() {
                   label={t('circle.decline')}
                   secondary
                   testID={`circle-request-decline-${r.key}`}
+                  who={r.name}
                   disabled={busyKey === r.key}
                   onPress={() => act(r.key, () => apiClient.declineCircleRequest(r.key))}
                 />
@@ -145,7 +157,9 @@ export default function CircleScreen() {
         ) : null}
 
         <View style={[shared.card, { marginTop: 12 }]} testID="circle-members">
-          <Text style={styles.heading}>{t('circle.members.heading')}</Text>
+          <Text style={styles.heading} {...heading(3)}>
+            {t('circle.members.heading')}
+          </Text>
           <Text style={shared.status}>{t('circle.members.body')}</Text>
           {circle && members.length === 0 ? (
             <Text style={[shared.status, { color: colors.text }]}>{t('circle.members.empty')}</Text>
@@ -163,6 +177,7 @@ export default function CircleScreen() {
                 label={t('circle.remove')}
                 secondary
                 testID={`circle-member-remove-${m.key}`}
+                who={m.name}
                 disabled={busyKey === m.key}
                 onPress={() => act(m.key, () => apiClient.removeFromCircle(m.key))}
               />
@@ -171,7 +186,9 @@ export default function CircleScreen() {
         </View>
 
         <View style={[shared.card, { marginTop: 12 }]} testID="circle-notifiers">
-          <Text style={styles.heading}>{t('circle.notifiers.heading')}</Text>
+          <Text style={styles.heading} {...heading(3)}>
+            {t('circle.notifiers.heading')}
+          </Text>
           <Text style={shared.status}>{t('circle.notifiers.body')}</Text>
           {circle && notifiers.length === 0 ? (
             <Text style={[shared.status, { color: colors.text }]}>{t('circle.notifiers.empty')}</Text>
@@ -189,7 +206,7 @@ export default function CircleScreen() {
                 label={n.muted ? t('circle.unmute') : t('circle.mute')}
                 secondary={!n.muted}
                 testID={`circle-notifier-mute-${n.key}`}
-                accessibilityState={{ checked: !!n.muted }}
+                who={n.name}
                 disabled={busyKey === n.key}
                 onPress={() => act(n.key, () => apiClient.muteNotifier(n.key, !n.muted))}
               />
@@ -199,7 +216,9 @@ export default function CircleScreen() {
 
         {suggestions.length > 0 ? (
           <View style={[shared.card, { marginTop: 12 }]} testID="circle-suggestions">
-            <Text style={styles.heading}>{t('circle.suggestions.heading')}</Text>
+            <Text style={styles.heading} {...heading(3)}>
+              {t('circle.suggestions.heading')}
+            </Text>
             <Text style={shared.status}>{t('circle.suggestions.body')}</Text>
             {suggestions.map((s) => (
               <PersonRow
@@ -213,6 +232,7 @@ export default function CircleScreen() {
                 <SmallButton
                   label={t('circle.add')}
                   testID={`circle-suggestion-add-${s.key}`}
+                  who={s.name}
                   disabled={busyKey === s.key}
                   onPress={async () => {
                     if (await act(s.key, () => apiClient.addToCircle({ key: s.key }), t('circle.added', { name: s.name }))) {
@@ -226,7 +246,9 @@ export default function CircleScreen() {
         ) : null}
 
         <View style={[shared.card, { marginTop: 12 }]} testID="circle-add">
-          <Text style={styles.heading}>{t('circle.addSomeone.heading')}</Text>
+          <Text style={styles.heading} {...heading(3)}>
+            {t('circle.addSomeone.heading')}
+          </Text>
           <Text style={shared.status}>{t('circle.friendLink.body')}</Text>
           {friendUrl ? (
             <>
@@ -245,10 +267,11 @@ export default function CircleScreen() {
               {/* A QR code for the person standing next to you, whose phone
                   camera is faster than any chat. White behind it always:
                   scanners want dark on light, whatever the app's palette. */}
-              <View style={styles.qr}>
+              <View style={styles.qr} role="img" aria-label={t('a11y.qr')}>
                 <QRCode value={friendUrl} size={148} />
               </View>
               <Pressable
+                role="button"
                 testID="circle-friend-share"
                 style={[shared.button, { marginTop: 4, marginBottom: 0 }]}
                 onPress={async () => setShared(await shareInviteLink(friendUrl, t('circle.shareMessage')))}
@@ -268,9 +291,13 @@ export default function CircleScreen() {
             <Text style={shared.status}>{t('invite.noAddress')}</Text>
           ) : null}
 
-          <Text style={[shared.status, { marginTop: 16 }]}>{t('circle.username.body')}</Text>
+          <Text style={[shared.status, { marginTop: 16 }]} nativeID="circle-username-label">
+            {t('circle.username.body')}
+          </Text>
           <TextInput
             testID="circle-add-username-input"
+            accessibilityLabel={t('circle.username.placeholder')}
+            aria-labelledby="circle-username-label"
             style={[shared.input, { marginTop: 8 }]}
             placeholder={t('circle.username.placeholder')}
             placeholderTextColor={colors.muted}
@@ -280,6 +307,7 @@ export default function CircleScreen() {
             onChangeText={setUsername}
           />
           <Pressable
+            role="button"
             testID="circle-add-username-submit"
             style={[shared.button, shared.buttonSecondary, { marginBottom: 0 }]}
             disabled={!username.trim() || busyKey === 'username'}
@@ -301,7 +329,7 @@ export default function CircleScreen() {
           </Pressable>
         </View>
 
-        <Pressable onPress={() => router.push('/settings')} style={{ marginTop: 4 }}>
+        <Pressable role="button" onPress={() => router.push('/settings')} style={{ marginTop: 4 }}>
           <Text style={[shared.status, { color: colors.accent }]}>{t('circle.settingsLink')}</Text>
         </Pressable>
       </View>
@@ -343,11 +371,11 @@ function PersonRow({
     <View style={styles.row} testID={testID}>
       <Avatar spec={avatarFor(avatarKey, false, avatar)} size={30} />
       <View style={styles.rowText}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {name}
         </Text>
         {detail ? (
-          <Text style={styles.detail} numberOfLines={1}>
+          <Text style={styles.detail} numberOfLines={2}>
             {detail}
           </Text>
         ) : null}
@@ -363,20 +391,21 @@ function SmallButton({
   testID,
   secondary,
   disabled,
-  accessibilityState,
+  who,
 }: {
   label: string;
   onPress: () => void;
   testID: string;
   secondary?: boolean;
   disabled?: boolean;
-  accessibilityState?: { checked?: boolean };
+  /** The person the row is about, so "Remove" says whom it removes. */
+  who?: string;
 }) {
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="button"
-      accessibilityState={{ disabled, ...accessibilityState }}
+      role="button"
+      aria-label={who ? t('a11y.actionFor', { action: label, what: who }) : label}
       disabled={disabled}
       onPress={onPress}
       style={[shared.button, secondary && shared.buttonSecondary, styles.small, disabled && { opacity: 0.6 }]}

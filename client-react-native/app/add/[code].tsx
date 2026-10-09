@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { apiClient } from '@/src/api/client';
 import type { FriendPreview } from '@/src/api/types';
 import { Avatar } from '@/src/components/avatars/Avatar';
@@ -77,13 +78,11 @@ export default function AddFriendScreen() {
   if (error) {
     return (
       <Screen title={t('circle.addFriend.title')} scroll>
-        <Text testID="add-friend-error" style={shared.error}>
-          {error}
-        </Text>
-        <Pressable style={shared.button} onPress={() => router.replace('/circle')}>
+        <FormError testID="add-friend-error" message={error} />
+        <Pressable role="button" style={shared.button} onPress={() => router.replace('/circle')}>
           <Text style={shared.buttonText}>{t('circle.addFriend.toCircle')}</Text>
         </Pressable>
-        <Pressable onPress={() => router.replace('/')}>
+        <Pressable role="button" onPress={() => router.replace('/')}>
           <Text style={shared.status}>{t('join.backToMenu')}</Text>
         </Pressable>
       </Screen>
@@ -93,7 +92,7 @@ export default function AddFriendScreen() {
   if (!preview || loading) {
     return (
       <Screen title={t('circle.addFriend.title')} scroll>
-        <ActivityIndicator testID="add-friend-loading" color={colors.accent} />
+        <ActivityIndicator aria-label={t('a11y.loading')} testID="add-friend-loading" color={colors.accent} />
         <Text style={[shared.status, { marginTop: 12 }]}>{t('circle.addFriend.loading')}</Text>
       </Screen>
     );
@@ -111,6 +110,7 @@ export default function AddFriendScreen() {
         </Text>
         {done ? (
           <Pressable
+            role="button"
             testID="add-friend-open-circle"
             style={[shared.button, { marginTop: 12, alignSelf: 'stretch' }]}
             onPress={() => router.replace('/circle')}
@@ -119,6 +119,7 @@ export default function AddFriendScreen() {
           </Pressable>
         ) : (
           <Pressable
+            role="button"
             testID="add-friend-confirm"
             style={[shared.button, { marginTop: 12, alignSelf: 'stretch' }]}
             disabled={busy}

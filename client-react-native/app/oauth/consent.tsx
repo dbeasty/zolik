@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text } from 'react-native';
 
+import { FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -69,9 +70,7 @@ export default function OAuthConsentScreen() {
   return (
     <Screen title={name ? t('oauth.heading', { name }) : t('oauth.working')} scroll>
       {error ? (
-        <Text testID="oauth-error" style={shared.error}>
-          {error}
-        </Text>
+        <FormError testID="oauth-error" message={error} />
       ) : null}
       {info ? (
         <>
@@ -79,15 +78,15 @@ export default function OAuthConsentScreen() {
           <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}>
             {t('oauth.returnsTo', { host: info.redirectHost })}
           </Text>
-          <Pressable testID="oauth-allow" style={shared.button} onPress={() => answer(true)} disabled={busy}>
+          <Pressable role="button" testID="oauth-allow" style={shared.button} onPress={() => answer(true)} disabled={busy}>
             <Text style={shared.buttonText}>{t('oauth.allow')}</Text>
           </Pressable>
-          <Pressable testID="oauth-deny" style={shared.button} onPress={() => answer(false)} disabled={busy}>
+          <Pressable role="button" testID="oauth-deny" style={shared.button} onPress={() => answer(false)} disabled={busy}>
             <Text style={shared.buttonText}>{t('oauth.deny')}</Text>
           </Pressable>
         </>
       ) : error ? null : (
-        <ActivityIndicator />
+        <ActivityIndicator aria-label={t('a11y.loading')} />
       )}
     </Screen>
   );

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { ModuleRules } from '@/src/api/matchTypes';
+import { FormError } from '@/src/a11y/Field';
+import { heading } from '@/src/a11y/props';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { factText, label } from '@/src/lib/labels';
@@ -95,7 +97,7 @@ export default function RulesScreen() {
   if (!rules && !error) {
     return (
       <Screen title={t('nav.rules')}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
       </Screen>
     );
   }
@@ -104,9 +106,7 @@ export default function RulesScreen() {
     <Screen title={t('nav.rules')} scroll>
       <ScrollView ref={scroller} testID="rules-screen">
         {error ? (
-          <Text testID="rules-error" style={styles.error}>
-            {error}
-          </Text>
+          <FormError testID="rules-error" style={styles.error} message={error} />
         ) : null}
         {/* Numbered, because a rule you can be sent to is a rule worth being
             able to name — a refusal says "rule 3.4" and this is where 3.4 is.
@@ -114,7 +114,9 @@ export default function RulesScreen() {
             change may renumber a rule but never re-address it. */}
         {rules?.sections.map((section, i) => (
           <View key={section.id ?? i} style={styles.section} testID={`rules-section-${i}`}>
-            <Text style={styles.sectionTitle}>
+            {/* A real heading, so a screen reader can jump section to
+                section — "3. Scoring" — instead of reading every rule. */}
+            <Text style={styles.sectionTitle} {...heading(3)}>
               <Text style={styles.number}>{i + 1}. </Text>
               {label(section.titleKey)}
             </Text>
