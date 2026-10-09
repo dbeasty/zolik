@@ -211,9 +211,15 @@ test.describe('reduced motion, asked for in the app', () => {
     await playAgainstBots(page, 'prsi');
     await expect(page.locator('[data-testid^="card-hand:"]').first()).toBeVisible({ timeout: 30_000 });
     // Long enough for the bots to have played several cards between them.
-    const deadline = Date.now() + 12_000;
+    // Whenever it is this player's turn they draw, so the game keeps moving
+    // (and a draw is a card travelling too) — the same in both runs.
+    const deadline = Date.now() + 15_000;
+    const draw = page.getByTestId('offer-draw');
     while (Date.now() < deadline) {
       if (await page.evaluate(() => (window as unknown as { __flew: boolean }).__flew)) return true;
+      if ((await draw.isVisible()) && (await draw.getAttribute('aria-disabled')) !== 'true') {
+        await draw.click({ timeout: 2_000 }).catch(() => {});
+      }
       await page.waitForTimeout(250);
     }
     return page.evaluate(() => (window as unknown as { __flew: boolean }).__flew);
