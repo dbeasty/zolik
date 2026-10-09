@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
+import { announce } from '@/src/a11y/announce';
+import { Tip } from '@/src/a11y/Tip';
 import type { Fact, MatchPlayer, MoveLine } from '@/src/api/matchTypes';
 import { useSkin } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
-import { factText } from '@/src/lib/labels';
+import { factText, spokenFactText } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -59,21 +61,76 @@ export function MoveAnnouncements({
   // one keeps its size, the newest line at the bottom and the oldest falling
   // off the top. The prompt — what the table is waiting on this player for —
   // goes last, where nothing pushes it out of sight.
+  // The newest line, said again on request — the screen reader heard it once,
+  // as it happened, possibly over something else.
+  const last = moves[moves.length - 1];
+  const repeat = () => announce(last ? spokenFactText(last.fact, players) : t('a11y.board.moves.none'), 'assertive');
+
+  // Not a live region of its own any more: every move is already announced,
+  // once and in words, by the match screen through `announceGame` — which
+  // also honours the player's choice of how much to hear. A second, polite
+  // copy here read each move twice and ignored that choice.
+  //
+  // It is the board's "recent moves" region instead, a list a screen reader
+  // can walk back through, focusable from the keyboard (M) so that walking
+  // can start from a key.
   return (
-    <View style={styles.box} testID="move-announcements" accessibilityLiveRegion="polite">
+    <View
+      style={styles.box}
+      testID="move-announcements"
+      {...((Platform.OS === 'web'
+        ? { role: 'region', 'aria-label': t('a11y.board.region.moves'), tabIndex: -1 }
+        : {
+            accessibilityActions: [{ name: 'repeat', label: t('a11y.board.moves.repeat') }],
+            onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => {
+              if (e.nativeEvent.actionName === 'repeat') repeat();
+            },
+          }) as object)}
+    >
+      {/* Repeat-last, over the box's corner rather than in its flow: the box
+          keeps one fixed height whatever is in it (see below). */}
+      <Tip text={t('a11y.board.tip.repeat')} style={styles.repeatAt}>
+        <Pressable
+          testID="moves-repeat"
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.board.moves.repeat')}
+          onPress={repeat}
+          hitSlop={8}
+          style={styles.repeat}
+        >
+          <Text style={styles.repeatText}>↻</Text>
+        </Pressable>
+      </Tip>
       {/* On a short window the lines speak for themselves; the room goes to the hand. */}
-      {short ? null : <Text style={styles.title}>{t('moves.title')}</Text>}
+      {short ? null : (
+        <Text style={styles.title} {...((Platform.OS === 'web' ? {} : { accessibilityRole: 'header' }) as object)}>
+          {t('moves.title')}
+        </Text>
+      )}
       <View style={styles.lines}>
+        {/* The moves are a list of their own — the prompts after them are
+            not moves, and a list may hold nothing but its items. Spaced the
+            way the lines are, so the box looks exactly as it did. */}
+        <View style={styles.list} {...((Platform.OS === 'web' ? { role: 'list' } : {}) as object)}>
         {shown.map((m, i) => {
           const newest = !settled && i === shown.length - 1;
           return (
-            <View key={i} style={[styles.row, newest && styles.newestRow]}>
+            <View
+              key={i}
+              style={[styles.row, newest && styles.newestRow]}
+              // Each line said with its cards in words; the visible line keeps
+              // the glyphs a sighted reader takes in faster.
+              {...((Platform.OS === 'web'
+                ? { role: 'listitem', 'aria-label': spokenFactText(m.fact, players) }
+                : { accessible: true, accessibilityLabel: spokenFactText(m.fact, players) }) as object)}
+            >
               <Text testID={`announce-${i}`} style={[styles.line, newest && styles.newest, settled && styles.settled]}>
                 {factText(m.fact, players)}
               </Text>
             </View>
           );
         })}
+        </View>
         {prompts.map((f, i) => (
           <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
             {factText(f, players)}
@@ -116,7 +173,12 @@ function announceStyles(s: Skin, linesHeight: number, short: boolean) {
       textTransform: 'uppercase',
       fontWeight: '600',
     },
+    list: { gap: 3 },
     row: { borderLeftWidth: 3, borderLeftColor: 'transparent', paddingLeft: 8 },
+    // In the box's top-right corner, out of the flow — see the render.
+    repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1 },
+    repeat: { minWidth: 24, alignItems: 'center' },
+    repeatText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
     newestRow: { borderLeftColor: colors.accent },
     line: { color: colors.text, fontSize: 15 },
     newest: { fontSize: 17, fontWeight: '700' },

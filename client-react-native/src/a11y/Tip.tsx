@@ -88,6 +88,11 @@ export function dismissTips() {
   hideTip();
 }
 
+/** Whether a bubble is showing — so Escape can close it before it means anything else. */
+export function isTipOpen(): boolean {
+  return shown !== null;
+}
+
 const HOVER_DELAY_MS = 500;
 const TOUCH_SHOW_MS = 4000;
 
@@ -139,7 +144,13 @@ export function Tip({ text, shortcut, focusable, label, testID, style, children 
   // lands on — the button, not a wrapper around it — carries it.
   const only = isValidElement(children) ? (children as ReactElement<Record<string, unknown>>) : null;
   const childProps = only?.props ?? {};
-  const described = only
+  // An icon button's tip is usually its name ("Minimize Your hand"); linked
+  // as its description too, a screen reader would say it twice.
+  const sameAsName =
+    !shortcut && (childProps.accessibilityLabel === text || childProps['aria-label'] === text);
+  const described = sameAsName
+    ? children
+    : only
     ? cloneElement(only, {
         ...(Platform.OS === 'web'
           ? { 'aria-describedby': [childProps['aria-describedby'], id].filter(Boolean).join(' ') }
@@ -209,7 +220,11 @@ export function Tip({ text, shortcut, focusable, label, testID, style, children 
     >
       {body}
       {Platform.OS === 'web' ? (
-        <View nativeID={id} style={visuallyHidden} aria-hidden={false}>
+        // Hidden from the tree, still the description: `aria-describedby`
+        // reads hidden content by design, and without this a screen reader
+        // reading the page in order would say every tip a second time as a
+        // loose line of text after the control it belongs to.
+        <View nativeID={id} style={visuallyHidden} aria-hidden>
           <Text>{full}</Text>
         </View>
       ) : null}

@@ -10,7 +10,8 @@ import {
   View,
 } from 'react-native';
 
-import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
+import { Tip } from '@/src/a11y/Tip';
+import type { ActionOffer, MatchAction, MatchPlayer, ParamSpec, Zone } from '@/src/api/matchTypes';
 import {
   defaultParam,
   isOneTap,
@@ -24,6 +25,7 @@ import { fits, readyWith, refusalOfFit, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
 import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
+import { offerSpokenName, offerTip } from '@/src/lib/boardSpeech';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText, t } from '@/src/lib/i18n';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -126,7 +128,18 @@ type Props = SharedParams & {
   nudge?: boolean;
   /** The offer a hint suggested, ringed until the board moves on. */
   hintOfferId?: string;
+  /**
+   * The board the offers are about, for their tooltips — "Plays the selected
+   * cards to the discard pile" needs to know what the discard pile is called.
+   * Optional: without it a control's tip is its reason or nothing.
+   */
+  board?: OfferBoard;
+  /** The keyboard shortcut that presses an offer, by offer id — shown after its tip. */
+  shortcuts?: ReadonlyMap<string, string>;
 };
+
+/** What `OfferBar` needs of the board to word its tooltips. */
+export type OfferBoard = { zones: Zone[]; players: MatchPlayer[]; viewerId: string };
 
 /**
  * Two kinds of offer are folded. One names an existing target of its own
@@ -168,6 +181,8 @@ export function OfferBar({
   urgent,
   nudge,
   hintOfferId,
+  board,
+  shortcuts,
   ...shared
 }: Props) {
   const metrics = useMetrics();
@@ -209,7 +224,7 @@ export function OfferBar({
   // something does.
   // Never an undo: taking a move back is always available and never the
   // thing the table is waiting for.
-  const leadId = offers.find((o) => o.enabled && !o.undo && isReady(o, selectedCards, params[o.id]))?.id;
+  const leadId = leadOffer(offers, selectedCards, params)?.id;
 
   return (
     <View style={styles.bar} testID="action-bar">
@@ -246,15 +261,35 @@ export function OfferBar({
         const explain = onExplain
           ? () => onExplain(refusalFor(offer, selectedCards, params[offer.id]))
           : undefined;
+        const title = headline
+          ? `${label(headline.labelKey)} ${headline.value}`
+          : label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb;
+        // Why it is off, when it is — the same sentence the reason line
+        // under it prints, as its description: what a keyboard or a screen
+        // reader gets in place of a glance at the grey line.
+        const reason =
+          !offer.enabled && offer.whyNot
+            ? reasonText(offer.whyNot, offer.whyNot)
+            : unready
+              ? label(unready.labelKey, unready.params)
+              : undefined;
+        const tip = live
+          ? (board ? offerTip(offer, board.zones, board.players, board.viewerId) : undefined) ??
+            (shortcuts?.get(offer.id) ? title : undefined)
+          : reason;
         return (
           <View key={offer.id} style={styles.slot}>
             <ExplainOnPress testID={`explain-${offer.id}`} onExplain={explain}>
+            <Tip text={tip} shortcut={live ? shortcuts?.get(offer.id) : undefined}>
             <Pressable
               testID={`offer-${offer.id}`}
+              {...BUTTON_ROLE}
+              accessibilityLabel={offerSpokenName(title, offer.facts, board?.players)}
               accessibilityState={{ disabled: !live }}
               disabled={!live}
               onPress={() => send(offer)}
               style={[styles.button, !live && styles.ghost]}
+              {...offOfferProps(!live, explain)}
             >
               {/* A ring in the air around the one thing the table is waiting
                   for. Drawn inside the control so it needs no wrapper, and on
@@ -271,13 +306,12 @@ export function OfferBar({
                   if it has one, because a verb cannot always tell two
                   controls apart; otherwise the verb, which covers most
                   offers. */}
+              <ExplainTarget off={!live} onExplain={explain}>
               <Text
                 testID={`offer-${offer.id}-title`}
                 style={[styles.buttonText, !live && styles.ghostText]}
               >
-                {headline
-                  ? `${label(headline.labelKey)} ${headline.value}`
-                  : label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
+                {title}
               </Text>
               {/* What the move costs, pushed by the server rather than worked
                   out here — "Call 40" is a button whose meaning is its number. */}
@@ -289,7 +323,9 @@ export function OfferBar({
                   {factText(f)}
                 </Text>
               ))}
+              </ExplainTarget>
             </Pressable>
+            </Tip>
             </ExplainOnPress>
 
             {/* The reason stays inline and always visible; pressing it opens
@@ -466,12 +502,17 @@ export function OfferGlance({
           >
           <Pressable
             testID={`offer-glance-${o.id}`}
-            accessibilityRole="button"
+            {...BUTTON_ROLE}
             accessibilityState={{ disabled: !ready }}
             disabled={!ready}
             onPress={() => press(o, groupKey)}
             style={[styles.glancePill, !ready && styles.ghost]}
+            {...offOfferProps(!ready, onExplain ? () => onExplain(refusalFor(o, selectedCards, params[o.id])) : undefined)}
           >
+            <ExplainTarget
+              off={!ready}
+              onExplain={onExplain ? () => onExplain(refusalFor(o, selectedCards, params[o.id])) : undefined}
+            >
             <Text
               testID={`offer-glance-${o.id}-title`}
               style={[styles.glancePillText, !ready && styles.ghostText]}
@@ -481,6 +522,7 @@ export function OfferGlance({
                 ? `${label(headline.labelKey)} ${headline.value}`
                 : label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
             </Text>
+            </ExplainTarget>
           </Pressable>
           </ExplainOnPress>
         );
@@ -580,18 +622,34 @@ function FoldedOffer({
   return (
     <View style={styles.slot}>
       <ExplainOnPress testID={`explain-group:${groupKey}`} onExplain={onExplain ? explain : undefined}>
+        <Tip
+          text={
+            ghost
+              ? unready
+                ? label(unready.labelKey, unready.params)
+                : sharedReason
+                  ? reasonText(sharedReason, sharedReason)
+                  : undefined
+              : undefined
+          }
+        >
         <Pressable
           testID={`offer-group:${groupKey}`}
+          {...BUTTON_ROLE}
           accessibilityState={{ disabled: ghost }}
           disabled={ghost}
           onPress={press}
           style={[styles.button, ghost && styles.ghost]}
+          {...offOfferProps(ghost, onExplain ? explain : undefined)}
         >
           <Attention active={!!hinted} radius={8} />
+          <ExplainTarget off={ghost} onExplain={onExplain ? explain : undefined}>
           <Text style={[styles.buttonText, ghost && styles.ghostText]}>
             {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
           </Text>
+          </ExplainTarget>
         </Pressable>
+        </Tip>
       </ExplainOnPress>
 
       {choice && unready ? (
@@ -678,6 +736,7 @@ function ParamControl({
         {/* Drag to any figure in the range — the fine-grained way in, next to
             the stepper's one-unit nudge and the keyboard's exact one. */}
         <AmountSlider
+          name={label(spec.labelKey)}
           testID={`param-${spec.name}-slider`}
           min={min}
           max={max}
@@ -690,8 +749,11 @@ function ParamControl({
         <View style={styles.stepper}>
           <Pressable
             testID={`param-${spec.name}-down`}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.param.down', { name: label(spec.labelKey), step })}
             onPress={() => commit(current - step)}
             style={styles.stepButton}
+            hitSlop={6}
           >
             <Text style={styles.stepText}>−</Text>
           </Pressable>
@@ -708,8 +770,11 @@ function ParamControl({
           />
           <Pressable
             testID={`param-${spec.name}-up`}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.param.up', { name: label(spec.labelKey), step })}
             onPress={() => commit(current + step)}
             style={styles.stepButton}
+            hitSlop={6}
           >
             <Text style={styles.stepText}>+</Text>
           </Pressable>
@@ -717,8 +782,11 @@ function ParamControl({
               control says "max", not "all in": it does not know. */}
           <Pressable
             testID={`param-${spec.name}-max`}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.param.max', { name: label(spec.labelKey), max })}
             onPress={() => commit(max)}
             style={styles.stepButton}
+            hitSlop={6}
           >
             <Text style={styles.stepText}>max</Text>
           </Pressable>
@@ -735,6 +803,9 @@ function ParamControl({
               <Pressable
                 key={c.value}
                 testID={`param-${spec.name}-${c.value}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: current === Number(c.value) }}
+                {...((Platform.OS === 'web' ? { 'aria-pressed': current === Number(c.value) } : {}) as object)}
                 onPress={() => commit(Number(c.value))}
                 style={[styles.choice, current === Number(c.value) && styles.choiceOn]}
               >
@@ -755,6 +826,9 @@ function ParamControl({
           <Pressable
             key={c.value}
             testID={`param-${spec.name}-${c.value}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: value === c.value }}
+            {...((Platform.OS === 'web' ? { 'aria-pressed': value === c.value } : {}) as object)}
             onPress={() => onChange(c.value)}
             style={[styles.choice, value === c.value && styles.choiceOn]}
           >
@@ -856,6 +930,7 @@ const THUMB_RADIUS = THUMB_SIZE / 2;
  * render's `min`/`max`/`onChange` forever.
  */
 function AmountSlider({
+  name,
   min,
   max,
   step,
@@ -864,6 +939,7 @@ function AmountSlider({
   styles,
   testID,
 }: {
+  name: string;
   min: number;
   max: number;
   step: number;
@@ -916,12 +992,82 @@ function AmountSlider({
       style={styles.sliderTrack}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       {...responder.panHandlers}
+      // A slider a finger drags is a slider a keyboard nudges and a screen
+      // reader adjusts: the arrows step it, Page keys move a tenth of the
+      // range, Home and End go to the ends.
+      {...((Platform.OS === 'web'
+        ? {
+            role: 'slider',
+            tabIndex: 0,
+            'aria-label': name,
+            'aria-valuemin': min,
+            'aria-valuemax': max,
+            'aria-valuenow': value,
+            onKeyDown: (e: { key: string; preventDefault: () => void }) => {
+              const big = Math.max(step, Math.round((max - min) / 10 / step) * step);
+              const next =
+                e.key === 'ArrowRight' || e.key === 'ArrowUp'
+                  ? value + step
+                  : e.key === 'ArrowLeft' || e.key === 'ArrowDown'
+                    ? value - step
+                    : e.key === 'PageUp'
+                      ? value + big
+                      : e.key === 'PageDown'
+                        ? value - big
+                        : e.key === 'Home'
+                          ? min
+                          : e.key === 'End'
+                            ? max
+                            : null;
+              if (next === null) return;
+              e.preventDefault();
+              onChange(Math.min(Math.max(next, min), max));
+            },
+          }
+        : {
+            accessible: true,
+            accessibilityRole: 'adjustable',
+            accessibilityLabel: name,
+            accessibilityValue: { min, max, now: value },
+            accessibilityActions: [{ name: 'increment' }, { name: 'decrement' }],
+            onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => {
+              const dir = e.nativeEvent.actionName === 'increment' ? 1 : e.nativeEvent.actionName === 'decrement' ? -1 : 0;
+              if (dir) onChange(Math.min(Math.max(value + dir * step, min), max));
+            },
+          }) as object)}
     >
       <View style={styles.sliderRail} />
       <View style={[styles.sliderFill, { width: centre }]} />
       <View style={[styles.sliderThumb, { left: centre - THUMB_RADIUS }]} />
     </View>
   );
+}
+
+/**
+ * The control the table is waiting on: the first one that could be pressed
+ * right now, in the module's own order, never a take-back. The one `urgent`
+ * and `nudge` ring, and the one the keyboard's Enter presses.
+ */
+export function leadOffer(
+  offers: ActionOffer[],
+  selected: string[],
+  params: OfferParams = {},
+): ActionOffer | undefined {
+  return offers.find((o) => o.enabled && !o.undo && isReady(o, selected, params[o.id]));
+}
+
+/**
+ * What pressing this offer's control would send right now, built exactly the
+ * way the control builds it — so a shortcut and a press can never send two
+ * different things. `cards` is set when the selection went with it.
+ */
+export function pressOf(
+  offer: ActionOffer,
+  selected: string[],
+  params: OfferParams = {},
+): { action: MatchAction | null; cards?: string[] } {
+  const cards = offer.composite || (offer.source?.minCards ?? 0) > 0 ? pickCards(offer, selected) : undefined;
+  return { action: submissionFor(offer, { cards, params: params[offer.id] }), cards };
 }
 
 /** Which cards to send: the whole selection, once it is one this offer takes. */
@@ -1216,12 +1362,94 @@ function ExplainOnPress({
   testID: string;
   children: ReactNode;
 }) {
+  // Out of the tab order and the accessibility tree on purpose: this is the
+  // pointer's way to the reason, and only the pointer's. The keyboard's and
+  // the screen reader's go through the control itself, which stays a
+  // focusable button even while it is off — see `offOfferProps`.
   return (
     <Pressable testID={testID} onPress={onExplain} tabIndex={-1} accessible={false}>
       {children}
     </Pressable>
   );
 }
+
+/**
+ * A control's button role, given in a way that survives being switched off.
+ *
+ * react-native-web draws `role="button"` as a real `<button>`, and a real
+ * button that is `aria-disabled` it also makes `disabled` — which takes it
+ * out of the tab order and stops every click on it and inside it, so a
+ * control that is off could neither be reached by the keyboard nor explain
+ * itself to a pointer. And a control that is on and one that is off would be
+ * two different elements, so the one with focus would be replaced — focus
+ * and all — the moment pressing it switched it off.
+ *
+ * So on the web the role is written onto the element directly, once it
+ * exists: one `div[role=button]` for the control's whole life, focusable
+ * whether or not it is on, and still pressed by Enter and Space
+ * (react-native-web's press handling reads the role off the element). On iOS
+ * and Android it is the ordinary prop.
+ */
+const BUTTON_ROLE: object =
+  Platform.OS === 'web'
+    ? {
+        ref: (node: unknown) => {
+          (node as { setAttribute?: (k: string, v: string) => void } | null)?.setAttribute?.('role', 'button');
+        },
+      }
+    : { accessibilityRole: 'button' };
+
+/**
+ * What keeps a control that is off reachable without a pointer.
+ *
+ * A disabled `Pressable` drops out of the tab order on the web, which is
+ * exactly wrong for a control whose whole message is "not now, and here is
+ * why": a keyboard player would never land on it, and a screen reader in
+ * focus mode would never hear the reason. So it keeps its Tab stop
+ * (`tabIndex` 0 — `aria-disabled` still says it is off, and `disabled` still
+ * stops it sending anything; see the note on `ExplainOnPress` about why
+ * `disabled` must stay), and Enter or Space on it opens the same explanation
+ * a press does. Its tooltip — the reason — is its description.
+ */
+function offOfferProps(off: boolean, onExplain?: () => void): object {
+  if (!off) return {};
+  return {
+    tabIndex: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          onKeyDown: (e: { key: string; preventDefault: () => void; stopPropagation: () => void }) => {
+            if (!onExplain || (e.key !== 'Enter' && e.key !== ' ')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onExplain();
+          },
+        }
+      : {}),
+  };
+}
+
+/**
+ * Where a click on a control that is off is heard on the web.
+ *
+ * A disabled button swallows a click on itself (react-native-web stops it
+ * there, so it never reaches `ExplainOnPress` around it), but the click lands
+ * on the words inside it first. This wraps the words and answers there; a
+ * click on the button's bare padding still falls through to `ExplainOnPress`,
+ * because a disabled pressable takes no pointer events of its own. Lays out
+ * exactly as the words did — a centred column, like the button.
+ */
+function ExplainTarget({ off, onExplain, children }: { off: boolean; onExplain?: () => void; children: ReactNode }) {
+  return (
+    <View
+      style={explainTargetStyle}
+      {...((Platform.OS === 'web' && off && onExplain ? { onClick: onExplain } : {}) as object)}
+    >
+      {children}
+    </View>
+  );
+}
+
+const explainTargetStyle = { alignItems: 'center' as const };
 
 /**
  * The reason under a control: always readable at a glance, and pressable when

@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/src/api/client';
@@ -97,6 +97,13 @@ export default function ReplayScreen() {
   useEffect(() => {
     if (session) void loadPage(0);
   }, [session, loadPage]);
+
+  // The page's title on the web, as the bar says it: a screen reader reads it
+  // on arrival, and a browser tab shows it.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.title = t('a11y.page.title', { screen: t('nav.replay') });
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -313,7 +320,9 @@ export default function ReplayScreen() {
           testID="replay-screen"
         >
           <View style={own.caption}>
-            <Text testID="replay-step" style={own.captionText}>
+            {/* Said as it changes: stepping through a game with the arrows is
+                stepping through these sentences. */}
+            <Text testID="replay-step" style={own.captionText} accessibilityLiveRegion="polite">
               {captionFor(frame, replay, index, total)}
             </Text>
             {replay.open ? (
@@ -343,6 +352,8 @@ export default function ReplayScreen() {
                   <Pressable
                     key={c.round}
                     testID={`replay-chapter-${c.round}`}
+                    accessibilityRole="button"
+                    {...((Platform.OS === 'web' ? { 'aria-pressed': here } : { accessibilityState: { selected: here } }) as object)}
                     onPress={() => step(c.from)}
                     style={[own.chapter, here && own.chapterHere]}
                   >
@@ -370,6 +381,8 @@ export default function ReplayScreen() {
                 <Pressable
                   key={c.id}
                   testID={`replay-track-${c.id}`}
+                  accessibilityRole="button"
+                  {...((Platform.OS === 'web' ? { 'aria-pressed': c.id === activeTrack.id } : { accessibilityState: { selected: c.id === activeTrack.id } }) as object)}
                   onPress={() => setTrackId(c.id)}
                   style={[own.chapter, c.id === activeTrack.id && own.chapterHere]}
                 >
@@ -430,6 +443,8 @@ export default function ReplayScreen() {
         <View style={own.transport} testID="replay-transport">
           <Pressable
             testID="replay-first"
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.replay.first')}
             onPress={() => step(0)}
             disabled={index === 0}
             style={[own.button, index === 0 && own.buttonOff]}
@@ -438,6 +453,8 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-prev"
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.replay.prev')}
             onPress={() => { const to = stepTarget(-1); if (to !== null) step(to); }}
             disabled={!canStep(-1)}
             style={[own.button, !canStep(-1) && own.buttonOff]}
@@ -446,6 +463,7 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-play"
+            accessibilityRole="button"
             onPress={() => setPlaying((p) => !p)}
             disabled={index >= total - 1}
             style={[own.button, own.buttonWide, index >= total - 1 && own.buttonOff]}
@@ -454,6 +472,8 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-next"
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.replay.next')}
             onPress={() => { const to = stepTarget(1); if (to !== null) step(to); }}
             disabled={!canStep(1)}
             style={[own.button, !canStep(1) && own.buttonOff]}
@@ -462,6 +482,8 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-mark"
+            accessibilityRole="button"
+            accessibilityLabel={marks.includes(index) ? t('a11y.board.replay.unmark') : t('a11y.board.replay.mark')}
             onPress={() => void toggleMark()}
             style={[own.button, marks.includes(index) && own.chapterHere]}
           >
@@ -469,6 +491,8 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-last"
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.board.replay.last')}
             onPress={() => step(total - 1)}
             disabled={index >= total - 1}
             style={[own.button, index >= total - 1 && own.buttonOff]}

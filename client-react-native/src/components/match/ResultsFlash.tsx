@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+
+import { announceGame } from '@/src/a11y/announce';
 
 import { CardCharacter, type Suit } from '@/src/components/fun/CardCharacter';
 import { CardRain } from '@/src/components/fun/CardRain';
@@ -109,7 +111,9 @@ export function ResultsFlash({
   // headline goes out through the one channel that is — and the drawing itself
   // is hidden from the accessibility tree rather than competing with it.
   useEffect(() => {
-    if (visible && lines.headline) AccessibilityInfo.announceForAccessibility(lines.headline);
+    // Through `announceGame`, so it honours the player's choice of how much
+    // to hear, and queues behind (or ahead of) the moves that led to it.
+    if (visible && lines.headline) announceGame(lines.headline, 'result');
   }, [visible, lines.headline]);
 
   if (!rendered || !lines.headline) return null;

@@ -56,6 +56,11 @@ export function FlightLayer({ flights, rectFor, measure, onDone }: Props) {
         selfRef.current = n as unknown as Measurable | null;
       }}
       pointerEvents="none"
+      // A card in the air is a picture of a move the announcer has already
+      // said; the copy it lands as is the one to read.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      aria-hidden
       style={styles.layer}
       onLayout={remeasureOrigin}
       testID="flight-layer"
