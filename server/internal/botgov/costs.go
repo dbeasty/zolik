@@ -22,6 +22,9 @@ func DefaultCosts() map[Class]time.Duration {
 		// Žolíky's AI seat (the network) at an eight-seat classic table, the
 		// one configuration whose tail runs to a quarter of a second.
 		{"zolik", "ai", EngineNet}: 12 * time.Millisecond,
+		// Lóra Hard plays every choice out over 24 sampled deals, and the
+		// maturant's choice plays out each game in turn.
+		{"lora", "hard", EngineRule}: 3 * time.Millisecond,
 		// Below the floor today, listed so a slower machine (Speed) or a
 		// lower floor brings them in without a code change.
 		{"canasta", "ai", EngineNet}:    1340 * time.Microsecond,

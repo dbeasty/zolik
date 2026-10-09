@@ -7,6 +7,7 @@ import (
 	"zolik/server/internal/ferbl"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/lastcard"
+	"zolik/server/internal/lora"
 	"zolik/server/internal/module"
 	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
@@ -51,6 +52,10 @@ func botCases() []botCase {
 		{name: "okobere", mod: okobere.New(), players: botRefs("b1", "b2", "b3"), carries: true},
 		{name: "sedma", mod: sedma.New(), players: botRefs("b1", "b2", "b3", "b4"), carries: true},
 		{name: "snaps", mod: snaps.New(), players: botRefs("b1", "b2"), carries: true},
+		{
+			name: "lora", mod: lora.New(), players: botRefs("b1", "b2", "b3", "b4"),
+			cfg: module.MatchConfig{Options: module.Options{"talie": 1}}, carries: true,
+		},
 		{
 			name: "canasta", mod: canasta.New(), players: botRefs("b1", "b2"),
 			cfg: module.MatchConfig{Options: module.Options{"targetScore": 500}}, carries: true,
