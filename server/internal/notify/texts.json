@@ -1,6 +1,7 @@
 {
   "bg": {
     "module.klondike": "Пасианс",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Елате да играете {game} с {host}. Докоснете, за да се присъедините.",
@@ -10,6 +11,7 @@
   },
   "cs": {
     "module.klondike": "Solitér",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Přijďte si zahrát {game} s hráčem {host}. Klepněte a přisedněte.",
@@ -19,6 +21,7 @@
   },
   "da": {
     "module.klondike": "Kabale",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom og spil {game} med {host}. Tryk for at deltage.",
@@ -28,6 +31,7 @@
   },
   "de": {
     "module.klondike": "Solitär",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Spiel {game} mit {host}. Tippe zum Beitreten.",
@@ -37,6 +41,7 @@
   },
   "el": {
     "module.klondike": "Πασιέντζα",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ελάτε να παίξετε {game} με {host}. Αγγίξτε για συμμετοχή.",
@@ -46,6 +51,7 @@
   },
   "en": {
     "module.klondike": "Solitaire",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Come and play {game} with {host}. Tap to join.",
@@ -55,6 +61,7 @@
   },
   "es": {
     "module.klondike": "Solitario",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ven a jugar a {game} con {host}. Toca para unirte.",
@@ -64,6 +71,7 @@
   },
   "et": {
     "module.klondike": "Pasjanss",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tule mängima {game} koos mängijaga {host}. Puuduta liitumiseks.",
@@ -73,6 +81,7 @@
   },
   "fi": {
     "module.klondike": "Pasianssi",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tule pelaamaan {game} pelaajan {host} kanssa. Napauta liittyäksesi.",
@@ -82,6 +91,7 @@
   },
   "fr": {
     "module.klondike": "Solitaire",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Venez jouer à {game} avec {host}. Touchez pour rejoindre.",
@@ -91,6 +101,7 @@
   },
   "ga": {
     "module.klondike": "Foighne",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tar agus imir {game} le {host}. Tapáil chun páirt a ghlacadh.",
@@ -100,6 +111,7 @@
   },
   "hr": {
     "module.klondike": "Pasijans",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Dođite igrati {game} s igračem {host}. Dodirnite za pridruživanje.",
@@ -109,6 +121,7 @@
   },
   "hu": {
     "module.klondike": "Pasziánsz",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Gyere, játssz {game} játékot vele: {host}. Koppints a csatlakozáshoz.",
@@ -118,6 +131,7 @@
   },
   "it": {
     "module.klondike": "Solitario",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Vieni a giocare a {game} con {host}. Tocca per unirti.",
@@ -127,6 +141,7 @@
   },
   "lt": {
     "module.klondike": "Pasjansas",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ateikite žaisti {game} su {host}. Palieskite, kad prisijungtumėte.",
@@ -136,6 +151,7 @@
   },
   "lv": {
     "module.klondike": "Pasjanss",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Nāc spēlēt {game} kopā ar {host}. Pieskaries, lai pievienotos.",
@@ -145,6 +161,7 @@
   },
   "mt": {
     "module.klondike": "Solitarju",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ejja ilgħab {game} ma’ {host}. Agħfas biex tingħaqad.",
@@ -154,6 +171,7 @@
   },
   "nl": {
     "module.klondike": "Patience",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom {game} spelen met {host}. Tik om mee te doen.",
@@ -163,6 +181,7 @@
   },
   "pl": {
     "module.klondike": "Pasjans",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Zagraj w {game} z: {host}. Dotknij, aby dołączyć.",
@@ -172,6 +191,7 @@
   },
   "pt": {
     "module.klondike": "Paciência",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Venha jogar {game} com {host}. Toque para se juntar.",
@@ -181,6 +201,7 @@
   },
   "ro": {
     "module.klondike": "Pasiență",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Vino să joci {game} cu {host}. Atinge pentru a te alătura.",
@@ -190,6 +211,7 @@
   },
   "sk": {
     "module.klondike": "Solitér",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Príďte si zahrať {game} s hráčom {host}. Ťuknite a prisadnite.",
@@ -199,6 +221,7 @@
   },
   "sl": {
     "module.klondike": "Pasjansa",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Pridite igrat {game} z igralcem {host}. Dotaknite se za pridružitev.",
@@ -208,6 +231,7 @@
   },
   "sv": {
     "module.klondike": "Patiens",
+    "module.okobere": "Oko bere",
     "module.sedma": "Sedma",
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom och spela {game} med {host}. Tryck för att gå med.",
