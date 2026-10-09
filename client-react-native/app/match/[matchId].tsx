@@ -36,6 +36,8 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
+import { useStandIn } from '@/src/components/StandInSheet';
+import { TableBanner } from '@/src/components/match/TableBanner';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
@@ -156,7 +158,7 @@ export default function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, send: sendNow, clearError } = useMatchSocket(url, client);
+  const { state, error, connected, notice, send: sendNow, clearError, clearNotice } = useMatchSocket(url, client);
 
   // Every move leaves through here. A move that plays a card the offer says
   // a question is for — the colour a wild names — waits for the answer
@@ -265,6 +267,9 @@ export default function MatchScreen() {
   // The host may change any bot's strength at any point: tapping its face
   // opens the picker. Nobody else's taps do anything.
   const botStrength = useBotStrength(client, String(matchId ?? ''), state?.moduleId, !!state?.hostId && state.hostId === viewerId);
+  // And a person's seat while they are away: a bot now, a different bot, or
+  // none and wait for them. Also the host's alone.
+  const standIn = useStandIn(client, String(matchId ?? ''), !!state?.hostId && state.hostId === viewerId, botStrength.offersAI);
   // Amounts dialled into the controls and not yet sent. Held here, not in the
   // bar, because the bar unmounts when its panel collapses and the collapsed
   // rail's pills send the same offers — both read this one store.
@@ -1196,6 +1201,7 @@ export default function MatchScreen() {
   // the server would honour it, and when it would not, the line below says
   // who everyone is waiting for instead of leaving them to guess.
   const canResume = wasAbandoned && !!state.canResume;
+  const stoodInNames = (state.stoodIn ?? []).map((id) => playerName(state.players, id)).filter(Boolean);
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
@@ -1495,6 +1501,17 @@ export default function MatchScreen() {
           {statusExplainer}
         </Text>
       ) : null}
+      {/* Why nothing is moving, when nothing is: outside the board, so it is
+          in view wherever the player is scrolled to. */}
+      <TableBanner
+        state={state}
+        seats={view.seats ?? []}
+        viewerId={viewerId}
+        connected={connected}
+        notice={notice}
+        onDismissNotice={clearNotice}
+        onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
+      />
       <ScrollView
         ref={scrollRef}
         // Wide enough for the table and no wider. On a large monitor the felt
@@ -1570,6 +1587,14 @@ export default function MatchScreen() {
             {/* Why there is no resume above. Only on a swept-up table, and
                 only when somebody is actually missing — a table nobody is
                 waiting for has no one to name. */}
+            {/* Whose record this game does not count on, because a bot
+                played part of it for them — said here so the history
+                that leaves it out is not a surprise later. */}
+            {!wasAbandoned && stoodInNames.length ? (
+              <Text testID="match-over-stood-in" style={styles.overOutcome}>
+                {t('results.stoodIn', { names: stoodInNames.join(', ') })}
+              </Text>
+            ) : null}
             {wasAbandoned && !canResume && awayNames.length ? (
               <Text testID="match-over-waiting" style={styles.overOutcome}>
                 {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
@@ -1774,6 +1799,7 @@ export default function MatchScreen() {
           // it — Prší's, which is a card count — has nothing to open.
           onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
           onPickBot={botStrength.open}
+          onPickStandIn={standIn.open}
         />
 
       </ScrollView>
@@ -1783,6 +1809,7 @@ export default function MatchScreen() {
           refused drop, or a submission the server turned down — one component
           for all three, because they are one question. */}
       {botStrength.sheet}
+      {standIn.sheet}
       <ScoreSheet
         subjectId={scoreOf?.playerId ?? null}
         focusRound={scoreOf?.round}

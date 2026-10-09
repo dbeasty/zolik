@@ -235,6 +235,11 @@ func (m *Manager) endStandIn(ctx context.Context, matchID, playerID string) {
 	// they do next starts afresh.
 	m.turns.forgetSeat(matchID, playerID)
 	log.Printf("match=%s player=%s back, stand-in ended", matchID, playerID)
+	// Said to them once, so the board they come back to — a hand a bot has
+	// been playing — is not a surprise.
+	if m.hub != nil {
+		m.hub.WriteDirect(matchID, playerID, map[string]any{"type": "stand_in_ended"})
+	}
 	m.Broadcast(saved)
 }
 

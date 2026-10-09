@@ -27,8 +27,15 @@ export type MatchSocketState = {
    */
   error: { code: string; message?: string; ruleIds?: string[] } | null;
   connected: boolean;
+  /**
+   * Something the server told this player once, about their own seat, that
+   * the board alone does not say — `stand_in_ended` when they come back to a
+   * seat a bot has been playing for them. Cleared with `clearNotice`.
+   */
+  notice: string | null;
   send: (action: MatchAction) => void;
   clearError: () => void;
+  clearNotice: () => void;
 };
 
 /**
@@ -57,6 +64,7 @@ export function useMatchSocket(
     null,
   );
   const [connected, setConnected] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const wsRef = useRef<SocketLike | null>(null);
   // Reconnect attempts, reset once an open socket has stayed open for a
   // while (see STABLE_MS below) rather than the instant it opens. Kept in a
@@ -131,6 +139,11 @@ export function useMatchSocket(
           const code = m.code ?? 'ERROR';
           if (TERMINAL_CODES.has(code)) terminal = true;
           setError({ code, message: m.message, ruleIds: m.ruleIds });
+          return;
+        }
+        if (m.type === 'stand_in_ended') {
+          setNotice(m.type);
+          return;
         }
         // Anything else is an event the board already reflects: the server
         // sends the whole state after every action, so events are for flavour
@@ -230,6 +243,7 @@ export function useMatchSocket(
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
+  const clearNotice = useCallback(() => setNotice(null), []);
 
-  return { state, error, connected, send, clearError };
+  return { state, error, connected, notice, send, clearError, clearNotice };
 }

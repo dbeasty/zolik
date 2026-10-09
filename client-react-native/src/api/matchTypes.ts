@@ -536,6 +536,8 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /** Every seat a stand-in bot has played for at this table — their record does not count it. */
+  stoodIn?: string[];
   /**
    * The table this finished one is being played again at, and who asked.
    * Everybody else from here has a seat held at it.

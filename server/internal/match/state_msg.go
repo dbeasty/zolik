@@ -95,6 +95,9 @@ type MatchStateMsg struct {
 	// AwayPlayers is who still has to come back, in seat order. Ids, not
 	// names: the client already has the names, in Players.
 	AwayPlayers []string `json:"awayPlayers,omitempty"`
+	// StoodIn is every seat a stand-in bot has played for at this table, so
+	// a results screen can say whose record the match does not count on.
+	StoodIn []string `json:"stoodIn,omitempty"`
 	// Rematch is the table this finished one is being played again at, and
 	// who asked — what turns "Play again" into "Join Bob's rematch" for
 	// everybody else who is still looking at the result.
@@ -249,6 +252,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	// Asked only where it can be true. A spectator (no viewer id) gets the
 	// same false every other status gets, since bringing a table back is not
 	// something a passer-by does.
+	msg.StoodIn = match.StoodIn
 	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
 		msg.CanResume = m.resumableBy(match, viewerID)
 		if !msg.CanResume {
