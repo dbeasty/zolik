@@ -1,9 +1,12 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
+import { cardSpokenName } from '@/src/a11y/cardNames';
+import { Tip } from '@/src/a11y/Tip';
 import type { Zone } from '@/src/api/matchTypes';
+import { useBoardSpeech } from '@/src/components/match/BoardSpeech';
 import { CardBack } from '@/src/components/CardBack';
 import { CardGlance } from '@/src/components/match/CardGlance';
 import { CardIndex } from '@/src/components/cards/CardIndex';
@@ -24,6 +27,7 @@ import {
   stackedCardBox,
   type Metrics,
 } from '@/src/lib/layout';
+import { groupSpokenLabel, ownerNameOf, zoneName, zoneSpokenLabel } from '@/src/lib/boardSpeech';
 import { label } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 import { t } from '@/src/lib/i18n';
@@ -202,6 +206,12 @@ export function ZoneView({
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => zoneStyles(metrics, skin), [metrics, skin]);
+  const speech = useBoardSpeech();
+  // The zone said as one sentence (a pile by its top card and size, a hand
+  // by its count) and its owner's name for the melds in it.
+  const spokenZone = zoneSpokenLabel(zone, speech.players, speech.viewerId);
+  const spokenName = zoneName(zone, speech.players, speech.viewerId);
+  const owner = ownerNameOf(zone, speech.players, speech.viewerId);
 
   const zoneLabel = label(zone.labelKey) || zone.id;
   const title = titleOverride || zoneLabel;
@@ -224,10 +234,11 @@ export function ZoneView({
       ? { transform: [{ translateX: carry.dx }, { translateY: carry.dy }], zIndex: 50 }
       : null;
   /** A card wrapped so it can be pressed or dragged, when an offer lifts it. */
-  const lift = (where: string, card: string, index: number, child: ReactNode) =>
+  const lift = (where: string, card: string, index: number, child: ReactNode, spoken?: string) =>
     liftable?.has(liftKey(where, card)) ? (
       <LiftableCard
         card={card}
+        spoken={spoken ?? cardSpokenName(card)}
         picked={picked === card}
         onLift={onLift}
         onStart={() => {
@@ -344,12 +355,23 @@ export function ZoneView({
   const groupTargets = (zone.groups ?? []).some((g) => pressableDrops?.has(groupElementId(g.id)));
   // Built once and placed in one of two positions below, because where it
   // belongs in the paint order depends on what else the zone is drawing.
+  //
+  // A button with a name, because it is the pile's activation for anyone not
+  // pointing at it: "Take from Stock" when a press takes from it, "Play the
+  // selected cards to Discard pile" when it is where they go.
+  const pressName = zoneIsSource
+    ? t('a11y.board.pile.take', { pile: spokenName })
+    : t('a11y.board.playSelected', { target: spokenName });
   const pressOverlay = zonePressable ? (
-    <Pressable
-      testID={`zone-press-${zone.id}`}
-      style={StyleSheet.absoluteFill}
-      onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
-    />
+    <Tip text={zoneIsSource ? t('a11y.board.pile.tipTake', { pile: spokenName }) : t('a11y.board.pile.tipPlay')} style={StyleSheet.absoluteFill}>
+      <Pressable
+        testID={`zone-press-${zone.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={pressName}
+        style={StyleSheet.absoluteFill}
+        onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
+      />
+    </Tip>
   ) : null;
 
   // What a put-away panel says about itself on its collapsed header — kind
@@ -394,6 +416,7 @@ export function ZoneView({
       onToggleMinimized={onToggleMinimized}
       forceOpen={forceOpen}
       testID={`zone-${zone.id}`}
+      groupLabel={spokenZone}
       innerRef={(n) => registerDrop?.(zoneId, n)}
       count={foldable ? undefined : zone.count}
       countTestID={foldable ? undefined : `zone-count-${zone.id}`}
@@ -412,8 +435,14 @@ export function ZoneView({
             testID={`zone-toggle-${zone.id}`}
             accessibilityRole="button"
             accessibilityState={{ expanded: open }}
-            accessibilityLabel={open ? `Hide the rest of ${zoneLabel}` : `Show all of ${zoneLabel}`}
+            // The flat spelling too: this react-native-web drops the nested
+            // one on the web build (see `CardView`).
+            {...((Platform.OS === 'web' ? { 'aria-expanded': open } : {}) as object)}
+            accessibilityLabel={
+              open ? t('a11y.board.zone.hideRest', { zone: zoneLabel }) : t('a11y.board.zone.showAll', { zone: zoneLabel })
+            }
             onPress={() => setOpen((was) => !was)}
+            hitSlop={8}
             style={styles.toggle}
           >
             <Text style={styles.toggleText} testID={`zone-count-${zone.id}`}>
@@ -431,7 +460,11 @@ export function ZoneView({
             end of the card row for why. */}
         {groups.length > 0 && groupTargets ? pressOverlay : null}
 
-        {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} metrics={metrics} /> : null}
+        {zone.kind === 'stack' ? (
+          <Tip text={spokenZone}>
+            <StackBack count={zone.count} compact={compact} metrics={metrics} />
+          </Tip>
+        ) : null}
 
         {/* Groups first: a spread's cards belong to its groups, and rendering
           both would show every card twice. */}
@@ -451,6 +484,21 @@ export function ZoneView({
             // at, and the tap that opens it stays the tap that opens it.
             const cardsPickable = groupOpen && (pickableGroups?.has(g.id) ?? false) && !groupPressable;
             const pickedHere = pickedInGroup?.groupId === g.id ? pickedInGroup.indices : [];
+            // The meld said as one sentence, by its kind, its cards and whose
+            // it is — the name of its toggle, which is what a screen reader
+            // lands on. A toggle with controls inside it (a card that lifts
+            // off a column, a card picked up to move) cannot be a button —
+            // a button's insides are not reachable — so it is a labelled
+            // group then, and the cards inside are the controls.
+            const spokenGroup = groupSpokenLabel(g, owner);
+            const holdsControls =
+              cardsPickable || g.cards.some((c) => liftable?.has(liftKey(g.id, c)) ?? false);
+            const groupTip = [
+              groupOpen ? t('zone.collapseGroup') : t('zone.expandGroup'),
+              groupArmable ? t('a11y.board.group.aim') : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
             // A finished meld folds down to its top card and a count: it is
             // a score now, not something to read card by card, and a
             // canasta's column of corners was the tallest thing in the row.
@@ -537,20 +585,33 @@ export function ZoneView({
                     meld as a target for the cards picked next — the two
                     are the same gesture wanting the same thing, so aiming
                     costs no tap of its own. */}
+                <Tip text={holdsControls ? undefined : groupTip}>
                 <Pressable
                   disabled={groupPressable}
                   onPress={() => {
                     toggleGroup(g.id);
                     if (groupArmable) onAimGroup?.(g.id);
                   }}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: groupOpen }}
-                  // Flat, not nested in `accessibilityState` — see `CardView`'s
-                  // own `aria-selected`: this version of react-native-web drops
-                  // `accessibilityState.selected` on the web build silently,
-                  // where the flat aria spelling reaches the DOM.
-                  aria-selected={groupArmed}
-                  accessibilityLabel={groupOpen ? t('zone.collapseGroup') : t('zone.expandGroup')}
+                  accessibilityLabel={spokenGroup}
+                  // Armed — aimed at before any card was picked — is a
+                  // pressed toggle, said with `aria-pressed`: `aria-selected`
+                  // is not a state a button has, and a screen reader ignores
+                  // it there. Flat, not nested in `accessibilityState`, for
+                  // the reason `CardView` gives: this react-native-web drops
+                  // the nested spelling on the web build. `data-armed` and
+                  // `data-expanded` are what the end-to-end suite reads.
+                  {...((holdsControls
+                    ? Platform.OS === 'web'
+                      ? { role: 'group', tabIndex: -1 }
+                      : { accessible: false }
+                    : {
+                        accessibilityRole: 'button',
+                        accessibilityState: { expanded: groupOpen, selected: groupArmed },
+                        ...(Platform.OS === 'web' ? { 'aria-pressed': groupArmed, 'aria-expanded': groupOpen } : {}),
+                      }) as object)}
+                  {...((Platform.OS === 'web'
+                    ? { dataSet: { armed: groupArmed ? 'true' : 'false', expanded: groupOpen ? 'true' : 'false' } }
+                    : {}) as object)}
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
@@ -586,15 +647,12 @@ export function ZoneView({
                             i >= hoveredSlot &&
                             (indices ? styles.indexSteppedAside : styles.steppedAside),
                         ]}
-                        // The card this box holds, said out loud. A meld's
-                        // cards had no label of their own: a screen reader
-                        // reached a run and was told only that it was a
-                        // group, and nothing outside the app could name the
-                        // cards in it either. Same spelling the hand uses —
-                        // the card code — so one vocabulary describes the
-                        // whole board.
-                        accessible
-                        accessibilityLabel={c}
+                        // The card this box holds, by code, for the end-to-end
+                        // suite — the same `data-card` the hand carries. What
+                        // a screen reader hears is the meld's own sentence on
+                        // its toggle (see `spokenGroup`), or, where the cards
+                        // are controls, each card's own name.
+                        {...((Platform.OS === 'web' ? { dataSet: { card: c } } : {}) as object)}
                       >
                         {/* Keyed by card and position, so a card laid off
                             onto this group mounts fresh — and the mount is
@@ -612,6 +670,15 @@ export function ZoneView({
                               <CardView
                                 card={c}
                                 compact
+                                // Inside a toggle that already names the
+                                // meld, a card is not read a second time;
+                                // inside a group of controls, it is named
+                                // and placed: "Seven of Clubs, in Column: …".
+                                a11y={
+                                  holdsControls
+                                    ? { label: t('a11y.board.card.inGroup', { card: cardSpokenName(c), group: spokenGroup }) }
+                                    : { role: 'none' }
+                                }
                                 // A wide spread's columns are read from the
                                 // top down: the last card of each is seen
                                 // whole, and only the covered ones are
@@ -622,6 +689,7 @@ export function ZoneView({
                                 testID={`card-${g.id}-${i}`}
                               />
                             ),
+                            t('a11y.board.card.inGroup', { card: cardSpokenName(c), group: spokenGroup }),
                           )}
                         </SettleIn>
                         {ringed.has(i) ? (
@@ -649,6 +717,7 @@ export function ZoneView({
                     </Text>
                   ) : null}
                 </Pressable>
+                </Tip>
                 {mark ? (
                   <View pointerEvents="none" style={styles.markTag} testID={`group-mark-${g.id}`}>
                     <Text style={styles.markTagText}>
@@ -671,6 +740,8 @@ export function ZoneView({
                 {groupPressable ? (
                   <Pressable
                     testID={`group-press-${g.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('a11y.board.playSelected', { target: spokenGroup })}
                     style={StyleSheet.absoluteFill}
                     onLayout={(e) => pressHeights.current.set(g.id, e.nativeEvent.layout.height)}
                     onPress={(e) =>
@@ -729,6 +800,10 @@ export function ZoneView({
                   kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
                   delay={buried + i === cards.length - 1 ? entranceDelay : 0}
                 >
+                  {/* The top of a pile carries the pile's own sentence as its
+                      tooltip — what is on it and how much — since the top
+                      card is what anyone pointing at the pile points at. */}
+                  <Tip text={buried + i === cards.length - 1 && zone.kind === 'pile' ? spokenZone : undefined}>
                   {lift(
                     zone.id,
                     c.card,
@@ -743,6 +818,7 @@ export function ZoneView({
                       testID={`card-${zone.id}-${buried + i}`}
                     />,
                   )}
+                  </Tip>
                 </SettleIn>
               </View>
             ))}
@@ -805,6 +881,7 @@ const WIDE_GROUPS = 6;
  */
 function LiftableCard({
   card,
+  spoken,
   picked,
   onLift,
   onStart,
@@ -813,6 +890,7 @@ function LiftableCard({
   children,
 }: {
   card: string;
+  spoken: string;
   picked: boolean;
   onLift?: (card: string) => void;
   onStart: () => void;
@@ -857,12 +935,15 @@ function LiftableCard({
 
   return (
     <GestureDetector gesture={pan}>
-      {/* No button role of its own: it sits inside a group's own toggle,
-          and a button may not hold another button. The label still says
-          which card it is. */}
+      {/* A toggle button named by the card. The group around it stops being
+          a button while it holds one of these (see `holdsControls`), so a
+          button never holds another button. Picked up and waiting for a
+          target is the toggle's pressed state. */}
       <Pressable
-        aria-selected={picked}
-        accessibilityLabel={card}
+        accessibilityRole="button"
+        accessibilityLabel={spoken}
+        accessibilityState={{ selected: picked }}
+        {...((Platform.OS === 'web' ? { 'aria-pressed': picked, dataSet: { selected: picked ? 'true' : 'false' } } : {}) as object)}
         testID={`lift-${card}`}
         onPress={() => {
           if (swallow.current) {

@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+
+import { cardsSpoken } from '@/src/a11y/cardNames';
+import { t } from '@/src/lib/i18n';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { parseCard } from '@/src/lib/cards';
@@ -40,7 +43,23 @@ export function CardGlance({ cards, max = 6, testID = 'card-glance' }: Props) {
   const rest = cards.length - shown.length;
 
   return (
-    <View style={styles.row} testID={testID}>
+    <View
+      style={styles.row}
+      testID={testID}
+      // The glyphs are for the eye ("K♥"); a screen reader gets the cards in
+      // words, as one image of the hand, and the glyphs are hidden from it.
+      {...((Platform.OS === 'web'
+        ? {
+            role: 'img',
+            'aria-label': rest > 0 ? t('a11y.board.glance.more', { cards: cardsSpoken(shown), n: rest }) : cardsSpoken(shown),
+          }
+        : {
+            accessible: true,
+            accessibilityRole: 'image',
+            accessibilityLabel:
+              rest > 0 ? t('a11y.board.glance.more', { cards: cardsSpoken(shown), n: rest }) : cardsSpoken(shown),
+          }) as object)}
+    >
       {shown.map((card, i) => {
         const d = parseCard(card);
         return (
