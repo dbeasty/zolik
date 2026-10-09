@@ -219,6 +219,17 @@ test.describe('screen-reader path', () => {
       expect(await options.first().getAttribute('aria-label')).toMatch(SPOKEN);
       const size = await handSize(page);
 
+      // A bot's Draw Two or Wild Draw Four holds the turn to an answer first:
+      // every other control is off and says so. Answer it by taking the
+      // cards, from the keyboard like everything else.
+      const take = offer(page, /^Take /);
+      if (await isLive(take)) {
+        await take.first().focus();
+        await page.keyboard.press('Enter');
+        await expect.poll(() => handSize(page), { timeout: 10_000 }).toBeGreaterThan(size);
+        continue;
+      }
+
       // Which cards can go somewhere is in each card's description.
       let fitting = -1;
       const n = await options.count();
@@ -236,6 +247,14 @@ test.describe('screen-reader path', () => {
       }
 
       if (fitting >= 0) {
+        // "coral 5, 2 of 4" → "coral 5": the card's own name.
+        const name = ((await options.nth(fitting).getAttribute('aria-label')) ?? '').split(',')[0]!.trim();
+        const copies = () =>
+          options.evaluateAll(
+            (els, n) => els.filter((e) => (e.getAttribute('aria-label') ?? '').split(',')[0]!.trim() === n).length,
+            name,
+          );
+        const before = await copies();
         await tabIntoHand(page);
         await page.keyboard.press('Home');
         for (let i = 0; i < fitting; i++) await page.keyboard.press('ArrowRight');
@@ -243,7 +262,9 @@ test.describe('screen-reader path', () => {
         // Where to (more than one place), then which colour (a wild).
         await answerAnySheet(page);
         await answerAnySheet(page);
-        await expect.poll(() => handSize(page), { timeout: 10_000 }).toBeLessThan(size);
+        // Count that card, not the whole hand: a bot's Draw Two can land
+        // between the play and the check and grow the hand past its size.
+        await expect.poll(copies, { timeout: 10_000 }).toBeLessThan(before);
         played++;
       } else {
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -320,8 +341,10 @@ test.describe('screen-reader path', () => {
     await waitForMyTurn(page);
 
     const table = page.getByRole('region', { name: 'Table' });
-    // The columns are named groups: their kind, their cards, how many are face down.
-    await expect(table.getByRole('group', { name: /^Column: .+face down/ }).first()).toBeVisible();
+    // Each column is named: its kind, its cards, how many are face down. A
+    // column holding a card that can move is a group of those cards; one
+    // that cannot is a single button — so read the name, not the role.
+    await expect(table.getByLabel(/^Column: .+face down/).first()).toBeVisible({ timeout: 15_000 });
 
     // D turns the stock over onto the waste.
     const waste = () =>
