@@ -104,6 +104,7 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     navWatch = [
       web.webView.observe(\.canGoBack) { [weak self] _, _ in self?.refreshToolbar() },
       web.webView.observe(\.canGoForward) { [weak self] _, _ in self?.refreshToolbar() },
+      web.webView.observe(\.url) { [weak self] _, _ in self?.refreshToolbar() },
     ]
   }
 
@@ -180,7 +181,7 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     item.target = self
     item.action = back ? #selector(toolbarBack(_:)) : #selector(toolbarForward(_:))
     toolbarItems[id.rawValue] = item
-    item.isEnabled = back ? web.webView.canGoBack : web.webView.canGoForward
+    item.isEnabled = back ? web.canBack : web.webView.canGoForward
     return item
   }
 
@@ -191,7 +192,7 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
   /// where there is somewhere to go.
   func refreshToolbar(labels: [String: String]? = nil) {
     for (id, item) in toolbarItems {
-      item.isEnabled = id == "back" ? web.webView.canGoBack : web.webView.canGoForward
+      item.isEnabled = id == "back" ? web.canBack : web.webView.canGoForward
       if let word = labels?[id] {
         item.label = word
         item.toolTip = word

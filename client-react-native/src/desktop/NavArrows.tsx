@@ -63,6 +63,12 @@ export function NavHistoryTracker() {
   return null;
 }
 
+/** The home screen: Back stops here, whatever history is still behind it. */
+function isHome(route: string): boolean {
+  const path = route.split('?')[0];
+  return path === '/' || path === '' || path === '/index';
+}
+
 function StackArrows() {
   const route = useCurrentRoute();
   const ahead = useSyncExternalStore(subscribeAhead, aheadCount, aheadCount);
@@ -71,7 +77,7 @@ function StackArrows() {
       <Arrow
         glyph="←"
         label={t('desktop.menu.back')}
-        enabled={router.canGoBack()}
+        enabled={router.canGoBack() && !isHome(route)}
         testID="nav-back"
         onPress={() => {
           leavingBack(route);
@@ -94,6 +100,7 @@ function StackArrows() {
 
 function DesktopArrows() {
   const nav = desktopNav();
+  const home = isHome(useCurrentRoute());
   const [state, setState] = useState<NavState>(() => nav?.state() ?? { canGoBack: false, canGoForward: false });
 
   useEffect(() => nav?.subscribe(setState), [nav]);
@@ -101,7 +108,7 @@ function DesktopArrows() {
   if (!nav) return null;
   return (
     <View style={styles.row}>
-      <Arrow glyph="←" label={t('desktop.menu.back')} enabled={state.canGoBack} testID="nav-back" onPress={() => nav.go('back')} />
+      <Arrow glyph="←" label={t('desktop.menu.back')} enabled={state.canGoBack && !home} testID="nav-back" onPress={() => nav.go('back')} />
       <Arrow
         glyph="→"
         label={t('desktop.menu.forward')}
