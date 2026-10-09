@@ -98,6 +98,10 @@ type Manager struct {
 	standInTimers map[string]bool
 	standInHeld   map[string]bool
 	standInWait   time.Duration
+	// leaveTimers and leaveWait are leave.go's: the seats with a cash-out
+	// check pending, and an override of the option's wait, for tests.
+	leaveTimers map[string]bool
+	leaveWait   time.Duration
 
 	// live holds the state of every match in play; see live.go.
 	live liveMatches

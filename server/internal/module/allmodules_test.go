@@ -580,7 +580,7 @@ func TestEveryModuleSeatsItsPlayers(t *testing.T) {
 						t.Fatalf("LegalActions(%s): %v", p.ID, err)
 					}
 					for _, o := range offers {
-						if o.Enabled {
+						if o.Live() {
 							enabledSeats[p.ID] = true
 							break
 						}
@@ -603,7 +603,7 @@ func TestEveryModuleSeatsItsPlayers(t *testing.T) {
 				}
 				enabled := false
 				for _, o := range offers {
-					if o.Enabled {
+					if o.Live() {
 						enabled = true
 					}
 				}
@@ -667,7 +667,7 @@ func TestEveryModuleNamesItsWinners(t *testing.T) {
 					t.Fatalf("LegalActions: %v", err)
 				}
 				for _, o := range offers {
-					if o.Enabled {
+					if o.Live() {
 						t.Errorf("%s is still offered %q after the match ended", p.ID, o.ID)
 					}
 				}
@@ -985,7 +985,7 @@ func advanceOnce(g hosted, state module.State) (module.State, bool) {
 			continue
 		}
 		for _, o := range offers {
-			if !o.Enabled {
+			if !o.Live() {
 				continue
 			}
 			a, ok := module.SubmissionFor(o)
@@ -1048,7 +1048,7 @@ func TestNumericParametersAreUsable(t *testing.T) {
 		for _, p := range players {
 			offers, _ := m.LegalActions(state, p.ID)
 			for _, o := range offers {
-				if o.Enabled {
+				if o.Live() {
 					actor = p.ID
 					break
 				}

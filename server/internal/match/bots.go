@@ -409,6 +409,11 @@ func (t *botTurn) note(c botMove) {
 func botCandidates(offers []module.ActionOffer) []botMove {
 	out := make([]botMove, 0, len(offers))
 	for i := range offers {
+		// A person's own move, which no bot makes for them: see
+		// module.ActionOffer.Manual.
+		if offers[i].Manual {
+			continue
+		}
 		if a, ok := module.SubmissionFor(offers[i]); ok {
 			out = append(out, botMove{action: a, undo: offers[i].Undo})
 		}

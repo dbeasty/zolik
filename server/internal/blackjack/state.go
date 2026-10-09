@@ -74,16 +74,18 @@ const (
 	ErrNotYourTurn      = "NOT_YOUR_TURN"
 	ErrUnknownAction    = "UNKNOWN_ACTION"
 	ErrWrongPhase       = "WRONG_PHASE"
-	ErrNotInRound       = "SEAT_NOT_IN_HAND"
-	ErrAmountRequired   = "AMOUNT_REQUIRED"
-	ErrAmountNotNumber  = "AMOUNT_NOT_A_NUMBER"
-	ErrNotEnoughChips   = "NOT_ENOUGH_CHIPS"
-	ErrBetTooSmall      = "BET_BELOW_MINIMUM"
-	ErrAlreadyBet       = "ALREADY_BET"
-	ErrInsuranceClosed  = "INSURANCE_CLOSED"
-	ErrCannotDouble     = "CANNOT_DOUBLE"
-	ErrCannotSplit      = "CANNOT_SPLIT"
-	ErrCannotSurrender  = "CANNOT_SURRENDER"
+	// ErrAlreadyLeft is a second "leave" from a seat already got up, or getting up.
+	ErrAlreadyLeft     = "ALREADY_LEFT"
+	ErrNotInRound      = "SEAT_NOT_IN_HAND"
+	ErrAmountRequired  = "AMOUNT_REQUIRED"
+	ErrAmountNotNumber = "AMOUNT_NOT_A_NUMBER"
+	ErrNotEnoughChips  = "NOT_ENOUGH_CHIPS"
+	ErrBetTooSmall     = "BET_BELOW_MINIMUM"
+	ErrAlreadyBet      = "ALREADY_BET"
+	ErrInsuranceClosed = "INSURANCE_CLOSED"
+	ErrCannotDouble    = "CANNOT_DOUBLE"
+	ErrCannotSplit     = "CANNOT_SPLIT"
+	ErrCannotSurrender = "CANNOT_SURRENDER"
 )
 
 // How one hand finished. Stored rather than recomputed because settlement
@@ -149,6 +151,15 @@ type Seat struct {
 	// way back — chips only arrive by winning a bet — so it is settled once,
 	// at the top of a round, rather than asked every time.
 	Out bool `json:"out,omitempty"`
+	// Left is a player who got up from the table, and is Out too, with the
+	// chips they left with frozen in Stack as their result. Leaving is a seat
+	// that asked to go with a stake still on the table: it plays the round
+	// out — sat out, if its player has gone — and gets up when it settles.
+	Left    bool `json:"left,omitempty"`
+	Leaving bool `json:"leaving,omitempty"`
+	// Bot is a seat the server plays, recorded at the deal so a table with no
+	// person left at it can end instead of dealing on to nobody.
+	Bot bool `json:"bot,omitempty"`
 }
 
 // inRound reports a seat playing this round.
@@ -250,6 +261,11 @@ func (s *GameState) seat(playerID string) *Seat {
 func order(s *GameState) []string {
 	out := make([]string, 0, len(s.Seats))
 	for i := range s.Seats {
+		// A player who got up is not reading the results, and waiting on
+		// them to go on would wait for ever.
+		if s.Seats[i].Left {
+			continue
+		}
 		out = append(out, s.Seats[i].PlayerID)
 	}
 	return out

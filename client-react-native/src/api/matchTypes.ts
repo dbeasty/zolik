@@ -319,6 +319,11 @@ export type ActionOffer = {
   id: string;
   verb: string;
   enabled: boolean;
+  /**
+   * A move only a person makes for themselves — getting up from the table.
+   * Open all game long, so it never means it is this player's turn.
+   */
+  manual?: boolean;
   whyNot?: string;
   /**
    * The written rules that justify `whyNot` at this table — ids of items in
