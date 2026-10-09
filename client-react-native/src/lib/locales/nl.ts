@@ -3116,4 +3116,23 @@ export const nl: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Spatie',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Vuile reeksen',
+  'choice.canasta.dirtySequences.0': 'Uit',
+  'choice.canasta.dirtySequences.1': 'Aan',
+  'option.canasta.wildMeld': 'Combinatie van tweeën',
+  'choice.canasta.wildMeld.0': 'Uit',
+  'choice.canasta.wildMeld.1': 'Aan',
+  'option.canasta.rearrange': 'Combinaties herschikken',
+  'choice.canasta.rearrange.0': 'Uit',
+  'choice.canasta.rearrange.1': 'Aan',
+  'option.canasta.poach': 'Wilde kaarten inpikken',
+  'choice.canasta.poach.0': 'Uit',
+  'choice.canasta.poach.1': 'Aan',
+  'option.canasta.topOnlyCapture': 'Bovenste kaart of hele stapel',
+  'choice.canasta.topOnlyCapture.0': 'Uit',
+  'choice.canasta.topOnlyCapture.1': 'Aan',
+  // --- end labels ---
 };

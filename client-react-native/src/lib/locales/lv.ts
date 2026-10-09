@@ -3086,4 +3086,23 @@ export const lv: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Atstarpe',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'MI',
+  'option.canasta.dirtySequences': 'Netīras secības',
+  'choice.canasta.dirtySequences.0': 'Izslēgta',
+  'choice.canasta.dirtySequences.1': 'Ieslēgta',
+  'option.canasta.wildMeld': 'Divnieku kombinācija',
+  'choice.canasta.wildMeld.0': 'Izslēgta',
+  'choice.canasta.wildMeld.1': 'Ieslēgta',
+  'option.canasta.rearrange': 'Kombināciju pārkārtošana',
+  'choice.canasta.rearrange.0': 'Izslēgta',
+  'choice.canasta.rearrange.1': 'Ieslēgta',
+  'option.canasta.poach': 'Džokeru nočiepšana',
+  'choice.canasta.poach.0': 'Izslēgta',
+  'choice.canasta.poach.1': 'Ieslēgta',
+  'option.canasta.topOnlyCapture': 'Augšējā kārts vai visa kaudze',
+  'choice.canasta.topOnlyCapture.0': 'Izslēgta',
+  'choice.canasta.topOnlyCapture.1': 'Ieslēgta',
+  // --- end labels ---
 };

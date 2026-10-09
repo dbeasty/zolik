@@ -143,6 +143,8 @@ test("a meld somebody else changed is marked, and the viewer's turn says what to
 
   // The box between the table and the hand says who did it: every move
   // since the viewer's own, the lay-off among them.
+  // The box starts folded to the newest line, so open it to read them all.
+  await page.getByTestId('moves-toggle').click();
   await expect(page.getByTestId('move-announcements')).toContainText('to their own meld');
 
   // The viewer's first move of the turn clears every mark: they have seen what

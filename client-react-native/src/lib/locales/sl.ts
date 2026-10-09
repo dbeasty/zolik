@@ -3085,4 +3085,23 @@ export const sl: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Preslednica',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'UI',
+  'option.canasta.dirtySequences': 'Umazane lestvice',
+  'choice.canasta.dirtySequences.0': 'Izklopljeno',
+  'choice.canasta.dirtySequences.1': 'Vklopljeno',
+  'option.canasta.wildMeld': 'Kombinacija dvojk',
+  'choice.canasta.wildMeld.0': 'Izklopljeno',
+  'choice.canasta.wildMeld.1': 'Vklopljeno',
+  'option.canasta.rearrange': 'Prerazporejanje kombinacij',
+  'choice.canasta.rearrange.0': 'Izklopljeno',
+  'choice.canasta.rearrange.1': 'Vklopljeno',
+  'option.canasta.poach': 'Izmikanje divjih kart',
+  'choice.canasta.poach.0': 'Izklopljeno',
+  'choice.canasta.poach.1': 'Vklopljeno',
+  'option.canasta.topOnlyCapture': 'Zgornja karta ali ves kup',
+  'choice.canasta.topOnlyCapture.0': 'Izklopljeno',
+  'choice.canasta.topOnlyCapture.1': 'Vklopljeno',
+  // --- end labels ---
 };

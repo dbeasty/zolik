@@ -3096,4 +3096,23 @@ export const fi: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Välilyönti',
   'a11y.board.key.shift': 'Vaihto',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Likaiset suorat',
+  'choice.canasta.dirtySequences.0': 'Pois',
+  'choice.canasta.dirtySequences.1': 'Päällä',
+  'option.canasta.wildMeld': 'Kakkosyhdistelmä',
+  'choice.canasta.wildMeld.0': 'Pois',
+  'choice.canasta.wildMeld.1': 'Päällä',
+  'option.canasta.rearrange': 'Yhdistelmien järjestely',
+  'choice.canasta.rearrange.0': 'Pois',
+  'choice.canasta.rearrange.1': 'Päällä',
+  'option.canasta.poach': 'Jokerien nappaus',
+  'choice.canasta.poach.0': 'Pois',
+  'choice.canasta.poach.1': 'Päällä',
+  'option.canasta.topOnlyCapture': 'Päällimmäinen kortti tai koko pino',
+  'choice.canasta.topOnlyCapture.0': 'Pois',
+  'choice.canasta.topOnlyCapture.1': 'Päällä',
+  // --- end labels ---
 };

@@ -3128,4 +3128,23 @@ export const el: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Διάστημα',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Βρόμικες σειρές',
+  'choice.canasta.dirtySequences.0': 'Ανενεργή',
+  'choice.canasta.dirtySequences.1': 'Ενεργή',
+  'option.canasta.wildMeld': 'Συνδυασμός από δυάρια',
+  'choice.canasta.wildMeld.0': 'Ανενεργή',
+  'choice.canasta.wildMeld.1': 'Ενεργή',
+  'option.canasta.rearrange': 'Αναδιάταξη συνδυασμών',
+  'choice.canasta.rearrange.0': 'Ανενεργή',
+  'choice.canasta.rearrange.1': 'Ενεργή',
+  'option.canasta.poach': 'Άρπαγμα μπαλαντέρ',
+  'choice.canasta.poach.0': 'Ανενεργή',
+  'choice.canasta.poach.1': 'Ενεργή',
+  'option.canasta.topOnlyCapture': 'Το πάνω φύλλο ή όλη η στοίβα',
+  'choice.canasta.topOnlyCapture.0': 'Ανενεργή',
+  'choice.canasta.topOnlyCapture.1': 'Ενεργή',
+  // --- end labels ---
 };

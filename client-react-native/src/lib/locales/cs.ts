@@ -3083,4 +3083,23 @@ export const cs: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Mezerník',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Špinavé postupky',
+  'choice.canasta.dirtySequences.0': 'Ne',
+  'choice.canasta.dirtySequences.1': 'Ano',
+  'option.canasta.wildMeld': 'Kombinace dvojek',
+  'choice.canasta.wildMeld.0': 'Ne',
+  'choice.canasta.wildMeld.1': 'Ano',
+  'option.canasta.rearrange': 'Přeskupování kombinací',
+  'choice.canasta.rearrange.0': 'Ne',
+  'choice.canasta.rearrange.1': 'Ano',
+  'option.canasta.poach': 'Ukořistění žolíků',
+  'choice.canasta.poach.0': 'Ne',
+  'choice.canasta.poach.1': 'Ano',
+  'option.canasta.topOnlyCapture': 'Vrchní karta, nebo celý balíček',
+  'choice.canasta.topOnlyCapture.0': 'Ne',
+  'choice.canasta.topOnlyCapture.1': 'Ano',
+  // --- end labels ---
 };

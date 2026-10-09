@@ -3088,4 +3088,23 @@ export const da: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Mellemrum',
   'a11y.board.key.shift': 'Skift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Urene rækker',
+  'choice.canasta.dirtySequences.0': 'Fra',
+  'choice.canasta.dirtySequences.1': 'Til',
+  'option.canasta.wildMeld': 'Kombination af toere',
+  'choice.canasta.wildMeld.0': 'Fra',
+  'choice.canasta.wildMeld.1': 'Til',
+  'option.canasta.rearrange': 'Omarranger kombinationer',
+  'choice.canasta.rearrange.0': 'Fra',
+  'choice.canasta.rearrange.1': 'Til',
+  'option.canasta.poach': 'Snup vilde kort',
+  'choice.canasta.poach.0': 'Fra',
+  'choice.canasta.poach.1': 'Til',
+  'option.canasta.topOnlyCapture': 'Øverste kort eller hele bunken',
+  'choice.canasta.topOnlyCapture.0': 'Fra',
+  'choice.canasta.topOnlyCapture.1': 'Til',
+  // --- end labels ---
 };

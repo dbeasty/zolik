@@ -3109,4 +3109,23 @@ export const ro: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Spațiu',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'IA',
+  'option.canasta.dirtySequences': 'Secvențe murdare',
+  'choice.canasta.dirtySequences.0': 'Oprit',
+  'choice.canasta.dirtySequences.1': 'Pornit',
+  'option.canasta.wildMeld': 'Combinație de doiari',
+  'choice.canasta.wildMeld.0': 'Oprit',
+  'choice.canasta.wildMeld.1': 'Pornit',
+  'option.canasta.rearrange': 'Rearanjarea combinațiilor',
+  'choice.canasta.rearrange.0': 'Oprit',
+  'choice.canasta.rearrange.1': 'Pornit',
+  'option.canasta.poach': 'Furtul de wild-uri',
+  'choice.canasta.poach.0': 'Oprit',
+  'choice.canasta.poach.1': 'Pornit',
+  'option.canasta.topOnlyCapture': 'Cartea de sus sau tot teancul',
+  'choice.canasta.topOnlyCapture.0': 'Oprit',
+  'choice.canasta.topOnlyCapture.1': 'Pornit',
+  // --- end labels ---
 };

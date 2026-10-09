@@ -3090,4 +3090,23 @@ export const et: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Tühik',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Mustad read',
+  'choice.canasta.dirtySequences.0': 'Väljas',
+  'choice.canasta.dirtySequences.1': 'Sees',
+  'option.canasta.wildMeld': 'Kahtede kombinatsioon',
+  'choice.canasta.wildMeld.0': 'Väljas',
+  'choice.canasta.wildMeld.1': 'Sees',
+  'option.canasta.rearrange': 'Kombinatsioonide ümberpaigutus',
+  'choice.canasta.rearrange.0': 'Väljas',
+  'choice.canasta.rearrange.1': 'Sees',
+  'option.canasta.poach': 'Jokkerite napsamine',
+  'choice.canasta.poach.0': 'Väljas',
+  'choice.canasta.poach.1': 'Sees',
+  'option.canasta.topOnlyCapture': 'Pealmine kaart või kogu pakk',
+  'choice.canasta.topOnlyCapture.0': 'Väljas',
+  'choice.canasta.topOnlyCapture.1': 'Sees',
+  // --- end labels ---
 };

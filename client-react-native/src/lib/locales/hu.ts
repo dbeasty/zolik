@@ -3109,4 +3109,23 @@ export const hu: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Szóköz',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'MI',
+  'option.canasta.dirtySequences': 'Piszkos sorok',
+  'choice.canasta.dirtySequences.0': 'Ki',
+  'choice.canasta.dirtySequences.1': 'Be',
+  'option.canasta.wildMeld': 'Kettesek kombinációja',
+  'choice.canasta.wildMeld.0': 'Ki',
+  'choice.canasta.wildMeld.1': 'Be',
+  'option.canasta.rearrange': 'Kombinációk átrendezése',
+  'choice.canasta.rearrange.0': 'Ki',
+  'choice.canasta.rearrange.1': 'Be',
+  'option.canasta.poach': 'Zsokerek elcsenése',
+  'choice.canasta.poach.0': 'Ki',
+  'choice.canasta.poach.1': 'Be',
+  'option.canasta.topOnlyCapture': 'Felső lap vagy az egész pakli',
+  'choice.canasta.topOnlyCapture.0': 'Ki',
+  'choice.canasta.topOnlyCapture.1': 'Be',
+  // --- end labels ---
 };

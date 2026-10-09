@@ -3087,4 +3087,23 @@ export const lt: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Tarpas',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'DI',
+  'option.canasta.dirtySequences': 'Nešvarios sekos',
+  'choice.canasta.dirtySequences.0': 'Išjungtas',
+  'choice.canasta.dirtySequences.1': 'Įjungtas',
+  'option.canasta.wildMeld': 'Dvejetų derinys',
+  'choice.canasta.wildMeld.0': 'Išjungtas',
+  'choice.canasta.wildMeld.1': 'Įjungtas',
+  'option.canasta.rearrange': 'Derinių pertvarkymas',
+  'choice.canasta.rearrange.0': 'Išjungtas',
+  'choice.canasta.rearrange.1': 'Įjungtas',
+  'option.canasta.poach': 'Laukinių kortų nugvelbimas',
+  'choice.canasta.poach.0': 'Išjungtas',
+  'choice.canasta.poach.1': 'Įjungtas',
+  'option.canasta.topOnlyCapture': 'Viršutinė korta arba visa krūva',
+  'choice.canasta.topOnlyCapture.0': 'Išjungtas',
+  'choice.canasta.topOnlyCapture.1': 'Įjungtas',
+  // --- end labels ---
 };

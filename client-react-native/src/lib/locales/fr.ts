@@ -3116,4 +3116,23 @@ export const fr: Record<string, string> = {
   'a11y.board.key.escape': 'Échap',
   'a11y.board.key.space': 'Espace',
   'a11y.board.key.shift': 'Maj',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'IA',
+  'option.canasta.dirtySequences': 'Suites sales',
+  'choice.canasta.dirtySequences.0': 'Non',
+  'choice.canasta.dirtySequences.1': 'Oui',
+  'option.canasta.wildMeld': 'Combinaison de deux',
+  'choice.canasta.wildMeld.0': 'Non',
+  'choice.canasta.wildMeld.1': 'Oui',
+  'option.canasta.rearrange': 'Réarranger les combinaisons',
+  'choice.canasta.rearrange.0': 'Non',
+  'choice.canasta.rearrange.1': 'Oui',
+  'option.canasta.poach': 'Chiper les jokers',
+  'choice.canasta.poach.0': 'Non',
+  'choice.canasta.poach.1': 'Oui',
+  'option.canasta.topOnlyCapture': 'Carte du dessus ou tout le talon',
+  'choice.canasta.topOnlyCapture.0': 'Non',
+  'choice.canasta.topOnlyCapture.1': 'Oui',
+  // --- end labels ---
 };

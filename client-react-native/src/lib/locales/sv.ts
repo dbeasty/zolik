@@ -3087,4 +3087,23 @@ export const sv: Record<string, string> = {
   'a11y.board.key.escape': 'Esc',
   'a11y.board.key.space': 'Mellanslag',
   'a11y.board.key.shift': 'Shift',
+  // --- labels the server sends that had no wording ---
+  'variation.canasta.canastax': 'CanastaX',
+  'choice.botSkill.4': 'AI',
+  'option.canasta.dirtySequences': 'Orena följder',
+  'choice.canasta.dirtySequences.0': 'Av',
+  'choice.canasta.dirtySequences.1': 'På',
+  'option.canasta.wildMeld': 'Kombination av tvåor',
+  'choice.canasta.wildMeld.0': 'Av',
+  'choice.canasta.wildMeld.1': 'På',
+  'option.canasta.rearrange': 'Ordna om kombinationer',
+  'choice.canasta.rearrange.0': 'Av',
+  'choice.canasta.rearrange.1': 'På',
+  'option.canasta.poach': 'Knyck vildkort',
+  'choice.canasta.poach.0': 'Av',
+  'choice.canasta.poach.1': 'På',
+  'option.canasta.topOnlyCapture': 'Översta kortet eller hela högen',
+  'choice.canasta.topOnlyCapture.0': 'Av',
+  'choice.canasta.topOnlyCapture.1': 'På',
+  // --- end labels ---
 };
