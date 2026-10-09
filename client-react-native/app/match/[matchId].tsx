@@ -108,6 +108,9 @@ import { SameDeal } from '@/src/components/match/SameDeal';
 import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
 import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
+import { seatIsShareable } from '@/src/desktop/seat';
+import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
+import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
 import { isTableZone } from '@/src/lib/board';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
@@ -139,7 +142,22 @@ const IDLE_NUDGE_MS = 20_000;
  * see — one change to the pieces this file already assembles rather than a
  * second screen.
  */
-export default function MatchScreen() {
+/**
+ * In the Mac app's main window a match is not drawn: it opens in a window of
+ * its own (src/desktop/windows.tsx). Everywhere else this is the screen.
+ */
+export default function MatchRoute() {
+  const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const seated = useSession().offline;
+  // A table reached through a tunnel only this page holds (Bluetooth, the
+  // internet relay) cannot be shown by another window yet, so it stays here.
+  if (IS_DESKTOP_MAIN_WINDOW && (!seated || seatIsShareable(seated))) {
+    return <DesktopGameHandoff kind="match" id={String(matchId)} />;
+  }
+  return <MatchScreen />;
+}
+
+function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
   // A seat taken through a seat link plays this table — and only this one —
@@ -156,9 +174,12 @@ export default function MatchScreen() {
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
-    if (!matchId || !session?.accessToken) return null;
+    // Not while the session is still being settled: a game window finds the
+    // player's seat at an offline table first, and a socket opened at the
+    // cloud in the meantime would ask it for a table it has never heard of.
+    if (!matchId || !session?.accessToken || own.loading) return null;
     return client.matchSocketUrl(String(matchId));
-  }, [client, matchId, session?.accessToken]);
+  }, [client, matchId, session?.accessToken, own.loading]);
 
   // A link to a table almost never arrives at a signed-in app: it comes out of
   // a chat, on a device that may never have been used to play. Without this the
@@ -296,6 +317,39 @@ export default function MatchScreen() {
       log: { shown: logOpen, toggle: () => setMovesOpen(!logOpen) },
     },
     state ? { moduleId: state.moduleId, variation: state.variation ?? '', options: state.options ?? {} } : null,
+  );
+  // The game window's title bar, in the Mac app: the game and who it is
+  // against, with the status (and where the table runs) beneath.
+  const infoServer = !offline
+    ? ''
+    : offline.role === 'host'
+      ? t('server.thisPhone')
+      : t('server.named', { name: offline.serverName || t('server.hostsPhone') });
+  const infoGame = useGameName(state?.moduleId ?? '');
+  const infoOthers = (state?.players ?? []).filter((p) => p.id !== viewerId);
+  const infoNames =
+    infoOthers
+      .slice(0, 3)
+      .map((p) => p.name || p.id)
+      .join(', ') + (infoOthers.length > 3 ? ` +${infoOthers.length - 3}` : '');
+  useGameWindowInfo(
+    state
+      ? {
+          title: infoOthers.length
+            ? t('desktop.window.title', { game: infoGame, names: infoNames })
+            : infoGame,
+          subtitle: [
+            state.status,
+            infoServer,
+            state.status !== 'completed' && infoOthers.some((p) => !p.isAI) ? (state.joinCode ?? '') : '',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          finished: state.status === 'completed' || state.status === 'abandoned',
+          yourTurn: state.status === 'active' && state.legalActions.some(isLive),
+          offline: !!offline,
+        }
+      : null,
   );
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));

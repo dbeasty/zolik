@@ -1,13 +1,15 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { CLIENT_COMMIT, CLIENT_VERSION, SOURCE_URL } from '@/src/config';
+import { CLIENT_COMMIT, CLIENT_VERSION, IS_DESKTOP_MAIN_WINDOW, SOURCE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useServerBuild } from '@/src/hooks/useServerBuild';
 import { moduleLabel } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
+import { postToApp } from '@/src/desktop/windows';
 import { useInvites } from '@/src/notify/InviteProvider';
+import { inviteHeadline } from '@/src/notify/InviteRow';
 
 /** One entry of the Mac app's Account menu, in the player's language. */
 export type DesktopMenuItem =
@@ -46,7 +48,7 @@ function handler(): Handler | null {
  * Draws nothing.
  */
 export function DesktopMenuBridge() {
-  const { session, onlineSession, logout, client } = useSession();
+  const { session, onlineSession, logout, client, loading } = useSession();
   const [games, setGames] = useState<{ id: string; label: string }[]>([]);
 
   useEffect(() => {
@@ -61,7 +63,28 @@ export function DesktopMenuBridge() {
       live = false;
     };
   }, [client]);
-  const { circleRequests } = useInvites();
+  const { circleRequests, invites, banner } = useInvites();
+
+  // Signing out closes every game window; the badge on the Dock icon counts
+  // the invites waiting. Both are the main window's to say: a game window
+  // does not show invites.
+  const wasSignedIn = useRef(false);
+  useEffect(() => {
+    if (!IS_DESKTOP_MAIN_WINDOW || loading) return;
+    if (onlineSession) wasSignedIn.current = true;
+    else if (wasSignedIn.current) {
+      wasSignedIn.current = false;
+      postToApp({ op: 'signedOut' });
+    }
+  }, [onlineSession, loading]);
+  const waiting = invites.length;
+  const newest = banner ?? invites[0];
+  const newestId = newest?.id ?? '';
+  useEffect(() => {
+    if (!IS_DESKTOP_MAIN_WINDOW) return;
+    postToApp({ op: 'invites', count: waiting, newestId, text: newest ? inviteHeadline(newest) : '' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting, newestId]);
   const server = useServerBuild();
   const locale = useLocale();
 
@@ -124,7 +147,7 @@ export function DesktopMenuBridge() {
 /** The menu bar's own words (`desktop.menu.*`), plus the few it shares with the page. */
 function menuLabels(): Record<string, string> {
   const own = [
-    'about', 'settings', 'hideApp', 'hideOthers', 'showAll', 'quit', 'file', 'newWindow', 'closeWindow',
+    'about', 'settings', 'hideApp', 'hideOthers', 'showAll', 'quit', 'file', 'newGame', 'closeWindow',
     'edit', 'undo', 'redo', 'cut', 'copy', 'paste', 'selectAll', 'view', 'hideHand', 'showHand',
     'hideTable', 'showTable', 'hideLog', 'showLog', 'back', 'forward', 'home', 'actualSize', 'zoomIn',
     'zoomOut', 'reload', 'table', 'account', 'window', 'minimize', 'zoom', 'bringAllToFront', 'help', 'website',

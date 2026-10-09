@@ -6,10 +6,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
-import { IS_DESKTOP } from '@/src/config';
+import { IS_DESKTOP, IS_DESKTOP_GAME_WINDOW } from '@/src/config';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
 import { NavArrows, NavHistoryTracker } from '@/src/desktop/NavArrows';
+import { GameWindowGuard, installNavigationRecorder } from '@/src/desktop/windows';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
 import { AvatarProvider } from '@/src/hooks/useAvatar';
@@ -24,6 +25,10 @@ import { colors } from '@/src/theme';
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
+
+// Before any screen runs: how a move was made decides where the main window
+// goes once a game has opened in a window of its own.
+installNavigationRecorder();
 
 export default function RootLayout() {
   // Resolves the language — the saved choice if there is one, the device's
@@ -79,8 +84,14 @@ export default function RootLayout() {
                     `src/context/AvailabilityContext.tsx`. */}
                 <AvailabilityProvider>
                 {IS_DESKTOP ? <DesktopMenuBridge /> : <NavHistoryTracker />}
+                {IS_DESKTOP_GAME_WINDOW ? <GameWindowGuard /> : null}
                 <Stack
                   screenOptions={{
+                    // The Mac app draws no header of its own: the window's
+                    // title bar carries the screen's name, its back and
+                    // forward arrows (main window) and a game's status
+                    // (game window). See client-macos.
+                    headerShown: !IS_DESKTOP,
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
                     contentStyle: { backgroundColor: colors.bg },
@@ -189,7 +200,7 @@ export default function RootLayout() {
                   <Stack.Screen name="guest/[key]" options={{ title: t('guestLink.title') }} />
                 </Stack>
                 </AvailabilityProvider>
-                <InviteBanner />
+                {IS_DESKTOP_GAME_WINDOW ? null : <InviteBanner />}
                 {/* The screen reader's live region and the tooltip bubble —
                     last, so the bubble paints over the banner too. See
                     `src/a11y`. */}

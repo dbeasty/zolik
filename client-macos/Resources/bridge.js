@@ -273,6 +273,7 @@
     'startHost', 'startNode', 'syncNow', 'followMatch', 'stopHost', 'openRoom', 'closeRoom',
     'openRelay', 'closeRelay', 'startBrowsing', 'stopBrowsing', 'bleHostStart', 'bleHostStop',
     'bleScanStart', 'bleScanStop', 'bleConnect', 'bleSend', 'bleDisconnect', 'bleReady',
+    'relayJoin', 'guestLeave', 'guestStatus',
   ].forEach(function (name) {
     nearby[name] = asyncMethod(name);
   });
@@ -294,6 +295,25 @@
         };
       },
       go: function (dir) { post({ op: 'nav', dir: dir }); },
+    }),
+  });
+
+  // ---- the seat (src/desktop/seat.ts) -----------------------------------------
+  // Which offline table the player sits at belongs to the app, so every
+  // window sees the same one; this is the page's side of it.
+
+  var seatState = (window.__ZOLIK_DESKTOP_STATE__ || {}).seat || null;
+  var seatListeners = [];
+  Object.defineProperty(globalThis, 'ZolikDesktopSeat', {
+    value: Object.freeze({
+      state: function () { return seatState; },
+      subscribe: function (cb) {
+        seatListeners.push(cb);
+        return function () {
+          var i = seatListeners.indexOf(cb);
+          if (i >= 0) seatListeners.splice(i, 1);
+        };
+      },
     }),
   });
 
@@ -319,6 +339,9 @@
         });
       } else if (name === 'state') {
         applyState(p);
+      } else if (name === 'seat') {
+        seatState = p ? p.table || null : null;
+        seatListeners.slice().forEach(function (cb) { cb(seatState); });
       } else if (name === 'nav') {
         navState = p;
         navListeners.slice().forEach(function (cb) { cb(p); });

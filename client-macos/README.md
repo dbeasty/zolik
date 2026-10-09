@@ -19,9 +19,24 @@ Go core (Zolikcore.xcframework): hosts tables, and makes every network request
 
 ## Windows and menus
 
-- **File › New Window** (⌘N) opens another window with its own screen, so two
-  games can be played side by side. Windows share the player, the core and
-  any offline table this Mac hosts; each is named after its screen.
+- **One main window, a window per game** (`docs/macos-window-model-plan.md`).
+  The main window holds everything but a game: home and the game picker,
+  setup, the waiting room, My games, the account, rules, settings. It has
+  Back and Forward in the title bar, and closing it hides it (the Dock icon or
+  ⌘1 brings it back; the app and any table it hosts keep running). Each match
+  or replay opens in a window of its own, titled "Game · vs opponents" with
+  the status as its subtitle; resuming a game already open brings its window
+  forward, closing one keeps the match under In progress, and the open games
+  come back at the next launch. Rules and other screens asked for from a
+  game go to the main window. **File › New Game** (⌘N) shows the game picker.
+- **The app owns the connections.** The table this Mac hosts, the seat at an
+  offline table (`SeatStore` in `AppDelegate`) and a guest's tunnel to a
+  table across the internet (`zolikcore/guest.go`, served on loopback) all
+  belong to the app, so any window can show any game. Bluetooth guests are
+  still held by the page, and their game stays in the main window.
+- The Dock badge counts invites waiting while the main window is not in
+  front, and games waiting on you in windows that are not; their titles get a
+  dot.
 - **Account** holds what the phones keep behind the face in the header (who is
   playing, My games, Game circle, Sign in / Account, Sign out), worded by the
   page in the player's language (`src/desktop/DesktopMenuBridge.tsx`). The
@@ -34,8 +49,9 @@ Go core (Zolikcore.xcframework): hosts tables, and makes every network request
   holds Terms, Privacy, Accessibility and Source, and **About** shows this
   build's version and commit and the server's: what the footer shows on the
   phones, which the app does not show.
-- The header has back and forward arrows on every platform; in the app they
-  walk the window's history, the same one View › Back and Forward do.
+- The page draws no header in the app. Back and Forward are in the main
+  window's title bar and walk its history, the same one View › Back and
+  Forward do; a game window has neither.
 - Every menu bar title follows the player's language (`desktop.menu.*`).
  **Table**: Start an offline table (⇧⌘N), Back to online play.
   **Jokerless › About** shows the app's and the server's versions.

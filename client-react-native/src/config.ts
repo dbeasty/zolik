@@ -39,7 +39,13 @@ function sameOriginBaseUrl(): string {
  * web view has no network of its own. The app sets it from a script that runs
  * before the bundle, so it is there for every module-level read below.
  */
-export type DesktopConfig = { baseUrl: string; cloudUrl?: string; platform: string };
+export type DesktopConfig = {
+  baseUrl: string;
+  cloudUrl?: string;
+  platform: string;
+  /** Which of the app's windows this page is in: the one main window, or one game's. */
+  window?: { role: 'main' | 'game'; matchId?: string };
+};
 
 function desktopConfig(): DesktopConfig | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
@@ -53,6 +59,17 @@ function desktopConfig(): DesktopConfig | null {
  * same web export.
  */
 export const IS_DESKTOP = desktopConfig() != null;
+
+/**
+ * The window this page is drawn in, in the desktop app: the main window
+ * (home, lobby, account, rules…) or a game window, which holds one match.
+ * Null outside the app.
+ */
+export const DESKTOP_WINDOW: { role: 'main' | 'game'; matchId?: string } | null = IS_DESKTOP
+  ? (desktopConfig()?.window ?? { role: 'main' })
+  : null;
+export const IS_DESKTOP_GAME_WINDOW = DESKTOP_WINDOW?.role === 'game';
+export const IS_DESKTOP_MAIN_WINDOW = DESKTOP_WINDOW?.role === 'main';
 
 export const ZOLIK_BASE_URL = (
   desktopConfig()?.baseUrl ||

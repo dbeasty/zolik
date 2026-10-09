@@ -39,7 +39,7 @@ final class E2EControl {
   private func hookLogs() {
     for (i, w) in (app?.windows ?? []).enumerated() where !logged.contains(ObjectIdentifier(w)) {
       logged.insert(ObjectIdentifier(w))
-      let prefix = i == 0 ? "" : "[window \(i + 1)] "
+      let prefix = w.role == .main ? "" : "[game \(w.gameKey ?? String(i + 1))] "
       w.web.onLog = { [weak self] line in self?.append(prefix + line) }
     }
   }
@@ -155,6 +155,29 @@ final class E2EControl {
       handleWindow(arg, done: done)
     case "windows":
       done(.success((app?.windows ?? []).map { $0.window?.title ?? "" }))
+    case "windowsinfo":
+      done(.success((app?.windows ?? []).map { w in
+        [
+          "role": w.role == .main ? "main" : "game", "key": w.gameKey ?? "", "title": w.window?.title ?? "",
+          "subtitle": w.window?.subtitle ?? "", "visible": w.window?.isVisible ?? false,
+          "hidden": w.hidden,
+        ] as [String: Any]
+      }))
+    case "toolbar":
+      guard let main = app?.main else { return done(.failure(E2EError("no main window"))) }
+      switch arg {
+      case "state": done(.success(main.toolbarState()))
+      case "back", "forward":
+        done(main.pressToolbar(arg) ? .success(true) : .failure(E2EError("the \(arg) arrow is off")))
+      default: done(.failure(E2EError("toolbar state|back|forward")))
+      }
+    case "badge":
+      done(.success(NSApp.dockTile.badgeLabel ?? ""))
+    case "dock":
+      // A click on the Dock icon.
+      done(.success(app?.applicationShouldHandleReopen(NSApp, hasVisibleWindows: false) ?? false))
+    case "seat":
+      done(.success(app?.seat ?? [:]))
     case "account":
       done(.success(app?.accountMenuTitles() ?? []))
     case "about":
@@ -178,34 +201,42 @@ final class E2EControl {
 }
 
 extension E2EControl {
-  /// `window` describes the active window; `window new` opens another and
-  /// makes it active; `window select N` (1-based) switches to one.
+  /// `window` describes the active window; `window select N` (1-based; the
+  /// main window is 1, then the game windows in the order they opened)
+  /// switches to one; `window main` selects the main window, showing it if
+  /// it was hidden; `window close N` closes one the way its close button
+  /// does (the main window hides).
   fileprivate func handleWindow(_ arg: String, done: @escaping (Result<Any?, Error>) -> Void) {
     guard let app else { return done(.failure(E2EError("no app"))) }
     let parts = arg.split(separator: " ").map(String.init)
     switch parts.first ?? "" {
-    case "new":
-      let c = app.openWindow()
-      hookLogs()
-      c.web.load()
-      done(.success(app.windows.count))
-    case "select":
+    case "select", "close":
       guard parts.count > 1, let n = Int(parts[1]), n >= 1, n <= app.windows.count else {
         return done(.failure(E2EError("no window \(arg)")))
       }
-      app.select(app.windows[n - 1])
+      let target = app.windows[n - 1]
+      if parts[0] == "close" {
+        target.window?.performClose(nil)
+        return done(.success(app.windows.count))
+      }
+      app.select(target)
       done(.success(n))
+    case "main":
+      app.showMain()
+      done(.success(true))
     default:
       guard let c = app.active, let w = c.window else { return done(.failure(E2EError("no window"))) }
       let content = w.contentLayoutRect
       let view = c.web.webView.frame
       done(.success([
-        "title": w.title, "visible": w.isVisible, "count": app.windows.count,
+        "title": w.title, "subtitle": w.subtitle, "visible": w.isVisible, "count": app.windows.count,
+        "role": c.role == .main ? "main" : "game", "key": c.gameKey ?? "", "hidden": c.hidden,
         "width": w.frame.width, "height": w.frame.height,
         // Where the page sits: entirely below the title bar when its top
         // edge is no higher than the content area's.
         "pageTop": view.maxY, "contentTop": content.maxY,
         "zoom": c.web.webView.pageZoom,
+        "tabs": w.tabbedWindows?.count ?? 0,
       ]))
     }
   }

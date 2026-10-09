@@ -4,7 +4,8 @@ import AppKit
 /// Table for Play offline, Account for the account menu behind the face in
 /// the header (which the Mac app does not show), the game's own parts and
 /// Back/Forward in View, and every game's rules and the legal notices in Help.
-/// File › New Window opens a second table alongside the first.
+/// File › New Game brings the main window forward at the game picker; each
+/// game then opens in a window of its own.
 ///
 /// Every item carries a key (its identifier, `menu.<key>`); AppDelegate
 /// retitles them from the page's words, so the menu bar speaks the player's
@@ -33,7 +34,7 @@ enum MenuBuilder {
     add(appMenu, key: nil, to: main)
 
     let file = NSMenu(title: "File")
-    file.addItem(item("newWindow", "New Window", #selector(AppDelegate.newWindow(_:)), "n", target))
+    file.addItem(item("newGame", "New Game", #selector(AppDelegate.newGame(_:)), "n", target))
     file.addItem(.separator())
     file.addItem(item("closeWindow", "Close Window", #selector(NSWindow.performClose(_:)), "w", nil))
     add(file, key: "file", to: main)
@@ -90,6 +91,10 @@ enum MenuBuilder {
     let window = NSMenu(title: "Window")
     window.addItem(item("minimize", "Minimize", #selector(NSWindow.performMiniaturize(_:)), "m", nil))
     window.addItem(item("zoom", "Zoom", #selector(NSWindow.performZoom(_:)), "", nil))
+    window.addItem(.separator())
+    // The main window, always one keystroke away; each game's window is
+    // listed below by its title, which macOS does by itself.
+    window.addItem(item(nil, "Jokerless", #selector(AppDelegate.showMainWindow(_:)), "1", target))
     window.addItem(.separator())
     window.addItem(item("bringAllToFront", "Bring All to Front", #selector(NSApplication.arrangeInFront(_:)), "", nil))
     add(window, key: "window", to: main)

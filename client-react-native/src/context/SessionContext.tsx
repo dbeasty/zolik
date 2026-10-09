@@ -15,12 +15,13 @@ import { AppState, Platform } from 'react-native';
 import { apiClient, ZolikClient } from '@/src/api/client';
 import * as nearby from '@/modules/zolik-nearby';
 import { connectToTable } from '@/src/net/ble/link';
-import { BleTransport } from '@/src/net/ble/transport';
+import { BleHostKeyChanged, BleTransport } from '@/src/net/ble/transport';
 import { RelayHostAway, relayInfo, relayLink, relayRandom32 } from '@/src/net/relay/link';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
 import { guestIdOfKey } from '@/src/lib/inviteLink';
-import { ZOLIK_BASE_URL } from '@/src/config';
+import { DESKTOP_WINDOW, IS_DESKTOP, ZOLIK_BASE_URL } from '@/src/config';
+import { bootSeat, postSeat, seatIsShareable, seatKey, subscribeSeat, type SeatTable } from '@/src/desktop/seat';
 import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
 import { servingTable } from '@/src/net/servingTable';
 import { useReplicaSync } from '@/src/net/useReplicaSync';
@@ -306,6 +307,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [claimableMatches, setClaimableMatches] = useState(0);
   const [guestKey, setGuestKey] = useState<string | null>(null);
   const [offline, setOffline] = useState<OfflineState | null>(null);
+  const offlineRef = useRef<OfflineState | null>(null);
 
   // The server has already rejected these credentials, so clear them from state
   // and storage. Without this the rejected token is restored on the next boot
@@ -353,8 +355,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // build with no embedded server in it, goes on reading everything from the
   // cloud exactly as it always has.
   const followAccountOnThisDevice = useCallback(async (s: PlayerSession | null) => {
+    // The embedded server belongs to the app, not to a page: a game window
+    // is only a view, and any window loading as a guest must not stop the
+    // table the main window opened for the room.
+    if (IS_DESKTOP && DESKTOP_WINDOW?.role === 'game') return;
     try {
       if (!s || s.isGuest) {
+        if (IS_DESKTOP && !previousAccount.current) {
+          setLocalNodeReady(false);
+          return;
+        }
         await stopNodeFor(previousAccount.current, nodeCredentialStore);
         previousAccount.current = '';
         setLocalNodeReady(false);
@@ -644,6 +654,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       ble?: BleTransport,
       offlinePass?: string,
     ) => {
+      // Sitting down at another table lets go of the tunnel to the last.
+      const before = offlineRef.current;
+      if (nearby.coreHoldsGuests && before?.via === 'internet' && before.instanceId !== instanceId) {
+        void nearby.leaveGuestInCore(before.instanceId);
+      }
       const key = offlineKey(instanceId);
       // The guest id is kept per host, so this player gets the same seat back
       // at a table they left, even across app restarts. Signing in afresh each
@@ -794,6 +809,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const info = await relayInfo(ZOLIK_BASE_URL, code);
       if (info.protocol && info.protocol !== nearby.PROTOCOL_VERSION) throw new NearbyVersionError(info.protocol);
       if (!info.online) throw new RelayHostAway();
+      // In the desktop app the tunnel is the app's, not this page's: its core
+      // serves the table on a loopback address that any window can use, and
+      // it outlives the window that joined.
+      if (nearby.coreHoldsGuests) {
+        const pinned = (await storage.getItem(hostKeyKey(info.instanceId))) ?? '';
+        let table: nearby.CoreGuestTable;
+        try {
+          table = await nearby.relayJoinInCore(info.code, info.instanceId, pinned);
+        } catch (e) {
+          if (e instanceof Error && e.message.includes('BLE_HOST_KEY_CHANGED')) throw new BleHostKeyChanged();
+          throw e;
+        }
+        await pinIfNew(info.instanceId, table.hostKey);
+        await sitAt(
+          new ZolikClient(table.baseUrl),
+          info.instanceId,
+          { role: 'guest', via: 'internet', checkCode: table.checkCode, serverName: info.name },
+          name,
+          undefined,
+          session?.isGuest ? undefined : session?.offlinePass,
+        );
+        return;
+      }
       const mark = (gone: boolean) =>
         setOffline((prev) => (prev && prev.ble === transport && !!prev.serverGone !== gone ? { ...prev, serverGone: gone } : prev));
       const transport: BleTransport = new BleTransport({
@@ -838,6 +876,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // A host has a server and a radio running here. A guest leaving just
     // stops talking to somebody else's phone.
     was?.ble?.close();
+    if (was?.via === 'internet' && nearby.coreHoldsGuests) await nearby.leaveGuestInCore(was.instanceId);
     if (was?.role === 'host') {
       await nearby.closeRelay();
       await nearby.closeRoom();
@@ -845,6 +884,103 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       await nearby.stopHost();
     }
   }, [offline]);
+
+  // The Mac app keeps the seat itself (client-macos SeatStore), so a game
+  // window opened after the player sat down in the main window finds them at
+  // the same table. This page posts a seat it took, and takes one another
+  // window posted: signing in at that table's address with the identity kept
+  // for it, which is the same seat again.
+  const [seatPending, setSeatPending] = useState(() => {
+    const seat = bootSeat();
+    return !!seat && seatIsShareable(seat);
+  });
+  offlineRef.current = offline;
+  const appSeat = useRef<string>(seatKey(bootSeat()));
+  const wantedSeat = useRef<SeatTable | null>(bootSeat());
+  const sitFromApp = useCallback(
+    async (seat: SeatTable | null) => {
+      if (!seat || !seatIsShareable(seat)) {
+        setOffline((prev) => (prev && !seat ? null : prev));
+        setSeatPending(false);
+        return;
+      }
+      try {
+        const name = (await loadOfflineName()) ?? 'Guest';
+        await sitAt(
+          new ZolikClient(seat.baseUrl),
+          seat.instanceId,
+          { role: seat.role, via: seat.via, checkCode: '', serverName: seat.serverName },
+          name,
+          undefined,
+          session?.isGuest ? undefined : session?.offlinePass,
+        );
+      } catch (e) {
+        // The table is gone: this window stays online.
+        console.warn('could not sit at the app’s seat: ' + (e instanceof Error ? e.message : String(e)));
+      } finally {
+        setSeatPending(false);
+      }
+    },
+    [sitAt, session],
+  );
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    return subscribeSeat((seat) => {
+      appSeat.current = seatKey(seat);
+      wantedSeat.current = seat;
+      const here = offlineRef.current;
+      const sitting = here
+        ? seatKey({ instanceId: here.instanceId, baseUrl: here.baseUrl, role: here.role, via: here.via })
+        : 'none';
+      if (!loading && sitting !== seatKey(seat)) void sitFromApp(seat);
+    });
+  }, [loading, sitFromApp]);
+  useEffect(() => {
+    // The seat the app held at load, once the stored session is read.
+    if (!IS_DESKTOP || loading) return;
+    const seat = wantedSeat.current;
+    if (seat && seatIsShareable(seat) && !offline) void sitFromApp(seat);
+    else setSeatPending(false);
+    // Once, when loading ends.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    const mine: SeatTable | null = offline
+      ? {
+          instanceId: offline.instanceId,
+          baseUrl: offline.baseUrl,
+          role: offline.role,
+          via: offline.via,
+          serverName: offline.serverName,
+        }
+      : null;
+    // A seat that came from the app is already the app's; only a change this
+    // page made is told to it.
+    if (seatKey(mine) === appSeat.current) return;
+    if (!mine && seatPending) return;
+    appSeat.current = seatKey(mine);
+    wantedSeat.current = mine;
+    postSeat(mine);
+  }, [offline, seatPending]);
+
+  // A table the desktop app's core reaches for this page: it says when the
+  // host's device goes away, and what the check code is after a reconnect.
+  const coreGuestOf = offline?.via === 'internet' && nearby.coreHoldsGuests ? offline.instanceId : '';
+  useEffect(() => {
+    if (!coreGuestOf) return;
+    const timer = setInterval(() => {
+      void nearby.guestStatusInCore(coreGuestOf).then((st) =>
+        setOffline((prev) => {
+          if (!prev || prev.instanceId !== coreGuestOf) return prev;
+          const gone = st.away !== '';
+          if (!!prev.serverGone === gone && prev.checkCode === (st.checkCode || prev.checkCode)) return prev;
+          return { ...prev, serverGone: gone, checkCode: st.checkCode || prev.checkCode };
+        }),
+      );
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [coreGuestOf]);
 
   // A host's table stops while the app is in the background. Coming back,
   // nobody at it is charged for the time the host was away: no bot takes a
@@ -878,7 +1014,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     () => ({
       session: offline ? offline.session : session,
       onlineSession: session,
-      loading,
+      loading: loading || seatPending,
       client: offline ? offline.client : apiClient,
       providers,
       account,
@@ -926,6 +1062,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       leaveOffline,
       session,
       loading,
+      seatPending,
       providers,
       account,
       claimableMatches,

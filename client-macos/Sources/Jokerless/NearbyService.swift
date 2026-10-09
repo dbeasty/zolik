@@ -90,6 +90,28 @@ final class NearbyService {
       case "stopHost":
         shutdown()
         finish(nil)
+      case "relayJoin":
+        // A table across the internet: the core holds the tunnel and serves
+        // the table on this machine, so any window can use its address.
+        let (code, instance, pinned) = (string(0), string(1), string(2))
+        DispatchQueue.global(qos: .userInitiated).async {
+          var error: NSError?
+          guard let table = ZolikcoreJoinRelay(code, instance, pinned, &error) else {
+            fail(Failure(error?.localizedDescription ?? "could not reach the table"))
+            return
+          }
+          finish([
+            "baseUrl": table.baseURL(), "instanceId": table.instanceID(), "hostKey": table.hostKey(),
+            "checkCode": table.checkCode(),
+          ])
+        }
+      case "guestLeave":
+        ZolikcoreLeaveGuestTable(string(0))
+        finish(nil)
+      case "guestStatus":
+        let raw = ZolikcoreGuestStatus(string(0))
+        let parsed = (raw.data(using: .utf8)).flatMap { try? JSONSerialization.jsonObject(with: $0) }
+        finish(parsed)
       case "syncNow":
         // Replication can take a while; it must not hold up the window.
         DispatchQueue.global(qos: .userInitiated).async {

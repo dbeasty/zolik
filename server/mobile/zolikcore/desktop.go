@@ -83,6 +83,9 @@ type NetSink interface {
 var (
 	netMu      sync.Mutex
 	cloudHosts = map[string]bool{}
+	// cloudBase is the server's address as given, for what the core itself
+	// dials for a guest (the relay).
+	cloudBase string
 )
 
 // SetCloudBaseURL names the server the app plays online against. Its host is
@@ -96,6 +99,7 @@ func SetCloudBaseURL(raw string) error {
 	netMu.Lock()
 	defer netMu.Unlock()
 	cloudHosts = map[string]bool{strings.ToLower(u.Hostname()): true}
+	cloudBase = strings.TrimRight(strings.TrimSpace(raw), "/")
 	return nil
 }
 

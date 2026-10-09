@@ -19,6 +19,8 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
   var onViewState: (([String: Any]?) -> Void)?
   /// The header's arrows: "back" or "forward".
   var onNav: ((String) -> Void)?
+  /// Operations that are the app's, not the page's: see AppDelegate.appOp.
+  var onAppOp: ((String, [String: Any]) -> Void)?
   private let nearby: NearbyService
   private lazy var sink = NetSinkBridge(bridge: self)
   /// Fetches waiting for the core's answer, by the page's request id.
@@ -87,6 +89,9 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
       replyHandler(true, nil)
     case "log":
       onLog?(body["line"] as? String ?? "")
+      replyHandler(true, nil)
+    case "openGame", "toMain", "windowInfo", "seat", "signedOut", "invites":
+      onAppOp?(op, body)
       replyHandler(true, nil)
     default:
       replyHandler(nil, "unknown operation \(op)")

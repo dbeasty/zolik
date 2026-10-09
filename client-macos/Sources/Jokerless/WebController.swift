@@ -10,11 +10,35 @@ import Zolikcore
 /// engine refuse anything else, whatever the page tries.
 final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   static let scheme = "app"
-  private static let testStore = WKWebsiteDataStore.nonPersistent()
+  /// A test run's store is in memory, so it starts empty and leaves nothing
+  /// behind, unless the run asks for one that survives a relaunch (a store
+  /// named by ZOLIK_E2E_STORE_ID, which the run removes when it is done).
+  private static let testStore: WKWebsiteDataStore = {
+    #if DEBUG
+      if #available(macOS 14.0, *), let raw = ProcessInfo.processInfo.environment["ZOLIK_E2E_STORE_ID"],
+        let id = UUID(uuidString: raw)
+      {
+        return WKWebsiteDataStore(forIdentifier: id)
+      }
+    #endif
+    return WKWebsiteDataStore.nonPersistent()
+  }()
   static let origin = "app://jokerless"
+
+  /// Which of the app's windows this page lives in: the one main window, or
+  /// one game's. The page is told at load (`__ZOLIK_DESKTOP__.window`).
+  struct Spec {
+    enum Role: String { case main, game }
+    var role: Role
+    var matchId: String?
+  }
 
   let webView: WKWebView
   let nearby: NearbyService
+  private(set) var spec: Spec
+  /// The seat the app holds (the offline table the player sits at), read
+  /// before every page load so a window opened later finds the player seated.
+  private let seat: () -> [String: Any]?
   private let bridge: Bridge
   private let schemeHandler = AppSchemeHandler()
   /// Called for console output and policy violations in an end-to-end run.
@@ -25,6 +49,12 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
   var onMenuState: (([String: Any]) -> Void)? {
     didSet { bridge.onMenuState = onMenuState }
   }
+  /// The page asks the app to do something that is the app's to do: open a
+  /// game window, show a screen in the main window, say what the title bar
+  /// should carry, move the seat, count invites. See AppDelegate.appOp.
+  var onAppOp: ((String, [String: Any]) -> Void)? {
+    didSet { bridge.onAppOp = onAppOp }
+  }
   /// Called when the game screen in front changes what it can show or hide.
   var onViewState: (([String: Any]?) -> Void)? {
     didSet { bridge.onViewState = onViewState }
@@ -32,7 +62,9 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
 
   var view: NSView { webView }
 
-  init(nearby: NearbyService) {
+  init(nearby: NearbyService, spec: Spec, seat: @escaping () -> [String: Any]?) {
+    self.spec = spec
+    self.seat = seat
     let config = WKWebViewConfiguration()
     config.setURLSchemeHandler(schemeHandler, forURLScheme: Self.scheme)
     // Every window shares one store, so they share the signed-in player. A
@@ -120,9 +152,18 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     webView.evaluateJavaScript("window.__zolikCommand && window.__zolikCommand(\(quoted)[0])")
   }
 
-  func load() {
-    webView.load(URLRequest(url: URL(string: Self.origin + "/")!))
+  func load(path: String = "/") {
+    webView.load(URLRequest(url: URL(string: Self.origin + path)!))
   }
+
+  /// Another window's seat change, for this page to follow.
+  func emitSeat(_ table: Any?) {
+    bridge.emit("seat", ["table": table ?? NSNull()])
+  }
+
+  /// A game window that moves on to another match (a rematch) is that
+  /// match's window from then on; its next load says so.
+  func setMatch(_ id: String?) { spec.matchId = id }
 
   /// Moves to another screen inside the app, the way a tap would. Only if
   /// the page is not ready to be asked does it load the screen afresh.
@@ -145,7 +186,8 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     controller.removeAllUserScripts()
     controller.addUserScript(
       WKUserScript(
-        source: Self.bootScript(state: nearby.snapshot().merging(["nav": navState]) { a, _ in a }),
+        source: Self.bootScript(
+          state: nearby.snapshot().merging(["nav": navState, "seat": seat() ?? NSNull()]) { a, _ in a }, spec: spec),
         injectionTime: .atDocumentStart, forMainFrameOnly: true))
     if AppConfig.isE2E, let e2e = Self.resource("e2e.js") {
       controller.addUserScript(WKUserScript(source: e2e, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -154,8 +196,11 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
 
   /// The configuration the page reads before its bundle runs, then the
   /// bridge itself.
-  private static func bootScript(state: [String: Any]) -> String {
+  private static func bootScript(state: [String: Any], spec: Spec) -> String {
+    var window: [String: Any] = ["role": spec.role.rawValue]
+    if let id = spec.matchId { window["matchId"] = id }
     let config: [String: Any] = [
+      "window": window,
       "baseUrl": AppConfig.serverURL,
       "cloudUrl": AppConfig.serverURL,
       "platform": "mac",
