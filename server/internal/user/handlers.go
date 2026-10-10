@@ -3,8 +3,8 @@ package user
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -121,12 +121,14 @@ func (h *Handlers) patchMe(w http.ResponseWriter, req *http.Request) {
 	}
 	update := bson.M{}
 	if body.Username != nil {
-		name := strings.TrimSpace(*body.Username)
+		// Cleaned at a generous length first, so that "too long" is still a
+		// refusal the person is told about rather than a name quietly cut.
+		name := auth.CleanDisplayName(*body.Username, 4*auth.MaxUsernameRunes)
 		if name == "" {
 			http.Error(w, "a name is required", http.StatusBadRequest)
 			return
 		}
-		if len([]rune(name)) > 24 {
+		if len([]rune(name)) > auth.MaxUsernameRunes {
 			http.Error(w, "that name is too long", http.StatusBadRequest)
 			return
 		}
@@ -146,7 +148,8 @@ func (h *Handlers) patchMe(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "that name is already taken", http.StatusConflict)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("user: patch /me: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"updated": true})
