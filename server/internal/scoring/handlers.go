@@ -2,13 +2,36 @@ package scoring
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"zolik/server/internal/auth"
 )
+
+// maxBody bounds what an unauthenticated caller can make the server read and
+// store: a scorepad of eight short names and seven rounds is well under 2 KiB.
+const maxBody = 16 << 10
+
+// maxScore bounds one round's score. Real scores are tens or hundreds; the cap
+// exists so that adding seven of them can never overflow and make the lowest
+// total the highest.
+const maxScore = 1_000_000
+
+func clampScore(v int) int {
+	if v > maxScore {
+		return maxScore
+	}
+	if v < -maxScore {
+		return -maxScore
+	}
+	return v
+}
 
 type Handlers struct {
 	repo Repository
@@ -54,7 +77,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	var body createReq
-	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, req.Body, maxBody)).Decode(&body); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
@@ -65,7 +88,13 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 	now := time.Now().UTC()
 
 	players := make([]PlayerScore, 0, len(body.Players))
-	for _, name := range body.Players {
+	for i, name := range body.Players {
+		// A name is drawn on every screen that opens the sheet; see
+		// auth.CleanDisplayName for what that rules out.
+		name = auth.CleanDisplayName(name, auth.MaxGuestNameRunes)
+		if name == "" {
+			name = fmt.Sprintf("Player %d", i+1)
+		}
 		players = append(players, PlayerScore{
 			Name:   name,
 			Scores: make([]int, 7),
@@ -82,7 +111,8 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := h.repo.Insert(ctx, s); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("scoring: insert: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -117,7 +147,7 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var body patchReq
-	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, req.Body, maxBody)).Decode(&body); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
@@ -136,19 +166,27 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	if len(body.ScoresArr) > 0 {
 		// scoresArr aligns with players order.
 		for i := 0; i < len(s.Players) && i < len(body.ScoresArr); i++ {
-			s.Players[i].Scores[idx] = body.ScoresArr[i]
+			s.Players[i].Scores[idx] = clampScore(body.ScoresArr[i])
 		}
 	} else {
+		// Keyed by the name the client typed, which create cleaned; so match on
+		// the cleaned form of each key too, or "Ann " would silently score nobody.
+		byName := make(map[string]int, len(body.Scores))
+		for name, v := range body.Scores {
+			byName[name] = v
+			byName[auth.CleanDisplayName(name, auth.MaxGuestNameRunes)] = v
+		}
 		for i := range s.Players {
-			if v, ok := body.Scores[s.Players[i].Name]; ok {
-				s.Players[i].Scores[idx] = v
+			if v, ok := byName[s.Players[i].Name]; ok {
+				s.Players[i].Scores[idx] = clampScore(v)
 			}
 		}
 	}
 
 	s.UpdatedAt = time.Now().UTC()
 	if err := h.repo.Replace(ctx, s); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("scoring: replace: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
