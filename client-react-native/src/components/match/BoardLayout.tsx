@@ -237,6 +237,7 @@ export function BoardLayout({
       <MoveAnnouncements
         moves={state.recentMoves ?? []}
         prompts={view.prompts ?? []}
+        standing={(view.header ?? []).filter((f) => f.standing)}
         players={state.players}
         viewerId={viewerId}
       />

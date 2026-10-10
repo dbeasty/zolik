@@ -154,7 +154,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	}
 	if s.DeclaredSuit != "" {
 		vm.Header = append(vm.Header, module.Fact{
-			LabelKey: "header.suitInPlay", Value: module.GermanSuitKey(s.DeclaredSuit),
+			LabelKey: "header.suitInPlay", Value: module.GermanSuitKey(s.DeclaredSuit), Standing: true,
 		})
 	}
 
