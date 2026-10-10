@@ -23,6 +23,7 @@ import {
   receive,
   remove,
   revoke,
+  seatedAt,
   shelve as shelveInQueue,
   type QueueState,
 } from '@/src/notify/queue';
@@ -223,6 +224,14 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
       lostOnWifi: (id) => setQueue((q) => lostOnWifi(q, id)),
     },
   );
+
+  // The watcher never offers the table this device is at, but an offer that
+  // came in before it sat down (a relay guest is often in the same room) is
+  // still queued.
+  const seatedInstance = offline?.instanceId ?? '';
+  useEffect(() => {
+    if (seatedInstance) setQueue((q) => seatedAt(q, seatedInstance));
+  }, [seatedInstance]);
 
   useEffect(() => {
     const timer = setInterval(() => setQueue((q) => expire(q, Date.now())), SWEEP_MS);

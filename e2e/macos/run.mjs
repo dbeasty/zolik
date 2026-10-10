@@ -773,6 +773,15 @@ async function main() {
   await step('a second Mac finds the table over Bonjour and joins it', async () => {
     await b.ready();
     await b.js(`await e2e.click('Play', { exact: true }); return 1`);
+    // The table in the room arrives as an invite in the main window, and the
+    // Dock icon counts it while that window is not the one in front.
+    await b.js(`await e2e.waitForText('is hosting a table nearby', 20000); return 1`);
+    let badge = '';
+    for (let i = 0; i < 50 && badge !== '1'; i++) {
+      badge = await b.native('badge');
+      if (badge !== '1') await sleep(100);
+    }
+    expect(badge === '1', `the Dock badge says ${JSON.stringify(badge)} with an invite waiting`);
     await b.native('menu Start an offline table');
     await b.js(`await e2e.waitForText('Mac Host', 20000); return 1`);
     await b.js(`await e2e.fill('Your name at the table', 'Second Mac'); await e2e.click('Join', { exact: true }); return 1`);
@@ -787,16 +796,8 @@ async function main() {
       return 1;
     `);
     const code = invite.split('/').pop();
-    // The table in the room arrives as an invite in the main window, and the
-    // Dock icon counts it while that window is not the one in front.
-    await b.js(`await e2e.waitForText('is hosting a table nearby', 20000); return 1`);
-    let badge = '';
-    for (let i = 0; i < 50 && badge !== '1'; i++) {
-      badge = await b.native('badge');
-      if (badge !== '1') await sleep(100);
-    }
-    expect(badge === '1', `the Dock badge says ${JSON.stringify(badge)} with an invite waiting`);
-    await b.js(`await e2e.click('Not now', { exact: true }); await e2e.waitForGone('is hosting a table nearby', 10000); return 1`);
+    // Seated at it, the offer of that same table has done its job and goes.
+    await b.js(`await e2e.waitForGone('is hosting a table nearby', 10000); return 1`);
     await b.js(`await e2e.fill('Join code or invite link', ${JSON.stringify(code)}); await e2e.click('Join', { exact: true }); return 1`);
     await b.js(`await e2e.waitForText('Players (3)', 20000); return 1`);
     await on(a, 1);
@@ -1057,6 +1058,9 @@ async function main() {
     expect(reg.ok, `registering the Mac's owner: ${reg.status}`);
 
     await rh.ready();
+    // A fresh app opens on the first-run intro, which every other screen
+    // redirects to until it has been seen.
+    await rh.js(`localStorage.setItem('zolik_seen_intro', '1'); return 1`);
     await rh.js(`window.__zolikNavigate('/auth/username-login'); return 1`);
     await rh.js(`await e2e.fill('Username', ${JSON.stringify(username)}); await e2e.fill('Password', ${JSON.stringify(password)}); await e2e.click('Sign in', { exact: true }); return 1`);
     await rh.js(`await e2e.waitFor(() => !location.pathname.startsWith('/auth'), 'signed in', 30000); return 1`);
@@ -1065,7 +1069,10 @@ async function main() {
     // as a node in the background, so the door may take a moment to open.
     await rh.js(`window.__zolikNavigate('/offline'); return 1`);
     await rh.js(`await e2e.waitFor(() => document.querySelector('[data-testid="offline-start"], [data-testid="offline-active"]'), 'the offline screen', 30000); return 1`);
-    await rh.js(`if (document.querySelector('[data-testid="offline-start"]')) await e2e.clickTestId('offline-start'); await e2e.waitFor(() => document.querySelector('[data-testid="offline-active"]'), 'hosting', 30000); return 1`);
+    // Starting the table goes home, to pick a game; the room is back on the
+    // offline screen.
+    await rh.js(`if (document.querySelector('[data-testid="offline-start"]')) { await e2e.fill('offline-name', 'Ada'); await e2e.clickTestId('offline-start'); await e2e.waitFor(() => location.pathname === '/', 'home', 30000); } return 1`);
+    await rh.js(`window.__zolikNavigate('/offline'); await e2e.waitFor(() => document.querySelector('[data-testid="offline-active"]'), 'hosting', 30000); return 1`);
     let url = '';
     for (let i = 0; i < 30 && !url; i++) {
       url = await rh.js(`
@@ -1090,6 +1097,7 @@ async function main() {
 
     // Rita, on another Mac, opens the link.
     await rg.ready();
+    await rg.js(`localStorage.setItem('zolik_seen_intro', '1'); return 1`);
     await rg.js(`window.__zolikNavigate('/r/${code}'); return 1`);
     await rg.js(`await e2e.waitFor(() => document.querySelector('[data-testid="relay-hosted-on"]'), 'the relay page', 30000); await e2e.fill('relay-name', 'Rita'); await e2e.clickTestId('relay-join'); return 1`);
     await rg.js(`await e2e.waitFor(() => document.querySelector('[data-testid="offline-guest-active"]'), 'a seat at the Mac', 30000); return 1`);
@@ -1112,7 +1120,14 @@ async function main() {
     expect(hostSees.some((t) => /Server/.test(t)) && hostSees.some((t) => /Internet/.test(t)), `the host sees ${JSON.stringify(hostSees)}`);
     const guestSees = await badges(rg);
     expect(guestSees.some((t) => /Server/.test(t)) && guestSees.some((t) => /Internet/.test(t)), `the guest sees ${JSON.stringify(guestSees)}`);
-    expect((await rg.js(`return document.querySelector('[data-testid="match-server"]').innerText`)).includes(username), 'the guest is not told whose Mac is the server');
+    // A game window has no page header: the title bar says where the table
+    // runs, and calls the host's Mac a Mac.
+    const advertised = await (await fetch(`${server.base}/relay/info/${code}`)).json();
+    expect(advertised.name === `${username}’s Mac`, `the relay calls the table ${JSON.stringify(advertised.name)}`);
+    const hostWin = (await windowsOf(rh)).find((w) => w.role === 'game');
+    const guestWin = (await windowsOf(rg)).find((w) => w.role === 'game');
+    expect(/this computer/i.test(hostWin.subtitle), `host subtitle ${JSON.stringify(hostWin.subtitle)}`);
+    expect(guestWin.subtitle.includes(`${username}’s Mac`), `guest subtitle ${JSON.stringify(guestWin.subtitle)}`);
     await rh.screenshot('relay-host-match');
     await rg.screenshot('relay-guest-match');
   }, [rh, rg]);
