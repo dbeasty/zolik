@@ -43,5 +43,12 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // The same specs on a touch phone: `--project=phone`. Opt-in rather than
+      // doubling every run — name the specs that care about a small screen
+      // (phone-table, tap-to-play, hand-selection, controls-below-hand, ...).
+      name: 'phone',
+      use: { ...devices['Pixel 7'] },
+    },
   ],
 });
