@@ -488,6 +488,12 @@ export type MatchPlayer = {
   /** When a bot will start playing for this away seat (ISO time), for a countdown. */
   standInAt?: string;
   /**
+   * How this player is connected to a table a device hosts: the device
+   * itself, its room's Wi-Fi, Bluetooth, or the internet through the relay.
+   * Absent on a cloud table and for anybody not connected.
+   */
+  via?: 'self' | 'wifi' | 'bluetooth' | 'internet';
+  /**
    * The face this seat wears, as a slug. Absent when the seat never named
    * one, which is not a gap to fill in from somewhere else: every client
    * derives the same face from the id, so an older client, a seat filled

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"zolik/server/internal/netvia"
 
 	"github.com/gorilla/websocket"
 )
@@ -274,6 +275,7 @@ func (r *relayLink) session() error {
 		case "open":
 			sink := &relaySink{r: r, id: m.C}
 			t := r.h.NewTunnel(sink, "relay-"+strconv.FormatUint(uint64(m.C), 10))
+			t.via = netvia.Internet
 			r.mu.Lock()
 			r.tunnels[m.C] = t
 			r.mu.Unlock()

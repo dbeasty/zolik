@@ -107,6 +107,8 @@ type Manager struct {
 	// gives every away clock a fresh start.
 	standInsHeld bool
 	resumedAt    time.Time
+	// via is via.go's: the route each connected seat came by.
+	via map[string]string
 
 	// live holds the state of every match in play; see live.go.
 	live liveMatches

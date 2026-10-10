@@ -88,6 +88,14 @@ function BotPress({
 /** A badge wears its tooltip as a wrapper; a badge is a word, so the wrapper never shrinks either. */
 const badgeTipStyle = { flexShrink: 0 };
 
+/** A mark per route, beside its word (internal/netvia on the server). */
+const VIA_ICON: Record<string, string> = {
+  self: '\u{1F5A5}\u{FE0F}',
+  wifi: '\u{1F4F6}',
+  bluetooth: '\u{1F537}',
+  internet: '\u{1F310}',
+};
+
 type Props = {
   seats: Seat[];
   players: MatchPlayer[];
@@ -256,6 +264,22 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     ) : null);
     // The bot's badge: a control for the host (it opens the strength picker,
     // and the tip says so), a plain mark with the same tip for everyone else.
+    // How this player is connected, on a table a device hosts: who goes if
+    // the internet does, and which seat is the server itself. A cloud table
+    // sends no route, and shows none.
+    const viaBadge =
+      player && !player.isAI && player.via ? (
+        <Tip
+          text={t(`seat.viaTip.${player.via}`, { name })}
+          focusable
+          label={t(`seat.via.${player.via}`)}
+          style={badgeTipStyle}
+        >
+          <Text style={styles.badge} testID={`via-badge-${seat.playerId}`}>
+            {`${VIA_ICON[player.via] ?? ''} ${t(`seat.via.${player.via}`)}`.trim()}
+          </Text>
+        </Tip>
+      ) : null;
     const botBadge = bot ? (
       player?.isAI ? (
         <Tip text={botTip} focusable={!pickBot} label={t('a11y.board.seat.badge.bot')} style={badgeTipStyle}>
@@ -301,6 +325,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               </BotPress>
               {rank}
               {botBadge}
+              {viaBadge}
               {away}
             </View>
             <Text
@@ -328,6 +353,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {name}
             </Text>
             {botBadge}
+            {viaBadge}
             {away}
           </View>
         )}

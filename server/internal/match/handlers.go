@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"zolik/server/internal/netvia"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -1277,6 +1278,9 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	wsConn, prev := h.manager.Hub().Registry().Add(matchID, playerID, ws.PingableConn{Conn: conn})
+	// Which way this seat reached the table, on a table a device hosts: shown
+	// on the seat, so everybody can see who goes if the internet does.
+	viaChanged := h.manager.noteVia(matchID, playerID, netvia.Of(req))
 	if prev != nil {
 		// A distinct close code, not a bare Close(): the older tab's onclose
 		// handler needs to tell "displaced on purpose" from an ordinary
@@ -1300,6 +1304,9 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	// MATCH_NOT_ACTIVE and the bot loop giving up entirely.
 	defer func() {
 		if h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn) {
+			if h.manager.noteVia(matchID, playerID, "") {
+				h.manager.announceVia(context.WithoutCancel(ctx), matchID)
+			}
 			h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
 			// A seat leaving is also what takes a resume offer away from the
 			// people still looking at a swept-up table. Same call as the
@@ -1339,6 +1346,9 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
+	if viaChanged {
+		h.manager.announceVia(ctx, matchID)
+	}
 	// And, on a swept-up table, tell everybody else that somebody just sat
 	// down: their own resume offer may have become available because of it.
 	// After the direct write above, so the arriving player's first message is

@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"zolik/server/internal/netvia"
 
 	"github.com/go-chi/chi/v5"
 
@@ -211,7 +212,9 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 	// and save this device's finished games. The room's listener and the
 	// Bluetooth tunnel serve the same router without this mark.
 	own := newServer(r)
-	own.ConnContext = func(ctx context.Context, _ net.Conn) context.Context { return app.MarkLoopback(ctx) }
+	own.ConnContext = func(ctx context.Context, _ net.Conn) context.Context {
+		return netvia.With(app.MarkLoopback(ctx), netvia.Self)
+	}
 
 	h := &Host{
 		app:        a,
@@ -328,6 +331,9 @@ func (h *Host) OpenLAN() (int, error) {
 	}
 	ln := newTrackingListener(raw)
 	srv := newServer(h.handler)
+	// Everybody on this listener is in the room, on its Wi-Fi or hotspot:
+	// their seats say so (internal/netvia).
+	srv.ConnContext = func(ctx context.Context, _ net.Conn) context.Context { return netvia.With(ctx, netvia.WiFi) }
 	go func() {
 		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("zolikcore: lan serve: %v", err)
