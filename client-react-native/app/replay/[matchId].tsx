@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/src/api/client';
 import type { MatchState, Replay, ReplayFrame, RoundLog } from '@/src/api/matchTypes';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
+import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
+import { DesktopGameHandoff } from '@/src/desktop/windows';
 import { DeckProvider } from '@/src/lib/deck';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
@@ -44,7 +46,14 @@ import type { Skin } from '@/src/skins/types';
 /** How many frames a page asks for. The server caps it well above this. */
 const PAGE = 100;
 
-export default function ReplayScreen() {
+/** In the Mac app's main window a replay opens in a window of its own. */
+export default function ReplayRoute() {
+  const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  if (IS_DESKTOP_MAIN_WINDOW) return <DesktopGameHandoff kind="replay" id={String(matchId)} />;
+  return <ReplayScreen />;
+}
+
+function ReplayScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const id = matchId ? String(matchId) : '';

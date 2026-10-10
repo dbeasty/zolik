@@ -15,6 +15,8 @@ import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
+import { IS_DESKTOP } from '@/src/config';
+import { useOpenGames } from '@/src/desktop/openGames';
 import { useAvailability } from '@/src/context/AvailabilityContext';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
@@ -149,7 +151,9 @@ export default function MainMenu() {
         </>
       )}
 
-      <BuildFooter onPressVersions={() => router.push('/about')} />
+      {/* In the Mac app the versions are in About and the notices in Help,
+          where a Mac app keeps them. */}
+      {IS_DESKTOP ? null : <BuildFooter onPressVersions={() => router.push('/about')} />}
     </Screen>
   );
 }
@@ -284,6 +288,9 @@ function GameRow({
     router.push(`/lobby/games?moduleId=${encodeURIComponent(mod.id)}`);
   };
   const { resume } = status;
+  // A game with a window open is being played, not waiting to be resumed.
+  const openGames = useOpenGames();
+  const playing = !!resume && openGames.has(resume.matchId);
 
   return (
     <View style={styles.tile}>
@@ -315,7 +322,9 @@ function GameRow({
                 ? t('picker.yourTurn')
                 : status.tables > 1
                   ? t('picker.tablesMany', { n: status.tables })
-                  : t(`mine.status.${resume.status}`, undefined, resume.status)}
+                  : playing
+                    ? t('desktop.game.playing')
+                    : t(`mine.status.${resume.status}`, undefined, resume.status)}
             </Text>
           ) : null}
           {status.waiting > 0 ? (
@@ -332,11 +341,11 @@ function GameRow({
           testID={`picker-${mod.id}-resume`}
           accessibilityRole="button"
           // Which game: every tile with a table has a Resume.
-          aria-label={t('a11y.actionFor', { action: t('picker.resume'), what: moduleLabel(mod) })}
+          aria-label={t('a11y.actionFor', { action: playing ? t('desktop.game.show') : t('picker.resume'), what: moduleLabel(mod) })}
           onPress={() => router.push(routeForMatch(resume.status, resume.isHost, resume.matchId))}
           style={({ pressed }) => [styles.resume, styles.resumeCorner, pressed && styles.rowPressed]}
         >
-          <Text style={styles.resumeText}>{t('picker.resume')}</Text>
+          <Text style={styles.resumeText}>{playing ? t('desktop.game.show') : t('picker.resume')}</Text>
         </Pressable>
       ) : null}
     </View>

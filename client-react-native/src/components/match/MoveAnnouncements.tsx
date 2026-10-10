@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { announce } from '@/src/a11y/announce';
@@ -42,11 +42,8 @@ export function MoveAnnouncements({
   viewerId: string;
 }) {
   const skin = useSkin();
-  const [open, setOpenState] = useState(openPreference);
-  const setOpen = (v: boolean) => {
-    openPreference = v;
-    setOpenState(v);
-  };
+  const open = useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
+  const setOpen = setMovesOpen;
   // Four lines' room where the window has it; two on a short one, so the
   // pile, the hand and its controls still fit together. Fixed by the window,
   // never by what is in the box — see below.
@@ -117,6 +114,9 @@ export function MoveAnnouncements({
           accessibilityRole="button"
           accessibilityLabel={t('moves.title')}
           accessibilityState={{ expanded: open }}
+          // react-native-web does not carry accessibilityState over to the
+          // page, so a screen reader in a browser heard no open or closed.
+          {...((Platform.OS === 'web' ? { 'aria-expanded': open } : {}) as object)}
           onPress={() => setOpen(!open)}
           hitSlop={8}
           style={styles.repeat}
@@ -171,6 +171,33 @@ export function MoveAnnouncements({
 
 /** Whether the list is open, for every table this session: it starts folded. */
 let openPreference = false;
+const openListeners = new Set<() => void>();
+
+function subscribeMovesOpen(listener: () => void) {
+  openListeners.add(listener);
+  return () => {
+    openListeners.delete(listener);
+  };
+}
+
+/** Whether the list of recent moves is open, rather than just the last one. */
+export function movesOpen(): boolean {
+  return openPreference;
+}
+
+/** Whether the list of recent moves is open, kept current. */
+export function useMovesOpen(): boolean {
+  return useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
+}
+
+/**
+ * Opens or closes the list of recent moves, wherever it is drawn. Exported for
+ * the Mac app's View › Show Log, which reaches it from outside the screen.
+ */
+export function setMovesOpen(v: boolean) {
+  openPreference = v;
+  for (const l of openListeners) l();
+}
 
 /** About a round at a full table; older moves are in the strip's own history. */
 const MAX_LINES = 8;

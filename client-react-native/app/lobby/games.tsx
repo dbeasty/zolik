@@ -1,4 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
+
+import { useOpenGames } from '@/src/desktop/openGames';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -39,6 +41,7 @@ export default function GamePage() {
 }
 
 function GamePageFor({ moduleId }: { moduleId: string }) {
+  const openGames = useOpenGames();
   const { client, session, offline } = useSession();
   const [mod, setMod] = useState<MatchModule | null>(null);
   const [error, setError] = useState('');
@@ -171,7 +174,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
                 }
               >
                 <Text style={[shared.buttonText, shared.buttonTextSecondary, styles.cellText]}>
-                  {t('picker.resume')}
+                  {openGames.has(resume.matchId) ? t('desktop.game.show') : t('picker.resume')}
                 </Text>
               </Pressable>
             ) : null}
