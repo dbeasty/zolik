@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import { ZOLIK_BASE_URL } from '@/src/config';
+import { IS_DESKTOP, ZOLIK_BASE_URL } from '@/src/config';
 
 /**
  * Whether this page was served by a phone hosting a table, rather than by the
@@ -15,7 +15,7 @@ import { ZOLIK_BASE_URL } from '@/src/config';
  * knows whether it is at a table because it went and sat at one.
  */
 export async function servingTable(): Promise<{ instanceId: string } | null> {
-  if (Platform.OS !== 'web') return null;
+  if (Platform.OS !== 'web' || IS_DESKTOP) return null;
   if (process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN !== '1') return null;
   try {
     const res = await fetch(`${ZOLIK_BASE_URL}/nearby/info`, { headers: { Accept: 'application/json' } });

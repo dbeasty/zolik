@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -107,6 +108,12 @@ import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
 import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
 import { useAnnounceArrivals } from '@/src/notify/TableEvents';
+import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
+import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
+import { seatIsShareable } from '@/src/desktop/seat';
+import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
+import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
+import { isTableZone } from '@/src/lib/board';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -137,7 +144,22 @@ const IDLE_NUDGE_MS = 20_000;
  * see — one change to the pieces this file already assembles rather than a
  * second screen.
  */
-export default function MatchScreen() {
+/**
+ * In the Mac app's main window a match is not drawn: it opens in a window of
+ * its own (src/desktop/windows.tsx). Everywhere else this is the screen.
+ */
+export default function MatchRoute() {
+  const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const seated = useSession().offline;
+  // A table reached through a tunnel only this page holds (Bluetooth, the
+  // internet relay) cannot be shown by another window yet, so it stays here.
+  if (IS_DESKTOP_MAIN_WINDOW && (!seated || seatIsShareable(seated))) {
+    return <DesktopGameHandoff kind="match" id={String(matchId)} />;
+  }
+  return <MatchScreen />;
+}
+
+function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
   // A seat taken through a seat link plays this table — and only this one —
@@ -154,9 +176,12 @@ export default function MatchScreen() {
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
-    if (!matchId || !session?.accessToken) return null;
+    // Not while the session is still being settled: a game window finds the
+    // player's seat at an offline table first, and a socket opened at the
+    // cloud in the meantime would ask it for a table it has never heard of.
+    if (!matchId || !session?.accessToken || own.loading) return null;
     return client.matchSocketUrl(String(matchId));
-  }, [client, matchId, session?.accessToken]);
+  }, [client, matchId, session?.accessToken, own.loading]);
 
   // A link to a table almost never arrives at a signed-in app: it comes out of
   // a chat, on a device that may never have been used to play. Without this the
@@ -270,6 +295,69 @@ export default function MatchScreen() {
   // Keyed by match, so an arrangement is remembered across a reload but never
   // carried into a different deal, where it would mean nothing.
   const { slotsFor, move, arrange, autoSelectIds } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
+
+  // The Mac app's View › Show/Hide Hand, Table and Log, and Help › Rules for
+  // this game. The hand and the table are the same panels the ▾ on each puts
+  // away; the log is the list of recent moves. Before the early returns
+  // below, because it is a hook.
+  const handPanelIds = myHands.map((z) => `zone:${z.id}`);
+  const handShown = handPanelIds.some((id) => !panels.isMinimized(id));
+  const logOpen = useMovesOpen();
+  useDesktopMatchView(
+    {
+      hand: handPanelIds.length
+        ? {
+            shown: handShown,
+            toggle: () => {
+              // Every hand panel to the same state: the open ones folded, or the
+              // folded ones opened.
+              for (const id of handPanelIds) if (panels.isMinimized(id) !== handShown) panels.toggle(id);
+            },
+          }
+        : undefined,
+      table: zones.some(isTableZone)
+        ? {
+            shown: !panels.isMinimized('zone:section:table'),
+            toggle: () => panels.toggle('zone:section:table'),
+          }
+        : undefined,
+      log: { shown: logOpen, toggle: () => setMovesOpen(!logOpen) },
+    },
+    state ? { moduleId: state.moduleId, variation: state.variation ?? '', options: state.options ?? {} } : null,
+  );
+  // The game window's title bar, in the Mac app: the game and who it is
+  // against, with the status (and where the table runs) beneath.
+  const infoServer = !offline
+    ? ''
+    : offline.role === 'host'
+      ? t('server.thisPhone')
+      : t('server.named', { name: offline.serverName || t('server.hostsPhone') });
+  const infoGame = useGameName(state?.moduleId ?? '');
+  const infoOthers = (state?.players ?? []).filter((p) => p.id !== viewerId);
+  const infoNames =
+    infoOthers
+      .slice(0, 3)
+      .map((p) => p.name || p.id)
+      .join(', ') + (infoOthers.length > 3 ? ` +${infoOthers.length - 3}` : '');
+  useGameWindowInfo(
+    state
+      ? {
+          title: infoOthers.length
+            ? t('desktop.window.title', { game: infoGame, names: infoNames })
+            : infoGame,
+          subtitle: [
+            state.status,
+            infoServer,
+            state.status !== 'completed' && infoOthers.some((p) => !p.isAI) ? (state.joinCode ?? '') : '',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          finished: state.status === 'completed' || state.status === 'abandoned',
+          yourTurn: state.status === 'active' && state.legalActions.some(isLive),
+          offline: !!offline,
+        }
+      : null,
+  );
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
 
@@ -530,10 +618,62 @@ export default function MatchScreen() {
     goTo,
     scrollRef as unknown as RefObject<Measurable | null>,
   );
+  // Carrying a card toward a meld the screen has scrolled away from. The hand
+  // sits above the melds, so dropping on an opponent's meld (a poach, a
+  // lay-off) means getting there while a finger or button is held down — and
+  // nothing else scrolls then. While a drag is in flight, a pointer held near
+  // the top or bottom edge of the window scrolls the board that way, faster
+  // the closer to the edge. A timer rather than the pointer's own moves,
+  // because a pointer resting at the edge sends none.
+  //
+  // An edge is armed only once the pointer has been out of its band: the hand
+  // lives at the bottom of the window, so a drag *starts* in the bottom band
+  // and must not carry the board away before it has gone anywhere.
+  const scrollY = useRef(0);
+  const scrollMax = useRef(Infinity);
+  const dragPoint = useRef<{ x: number; y: number } | null>(null);
+  const dragMoveRef = useRef<((x: number, y: number) => void) | null>(null);
+  const { height: windowHeight } = useWindowDimensions();
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) {
+      dragPoint.current = null;
+      return;
+    }
+    const EDGE = 110;
+    const MAX_STEP = 22;
+    const armed = { top: false, bottom: false };
+    const id = setInterval(() => {
+      const p = dragPoint.current;
+      if (!p) return;
+      const intoTop = EDGE - p.y;
+      const intoBottom = p.y - (windowHeight - EDGE);
+      if (intoTop <= 0) armed.top = true;
+      if (intoBottom <= 0) armed.bottom = true;
+      let step = 0;
+      if (armed.top && intoTop > 0) step = -Math.min(1, intoTop / EDGE) * MAX_STEP;
+      else if (armed.bottom && intoBottom > 0) step = Math.min(1, intoBottom / EDGE) * MAX_STEP;
+      if (!step) return;
+      const next = Math.max(0, Math.min(scrollMax.current, scrollY.current + step));
+      if (next === scrollY.current) return;
+      scrollY.current = next;
+      scrollRef.current?.scrollTo({ y: next, animated: false });
+      // Where the melds are in the window just changed.
+      drops.measure();
+      dragMoveRef.current?.(p.x, p.y);
+    }, 16);
+    return () => clearInterval(id);
+    // `drops.measure` is stable; the registry object around it is not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragging, windowHeight]);
+
   // One scroller, two hooks that watch it. Each only wants to know where the
   // board is now, so neither minds the other having been told first.
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      scrollY.current = contentOffset.y;
+      scrollMax.current = Math.max(0, contentSize.height - layoutMeasurement.height);
       ending.scrollProps.onScroll(e);
       opening.scrollProps.onScroll(e);
     },
@@ -1011,6 +1151,7 @@ export default function MatchScreen() {
   const moveDrag = (x: number, y: number) => {
     const current = dragRef.current;
     if (!current) return;
+    dragPoint.current = { x, y };
     const spots = takeableSpots(spotsFor(current.cards, current.fromTable));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     setHoveredDrop((prev) => (prev === over ? prev : over));
@@ -1041,6 +1182,8 @@ export default function MatchScreen() {
         : next,
     );
   };
+
+  dragMoveRef.current = moveDrag;
 
   const endDrag = (x: number, y: number): boolean => {
     const current = dragRef.current;
@@ -1949,9 +2092,9 @@ export default function MatchScreen() {
           </Tip>
         </View>
 
-        {(view.header ?? []).length > 0 ? (
+        {(view.header ?? []).some((f) => !f.standing) ? (
           <View style={styles.facts} testID="match-header">
-            {(view.header ?? []).map((f, i) =>
+            {(view.header ?? []).filter((f) => !f.standing).map((f, i) =>
               // A Last Card colour in play is shown in that colour, not only named.
               lastCardColourOfKey(f.value) ? (
                 <ColourInPlay key={`${f.labelKey}-${i}`} fact={f} style={styles.fact} />

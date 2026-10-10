@@ -1,0 +1,1 @@
+../../../../client-react-native/modules/zolik-nearby/ios/NearbyBle.swift

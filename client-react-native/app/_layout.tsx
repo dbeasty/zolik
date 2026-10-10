@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -6,7 +6,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
+import { IS_DESKTOP, IS_DESKTOP_GAME_WINDOW } from '@/src/config';
 import { SessionProvider } from '@/src/context/SessionContext';
+import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
+import { NavArrows, NavHistoryTracker } from '@/src/desktop/NavArrows';
+import { GameWindowGuard, installNavigationRecorder } from '@/src/desktop/windows';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
 import { AvatarProvider } from '@/src/hooks/useAvatar';
@@ -22,6 +26,10 @@ import { colors } from '@/src/theme';
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
+
+// Before any screen runs: how a move was made decides where the main window
+// goes once a game has opened in a window of its own.
+installNavigationRecorder();
 
 export default function RootLayout() {
   // Resolves the language — the saved choice if there is one, the device's
@@ -39,6 +47,18 @@ export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
     startPerfMonitor();
+  }, []);
+
+  // The Mac app's menu bar moves between screens through this, rather than by
+  // loading a new page: a reload would drop the player out of an offline
+  // table, which only lives in this page's memory.
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+    const w = window as { __zolikNavigate?: (path: string) => void };
+    w.__zolikNavigate = (path) => router.push(path as never);
+    return () => {
+      delete w.__zolikNavigate;
+    };
   }, []);
 
   return (
@@ -65,8 +85,15 @@ export default function RootLayout() {
                     the screens so leaving a game's page does not end it. See
                     `src/context/AvailabilityContext.tsx`. */}
                 <AvailabilityProvider>
+                {IS_DESKTOP ? <DesktopMenuBridge /> : <NavHistoryTracker />}
+                {IS_DESKTOP_GAME_WINDOW ? <GameWindowGuard /> : null}
                 <Stack
                   screenOptions={{
+                    // The Mac app draws no header of its own: the window's
+                    // title bar carries the screen's name, its back and
+                    // forward arrows (main window) and a game's status
+                    // (game window). See client-macos.
+                    headerShown: !IS_DESKTOP,
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
                     contentStyle: { backgroundColor: colors.bg },
@@ -74,7 +101,12 @@ export default function RootLayout() {
                     // are, and everything that is about you rather than about
                     // playing. Set here, not per-screen, so every route gets it
                     // for free — see `src/components/AccountMenu.tsx`.
-                    headerRight: () => <AccountMenu />,
+                    // In the Mac app the same menu is the menu bar's Account
+                    // menu instead (src/desktop/DesktopMenuBridge.tsx).
+                    headerRight: IS_DESKTOP ? undefined : () => <AccountMenu />,
+                    // Back and forward together, on every platform: going
+                    // back always has a way forward (src/desktop/NavArrows.tsx).
+                    headerLeft: () => <NavArrows />,
                   }}
                 >
                   <Stack.Screen name="index" options={{ title: t('nav.home') }} />
@@ -170,7 +202,7 @@ export default function RootLayout() {
                   <Stack.Screen name="guest/[key]" options={{ title: t('guestLink.title') }} />
                 </Stack>
                 </AvailabilityProvider>
-                <InviteBanner />
+                {IS_DESKTOP_GAME_WINDOW ? null : <InviteBanner />}
                 {/* The screen reader's live region and the tooltip bubble —
                     last, so the bubble paints over the banner too. See
                     `src/a11y`. */}

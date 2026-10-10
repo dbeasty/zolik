@@ -59,6 +59,15 @@ type NativeModule = {
   closeRelay(): Promise<void>;
   relayStatus(): RelayStatus;
   hostResumed(): void;
+  // The desktop app's core can sit a guest down at a table reached through
+  // a tunnel and serve it on a loopback address, so every window can use it.
+  // Absent on the phones, which keep the tunnel in the page.
+  relayJoin?(code: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable>;
+  bleOpen?(peripheralId: string): Promise<{ linkId: string; instanceId: string; v: number }>;
+  bleJoin?(linkId: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable>;
+  bleLeaveLink?(linkId: string): Promise<void>;
+  guestLeave?(instanceId: string): Promise<void>;
+  guestStatus?(instanceId: string): Promise<{ checkCode: string; away: '' | 'away' | 'ended' }>;
   startBrowsing(): Promise<void>;
   stopBrowsing(): Promise<void>;
   localAddresses(): string[];
@@ -83,13 +92,56 @@ type NativeModule = {
 
 // Optional because the web build, Expo Go and jest have no such module. The
 // Play-offline entry is hidden when this is null, rather than offered and
-// broken.
-const native = requireOptionalNativeModule<NativeModule>('ZolikNearby');
+// broken. The desktop apps show the web build, and provide the same module
+// from their own native side (client-macos/Resources/bridge.js).
+const native =
+  requireOptionalNativeModule<NativeModule>('ZolikNearby') ??
+  ((globalThis as { ZolikNearbyDesktop?: NativeModule }).ZolikNearbyDesktop || null);
 
 export const nearbyAvailable = native != null;
 
+/** A table the app's core reached through a tunnel, and where it serves it. */
+export type CoreGuestTable = { baseUrl: string; instanceId: string; hostKey: string; checkCode: string };
+
+/** Whether the core holds guest tunnels (the desktop apps), not this page. */
+export const coreHoldsGuests = typeof native?.relayJoin === 'function';
+
+/**
+ * Sits down at a table through the cloud's relay, in the app's core. The
+ * answer's `baseUrl` is the table's address on this machine, like a table on
+ * Wi-Fi; its `hostKey` is the key to pin on a first sit-down.
+ */
+export async function relayJoinInCore(code: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable> {
+  return need().relayJoin!(code, instanceId, pinnedKey);
+}
+
+/**
+ * Bluetooth, in the core: opens the first link to a table (which says which
+ * table it is and what version it speaks), and then sits down at it with the
+ * key pinned for that table, if any. The page keeps nothing of the tunnel.
+ */
+export async function bleOpenInCore(peripheralId: string) {
+  return need().bleOpen!(peripheralId);
+}
+export async function bleJoinInCore(linkId: string, instanceId: string, pinnedKey: string): Promise<CoreGuestTable> {
+  return need().bleJoin!(linkId, instanceId, pinnedKey);
+}
+export async function bleLeaveLinkInCore(linkId: string): Promise<void> {
+  await native?.bleLeaveLink?.(linkId);
+}
+
+/** Leaves a table the core holds a tunnel to. */
+export async function leaveGuestInCore(instanceId: string): Promise<void> {
+  await native?.guestLeave?.(instanceId);
+}
+
+/** Why a core-held table is not there ("away", "ended"), and its check code. */
+export async function guestStatusInCore(instanceId: string): Promise<{ checkCode: string; away: '' | 'away' | 'ended' }> {
+  return (await native?.guestStatus?.(instanceId)) ?? { checkCode: '', away: '' };
+}
+
 function need(): NativeModule {
-  if (!native) throw new Error('Offline tables need the iOS or Android app');
+  if (!native) throw new Error('Offline tables need the Jokerless app');
   return native;
 }
 

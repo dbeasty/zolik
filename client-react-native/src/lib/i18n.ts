@@ -24,6 +24,8 @@
  * lookup logic unfindable between the words.
  */
 
+import { IS_DESKTOP } from '@/src/config';
+
 import { bg } from './locales/bg';
 import { cs } from './locales/cs';
 import { da } from './locales/da';
@@ -201,6 +203,14 @@ export function getLocale(): Locale {
  * untranslated string degrades to a readable one rather than to nothing.
  */
 export function t(key: string, params?: Params, fallback?: string): string {
+  // Inside the desktop app, a key's `@desktop` wording wins where there is
+  // one: "this computer" rather than "this phone". Same language first, so a
+  // missing variant falls back to the phone wording in the player's language
+  // rather than to English.
+  if (IS_DESKTOP) {
+    const desk = BUNDLES[currentLocale]?.[`${key}@desktop`];
+    if (desk !== undefined) return interpolate(desk, params);
+  }
   const own = BUNDLES[currentLocale]?.[key];
   if (own !== undefined) return interpolate(own, params);
   // Nothing in this language. Every fallback below renders *English* at a

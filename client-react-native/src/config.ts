@@ -33,7 +33,50 @@ function sameOriginBaseUrl(): string {
   return window.location.origin;
 }
 
-export const ZOLIK_BASE_URL = (sameOriginBaseUrl() || envUrl || defaultBaseUrl()).replace(
+/**
+ * What a desktop app (client-macos) tells the page before it runs: which
+ * server to play online against, and that the page is inside an app whose
+ * web view has no network of its own. The app sets it from a script that runs
+ * before the bundle, so it is there for every module-level read below.
+ */
+export type DesktopConfig = {
+  baseUrl: string;
+  cloudUrl?: string;
+  platform: string;
+  /** Which of the app's windows this page is in: the one main window, or one game's. */
+  window?: { role: 'main' | 'game'; matchId?: string };
+};
+
+function desktopConfig(): DesktopConfig | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  const c = (window as { __ZOLIK_DESKTOP__?: DesktopConfig }).__ZOLIK_DESKTOP__;
+  return c && typeof c.baseUrl === 'string' ? c : null;
+}
+
+/**
+ * Whether this page is running inside the Mac (or later Windows) app rather
+ * than a browser. `Platform.OS` says "web" in both, since the app shows the
+ * same web export.
+ */
+export const IS_DESKTOP = desktopConfig() != null;
+
+/**
+ * The window this page is drawn in, in the desktop app: the main window
+ * (home, lobby, account, rules…) or a game window, which holds one match.
+ * Null outside the app.
+ */
+export const DESKTOP_WINDOW: { role: 'main' | 'game'; matchId?: string } | null = IS_DESKTOP
+  ? (desktopConfig()?.window ?? { role: 'main' })
+  : null;
+export const IS_DESKTOP_GAME_WINDOW = DESKTOP_WINDOW?.role === 'game';
+export const IS_DESKTOP_MAIN_WINDOW = DESKTOP_WINDOW?.role === 'main';
+
+export const ZOLIK_BASE_URL = (
+  desktopConfig()?.baseUrl ||
+  sameOriginBaseUrl() ||
+  envUrl ||
+  defaultBaseUrl()
+).replace(
   /\/$/,
   '',
 );
@@ -45,7 +88,10 @@ export const ZOLIK_BASE_URL = (sameOriginBaseUrl() || envUrl || defaultBaseUrl()
  * cloud instead.
  */
 export const CLOUD_BASE_URL = (
-  process.env.EXPO_PUBLIC_ZOLIK_CLOUD_URL || 'https://jokerless.com'
+  desktopConfig()?.cloudUrl ||
+  desktopConfig()?.baseUrl ||
+  process.env.EXPO_PUBLIC_ZOLIK_CLOUD_URL ||
+  'https://jokerless.com'
 ).replace(/\/$/, '');
 
 export const APP_NAME =

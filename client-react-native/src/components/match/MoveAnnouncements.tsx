@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { announce } from '@/src/a11y/announce';
@@ -33,27 +33,27 @@ import type { Skin } from '@/src/skins/types';
 export function MoveAnnouncements({
   moves,
   prompts,
+  standing = [],
   players,
   viewerId,
 }: {
   moves: MoveLine[];
   prompts: Fact[];
+  /** What is true of the play as a whole — the colour or suit in play — kept in the box's right corner. */
+  standing?: Fact[];
   players: MatchPlayer[];
   viewerId: string;
 }) {
   const skin = useSkin();
-  const [open, setOpenState] = useState(openPreference);
-  const setOpen = (v: boolean) => {
-    openPreference = v;
-    setOpenState(v);
-  };
+  const open = useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
+  const setOpen = setMovesOpen;
   // Four lines' room where the window has it; two on a short one, so the
   // pile, the hand and its controls still fit together. Fixed by the window,
   // never by what is in the box — see below.
   const { height } = useWindowDimensions();
   const short = height < SHORT_WINDOW;
   const linesHeight = !open ? undefined : short ? LINE * 2 : LINE * 4;
-  const styles = useMemo(() => announceStyles(skin, linesHeight, short), [skin, linesHeight, short]);
+  const styles = useMemo(() => announceStyles(skin, linesHeight, short, standing.length > 0), [skin, linesHeight, short, standing.length]);
 
   // Everything after the viewer's own last move. When their move was the
   // last one, that move alone, dimmed — so the box says what the table is
@@ -100,6 +100,11 @@ export function MoveAnnouncements({
       {/* Repeat-last, over the box's corner rather than in its flow: the box
           keeps one fixed height whatever is in it (see below). */}
       <View style={styles.repeatAt}>
+        {standing.map((f, i) => (
+          <Text key={`standing-${i}`} testID={`standing-${i}`} style={styles.standing} numberOfLines={1}>
+            <LastCardInk text={factText(f, players)} />
+          </Text>
+        ))}
         <Tip text={t('a11y.board.tip.repeat')}>
           <Pressable
             testID="moves-repeat"
@@ -117,6 +122,9 @@ export function MoveAnnouncements({
           accessibilityRole="button"
           accessibilityLabel={t('moves.title')}
           accessibilityState={{ expanded: open }}
+          // react-native-web does not carry accessibilityState over to the
+          // page, so a screen reader in a browser heard no open or closed.
+          {...((Platform.OS === 'web' ? { 'aria-expanded': open } : {}) as object)}
           onPress={() => setOpen(!open)}
           hitSlop={8}
           style={styles.repeat}
@@ -171,6 +179,33 @@ export function MoveAnnouncements({
 
 /** Whether the list is open, for every table this session: it starts folded. */
 let openPreference = false;
+const openListeners = new Set<() => void>();
+
+function subscribeMovesOpen(listener: () => void) {
+  openListeners.add(listener);
+  return () => {
+    openListeners.delete(listener);
+  };
+}
+
+/** Whether the list of recent moves is open, rather than just the last one. */
+export function movesOpen(): boolean {
+  return openPreference;
+}
+
+/** Whether the list of recent moves is open, kept current. */
+export function useMovesOpen(): boolean {
+  return useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
+}
+
+/**
+ * Opens or closes the list of recent moves, wherever it is drawn. Exported for
+ * the Mac app's View › Show Log, which reaches it from outside the screen.
+ */
+export function setMovesOpen(v: boolean) {
+  openPreference = v;
+  for (const l of openListeners) l();
+}
 
 /** About a round at a full table; older moves are in the strip's own history. */
 const MAX_LINES = 8;
@@ -178,10 +213,13 @@ const MAX_LINES = 8;
 /** One line's room in the box. */
 const LINE = 24;
 
+/** Room a standing fact takes in the corner, so a folded line stops short of it. */
+const STANDING_ROOM = 150;
+
 /** Below this window height the box keeps two lines' room rather than four. */
 const SHORT_WINDOW = 760;
 
-function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean) {
+function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean, standing: boolean) {
   const colors = s.colors;
   return StyleSheet.create({
     box: {
@@ -208,12 +246,13 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     list: { gap: 3 },
     row: { borderLeftWidth: 3, borderLeftColor: 'transparent', paddingLeft: 8 },
     // In the box's top-right corner, out of the flow — see the render.
-    repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1, flexDirection: 'row', gap: 6 },
+    repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    standing: { color: colors.text, fontSize: 14, fontWeight: '600', marginRight: 6 },
     repeat: { minWidth: 24, alignItems: 'center' },
     repeatText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
     toggleText: { color: colors.muted, fontSize: 16, fontWeight: '700' },
     // Clear of the two buttons in the corner.
-    foldedLine: { paddingRight: 64 },
+    foldedLine: { paddingRight: standing ? 64 + STANDING_ROOM : 64 },
     newestRow: { borderLeftColor: colors.accent },
     line: { color: colors.text, fontSize: 15 },
     newest: { fontSize: 17, fontWeight: '700' },

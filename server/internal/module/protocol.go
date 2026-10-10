@@ -278,6 +278,11 @@ type Fact struct {
 	LabelKey string         `json:"labelKey"`
 	Value    string         `json:"value,omitempty"`
 	Params   map[string]any `json:"params,omitempty"`
+	// Standing marks a header fact that is true of the play as a whole — the
+	// colour or suit in play — rather than of the deal. The client sets it
+	// on the right of the status box beside the moves instead of in the
+	// header lines.
+	Standing bool `json:"standing,omitempty"`
 }
 
 // Seat is one player as the board shows them.
