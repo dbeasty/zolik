@@ -152,7 +152,12 @@ async function playAFewMoves(page: Page, max: number): Promise<number> {
     // turned "the click never landed" into "a move was made" and hid the fact
     // that the selector was matching the scrolling container too.
     try {
-      await page.getByTestId(ids[0]).click({ timeout: 5000 });
+      // Not always the first: an offer that needs a card picked first (Prší's
+      // "play a card" with a playable card in hand) does nothing when pressed
+      // bare, and pressing it twelve times left the whole loop stuck on it —
+      // about one deal in three. Rotating through what is live lets the next
+      // press be the one that needs nothing, as a person would try.
+      await page.getByTestId(ids[i % ids.length]).click({ timeout: 5000 });
       // A card that asks a question — the suit a queen names — asks it now,
       // as a sheet of answers. The shell knows nothing of what is asked; it
       // answers with the first offered, as a player in a hurry would.

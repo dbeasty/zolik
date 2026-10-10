@@ -15,8 +15,16 @@ async function signedInName(page: Page): Promise<string> {
   const name = page.getByTestId('account-menu-name');
   await expect(page.getByTestId('account-menu-status')).toBeVisible({ timeout: 10_000 });
   const text = ((await name.textContent()) ?? '').trim();
+  // Escape closes the menu where the browser hands it the key; where it does
+  // not, the backdrop is the way out. The click is bounded because once Escape
+  // has worked there is no backdrop left to click, and an unbounded click then
+  // waits for one until the whole test times out — which `.catch` cannot help.
   await page.keyboard.press('Escape');
-  await page.getByTestId('account-menu-backdrop').click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await page
+    .getByTestId('account-menu-backdrop')
+    .click({ position: { x: 5, y: 5 }, timeout: 1_500 })
+    .catch(() => {});
+  await expect(page.getByTestId('account-menu')).toBeHidden({ timeout: 5_000 });
   return text;
 }
 

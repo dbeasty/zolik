@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dragLocatorTo, handCards } from '../helpers/drag';
+import { dragLocatorTo, handCards, BOARD_FITS_HEIGHT } from '../helpers/drag';
 import { API_BASE, asViewer } from '../helpers/env';
 
 /**
@@ -121,7 +121,7 @@ async function seedReportedBoard(
 }
 
 async function openMatch(page: Page, host: any, matchId: string) {
-  await page.setViewportSize({ width: 1280, height: 1200 });
+  await page.setViewportSize({ width: 1280, height: BOARD_FITS_HEIGHT });
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
   }, {

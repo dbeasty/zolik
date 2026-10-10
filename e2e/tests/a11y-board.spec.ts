@@ -213,7 +213,11 @@ test.describe('screen-reader path', () => {
     await sitDown(page, request, 'lastcard');
 
     let played = 0;
-    for (let turn = 0; turn < 4; turn++) {
+    // At least four turns, and on until somebody else has moved: a Skip played
+    // by the human leaves the bot without a move, so a fixed count can end with
+    // nobody having been heard (seen in 1 run of 20).
+    for (let turn = 0; turn < 12; turn++) {
+      if (turn >= 4 && ((await polite(page).textContent()) ?? '').trim()) break;
       await waitForMyTurn(page);
       const options = hand(page).getByRole('option');
       expect(await options.first().getAttribute('aria-label')).toMatch(SPOKEN);
@@ -243,11 +247,22 @@ test.describe('screen-reader path', () => {
         // Where to (more than one place), then which colour (a wild).
         await answerAnySheet(page);
         await answerAnySheet(page);
-        await expect.poll(() => handSize(page), { timeout: 10_000 }).toBeLessThan(size);
+        // The hand shrank by the card played — unless the bot answered before
+        // this read with a +2 or +4, which grows it again. Either way the move
+        // was taken; reading only "smaller" made this a race against the bot.
+        await expect.poll(() => handSize(page), { timeout: 10_000 }).not.toBe(size);
         played++;
       } else {
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        await page.keyboard.press('d');
+        // A Wild Draw Four against us leaves no stock to draw from: the offers
+        // are Take four and Challenge, and neither is the D key.
+        const takeFour = offer(page, /^Take four/);
+        if (await isLive(takeFour)) {
+          await takeFour.first().focus();
+          await page.keyboard.press('Enter');
+        } else {
+          await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+          await page.keyboard.press('d');
+        }
         await expect.poll(() => handSize(page), { timeout: 10_000 }).not.toBe(size);
         // A drawn card that can be played may leave the turn open; pass it on.
         const pass = offer(page, /^(Pass|Keep|End turn)/);

@@ -1,31 +1,21 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dragLocatorTo, handCards, BOARD_FITS_HEIGHT } from '../helpers/drag';
+import { carryPointOver, grabPoint, handCards, release } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { cardByCode, selectOnly } from '../helpers/hand';
 
 /**
- * Two cards that only extend a run *together* go onto it in one gesture.
+ * Carrying a card toward a meld the window has scrolled away from.
  *
- * Reported from a real game: a run of 7-8-9-10 on the table, the 5 and the 6
- * in hand, and dropping the pair on it refused — the player had to lay the 6
- * first and then the 5, one card per gesture, for a move the engine takes
- * whole.
- *
- * The engine was never the problem. `ValidateLayOff` appends every submitted
- * card and revalidates the meld, so the pair was always legal; it was the
- * offer that was narrower than the validator, listing only the cards that
- * extend the run *on their own*. The client trusts that list, as it is meant
- * to, and refused the move on the server's behalf.
- *
- * So this pins the gesture end to end, and it checks the *server's* copy of
- * the meld: a client that only moved two cards in its own head would satisfy
- * every visual assertion here.
- *
- * The position is seeded through the dev-only debug-state hatch rather than
- * played to, for the reason clean-run.spec.ts gives — waiting for the right
- * cards to fall is a test that mostly does not run.
+ * The hand sits above the melds, so a lay-off onto a meld below the fold means
+ * reaching it with the button held down, when nothing scrolls. While a drag is
+ * in flight, a pointer held in the bottom band of the window scrolls the board,
+ * and the drop rects follow. This is the whole gesture, end to end, with the
+ * server's copy of the meld as the witness; the feature shipped without one,
+ * and the layoff specs that assumed a meld in view broke under it unnoticed.
  */
+
+const SHORT = 900;
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
@@ -104,7 +94,7 @@ async function openMatch(page: Page, host: any, matchId: string) {
   // Both the hand and the meld have to be on screen at once: a drag is two
   // points on one screen, and scrolling to the target would take the source
   // out from under the pointer.
-  await page.setViewportSize({ width: 1280, height: BOARD_FITS_HEIGHT });
+  await page.setViewportSize({ width: 1280, height: SHORT });
   await page.addInitScript(
     (s) => {
       window.localStorage.setItem('zolik_session', JSON.stringify(s));
@@ -130,41 +120,56 @@ async function meldOnServer(request: Ctx, matchId: string, viewer: Viewer) {
   return '(gone)';
 }
 
-test.describe('a lay-off whose cards need each other', () => {
-  test('the 5 and the 6 go onto a run of 7-8-9-10 in one drag', async ({ page, request }) => {
+test.describe('a drag near the window edge scrolls the board', () => {
+  test('a pair carried to the bottom edge reaches a meld that started below the fold', async ({ page, request }) => {
     const { matchId, host, auth } = await tableWithBot(request);
     await seedRunAndGapCards(request, matchId, host, auth);
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    // Both cards picked, then one gesture. Selecting explicitly rather than
-    // trusting what is already picked: a card that arrives in hand lands
-    // selected, so "drag the 5" otherwise means "drag the 5 and whatever
-    // else happened to be on".
-    await selectOnly(page, ['5C', '6C']);
-    await dragLocatorTo(page, cardByCode(page, '6C'), page.getByTestId('group-meld_1'));
+    const meld = page.getByTestId('group-meld_1');
+    const before = await meld.boundingBox();
+    expect(before, 'the meld should be on the page').toBeTruthy();
+    expect(
+      before!.y + before!.height / 2,
+      'the premise: the meld starts below the fold, out of a pointer\'s reach',
+    ).toBeGreaterThan(SHORT);
 
-    // The server is the witness.
+    await selectOnly(page, ['5C', '6C']);
+    const grab = await grabPoint(cardByCode(page, '6C'));
+    // Down into the bottom band, and hold there: only a timer can scroll for a
+    // pointer that has stopped moving.
+    await carryPointOver(page, grab, { x: grab.x, y: SHORT - 20 });
+    await expect
+      .poll(async () => (await meld.boundingBox())!.y, { timeout: 10_000, message: 'the board should scroll while the card is held at the edge' })
+      .toBeLessThan(SHORT / 2);
+
+    // Now the meld is under a pointer a person could put there.
+    // Pull the pointer out of the band first, or the board keeps scrolling
+    // under it, and aim at the part of the meld that is on screen.
+    const at = (await meld.boundingBox())!;
+    await page.mouse.move(at.x + at.width / 2, at.y + 60, { steps: 10 });
+    await page.waitForTimeout(200);
+    await release(page);
+
     await expect
       .poll(() => meldOnServer(request, matchId, host), { timeout: 10_000 })
       .toBe('5C,6C,7C,8C,9C,TC');
   });
 
-  test('the 5 on its own is refused, and the board does not move', async ({ page, request }) => {
+  test('a drag that starts in the bottom band does not carry the board away', async ({ page, request }) => {
     const { matchId, host, auth } = await tableWithBot(request);
     await seedRunAndGapCards(request, matchId, host, auth);
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    // The other half of the same fact. The 5 alone leaves a gap at the 6, and
-    // the offer says so per card — so this must stay refused even though the
-    // pair is now legal, or the fix would have simply widened the list into a
-    // lie.
-    await selectOnly(page, ['5C']);
-    await dragLocatorTo(page, cardByCode(page, '5C'), page.getByTestId('group-meld_1'));
-
-    await expect
-      .poll(() => meldOnServer(request, matchId, host), { timeout: 5_000 })
-      .toBe('7C,8C,9C,TC');
+    // A card dragged sideways along the hand, and held, must leave the page where it was.
+    const scrollOf = () => page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('*')].map((e) => e.scrollTop)));
+    const start = await scrollOf();
+    const grab = await grabPoint(cardByCode(page, 'KD'));
+    await carryPointOver(page, grab, { x: grab.x + 120, y: grab.y });
+    await page.waitForTimeout(800);
+    expect(await scrollOf()).toBe(start);
+    await release(page);
   });
 });

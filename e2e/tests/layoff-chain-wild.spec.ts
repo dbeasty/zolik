@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dragLocatorTo, handCards } from '../helpers/drag';
+import { dragLocatorTo, handCards, BOARD_FITS_HEIGHT } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { cardByCode, selectOnly } from '../helpers/hand';
 
@@ -113,7 +113,7 @@ async function openMatch(page: Page, host: any, matchId: string) {
   // Both the hand and the meld have to be on screen at once: a drag is two
   // points on one screen, and scrolling to the target would take the source
   // out from under the pointer.
-  await page.setViewportSize({ width: 1280, height: 1200 });
+  await page.setViewportSize({ width: 1280, height: BOARD_FITS_HEIGHT });
   await page.addInitScript(
     (s) => {
       window.localStorage.setItem('zolik_session', JSON.stringify(s));
