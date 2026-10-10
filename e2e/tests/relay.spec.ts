@@ -117,6 +117,10 @@ test.describe('a table on somebody’s phone, from anywhere', () => {
       const gone = page.getByTestId('table-banner-server');
       await expect(gone).toBeVisible({ timeout: 45_000 });
       await expect(gone).toContainText("Ada's phone");
+      // The status in the bar agrees: not "in progress" while nothing can move.
+      await page.getByTestId('match-status-dot').click();
+      await expect(page.getByTestId('match-status-explainer')).toContainText('offline');
+      await page.getByTestId('match-status-dot').click();
 
       // And it comes back, under the same code, and the game with it.
       const code = phone.relayCode;
@@ -124,6 +128,30 @@ test.describe('a table on somebody’s phone, from anywhere', () => {
       expect(phone.relayCode).toBe(code);
       await expect(gone).toBeHidden({ timeout: 90_000 });
       await expect(page.getByTestId('controls-panel')).toBeVisible();
+
+      // On a phone the bar has room for the status and the code, not the
+      // server's name as well: with it, the title slid under the back button
+      // and the code over the account button.
+      await page.setViewportSize({ width: 402, height: 874 });
+      await expect(page.getByTestId('match-server')).toBeHidden();
+      const overlaps = await page.evaluate(() => {
+        const bar = document.querySelector('[data-testid="match-status-dot"]')!.getBoundingClientRect();
+        const inBar = [...document.querySelectorAll('[role="button"], [data-testid="match-table-code"], a')]
+          .map((e) => ({ id: (e as HTMLElement).dataset.testid || e.getAttribute('aria-label') || e.textContent?.slice(0, 20), r: e.getBoundingClientRect() }))
+          .filter(({ r }) => r.width > 0 && r.top < bar.bottom && r.bottom > bar.top);
+        const hits: string[] = [];
+        for (let i = 0; i < inBar.length; i++)
+          for (let j = i + 1; j < inBar.length; j++) {
+            const a = inBar[i]!.r, b = inBar[j]!.r;
+            const nested = (a.left >= b.left && a.right <= b.right && a.top >= b.top && a.bottom <= b.bottom) ||
+              (b.left >= a.left && b.right <= a.right && b.top >= a.top && b.bottom <= a.bottom);
+            if (!nested && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom)
+              hits.push(`${inBar[i]!.id} × ${inBar[j]!.id}`);
+          }
+        const outside = inBar.filter(({ r }) => r.left < 0 || r.right > window.innerWidth).map(({ id }) => `${id} off-screen`);
+        return [...hits, ...outside];
+      });
+      expect(overlaps, 'controls in the top bar overlap at phone width').toEqual([]);
     } finally {
       await stopPhone(phone);
     }

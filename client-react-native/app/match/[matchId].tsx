@@ -627,7 +627,7 @@ function MatchScreen() {
   const scrollMax = useRef(Infinity);
   const dragPoint = useRef<{ x: number; y: number } | null>(null);
   const dragMoveRef = useRef<((x: number, y: number) => void) | null>(null);
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dragging = drag !== null;
   useEffect(() => {
     if (!dragging) {
@@ -1706,9 +1706,18 @@ function MatchScreen() {
     : offline.role === 'host'
       ? t('server.thisPhone')
       : t('server.named', { name: serverName });
-  const statusOk = state.status !== 'suspended' && state.status !== 'abandoned';
-  const statusExplainer =
-    state.status === 'suspended'
+  // On a phone the bar has room for the status and the code and nothing
+  // more: the server's name pushed the title under the back button and the
+  // code over the account button. The host's seat says "Server" there, and a
+  // tap on the status says the rest.
+  const headerHasRoom = windowWidth >= 600;
+  // A table whose server has gone is not "in progress", whatever the match
+  // itself says: nobody's move can land until it is back.
+  const serverGone = !!offline?.serverGone;
+  const statusOk = state.status !== 'suspended' && state.status !== 'abandoned' && !serverGone;
+  const statusExplainer = serverGone
+    ? t('banner.serverOffline', { name: serverName })
+    : state.status === 'suspended'
       ? t('match.pausedFor', { name: playerName(state.players, state.suspendedPlayer ?? '') })
       : state.status === 'abandoned'
         ? t('match.abandoned')
@@ -1985,7 +1994,7 @@ function MatchScreen() {
                 <Text testID="match-status" style={styles.status}>
                   {state.status}
                 </Text>
-                {serverLabel ? (
+                {serverLabel && headerHasRoom ? (
                   <Text testID="match-server" style={styles.status} numberOfLines={1}>
                     {`· ${serverLabel}`}
                   </Text>
