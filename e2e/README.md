@@ -90,6 +90,33 @@ matched the scrolling bar the offer buttons live in, so every "move" was a click
 on a div. The bar is `action-bar` now. Fixing it turned three green tests red,
 correctly.
 
+## Registry-wide sweeps
+
+These are driven from `/modules`, so a game or variation is covered the day it
+is registered, with nothing to add here.
+
+- **`every-game.spec.ts`** — every module × variation plays against bots over a
+  real socket with no server `error`, and a started table shows nothing private
+  to a stranger or to somebody who has not signed in (no hand, no draw pile).
+- **`every-game-ui.spec.ts`** — every module × variation mounts at phone,
+  tablet and desktop width with no page error and nothing past the window's
+  edge; the rules screen opens for each; the menu lists each. The overflow probe
+  is itself tested, because a probe that cannot fail proves nothing.
+- **`authz.spec.ts`** — who may start, add bots, delete, hint, replay or move,
+  over HTTP and the socket; garbage frames never take a table down.
+- **`identity-names.spec.ts`** — what a person may be called, passphrases longer
+  than bcrypt reads, and the request-size limit.
+- **`drag-edge-autoscroll.spec.ts`** — the board scrolls for a card held at the
+  window edge, and does not carry a target away from a pointer aiming at it.
+
+`--project=phone` runs any spec on a touch Pixel 7 (opt-in; name the specs).
+
+The Go side has the matching contract tests in `server/internal/module`
+(`allmodules_test.go`): an onlooker never sees more than a player, and
+`TestRandomPlayNeverBreaksTheContract` plays every module at random
+(`ZOLIK_FUZZ_SEEDS=500` for a long soak). Run Go tests that need a store with
+`ZOLIK_TEST_DB_ENGINE=kdb`, or they skip and still report `ok`.
+
 ## Longevity
 
 The suite here is many short tests: open a page, play a hand, assert, throw the
