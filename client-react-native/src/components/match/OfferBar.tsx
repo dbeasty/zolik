@@ -1282,6 +1282,11 @@ function offerBarStyles(m: Metrics, s: Skin) {
       borderRadius: 6,
       paddingHorizontal: 8,
       paddingVertical: 4,
+      // WCAG 2.2 target size: the stepper and the quick choices are 24px each way.
+      minHeight: 24,
+      minWidth: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     stepText: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
     paramValueInput: {
@@ -1296,6 +1301,7 @@ function offerBarStyles(m: Metrics, s: Skin) {
       backgroundColor: colors.surface,
       paddingHorizontal: 6,
       paddingVertical: 4,
+      minHeight: 24,
     },
     // A plain line under a thumb: `sliderTrack` carries the touch handlers
     // and the height a finger needs, `sliderRail` is the full-width line

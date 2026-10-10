@@ -2075,6 +2075,7 @@ function MatchScreen() {
                 )
               }
               hitSlop={8}
+              style={styles.linkTarget}
             >
               <Text style={styles.rulesLink}>{t('nav.rules')}</Text>
             </Pressable>
@@ -2083,7 +2084,7 @@ function MatchScreen() {
                 that answers "where are we?" in one go. Also R, and the iOS
                 magic tap (see the root view). */}
             <Tip text={t('a11y.board.read.tip')} shortcut={a11yPrefs.shortcuts ? SHORTCUT_KEYS.read : undefined}>
-              <Pressable testID="read-table" accessibilityRole="button" onPress={readTable} hitSlop={8}>
+              <Pressable testID="read-table" accessibilityRole="button" onPress={readTable} hitSlop={8} style={styles.linkTarget}>
                 <Text style={styles.rulesLink}>{t('a11y.board.read.button')}</Text>
               </Pressable>
             </Tip>
@@ -2094,6 +2095,7 @@ function MatchScreen() {
                   accessibilityRole="button"
                   onPress={() => setHelpOpen(true)}
                   hitSlop={8}
+                  style={styles.linkTarget}
                 >
                   <Text style={styles.rulesLink}>{t('a11y.board.shortcuts.button')}</Text>
                 </Pressable>

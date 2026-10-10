@@ -761,7 +761,7 @@ export function HandZone({
         onAutoArrange && slots.length > 1 ? (
           <View style={styles.accessory}>
             <Tip text={t('a11y.board.tip.autoArrange')}>
-              <Pressable onPress={onAutoArrange} hitSlop={8} accessibilityRole="button">
+              <Pressable onPress={onAutoArrange} hitSlop={8} accessibilityRole="button" style={styles.smallTarget}>
                 <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
                   {t('a11y.board.hand.autoArrange')}
                 </Text>
@@ -775,6 +775,7 @@ export function HandZone({
                 <Pressable
                   onPress={() => setSpread((v) => !v)}
                   hitSlop={8}
+                  style={styles.smallTarget}
                   accessibilityRole="button"
                   accessibilityLabel={t(spread ? 'hand.closeFan' : 'hand.openFan')}
                   accessibilityState={{ expanded: spread }}
@@ -1298,6 +1299,8 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
   return StyleSheet.create({
     autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
     accessory: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    // WCAG 2.2 target size: a 12px line of text is not a 24px target.
+    smallTarget: { minHeight: 24, minWidth: 24, alignItems: 'center', justifyContent: 'center' },
     // The one control on the board that is about looking rather than playing.
     // Same colour as Auto-arrange beside it, a size up, because it is two
     // glyphs rather than a word and would otherwise read as punctuation.

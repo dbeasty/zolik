@@ -146,3 +146,27 @@ test.describe('axe: a live table of every game', () => {
     });
   }
 });
+
+test.describe('axe: a live table of every game, on a touch phone', () => {
+  // WCAG 2.2 target size (2.5.8) is where a phone differs: the same board, the
+  // same rules, 412px wide. Seen failing on every game's board before the small
+  // controls were given 24px targets.
+  test.use({ viewport: { width: 412, height: 915 }, hasTouch: true, isMobile: true });
+  test.setTimeout(90_000);
+  for (const game of GAMES) {
+    test(`${game} board has no serious violations`, async ({ page, request }) => {
+      await loginAsFreshGuest(page, request, `axe-${game}-${Math.random().toString(36).slice(2, 6)}`);
+      await openGame(page, game);
+      if (game === 'klondike') {
+        // One seat: solitaire has no bots to play.
+        await page.getByTestId('play-solo-klondike').click();
+        await page.getByTestId('deal-me-in-klondike').click();
+      } else {
+        await playAgainstBots(page, game);
+      }
+      await expect(page).toHaveURL(/\/match\//, { timeout: 30_000 });
+      await page.waitForTimeout(2500);
+      await scan(page, `${game} board`, { board: true });
+    });
+  }
+});

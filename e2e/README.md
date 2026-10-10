@@ -109,7 +109,7 @@ is registered, with nothing to add here.
 - **`drag-edge-autoscroll.spec.ts`** — the board scrolls for a card held at the
   window edge, and does not carry a target away from a pointer aiming at it.
 
-`--project=phone` runs any spec on a touch Pixel 7 (opt-in; name the specs).
+`ZOLIK_E2E_PHONE=1 npx playwright test --project=phone <specs>` runs specs on a touch Pixel 7 (opt-in; name the specs). `a11y.spec.ts` is worth running there: WCAG target size is only checked at phone scale.
 
 The Go side has the matching contract tests in `server/internal/module`
 (`allmodules_test.go`): an onlooker never sees more than a player, and

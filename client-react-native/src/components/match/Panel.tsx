@@ -289,7 +289,10 @@ function panelStyles(m: Metrics, s: Skin) {
     // pushing the count and toggle off the edge of a narrow header.
     summary: { flexShrink: 1, minWidth: 0, overflow: 'hidden' },
     count: { color: colors.muted, fontSize: m.panel.bodyFont },
-    toggle: { paddingHorizontal: 4, paddingVertical: 2 },
+    // WCAG 2.2 target size (2.5.8): at least 24 CSS px each way. hitSlop widens
+    // what a finger can hit but not what the page measures, and on a phone the
+    // glyph's own padding came to about 18px.
+    toggle: { paddingHorizontal: 4, paddingVertical: 2, minWidth: 24, minHeight: 24, alignItems: 'center', justifyContent: 'center' },
     toggleGlyph: { color: colors.accentButton, fontSize: m.panel.bodyFont + 2, fontWeight: '700' },
     // Only the border colour changes, never its width: a region that grew
     // when it lit up would move every region after it mid-drag, which moves
