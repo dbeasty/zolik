@@ -3,6 +3,8 @@ package module_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -2013,4 +2015,109 @@ func TestAnOnlookerNeverKnowsMoreThanAPlayer(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRandomPlayNeverBreaksTheContract plays every module the way nobody would —
+// a random enabled offer each time, over many seeds — and checks the terms the
+// runtime lives on at every step.
+//
+// The driver everything else uses always takes the most-preferred offer, so a
+// whole game is walked down one narrow path and the corners (an undo after a
+// meld, a pass into a challenge, a raise into an all-in) are only ever reached
+// by accident. Here an offer that is on must be accepted by the engine, the
+// board must render for every viewer — including nobody — and the state must
+// survive being written down and read back, wherever the match has got to.
+func TestRandomPlayNeverBreaksTheContract(t *testing.T) {
+	seeds := 12
+	steps := 250
+	if testing.Short() {
+		seeds, steps = 3, 120
+	}
+	// ZOLIK_FUZZ_SEEDS=500 for a long soak; the default is what a build can afford.
+	if n, err := strconv.Atoi(os.Getenv("ZOLIK_FUZZ_SEEDS")); err == nil && n > 0 {
+		seeds = n
+	}
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			for seed := 1; seed <= seeds; seed++ {
+				rng := rand.New(rand.NewSource(int64(seed) * 7919))
+				state, err := g.mod.NewMatch(g.cfg, g.players, int64(seed))
+				if err != nil {
+					t.Fatalf("seed %d: NewMatch: %v", seed, err)
+				}
+				for step := 1; step <= steps; step++ {
+					done, _, err := g.mod.Finished(state)
+					if err != nil {
+						t.Fatalf("seed %d step %d: Finished: %v", seed, step, err)
+					}
+					if done {
+						break
+					}
+
+					type choice struct {
+						player string
+						offers []module.ActionOffer
+						action module.Action
+					}
+					var options []choice
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(state, p.ID)
+						if err != nil {
+							t.Fatalf("seed %d step %d: LegalActions(%s): %v", seed, step, p.ID, err)
+						}
+						for _, a := range module.ChooseActions(offers, nil) {
+							options = append(options, choice{p.ID, offers, a})
+						}
+					}
+					if len(options) == 0 {
+						// Nothing a driver can send: a composite-only moment, or the
+						// match is waiting. The other tests own "is it stuck".
+						break
+					}
+					c := options[rng.Intn(len(options))]
+					next, _, err := g.mod.Apply(state, c.player, c.action)
+					if err != nil {
+						t.Fatalf("seed %d step %d: %s was offered %+v but the engine refused it: %v\n%s",
+							seed, step, c.player, c.action, err, module.DescribeOffers(c.offers))
+					}
+					state = next
+
+					// Every viewer, and nobody, can be shown the board.
+					for _, viewer := range append([]string{""}, playerIDs(g.players)...) {
+						vm, err := g.mod.View(state, viewer)
+						if err != nil {
+							t.Fatalf("seed %d step %d: View(%q): %v", seed, step, viewer, err)
+						}
+						if _, err := json.Marshal(vm); err != nil {
+							t.Fatalf("seed %d step %d: View(%q) does not marshal: %v", seed, step, viewer, err)
+						}
+					}
+					// Written down and read back, the board is the same board.
+					var generic any
+					if err := json.Unmarshal(state, &generic); err != nil {
+						t.Fatalf("seed %d step %d: state is not JSON: %v", seed, step, err)
+					}
+					round, _ := json.Marshal(generic)
+					a, _ := g.mod.View(state, g.players[0].ID)
+					b, err := g.mod.View(round, g.players[0].ID)
+					if err != nil {
+						t.Fatalf("seed %d step %d: View after round trip: %v", seed, step, err)
+					}
+					ja, _ := json.Marshal(a)
+					jb, _ := json.Marshal(b)
+					if string(ja) != string(jb) {
+						t.Fatalf("seed %d step %d: the board changed by being persisted and read back", seed, step)
+					}
+				}
+			}
+		})
+	}
+}
+
+func playerIDs(ps []module.PlayerRef) []string {
+	out := make([]string, 0, len(ps))
+	for _, p := range ps {
+		out = append(out, p.ID)
+	}
+	return out
 }

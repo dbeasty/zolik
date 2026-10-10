@@ -173,3 +173,40 @@ test.describe('a drag near the window edge scrolls the board', () => {
     await release(page);
   });
 });
+
+test.describe('a target in the edge band is not scrolled away', () => {
+  test('a card brought to the discard pile near the top edge finds it where it was', async ({ page, request }) => {
+    const host = (await (await request.post(`${API_BASE}/auth/guest`, { data: { guestName: `edge-${Math.random().toString(36).slice(2, 8)}` } })).json());
+    const auth = { Authorization: `Bearer ${host.accessToken}` };
+    const { matchId } = await (await request.post(`${API_BASE}/matches`, { headers: auth, data: { moduleId: 'lastcard', options: {} } })).json();
+    await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: auth });
+    await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    // Put the pile inside the top band, with the hand still on screen below it.
+    const pile = page.getByTestId('zone-discard');
+    await page.setViewportSize({ width: 1280, height: 520 });
+    await page.mouse.move(900, 300);
+    for (let i = 0; i < 20; i++) {
+      const y = (await pile.boundingBox())!.y + (await pile.boundingBox())!.height / 2;
+      if (y < 90) break;
+      await page.mouse.wheel(0, 40);
+      await page.waitForTimeout(80);
+    }
+    await page.waitForTimeout(300);
+    const box = (await pile.boundingBox())!;
+    expect(box.y + box.height / 2, 'the premise: the pile centre is inside the top band').toBeLessThan(110);
+
+    const scrollOf = () => page.evaluate(() => Math.max(0, ...Array.from(document.querySelectorAll('*')).map((e) => e.scrollTop)));
+    const before = await scrollOf();
+    const card = page.locator('[data-testid^="card-hand:"]').first();
+    const grab = await grabPoint(card);
+    await carryPointOver(page, grab, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+    // Inside the dwell: long enough to aim and let go, short of asking to scroll.
+    await page.waitForTimeout(50);
+    expect(await scrollOf(), 'the pile must stay under the pointer').toBe(before);
+    await release(page);
+  });
+});
+
