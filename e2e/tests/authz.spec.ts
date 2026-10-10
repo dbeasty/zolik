@@ -194,3 +194,57 @@ test.describe('table over the socket', () => {
     expect(opened).not.toBe('offered-moves');
   });
 });
+
+test.describe('socket hygiene', () => {
+  test('garbage frames are answered with errors and never take the table down', async ({ page, request }) => {
+    const { host, matchId } = await lobbyTable(request);
+    const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: as(host) });
+    expect(started.ok()).toBeTruthy();
+    await page.goto(`${API_BASE}/version`);
+    const wsBase = API_BASE.replace(/^http/, 'ws');
+
+    const result = await page.evaluate(
+      async ({ wsBase, matchId, token }) => {
+        const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
+        const inbox: any[] = [];
+        let closed = false;
+        ws.onclose = () => (closed = true);
+        await new Promise<void>((resolve, reject) => {
+          ws.onopen = () => resolve();
+          ws.onerror = () => reject(new Error('socket failed to open'));
+          setTimeout(() => reject(new Error('socket open timed out')), 10000);
+        });
+        ws.onmessage = (ev) => {
+          try {
+            inbox.push(JSON.parse(String(ev.data)));
+          } catch {
+            inbox.push({ type: 'unparsed' });
+          }
+        };
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        await sleep(500);
+        const frames = [
+          'not json', '{}', '[]', 'null', '123', '{"type":null}', '{"verb":123}',
+          JSON.stringify({ offerId: 'x'.repeat(100_000), verb: 'y' }),
+          JSON.stringify({ offerId: 'nope', verb: 'nope', cards: ['ZZ', '', 'AC', 'AC'] }),
+          JSON.stringify({ offerId: 'draw', verb: 'draw', cards: Array(5000).fill('AC') }),
+          JSON.stringify({ offerId: {}, verb: [] }),
+          '\u0000\u0001\u0002',
+        ];
+        for (const f of frames) ws.send(f);
+        await sleep(1500);
+        const errors = inbox.filter((m) => m.type === 'error');
+        ws.close();
+        return { closed, errors: errors.length, codes: [...new Set(errors.map((e) => String(e.code)))] };
+      },
+      { wsBase, matchId, token: host.accessToken },
+    );
+
+    expect(result.closed, 'the socket stays open').toBe(false);
+    expect(result.errors, 'every bad frame is answered').toBeGreaterThanOrEqual(10);
+    for (const code of result.codes) expect(code).toMatch(/^[A-Z_]+$/);
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, { headers: as(host) })).json();
+    expect(state.status, 'and the match is untouched').toBe('active');
+  });
+});
+
