@@ -161,7 +161,7 @@ export default function MatchRoute() {
 /** How long a held pointer over a drop target waits before the board scrolls. */
 const DROP_DWELL_MS = 700;
 /** How long a pointer must rest in an edge band before the board scrolls. */
-const BAND_DWELL_MS = 350;
+const BAND_DWELL_MS = 600;
 
 function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
