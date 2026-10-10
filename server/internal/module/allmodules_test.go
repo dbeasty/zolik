@@ -1905,3 +1905,112 @@ func TestEveryTableThatPausesOffersAStandIn(t *testing.T) {
 		})
 	}
 }
+
+// TestAnOnlookerNeverKnowsMoreThanAPlayer — the leak the per-seat test above
+// cannot see, because it only ever asks the seats.
+//
+// Anyone may open a match: a signed-in stranger, or somebody with no sign-in at
+// all, whose id is the empty string. A module that decides "this viewer may see
+// the talon" with `viewerID == s.Declarer` has shown it to that second kind of
+// viewer for as long as no declarer has been chosen, since "" == "" — Mariáš's
+// licitovany table did exactly that.
+//
+// The rule, stated so no module's vocabulary is in it: at every point in a
+// play-through, a card an onlooker can see in a zone is a card every seated
+// player can see in that zone too. An onlooker who knows something none of the
+// players does is a leak, whatever the zone is called.
+func TestAnOnlookerNeverKnowsMoreThanAPlayer(t *testing.T) {
+	type key struct{ zone, card string }
+	seen := func(g hosted, state module.State, viewer string) map[key]bool {
+		t.Helper()
+		vm, err := g.mod.View(state, viewer)
+		if err != nil {
+			t.Fatalf("View(%q): %v", viewer, err)
+		}
+		out := map[key]bool{}
+		for _, z := range vm.Zones {
+			for _, c := range z.Cards {
+				if c.Card != "" {
+					out[key{z.ID, c.Card}] = true
+				}
+			}
+			for _, gr := range z.Groups {
+				for _, c := range gr.Cards {
+					if c != "" {
+						out[key{z.ID, c}] = true
+					}
+				}
+			}
+		}
+		return out
+	}
+
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 11)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			checked := 0
+			check := func(s module.State, step int) {
+				for _, onlooker := range []string{"", "a-stranger-who-is-not-seated"} {
+					watching := seen(g, s, onlooker)
+					for _, p := range g.players {
+						playing := seen(g, s, p.ID)
+						for k := range watching {
+							if !playing[k] {
+								t.Errorf("step %d: onlooker %q sees %s in zone %q, which %s cannot", step, onlooker, k.card, k.zone, p.ID)
+							}
+						}
+					}
+				}
+				checked++
+			}
+
+			check(state, 0)
+			for step := 1; step <= 200; step++ {
+				done, _, err := g.mod.Finished(state)
+				if err != nil {
+					t.Fatalf("Finished: %v", err)
+				}
+				if done {
+					break
+				}
+				var actor string
+				var offers []module.ActionOffer
+				for _, p := range g.players {
+					o, err := g.mod.LegalActions(state, p.ID)
+					if err != nil {
+						t.Fatalf("LegalActions: %v", err)
+					}
+					for _, x := range o {
+						// Leaving is always on the table; it is not having the turn.
+						if x.Enabled && !x.Manual {
+							actor, offers = p.ID, o
+							break
+						}
+					}
+					if actor != "" {
+						break
+					}
+				}
+				if actor == "" {
+					break
+				}
+				a, ok := module.ChooseAction(offers, g.prefer)
+				if !ok {
+					break
+				}
+				next, _, err := g.mod.Apply(state, actor, a)
+				if err != nil {
+					t.Fatalf("an offered action was refused: %v", err)
+				}
+				state = next
+				check(state, step)
+			}
+			if checked < 5 {
+				t.Errorf("only %d positions checked; the test proved little", checked)
+			}
+		})
+	}
+}

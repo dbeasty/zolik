@@ -86,6 +86,74 @@ test.describe('every registered game plays', () => {
   });
 });
 
+/** Zones whose contents are private to a seat or to nobody (a draw pile). */
+const HIDDEN_ZONE = /^(hand|hole|box|draw|stock|deck|shoe|pool|talon)(:|$)/;
+
+async function startedTable(request: Ctx, mod: Module, variation: string | undefined) {
+  const host = await guest(request);
+  const auth = { Authorization: `Bearer ${host.accessToken}` };
+  const created = await request.post(`${API_BASE}/matches`, {
+    headers: auth,
+    data: { moduleId: mod.id, variation, options: {} },
+  });
+  expect(created.ok(), await created.text()).toBeTruthy();
+  const { matchId } = await created.json();
+  const solo = mod.maxPlayers === 1;
+  for (let i = 1; i < (solo ? 1 : Math.max(2, mod.minPlayers)); i++) {
+    await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: auth });
+  }
+  const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
+  expect(started.ok(), await started.text()).toBeTruthy();
+  return { matchId, host };
+}
+
+test.describe('hidden information, for every game', () => {
+  test.describe.configure({ mode: 'serial' });
+  let modules: Module[] = [];
+  test.beforeAll(async () => {
+    modules = await fetchModulesSync();
+  });
+
+  test('nobody but the seat sees its cards, and nobody sees a draw pile', async ({ request }) => {
+    test.setTimeout(5 * 60_000);
+    const leaks: string[] = [];
+    for (const mod of modules) {
+      const variations = mod.variations?.length ? mod.variations : [{ id: undefined as any }];
+      for (const v of variations) {
+        const label = `${mod.id}/${v.id ?? 'default'}`;
+        const { matchId, host } = await startedTable(request, mod, v.id);
+        const stranger = await guest(request);
+        const views: [string, Record<string, string>][] = [
+          ['host', { Authorization: `Bearer ${host.accessToken}` }],
+          ['a stranger', { Authorization: `Bearer ${stranger.accessToken}` }],
+          ['no sign-in', {}],
+        ];
+        for (const [who, headers] of views) {
+          const res = await request.get(`${API_BASE}/matches/${matchId}`, { headers });
+          if (!res.ok()) {
+            // Refusing an unauthenticated read is as good as hiding the cards.
+            expect([401, 403, 404], `${label}: ${who} got ${res.status()}`).toContain(res.status());
+            continue;
+          }
+          const body = await res.json();
+          for (const z of body.view?.zones ?? []) {
+            const id = String(z.id ?? z.kind ?? '');
+            const faces = (z.cards ?? []).filter((c: any) => c && !c.faceDown && (c.code ?? c.id ?? c));
+            const mine = who === 'host' && z.ownerId === host.userId;
+            if (!HIDDEN_ZONE.test(id)) continue;
+            if (mine && /^(hand|hole|box)/.test(id)) continue; // a seat sees its own
+            if (faces.length) leaks.push(`${label}: ${who} sees ${faces.length} face(s) in ${id}`);
+          }
+          if (who !== 'host' && (body.legalActions ?? []).some((o: any) => o.enabled && !o.manual)) {
+            leaks.push(`${label}: ${who} was offered a move`);
+          }
+        }
+      }
+    }
+    expect(leaks, leaks.join('\n')).toEqual([]);
+  });
+});
+
 async function playThrough(
   request: Ctx,
   page: import('@playwright/test').Page,

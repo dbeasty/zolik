@@ -109,7 +109,9 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	// look at.
 	if len(s.Talon) > 0 || s.Phase == phaseTalon {
 		z := module.Zone{ID: talonZoneID, Kind: module.ZoneStack, LabelKey: "marias.zone.talon", Count: len(s.Talon)}
-		if reveal || viewerID == s.Declarer {
+		// A named viewer only: before a declarer is chosen s.Declarer is "", and
+		// so is an anonymous spectator's id.
+		if reveal || (viewerID != "" && viewerID == s.Declarer) {
 			for _, c := range s.Talon {
 				z.Cards = append(z.Cards, module.CardView{Card: c})
 			}
