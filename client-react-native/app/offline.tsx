@@ -18,6 +18,7 @@ import { ensureBlePermission } from '@/src/net/ble/link';
 import { BleHostKeyChanged } from '@/src/net/ble/transport';
 import { guestNameFor } from '@/src/lib/guestName';
 import { shareInviteLink } from '@/src/lib/inviteLink';
+import { IS_DESKTOP } from '@/src/config';
 import { loadFlag, saveFlag, useDeviceFlag } from '@/src/notify/prefs';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
@@ -525,7 +526,8 @@ function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
     setBusy(true);
     setError('');
     try {
-      setRelay(await nearby.openRelay(t('relay.phoneName', { name })));
+      // What a guest anywhere is told the table runs on.
+      setRelay(await nearby.openRelay(IS_DESKTOP ? t('relay.macName', { name }) : t('relay.phoneName', { name })));
       await activateKeepAwakeAsync(KEEP_AWAKE);
     } catch (e) {
       setError(t('offline.failed', { reason: e instanceof Error ? e.message : String(e) }));

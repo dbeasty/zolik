@@ -365,6 +365,8 @@ func seatView(s *GameState, i int) module.Seat {
 		seat.Facts = append(seat.Facts, fact)
 	}
 	switch {
+	case st.Joining:
+		seat.LabelKeys = append(seat.LabelKeys, "seat.joining")
 	case st.Left:
 		// Gone with their chips, which the stack fact above still states.
 		seat.LabelKeys = append(seat.LabelKeys, "seat.left")

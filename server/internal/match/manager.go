@@ -451,6 +451,11 @@ func (m *Manager) Join(ctx context.Context, idOrCode string, p models.Player) (m
 		// reason a table's lock is held.
 		m.lobbyClosed(joined.ID.Hex())
 	}
+	if joined.Status != "lobby" {
+		// Seated at a game under way: everybody's board gains the seat.
+		m.Broadcast(joined)
+		m.RunBotsIfNeeded(context.WithoutCancel(ctx), joined.ID.Hex())
+	}
 	return joined, nil
 }
 
@@ -528,12 +533,14 @@ func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player)
 			return match, false, nil // idempotent: re-joining is not an error
 		}
 	}
-	if match.Status != "lobby" {
-		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
-	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
 		return models.Match{}, false, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
+	}
+	if match.Status != "lobby" {
+		// A game under way takes a new player only where the game says it
+		// can — a cash table between hands — and on its own terms.
+		return m.seatLateLocked(ctx, e, mod, p)
 	}
 	// A seat held for somebody from the last table is taken by them or by
 	// nobody, so it counts as filled for everyone else.

@@ -106,7 +106,7 @@ func tableRules(cfg module.MatchConfig) []module.Fact {
 	if cfg.Opt(OptFormat, FormatTournament) != FormatCash {
 		return []module.Fact{{LabelKey: "holdem.rules.tournament"}}
 	}
-	out := []module.Fact{{LabelKey: "holdem.rules.cash.leave"}}
+	out := []module.Fact{{LabelKey: "holdem.rules.cash.leave"}, {LabelKey: "holdem.rules.cash.join"}}
 	if mins := int(cfg.LeaveAfterAway().Minutes()); mins > 0 {
 		out = append(out, module.Fact{LabelKey: "holdem.rules.cash.away", Params: map[string]any{"minutes": mins}})
 	} else {

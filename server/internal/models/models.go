@@ -57,6 +57,14 @@ type Player struct {
 	// away. The seat stays theirs — IsAI stays false, and the name, account
 	// and avatar are untouched — and it is cleared the moment they are back.
 	StandIn *StandIn `bson:"standIn,omitempty" json:"standIn,omitempty"`
+	// HandedOver is a seat its host gave to somebody else while its player
+	// was away: whoever holds its seat link plays it now, under their own
+	// name, and its first player's own sign-in no longer sits there.
+	// FormerName is who it was handed over from. PendingHandover is a seat
+	// whose link has been made and not yet taken.
+	HandedOver      bool   `bson:"handedOver,omitempty" json:"handedOver,omitempty"`
+	FormerName      string `bson:"formerName,omitempty" json:"formerName,omitempty"`
+	PendingHandover bool   `bson:"pendingHandover,omitempty" json:"-"`
 }
 
 // StandIn is a bot playing a person's seat while they are away.

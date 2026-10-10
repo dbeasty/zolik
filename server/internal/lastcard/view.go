@@ -64,6 +64,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 					module.OptStandInAfter:       module.StandInAfterDefault,
+					module.OptDealAroundAway:     module.OptOn,
 				},
 			},
 		},
@@ -144,6 +145,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
 			module.StandInOption(),
+			module.DealAroundOption(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,
@@ -250,6 +252,9 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 				LabelKey: "lastcard.seat.points", Value: strconv.Itoa(s.Scores[p]),
 				Params: map[string]any{"n": s.Scores[p]},
 			})
+		}
+		if s.dealtOut(p) {
+			seats[i].LabelKeys = append(seats[i].LabelKeys, "seat.dealtOut")
 		}
 		// One card left, said out loud. A player who went to one card in
 		// silence wears no badge — which is exactly the clue a table reads.

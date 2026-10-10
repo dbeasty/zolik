@@ -145,6 +145,11 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 	for _, id := range m.StoodIn {
 		stoodIn[id] = true
 	}
+	// A seat handed to somebody else partway through was nobody's whole
+	// game: it counts for neither, exactly as one a bot played part of.
+	for _, id := range m.HandedOver {
+		stoodIn[id] = true
+	}
 
 	for _, s := range standings {
 		p := byID[s.PlayerID]

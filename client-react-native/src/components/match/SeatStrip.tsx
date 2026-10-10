@@ -280,6 +280,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           </Text>
         </Tip>
       ) : null;
+    // A seat the host handed to somebody else says whose it was.
+    const former = player?.formerName ? (
+      <Text style={styles.badge} testID={`former-${seat.playerId}`}>
+        {t('seat.tookOverFrom', { name: player.formerName })}
+      </Text>
+    ) : null;
     const botBadge = bot ? (
       player?.isAI ? (
         <Tip text={botTip} focusable={!pickBot} label={t('a11y.board.seat.badge.bot')} style={badgeTipStyle}>
@@ -326,6 +332,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {rank}
               {botBadge}
               {viaBadge}
+              {former}
               {away}
             </View>
             <Text
@@ -354,6 +361,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             </Text>
             {botBadge}
             {viaBadge}
+            {former}
             {away}
           </View>
         )}

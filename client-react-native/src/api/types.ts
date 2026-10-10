@@ -338,6 +338,11 @@ export type SeatPreview = {
   status: string;
   seat: SeatPreviewPlayer;
   players: SeatPreviewPlayer[];
+  /**
+   * The host has handed this seat over: whoever takes it plays it under
+   * their own name, and its first player cannot come back to it.
+   */
+  takeover?: boolean;
 };
 
 /**

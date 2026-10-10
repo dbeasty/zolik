@@ -48,7 +48,7 @@ export type MatchSocketState = {
  * way every time, and the player watches a spinner that will never resolve
  * behind an error that was already final.
  */
-const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
+const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED', 'SEAT_HANDED_OVER']);
 
 // The access token rides in the socket url's query string, because a browser
 // socket cannot carry an Authorization header.

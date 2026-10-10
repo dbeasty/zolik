@@ -92,6 +92,7 @@ func dealHand(s *GameState) []module.Event {
 		st := &s.Seats[i]
 		st.Bet, st.Committed = 0, 0
 		st.Folded, st.AllIn, st.Acted = false, false, false
+		st.Joining = false
 		st.Hole = nil
 		st.Drawn, st.Drew, st.Discarded = false, 0, nil
 	}
@@ -926,7 +927,7 @@ func order(s *GameState) []string {
 	for i := range s.Seats {
 		// Except a player who got up: they are not reading anything, and
 		// waiting on them to go on would wait for ever.
-		if s.Seats[i].Left {
+		if s.Seats[i].Left || s.Seats[i].Joining {
 			continue
 		}
 		out = append(out, s.Seats[i].PlayerID)
@@ -998,4 +999,31 @@ func indexOf(cards []string, card string) int {
 		}
 	}
 	return -1
+}
+
+var _ module.LateSeater = (*Module)(nil)
+
+// SeatLate sits a new player down at a cash table, with the starting stack.
+// Mid-hand they hold no cards and are folded out of it; they are dealt in at
+// the next hand, and post blinds when the button brings them round.
+func (m *Module) SeatLate(raw module.State, p module.PlayerRef) (module.State, []module.Event, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return raw, nil, err
+	}
+	if s.Status != "active" {
+		return raw, nil, errCode(ErrGameNotActive)
+	}
+	if s.Format != FormatCash {
+		return raw, nil, errCode(ErrLateJoinTournament)
+	}
+	if s.seat(p.ID) != nil {
+		return raw, nil, nil
+	}
+	if len(s.Seats) >= s.rules().maxSeats {
+		return raw, nil, errCode(ErrTableFull)
+	}
+	s.Seats = append(s.Seats, Seat{PlayerID: p.ID, Stack: s.StartingStack, Bot: p.IsAI, Folded: true, Joining: true, Acted: true})
+	out, err := encode(s)
+	return out, []module.Event{{Type: "seated", Data: map[string]any{"playerId": p.ID, "chips": s.StartingStack}}}, err
 }

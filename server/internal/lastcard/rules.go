@@ -93,5 +93,14 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "lastcard.rules.values"},
 		))
 	}
-	return append(out, module.Section("lastcard.rules.section.end", end)), nil
+	sections := append(out, module.Section("lastcard.rules.section.end", end))
+	// A player who is away is dealt out of the deals after the one in play,
+	// rather than played for by a bot all the way: a Last Card deal is
+	// complete without them, and nobody wins or loses points they did not
+	// play for.
+	if cfg.DealAroundAway(true) {
+		sections = append(sections, module.Section("lastcard.rules.section.away",
+			module.Fact{LabelKey: "lastcard.rules.dealtAround"}))
+	}
+	return sections, nil
 }

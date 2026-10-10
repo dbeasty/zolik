@@ -1657,7 +1657,19 @@ function MatchScreen() {
   // the server would honour it, and when it would not, the line below says
   // who everyone is waiting for instead of leaving them to guess.
   const canResume = wasAbandoned && !!state.canResume;
-  const stoodInNames = (state.stoodIn ?? []).map((id) => playerName(state.players, id)).filter(Boolean);
+  const handedOverIds = new Set(state.handedOver ?? []);
+  const stoodInNames = (state.stoodIn ?? [])
+    .filter((id) => !handedOverIds.has(id))
+    .map((id) => playerName(state.players, id))
+    .filter(Boolean);
+  // A seat handed over is named by both its players: who it was, and who
+  // finished it.
+  const handedOverNames = (state.handedOver ?? [])
+    .map((id) => {
+      const p = state.players.find((q) => q.id === id);
+      return p ? (p.formerName ? `${p.formerName} → ${p.name}` : p.name) : '';
+    })
+    .filter(Boolean);
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
@@ -2127,6 +2139,11 @@ function MatchScreen() {
             {/* Whose record this game does not count on, because a bot
                 played part of it for them — said here so the history
                 that leaves it out is not a surprise later. */}
+            {!wasAbandoned && handedOverNames.length ? (
+              <Text testID="match-over-handed-over" style={styles.overOutcome}>
+                {t('results.handedOver', { names: handedOverNames.join(', ') })}
+              </Text>
+            ) : null}
             {!wasAbandoned && stoodInNames.length ? (
               <Text testID="match-over-stood-in" style={styles.overOutcome}>
                 {t('results.stoodIn', { names: stoodInNames.join(', ') })}

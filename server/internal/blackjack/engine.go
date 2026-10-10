@@ -16,7 +16,7 @@ var _ module.GameModule = (*Module)(nil)
 
 // NewMatch seats the players and opens the betting on the first round.
 func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
-	if len(players) < 2 || len(players) > 7 {
+	if len(players) < 2 || len(players) > maxSeats {
 		return nil, module.Error{Code: ErrWrongPlayerCount, Message: "blackjack seats two to seven"}
 	}
 	s := tableOf(cfg)
@@ -139,6 +139,10 @@ func startRound(s *GameState) []module.Event {
 func matchOverBeforeRound(s *GameState) bool {
 	live, people, left := 0, 0, false
 	for i := range s.Seats {
+		// A seat that sat down mid-round is in from this one.
+		if s.Seats[i].Joining {
+			s.Seats[i].Joining, s.Seats[i].Out = false, false
+		}
 		// A seat that asked to go mid-round gets up now the round is over.
 		if s.Seats[i].Leaving {
 			s.Seats[i].Leaving, s.Seats[i].Left = false, true
@@ -875,4 +879,35 @@ func drawCard(s *GameState) string {
 
 func handID(playerID string, n int) string {
 	return "hand:" + playerID + ":" + strconv.Itoa(n)
+}
+
+// maxSeats is the boxes a Blackjack table deals to.
+const maxSeats = 7
+
+var _ module.LateSeater = (*Module)(nil)
+
+// SeatLate sits a new player down with the starting stack. While the table is
+// taking stakes they can put one up at once; otherwise they are in from the
+// next round.
+func (m *Module) SeatLate(raw module.State, p module.PlayerRef) (module.State, []module.Event, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return raw, nil, err
+	}
+	if s.Status != "active" {
+		return raw, nil, errCode(ErrGameNotActive)
+	}
+	if s.seat(p.ID) != nil {
+		return raw, nil, nil
+	}
+	if len(s.Seats) >= maxSeats {
+		return raw, nil, errCode(ErrTableFull)
+	}
+	seat := Seat{PlayerID: p.ID, Stack: s.StartingStack, Bot: p.IsAI}
+	if s.Break.Open || s.Phase != phaseBets {
+		seat.Out, seat.Joining = true, true
+	}
+	s.Seats = append(s.Seats, seat)
+	out, err := encode(s)
+	return out, []module.Event{{Type: "seated", Data: map[string]any{"playerId": p.ID, "chips": s.StartingStack}}}, err
 }
