@@ -99,7 +99,7 @@ test.describe('username/password accounts', () => {
   });
 
   test('a registered username comes back clean, and no longer than a seat can hold', async ({ request }) => {
-    const res = await register(request, `  ${'n'.repeat(500)}  `, 'secretpass1');
+    const res = await register(request, `  ${rand()}${'n'.repeat(500)}  `, 'secretpass1');
     expect(res.status(), await res.text()).toBe(200);
     const body = await res.json();
     const shown = body.username ?? body.guestName;
@@ -129,3 +129,23 @@ test.describe('username/password accounts', () => {
     expect(me.username).toBe(fresh);
   });
 });
+
+test.describe('request size', () => {
+  test('a body past the limit is refused before it is stored or hashed', async ({ request }) => {
+    const res = await request.post(`${API_BASE}/auth/register`, {
+      headers: { 'content-type': 'application/json' },
+      data: JSON.stringify({ username: `big-${rand()}`, password: 'secretpass1', pad: 'y'.repeat(9 * 1024 * 1024) }),
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
+  });
+
+  test('the scorepad, which needs no sign-in, keeps to its own small limit', async ({ request }) => {
+    const res = await request.post(`${API_BASE}/scoring-sessions`, {
+      headers: { 'content-type': 'application/json' },
+      data: JSON.stringify({ players: ['A', 'B'], pad: 'y'.repeat(64 * 1024) }),
+    });
+    expect(res.status()).toBe(400);
+  });
+});
+
