@@ -627,7 +627,7 @@ function MatchScreen() {
   const scrollMax = useRef(Infinity);
   const dragPoint = useRef<{ x: number; y: number } | null>(null);
   const dragMoveRef = useRef<((x: number, y: number) => void) | null>(null);
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dragging = drag !== null;
   useEffect(() => {
     if (!dragging) {
@@ -1657,7 +1657,19 @@ function MatchScreen() {
   // the server would honour it, and when it would not, the line below says
   // who everyone is waiting for instead of leaving them to guess.
   const canResume = wasAbandoned && !!state.canResume;
-  const stoodInNames = (state.stoodIn ?? []).map((id) => playerName(state.players, id)).filter(Boolean);
+  const handedOverIds = new Set(state.handedOver ?? []);
+  const stoodInNames = (state.stoodIn ?? [])
+    .filter((id) => !handedOverIds.has(id))
+    .map((id) => playerName(state.players, id))
+    .filter(Boolean);
+  // A seat handed over is named by both its players: who it was, and who
+  // finished it.
+  const handedOverNames = (state.handedOver ?? [])
+    .map((id) => {
+      const p = state.players.find((q) => q.id === id);
+      return p ? (p.formerName ? `${p.formerName} → ${p.name}` : p.name) : '';
+    })
+    .filter(Boolean);
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
@@ -1694,9 +1706,18 @@ function MatchScreen() {
     : offline.role === 'host'
       ? t('server.thisPhone')
       : t('server.named', { name: serverName });
-  const statusOk = state.status !== 'suspended' && state.status !== 'abandoned';
-  const statusExplainer =
-    state.status === 'suspended'
+  // On a phone the bar has room for the status and the code and nothing
+  // more: the server's name pushed the title under the back button and the
+  // code over the account button. The host's seat says "Server" there, and a
+  // tap on the status says the rest.
+  const headerHasRoom = windowWidth >= 600;
+  // A table whose server has gone is not "in progress", whatever the match
+  // itself says: nobody's move can land until it is back.
+  const serverGone = !!offline?.serverGone;
+  const statusOk = state.status !== 'suspended' && state.status !== 'abandoned' && !serverGone;
+  const statusExplainer = serverGone
+    ? t('banner.serverOffline', { name: serverName })
+    : state.status === 'suspended'
       ? t('match.pausedFor', { name: playerName(state.players, state.suspendedPlayer ?? '') })
       : state.status === 'abandoned'
         ? t('match.abandoned')
@@ -1973,7 +1994,7 @@ function MatchScreen() {
                 <Text testID="match-status" style={styles.status}>
                   {state.status}
                 </Text>
-                {serverLabel ? (
+                {serverLabel && headerHasRoom ? (
                   <Text testID="match-server" style={styles.status} numberOfLines={1}>
                     {`· ${serverLabel}`}
                   </Text>
@@ -2127,6 +2148,11 @@ function MatchScreen() {
             {/* Whose record this game does not count on, because a bot
                 played part of it for them — said here so the history
                 that leaves it out is not a surprise later. */}
+            {!wasAbandoned && handedOverNames.length ? (
+              <Text testID="match-over-handed-over" style={styles.overOutcome}>
+                {t('results.handedOver', { names: handedOverNames.join(', ') })}
+              </Text>
+            ) : null}
             {!wasAbandoned && stoodInNames.length ? (
               <Text testID="match-over-stood-in" style={styles.overOutcome}>
                 {t('results.stoodIn', { names: stoodInNames.join(', ') })}

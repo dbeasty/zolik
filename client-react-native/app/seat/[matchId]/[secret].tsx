@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View, TextInput } from 'react-native';
 
 import { FormError } from '@/src/a11y/Field';
 import { ApiError } from '@/src/api/client';
@@ -32,6 +32,8 @@ export default function SeatLinkScreen() {
   const [preview, setPreview] = useState<SeatPreview | null>(null);
   const [error, setError] = useState('');
   const [claiming, setClaiming] = useState(false);
+  // A seat handed over is taken under the newcomer's own name.
+  const [name, setName] = useState('');
 
   const id = String(matchId ?? '');
   const key = String(secret ?? '');
@@ -52,7 +54,7 @@ export default function SeatLinkScreen() {
     setClaiming(true);
     setError('');
     try {
-      const got = await client.claimSeat(id, key);
+      const got = await client.claimSeat(id, key, preview?.takeover ? name.trim() : undefined);
       if (!got.alreadyYours) await saveSeatSession(got);
       router.replace(`/match/${encodeURIComponent(got.matchId)}`);
     } catch (e) {
@@ -87,8 +89,13 @@ export default function SeatLinkScreen() {
       <View style={{ alignItems: 'center', marginVertical: 16 }}>
         <Avatar spec={avatarFor(seat.id, false, seat.avatar)} size={72} />
         <Text testID="seat-you-are" style={[shared.title, { marginTop: 12, textAlign: 'center' }]}>
-          {t('seat.youAre', { name: seat.name })}
+          {preview.takeover ? t('seat.takeOver', { name: seat.name }) : t('seat.youAre', { name: seat.name })}
         </Text>
+        {preview.takeover ? (
+          <Text testID="seat-handover-body" style={[shared.status, { textAlign: 'center' }]}>
+            {t('seat.takeOverBody', { name: seat.name })}
+          </Text>
+        ) : null}
         <Text style={[shared.status, { textAlign: 'center' }]}>
           {t('seat.atTable', { game, names: others.map((p) => p.name).join(', ') })}
         </Text>
@@ -113,6 +120,19 @@ export default function SeatLinkScreen() {
         </View>
       ))}
 
+      {preview.takeover ? (
+        <TextInput
+          testID="seat-name"
+          style={[shared.input, { marginTop: 12 }]}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('offline.nameLabel')}
+          placeholderTextColor={colors.muted}
+          maxLength={24}
+          aria-label={t('offline.nameLabel')}
+        />
+      ) : null}
+
       {error ? (
         <FormError testID="seat-error" style={{ marginTop: 12 }} message={error} />
       ) : null}
@@ -120,15 +140,19 @@ export default function SeatLinkScreen() {
       <Pressable
         role="button"
         testID="seat-claim"
-        style={[shared.button, { marginTop: 16 }]}
-        disabled={claiming || loading}
+        style={[shared.button, { marginTop: 16 }, preview.takeover && !name.trim() && { opacity: 0.4 }]}
+        disabled={claiming || loading || (preview.takeover && !name.trim())}
         onPress={claim}
       >
-        <Text style={shared.buttonText}>{claiming ? t('seat.claiming') : t('seat.claim')}</Text>
+        <Text style={shared.buttonText}>
+          {claiming ? t('seat.claiming') : preview.takeover ? t('seat.takeOverButton') : t('seat.claim')}
+        </Text>
       </Pressable>
-      <Pressable role="button" testID="seat-not-me" onPress={() => router.replace('/')} style={{ marginTop: 12 }}>
-        <Text style={[shared.status, { textAlign: 'center' }]}>{t('seat.notMe', { name: seat.name })}</Text>
-      </Pressable>
+      {preview.takeover ? null : (
+        <Pressable role="button" testID="seat-not-me" onPress={() => router.replace('/')} style={{ marginTop: 12 }}>
+          <Text style={[shared.status, { textAlign: 'center' }]}>{t('seat.notMe', { name: seat.name })}</Text>
+        </Pressable>
+      )}
     </Screen>
   );
 }

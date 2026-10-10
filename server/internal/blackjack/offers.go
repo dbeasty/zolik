@@ -308,6 +308,8 @@ func ruleIDsFor(s *GameState, code string) []string {
 			return []string{"blackjack.rules.surrender"}
 		}
 		return nil
+	case ErrTableFull:
+		return []string{"blackjack.rules.join"}
 	case ErrAlreadyLeft:
 		return []string{"blackjack.rules.leave"}
 	case ErrInsuranceClosed:

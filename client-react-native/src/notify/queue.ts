@@ -150,6 +150,14 @@ export function remove(state: QueueState, id: string): QueueState {
   return { ...state, invites: state.invites.filter((i) => i.id !== id) };
 }
 
+/** Sat down at a table, however this device got there: an offer of that same
+ *  table, which arrived while it was not yet seated, is no longer one. */
+export function seatedAt(state: QueueState, instanceId: string): QueueState {
+  if (!instanceId) return state;
+  const invites = state.invites.filter((i) => !(i.target.kind === 'nearby' && i.target.instanceId === instanceId));
+  return invites.length === state.invites.length ? state : { ...state, invites };
+}
+
 /** The banner has had its turn. */
 export function shelve(state: QueueState, id: string): QueueState {
   if (!state.invites.some((i) => i.id === id && !i.shelved)) return state;

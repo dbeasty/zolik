@@ -172,6 +172,7 @@ func (m *Manager) checkStandIns(ctx context.Context, matchID string) {
 	}
 	now := time.Now().UTC()
 	skill := standInSkill(match)
+	around := map[string]bool{}
 	changed := false
 	for _, id := range module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)) {
 		p := playerByID(match.Players, id)
@@ -192,6 +193,7 @@ func (m *Manager) checkStandIns(ctx context.Context, matchID string) {
 			continue
 		}
 		match = withStandIn(match, id, &models.StandIn{Since: now, Skill: string(skill), By: models.StandInTimeout})
+		around[id] = true
 		changed = true
 	}
 	if !changed {
@@ -203,7 +205,7 @@ func (m *Manager) checkStandIns(ctx context.Context, matchID string) {
 			match = unsuspended(match)
 		}
 	}
-	err = m.saveLocked(ctx, e, match)
+	err = m.saveSeats(ctx, e, match, around)
 	saved := e.match
 	e.mu.Unlock()
 	if err != nil {
@@ -229,7 +231,7 @@ func (m *Manager) endStandIn(ctx context.Context, matchID, playerID string) {
 		e.mu.Unlock()
 		return
 	}
-	err = m.saveLocked(ctx, e, withStandIn(e.match, playerID, nil))
+	err = m.saveSeats(ctx, e, withStandIn(e.match, playerID, nil), map[string]bool{playerID: false})
 	saved := e.match
 	e.mu.Unlock()
 	if err != nil {
@@ -290,7 +292,7 @@ func (m *Manager) SetStandIn(ctx context.Context, matchID, callerID, seatID stri
 			e.mu.Unlock()
 			return match, nil
 		}
-		if err := m.saveLocked(ctx, e, withStandIn(match, seatID, nil)); err != nil {
+		if err := m.saveSeats(ctx, e, withStandIn(match, seatID, nil), map[string]bool{seatID: false}); err != nil {
 			e.mu.Unlock()
 			return models.Match{}, module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
 		}
@@ -330,7 +332,7 @@ func (m *Manager) SetStandIn(ctx context.Context, matchID, callerID, seatID stri
 	if match.Status == "suspended" && match.SuspendedPlayer == seatID {
 		match = unsuspended(match)
 	}
-	if err := m.saveLocked(ctx, e, match); err != nil {
+	if err := m.saveSeats(ctx, e, match, map[string]bool{seatID: true}); err != nil {
 		e.mu.Unlock()
 		return models.Match{}, module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
 	}
@@ -401,4 +403,27 @@ func contains(ids []string, id string) bool {
 		}
 	}
 	return false
+}
+
+// saveSeats stores match after stand-ins began (true) or ended (false) for the
+// seats in around. Where the game deals a round around a player who is away
+// (module.DealsAround) and the table asks for that, it also deals each one out
+// of the next deals, or back in: the bot finishes the hand in play, and the
+// deals after it go on without them until they are back. The board changes,
+// so it is stored as the newest snapshot rather than with the envelope alone.
+func (m *Manager) saveSeats(ctx context.Context, e *liveMatch, match models.Match, around map[string]bool) error {
+	mod := m.registry.Get(match.ModuleID)
+	da, ok := mod.(module.DealsAround)
+	cfg := module.MatchConfig{Variation: match.Variation, Options: match.Options}
+	if !ok || len(around) == 0 || e.stateErr != nil ||
+		mod.Descriptor().Option(module.OptDealAroundAway) == nil || !cfg.DealAroundAway(true) {
+		return m.saveLocked(ctx, e, match)
+	}
+	state := module.State(e.match.State)
+	for id, out := range around {
+		if next, err := da.DealAround(state, id, out); err == nil {
+			state = next
+		}
+	}
+	return m.snapshotLocked(ctx, e, match, state)
 }

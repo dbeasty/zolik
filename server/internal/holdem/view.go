@@ -323,6 +323,9 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if st.AllIn {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.allIn")
 		}
+		if st.Joining {
+			seat.LabelKeys = append(seat.LabelKeys, "seat.joining")
+		}
 		if st.Left {
 			// Gone with their chips, which are what the stack fact above
 			// still says: a cash table's result for that seat.

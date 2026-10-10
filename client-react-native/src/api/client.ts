@@ -745,8 +745,24 @@ export class ZolikClient {
    * (`alreadyYours`); anybody else gets a token that plays that seat at that
    * table and nothing more.
    */
-  async claimSeat(matchId: string, secret: string): Promise<SeatClaim> {
-    return this.post(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}/claim`, null, true);
+  async claimSeat(matchId: string, secret: string, name?: string): Promise<SeatClaim> {
+    return this.post(
+      `/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}/claim`,
+      name ? { name } : null,
+      true,
+    );
+  }
+
+  /**
+   * The host giving an away player's seat to somebody else: the link to send
+   * them. They take the seat under their own name.
+   */
+  async handOverSeat(matchId: string, playerId: string): Promise<{ path: string; url: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(matchId)}/seats/${encodeURIComponent(playerId)}/hand-over`,
+      null,
+      true,
+    );
   }
 
   /**

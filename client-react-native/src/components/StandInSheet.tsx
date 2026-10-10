@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ZolikClient } from '@/src/api/client';
 import { formatApiError } from '@/src/lib/apiError';
+import { shareInviteLink } from '@/src/lib/inviteLink';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -24,6 +25,21 @@ export type StandInTarget = { id: string; name: string; skill?: string; on: bool
 export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean, offersAI: boolean) {
   const [target, setTarget] = useState<StandInTarget | null>(null);
   const [error, setError] = useState('');
+  // The link for somebody to take an away player's seat, once made.
+  const [handover, setHandover] = useState<{ name: string; url: string } | null>(null);
+
+  const handOver = useCallback(async () => {
+    const seat = target;
+    if (!seat) return;
+    try {
+      const made = await client.handOverSeat(matchId, seat.id);
+      const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+      setHandover({ name: seat.name, url: made.url || `${origin}${made.path}` });
+      setError('');
+    } catch (e) {
+      setError(formatApiError(e, 'Could not hand the seat over'));
+    }
+  }, [client, matchId, target]);
 
   const act = useCallback(
     async (playerId: string, on: boolean, skill?: string) => {
@@ -48,6 +64,11 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
     [target, act],
   );
 
+  const close = useCallback(() => {
+    setTarget(null);
+    setHandover(null);
+  }, []);
+
   const skills: readonly string[] = offersAI || target?.skill === 'ai' ? [...SKILLS, 'ai'] : SKILLS;
   const sheet: ReactNode = (
     <>
@@ -56,8 +77,8 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
           {error}
         </Text>
       ) : null}
-      <Modal transparent animationType="fade" visible={!!target} onRequestClose={() => setTarget(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setTarget(null)} testID="standin-backdrop">
+      <Modal transparent animationType="fade" visible={!!target} onRequestClose={close}>
+        <Pressable style={styles.backdrop} onPress={close} testID="standin-backdrop">
           {/* Stops a press inside the panel from closing it. */}
           <Pressable style={styles.sheet} onPress={() => {}} testID="standin-sheet">
             <Text style={styles.title}>{t('standIn.sheetTitle', { name: target?.name ?? '' })}</Text>
@@ -79,6 +100,28 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
                 <Text style={styles.pillText}>{t('standIn.takeOut')}</Text>
               </Pressable>
             ) : null}
+            {/* Somebody else can take the seat for good: a person in the
+                room, rather than a bot, plays it from here on. */}
+            {handover ? (
+              <>
+                <Text style={styles.label}>{t('standIn.handOverBody', { name: handover.name })}</Text>
+                <Text style={styles.link} selectable testID="handover-url">
+                  {handover.url}
+                </Text>
+                <Pressable
+                  role="button"
+                  testID="handover-share"
+                  onPress={() => void shareInviteLink(handover.url, t('standIn.handOverShareText'))}
+                  style={styles.pill}
+                >
+                  <Text style={styles.pillText}>{t('standIn.handOverShare')}</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable role="button" testID="standin-hand-over" onPress={() => void handOver()} style={styles.pill}>
+                <Text style={styles.pillText}>{t('standIn.handOver')}</Text>
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -107,6 +150,7 @@ const styles = StyleSheet.create({
   },
   title: { color: colors.text, fontWeight: '700', fontSize: 15 },
   label: { color: colors.muted, fontSize: 13 },
+  link: { color: colors.text, fontSize: 13 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
     paddingHorizontal: 16,

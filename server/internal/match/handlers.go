@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"zolik/server/internal/netvia"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -97,6 +98,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/bots/{playerId}/skill", h.setBotSkill)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/seats/{playerId}/stand-in", h.setStandIn)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/seats/{playerId}/hand-over", h.handOverSeat)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/invite", h.invite)
@@ -529,6 +531,31 @@ func (h *Handlers) setStandIn(w http.ResponseWriter, req *http.Request) {
 		resp["standIn"] = StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
 	}
 	writeJSON(w, resp)
+}
+
+// handOverSeat is the host giving an away player's seat to somebody else:
+// the answer is the link for them.
+func (h *Handlers) handOverSeat(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	matchID := chi.URLParam(req, "id")
+	seatID, err := url.PathUnescape(chi.URLParam(req, "playerId"))
+	if err != nil {
+		http.Error(w, "bad player id", http.StatusBadRequest)
+		return
+	}
+	secret, err := h.manager.HandOverSeat(req.Context(), matchID, uc.UserID, seatID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"path": SeatPath + matchID + "/" + secret,
+		"url":  h.manager.SeatURL(matchID, secret),
+	})
 }
 
 // personaForSeat is personaFor for a bot that is already sitting down: the
@@ -973,7 +1000,7 @@ func (h *Handlers) seatPreview(w http.ResponseWriter, req *http.Request) {
 	if mod := h.manager.Registry().Get(m.ModuleID); mod != nil {
 		label = mod.Descriptor().Label
 	}
-	writeJSON(w, map[string]any{
+	preview := map[string]any{
 		"matchId":     matchID,
 		"moduleId":    m.ModuleID,
 		"moduleLabel": label,
@@ -981,7 +1008,13 @@ func (h *Handlers) seatPreview(w http.ResponseWriter, req *http.Request) {
 		"status":      m.Status,
 		"seat":        seatPreviewPlayer{ID: seat.ID, Name: seat.Name, Avatar: seat.Avatar, Present: h.manager.SeatPresent(matchID, seat.ID)},
 		"players":     players,
-	})
+	}
+	// A seat being handed over is taken under the newcomer's own name, which
+	// the page asks for.
+	if seat.PendingHandover {
+		preview["takeover"] = true
+	}
+	writeJSON(w, preview)
 }
 
 // claimSeat takes the seat a link opens. A caller who already is that seat
@@ -1002,6 +1035,26 @@ func (h *Handlers) claimSeat(w http.ResponseWriter, req *http.Request) {
 	if h.manager.SeatPresent(matchID, seat.ID) {
 		writeModuleError(w, module.Error{Code: "SEAT_IN_USE", Message: seat.Name})
 		return
+	}
+	// A seat being handed over becomes the newcomer's, under their name.
+	if seat.PendingHandover {
+		var body struct {
+			Name string `json:"name"`
+		}
+		_ = json.NewDecoder(req.Body).Decode(&body)
+		if body.Name == "" {
+			if uc, ok := auth.GetUserContext(req); ok {
+				body.Name = uc.Username
+			}
+		}
+		taken, err := h.manager.TakeOverSeat(req.Context(), matchID, seat.ID, body.Name)
+		if err != nil {
+			writeModuleError(w, err)
+			return
+		}
+		if p := playerByID(taken.Players, seat.ID); p != nil {
+			seat = *p
+		}
 	}
 	token, err := auth.CreateMatchScopedToken(seat.ID, seat.Name, seat.GuestID != "", matchID, seatTokenTTL)
 	if err != nil {
@@ -1249,6 +1302,16 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "invalid match id", http.StatusBadRequest)
 		return
 	}
+	// A seat handed to somebody else is theirs now: its first player's own
+	// sign-in no longer sits there, only the seat link's holder does. Said on
+	// the socket, after the upgrade, because a browser cannot read why an
+	// upgrade was refused.
+	handedAway := false
+	if h.manager.SeatHandedOver(req.Context(), matchID, playerID) {
+		if claims, err := auth.ParseAccessClaimsForMatch(req.URL.Query().Get("token"), matchID); err == nil && claims.Scope == "" {
+			handedAway = true
+		}
+	}
 
 	// Capacity is checked before the upgrade, so a refused player gets a plain
 	// HTTP 503 their client can read, rather than a socket that opens and then
@@ -1276,7 +1339,15 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "upgrade failed", http.StatusBadRequest)
 		return
 	}
+	if handedAway {
+		_ = conn.WriteJSON(map[string]any{"type": "error", "code": module.CodeOf(errSeatHandedOver)})
+		_ = conn.Close()
+		return
+	}
 	wsConn, prev := h.manager.Hub().Registry().Add(matchID, playerID, ws.PingableConn{Conn: conn})
+	// Which way this seat reached the table, on a table a device hosts: shown
+	// on the seat, so everybody can see who goes if the internet does.
+	viaChanged := h.manager.noteVia(matchID, playerID, netvia.Of(req))
 	if prev != nil {
 		// A distinct close code, not a bare Close(): the older tab's onclose
 		// handler needs to tell "displaced on purpose" from an ordinary
@@ -1300,6 +1371,9 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	// MATCH_NOT_ACTIVE and the bot loop giving up entirely.
 	defer func() {
 		if h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn) {
+			if h.manager.noteVia(matchID, playerID, "") {
+				h.manager.announceVia(context.WithoutCancel(ctx), matchID)
+			}
 			h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
 			// A seat leaving is also what takes a resume offer away from the
 			// people still looking at a swept-up table. Same call as the
@@ -1339,6 +1413,9 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
+	if viaChanged {
+		h.manager.announceVia(ctx, matchID)
+	}
 	// And, on a swept-up table, tell everybody else that somebody just sat
 	// down: their own resume offer may have become available because of it.
 	// After the direct write above, so the arriving player's first message is

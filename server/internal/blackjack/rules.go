@@ -85,7 +85,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 // leaveRules say when a player may get up, and what happens to one who has
 // gone away. A literal key per branch: see payoutRule.
 func leaveRules(cfg module.MatchConfig) []module.RuleItem {
-	out := []module.RuleItem{module.Rule("blackjack.rules.leave", nil)}
+	out := []module.RuleItem{module.Rule("blackjack.rules.leave", nil), module.Rule("blackjack.rules.join", nil)}
 	if mins := int(cfg.LeaveAfterAway().Minutes()); mins > 0 {
 		return append(out, module.Rule("blackjack.rules.leaveAway", map[string]any{"minutes": mins}))
 	}

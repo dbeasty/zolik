@@ -98,6 +98,8 @@ type MatchStateMsg struct {
 	// StoodIn is every seat a stand-in bot has played for at this table, so
 	// a results screen can say whose record the match does not count on.
 	StoodIn []string `json:"stoodIn,omitempty"`
+	// HandedOver is every seat handed to somebody else partway through.
+	HandedOver []string `json:"handedOver,omitempty"`
 	// Rematch is the table this finished one is being played again at, and
 	// who asked — what turns "Play again" into "Join Bob's rematch" for
 	// everybody else who is still looking at the result.
@@ -150,6 +152,12 @@ type PlayerMsg struct {
 	// down to. Both are facts about the room, so a replay frame has neither.
 	StandIn   *StandInMsg `json:"standIn,omitempty"`
 	StandInAt *time.Time  `json:"standInAt,omitempty"`
+	// FormerName is who this seat was handed over from, when it was.
+	FormerName string `json:"formerName,omitempty"`
+	// Via is the way this seat's player is connected to a table a device
+	// hosts — "self" (the device itself), "wifi", "bluetooth" or "internet".
+	// Absent on a cloud table, and for anybody not connected now.
+	Via string `json:"via,omitempty"`
 }
 
 // StandInMsg is a stand-in as the table sees it.
@@ -177,6 +185,8 @@ func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMs
 	for i, p := range match.Players {
 		if i < len(msg.Players) {
 			msg.Players[i].SatOut = m.satOut(match, p)
+			msg.Players[i].Via = m.viaOf(match.ID.Hex(), p.ID)
+			msg.Players[i].FormerName = p.FormerName
 			if p.StandIn != nil {
 				msg.Players[i].StandIn = &StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
 			} else if due, ok := m.standInDue(match, p); ok {
@@ -253,6 +263,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	// same false every other status gets, since bringing a table back is not
 	// something a passer-by does.
 	msg.StoodIn = match.StoodIn
+	msg.HandedOver = match.HandedOver
 	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
 		msg.CanResume = m.resumableBy(match, viewerID)
 		if !msg.CanResume {

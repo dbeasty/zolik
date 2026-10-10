@@ -87,6 +87,9 @@ type Match struct {
 	// the result needs it: a seat a bot played is not that person's win or
 	// loss alone (see match/standin.go).
 	StoodIn []string `bson:"stoodIn,omitempty" json:"stoodIn,omitempty"`
+	// HandedOver is every seat handed to somebody else partway through: a
+	// match that is nobody's from start to finish, and counts for neither.
+	HandedOver []string `bson:"handedOver,omitempty" json:"handedOver,omitempty"`
 
 	// Rematch is the table this one is being played again at, once a seated
 	// player asked for it. Set once, so everybody who presses "play again"

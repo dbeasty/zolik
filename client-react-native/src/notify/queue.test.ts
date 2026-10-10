@@ -14,6 +14,7 @@ import {
   receive,
   remove,
   revoke,
+  seatedAt,
   shelve,
 } from '@/src/notify/queue';
 import type { Invite } from '@/src/notify/types';
@@ -40,6 +41,15 @@ const nearby = (name: string, source: 'wifi' | 'ble', now: number): Invite => ({
 });
 
 describe('invite queue', () => {
+  it('drops an offer of the table this device has since sat down at, by any route', () => {
+    let q = receive(EMPTY_QUEUE, nearby('Anna', 'wifi', 1000), 1000);
+    q = receive(q, inviteFromWire(wire('m1'), 1000), 1000);
+    q = seatedAt(q, 'inst-1');
+    expect(q.invites.map((i) => i.id)).toEqual(['m1']);
+    // Another table's offer stays.
+    expect(seatedAt(q, 'inst-2')).toBe(q);
+  });
+
   it('keeps one invite per table when the socket and a push both deliver it', () => {
     let q = receive(EMPTY_QUEUE, inviteFromWire(wire('m1'), 1000), 1000);
     q = receive(q, inviteFromWire(wire('m1'), 2000), 2000);

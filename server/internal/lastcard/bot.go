@@ -92,7 +92,7 @@ func (b bot) honest(s *GameState, playerID string, p profile, playable []string)
 // nextHandSize is how many cards the next player in the direction of play is
 // holding — their hand's size, never its contents.
 func nextHandSize(s *GameState, playerID string) int {
-	if len(s.TurnOrder) < 2 {
+	if len(s.inPlay()) < 2 {
 		return 1 << 30
 	}
 	return len(s.Hands[s.nextPlayer(playerID)])
@@ -235,7 +235,7 @@ func (b bot) choose(s *GameState, playerID string, p profile, playable []string)
 	}
 	shortest := 1 << 30
 	if s.SevenZero {
-		for _, q := range s.TurnOrder {
+		for _, q := range s.inPlay() {
 			if q != playerID && len(s.Hands[q]) < shortest {
 				shortest = len(s.Hands[q])
 			}
@@ -323,7 +323,7 @@ func findOffer(offers []module.ActionOffer, id string) *module.ActionOffer {
 // someoneNearlyOut is whether another player holds two cards or fewer — a
 // count every player can see.
 func someoneNearlyOut(s *GameState, playerID string) bool {
-	for _, p := range s.TurnOrder {
+	for _, p := range s.inPlay() {
 		if p != playerID && len(s.Hands[p]) <= 2 {
 			return true
 		}

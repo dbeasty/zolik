@@ -58,6 +58,13 @@ type GameState struct {
 	TurnOrder []string `json:"turnOrder"`
 	Current   string   `json:"current"`
 
+	// SittingOut are the players to be dealt out of deals from the next one
+	// on, because they are away (module.DealsAround); DealtOut are those dealt
+	// out of the deal in play. TurnOrder stays the whole table — standings,
+	// seats and readying go by it — and inPlay is who holds cards this deal.
+	SittingOut []string `json:"sittingOut,omitempty"`
+	DealtOut   []string `json:"dealtOut,omitempty"`
+
 	// Direction is +1 while play goes round the table in seating order and
 	// -1 after an odd number of Reverses.
 	Direction int `json:"direction"`
@@ -362,7 +369,8 @@ func (s *GameState) holdsColour(hand []string) bool {
 	return false
 }
 
-// step is the player n seats on from `from` in the direction of play.
+// step is the player n seats on from `from` in the direction of play, among
+// those dealt into this deal.
 func (s *GameState) step(from string, n int) string {
 	count := len(s.TurnOrder)
 	if count == 0 {
@@ -372,13 +380,45 @@ func (s *GameState) step(from string, n int) string {
 	if dir == 0 {
 		dir = 1
 	}
+	at := -1
 	for i, p := range s.TurnOrder {
 		if p == from {
-			j := ((i+dir*n)%count + count) % count
-			return s.TurnOrder[j]
+			at = i
 		}
 	}
-	return s.TurnOrder[0]
+	if at < 0 {
+		return s.inPlay()[0]
+	}
+	for moved := 0; moved < n; {
+		at = ((at+dir)%count + count) % count
+		if !s.dealtOut(s.TurnOrder[at]) {
+			moved++
+		}
+	}
+	return s.TurnOrder[at]
+}
+
+// inPlay is who holds cards this deal: the table less anybody dealt out.
+func (s *GameState) inPlay() []string {
+	if len(s.DealtOut) == 0 {
+		return s.TurnOrder
+	}
+	out := make([]string, 0, len(s.TurnOrder))
+	for _, p := range s.TurnOrder {
+		if !s.dealtOut(p) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func (s *GameState) dealtOut(p string) bool {
+	for _, q := range s.DealtOut {
+		if q == p {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *GameState) nextPlayer(from string) string { return s.step(from, 1) }
