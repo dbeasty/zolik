@@ -179,7 +179,11 @@ public class ZolikNearbyModule: Module {
     // phone stays the server (zolikcore/relay.go).
     AsyncFunction("openRelay") { (name: String) -> [String: Any] in
       guard let host = ZolikcoreCurrent() else { throw HostException("no host is running") }
-      _ = try host.openRelay(name)
+      // A non-null return beside the error, so Swift imports it without
+      // `throws`: the error comes back through the pointer.
+      var error: NSError?
+      _ = host.openRelay(name, error: &error)
+      if let error { throw HostException(error.localizedDescription) }
       return Self.relay(host)
     }
 
