@@ -74,7 +74,7 @@ test.describe('a player whose connection drops', () => {
   test.setTimeout(150_000);
 
   test('the table waits, a bot plays their seat, and they get it back', async ({ browser, request }) => {
-    const t = await prsiTable(request, { standInAfter: 30 });
+    const t = await prsiTable(request, { standInAfter: 60 });
     const stays = await openAs(browser, t.stays, t.matchId);
     const gone = await openAs(browser, t.gone, t.matchId);
 
@@ -85,7 +85,7 @@ test.describe('a player whose connection drops', () => {
     const waiting = stays.getByTestId('table-banner-waiting');
     await expect(waiting).toBeVisible({ timeout: 15_000 });
     await expect(waiting).toContainText(t.goneName);
-    await expect(waiting).toContainText(/A bot plays for them in 0:[0-3]\d/);
+    await expect(waiting).toContainText(/A bot plays for them in [01]:[0-5]\d/);
     await expect(stays.getByTestId(`away-badge-${t.gone.userId}`)).toBeVisible();
 
     // Then a bot plays their seat — the seat is still theirs, marked, not a
