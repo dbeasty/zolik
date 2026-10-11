@@ -6,6 +6,7 @@ import { Field, FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
+import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 
 /**
@@ -30,7 +31,7 @@ export default function UsernameLoginScreen() {
       await login(username.trim(), password);
       router.replace('/');
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('error.login'));
+      setError(formatApiError(e, t('error.login')));
     } finally {
       setBusy(false);
     }

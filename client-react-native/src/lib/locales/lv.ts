@@ -19,6 +19,7 @@ export const lv: Record<string, string> = {
   'err.NOT_CONNECTED': 'Nav savienojuma ar galdu — atkal pieslēdzamies, pēc tam mēģini vēlreiz',
   'err.DISPLACED': 'Atvērts citā cilnē — šis pārtrauca sinhronizēties',
   'err.UNREACHABLE': 'Nevar sazināties ar serveri. Pārbaudiet savienojumu un mēģiniet vēlreiz.',
+  'err.INVALID_CREDENTIALS': 'Lietotājvārds un parole nesakrīt.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

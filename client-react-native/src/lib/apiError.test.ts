@@ -46,4 +46,10 @@ describe('formatApiError', () => {
       expect(text).not.toMatch(/dial|fetch|Load failed/i);
     }
   });
+
+  it('words the sign-in refusal rather than printing the server\'s phrase', () => {
+    const text = formatApiError(new ApiError('invalid credentials', 401));
+    expect(text).toBe(t('err.INVALID_CREDENTIALS'));
+    expect(text).not.toBe('invalid credentials');
+  });
 });

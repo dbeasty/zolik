@@ -802,6 +802,7 @@
  "err.INITIAL_MELD_ONLY": "You may only rearrange your own new sets before your first lay",
  "err.INITIAL_MELD_TOO_LOW": "Your first lay needs to be worth 30 points or more",
  "err.INSURANCE_CLOSED": "There is no insurance to take right now",
+ "err.INVALID_CREDENTIALS": "That username and password do not match.",
  "err.INVALID_MELD": "No card in your hand fits here",
  "err.JOKER_DISCARD_FORBIDDEN": "A joker can't be discarded",
  "err.JOKER_SWAP_MISMATCH": "That card doesn't take the joker's place",

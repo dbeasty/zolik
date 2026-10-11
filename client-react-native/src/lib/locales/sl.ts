@@ -19,6 +19,7 @@ export const sl: Record<string, string> = {
   'err.NOT_CONNECTED': 'Ni povezave z mizo — ponovno se povezujemo, nato poskusi znova',
   'err.DISPLACED': 'Odprto v drugem zavihku — ta se je nehal sinhronizirati',
   'err.UNREACHABLE': 'Strežnik ni dosegljiv. Preverite povezavo in poskusite znova.',
+  'err.INVALID_CREDENTIALS': 'Uporabniško ime in geslo se ne ujemata.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

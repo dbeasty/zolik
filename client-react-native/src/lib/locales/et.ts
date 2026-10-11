@@ -19,6 +19,7 @@ export const et: Record<string, string> = {
   'err.NOT_CONNECTED': 'Lauaga puudub ühendus — ühendame uuesti, siis proovi jälle',
   'err.DISPLACED': 'Avatud teises vahekaardis — see lõpetas sünkroonimise',
   'err.UNREACHABLE': 'Serveriga ei saa ühendust. Kontrolli oma ühendust ja proovi uuesti.',
+  'err.INVALID_CREDENTIALS': 'Kasutajanimi ja parool ei sobi kokku.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

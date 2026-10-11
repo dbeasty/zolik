@@ -19,6 +19,7 @@ export const sv: Record<string, string> = {
   'err.NOT_CONNECTED': 'Ingen anslutning till bordet — återansluter, försök sedan igen',
   'err.DISPLACED': 'Öppnad i en annan flik — den här har slutat synkronisera',
   'err.UNREACHABLE': 'Det går inte att nå servern. Kontrollera din anslutning och försök igen.',
+  'err.INVALID_CREDENTIALS': 'Användarnamnet och lösenordet stämmer inte överens.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

@@ -688,6 +688,14 @@ async function main() {
     await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
   }, [a]);
 
+  await step('a refused username sign-in is worded, not the server’s phrase', async () => {
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/auth/username-login'); await e2e.sleep(1200); await e2e.fill('Username', 'nobody-here'); await e2e.fill('Password', 'not-a-password-1'); await e2e.click('Sign in', { exact: true }); await e2e.waitFor(() => /do not match|invalid credentials/.test(e2e.text()), 'the refusal', 15000); return 1`);
+    const text = await a.js(`return e2e.text()`);
+    expect(/That username and password do not match/.test(text) && !/invalid credentials/.test(text), `the refusal reads ${JSON.stringify(text.slice(0, 200))}`);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+  }, [a]);
+
   let invite = '';
   await step('View › Hide/Show Hand, Table and Log act on the game in front; Help › Rules opens in the main window', async () => {
     const lc = await indexOfGame(a, lastCard);

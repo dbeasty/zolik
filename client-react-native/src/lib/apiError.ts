@@ -12,6 +12,8 @@ const UNREACHABLE = /failed to fetch|load failed|networkerror|network request fa
 /** Turn a caught API failure into player-facing text. */
 export function formatApiError(e: unknown, fallback = 'Something went wrong'): string {
   if (e instanceof ApiError) {
+    // The sign-in refusal is a bare status and a lower-case English phrase.
+    if (!e.code && e.status === 401 && /^invalid credentials$/i.test(e.message)) return t('err.INVALID_CREDENTIALS');
     if (e.code) return reasonText(e.code, e.message || e.code);
     return e.message || fallback;
   }

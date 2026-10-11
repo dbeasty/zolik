@@ -28,6 +28,7 @@ export const en: Record<string, string> = {
   'err.NOT_CONNECTED': 'Not connected to the table — reconnecting, then try again',
   'err.DISPLACED': 'Opened in another tab — this one has stopped syncing',
   'err.UNREACHABLE': 'Can’t reach the server. Check your connection and try again.',
+  'err.INVALID_CREDENTIALS': 'That username and password do not match.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

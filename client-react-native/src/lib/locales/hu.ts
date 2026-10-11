@@ -19,6 +19,7 @@ export const hu: Record<string, string> = {
   'err.NOT_CONNECTED': 'Nincs kapcsolat az asztallal — újracsatlakozás, utána próbáld újra',
   'err.DISPLACED': 'Másik lapon nyílt meg — ez leállt a szinkronizálással',
   'err.UNREACHABLE': 'A szerver nem érhető el. Ellenőrizd a kapcsolatot, és próbáld újra.',
+  'err.INVALID_CREDENTIALS': 'A felhasználónév és a jelszó nem egyezik.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

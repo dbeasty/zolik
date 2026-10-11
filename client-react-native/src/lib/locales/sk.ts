@@ -19,6 +19,7 @@ export const sk: Record<string, string> = {
   'err.NOT_CONNECTED': 'Bez spojenia so stolom — pripájame znova, potom to skús ešte raz',
   'err.DISPLACED': 'Otvorené na inej karte — táto prestala synchronizovať',
   'err.UNREACHABLE': 'Nepodarilo sa spojiť so serverom. Skontrolujte pripojenie a skúste to znova.',
+  'err.INVALID_CREDENTIALS': 'Používateľské meno a heslo si nezodpovedajú.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

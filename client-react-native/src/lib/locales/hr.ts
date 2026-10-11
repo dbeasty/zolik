@@ -19,6 +19,7 @@ export const hr: Record<string, string> = {
   'err.NOT_CONNECTED': 'Nema veze sa stolom — ponovno se spajamo, zatim pokušaj opet',
   'err.DISPLACED': 'Otvoreno u drugoj kartici — ova je prestala sinkronizirati',
   'err.UNREACHABLE': 'Poslužitelj nije dostupan. Provjerite vezu i pokušajte ponovno.',
+  'err.INVALID_CREDENTIALS': 'Korisničko ime i lozinka se ne podudaraju.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
