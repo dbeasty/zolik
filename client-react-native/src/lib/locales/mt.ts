@@ -924,6 +924,15 @@ export const mt: Record<string, string> = {
 
   // --- Solitaire (Klondike) -------------------------------------------------
   'module.klondike': 'Solitarju',
+  'module.zolik': 'Žolíky',
+  'module.prsi': 'Prší',
+  'module.canasta': 'Canasta',
+  'module.holdem': 'Poker',
+  'module.ginrummy': 'Gin Rummy',
+  'module.rummytiles': 'Rummy Tiles',
+  'module.blackjack': 'Blackjack',
+  'module.marias': 'Mariáš',
+  'module.lastcard': 'Last Card',
   'variation.klondike.classic': 'Klassiku',
   'variation.klondike.draw3': 'Tlieta kull darba',
   'variation.klondike.vegas': 'Vegas',

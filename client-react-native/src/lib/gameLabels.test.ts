@@ -37,3 +37,22 @@ describe('gameLabels fall back to what the server sent', () => {
     expect(moduleLabel({ id: 'klondike', label: 'Klondike' })).toBe('Solitaire');
   });
 });
+
+describe('every shipped game is named, not shown by its id', () => {
+  // A stored game ("my games", the match header, an invite) has only the id
+  // to go on, so a game without a `module.<id>` key read as "ginrummy".
+  it.each([
+    ['zolik', 'Žolíky'],
+    ['prsi', 'Prší'],
+    ['canasta', 'Canasta'],
+    ['holdem', 'Poker'],
+    ['ginrummy', 'Gin Rummy'],
+    ['rummytiles', 'Rummy Tiles'],
+    ['blackjack', 'Blackjack'],
+    ['marias', 'Mariáš'],
+    ['lastcard', 'Last Card'],
+    ['klondike', 'Solitaire'],
+  ])('%s is %s', (id, name) => {
+    expect(moduleName(id)).toBe(name);
+  });
+});

@@ -921,6 +921,15 @@ export const bg: Record<string, string> = {
 
   // --- Solitaire (Klondike) -------------------------------------------------
   'module.klondike': 'Пасианс',
+  'module.zolik': 'Žolíky',
+  'module.prsi': 'Prší',
+  'module.canasta': 'Canasta',
+  'module.holdem': 'Покер',
+  'module.ginrummy': 'Джин рами',
+  'module.rummytiles': 'Rummy Tiles',
+  'module.blackjack': 'Блекджек',
+  'module.marias': 'Мариаш',
+  'module.lastcard': 'Last Card',
   'variation.klondike.classic': 'Класически',
   'variation.klondike.draw3': 'По три',
   'variation.klondike.vegas': 'Vegas',
