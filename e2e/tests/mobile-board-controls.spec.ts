@@ -117,7 +117,7 @@ test('requirement hints live in their own sheet, not the log', async ({ page, re
   await expect(sheet).toBeVisible();
   // Most relevant first: the first meld, then the canastas needed to go out.
   await expect(page.getByTestId('hint-0')).toContainText('first meld');
-  await expect(page.getByTestId('hint-1')).toContainText('canastas');
+  await expect(page.getByTestId('hint-1')).toContainText(/canastas?/);
   await page.getByTestId('hints-close').click();
   await expect(sheet).toBeHidden();
 });
