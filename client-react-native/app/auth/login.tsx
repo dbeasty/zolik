@@ -9,6 +9,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, orderProviders, providerButtonLabel } from '@/src/lib/auth';
 import { shared, colors } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * The sign-in screen.
@@ -19,6 +20,7 @@ import { t } from '@/src/lib/i18n';
  * change, which is the whole point of the server-driven provider list.
  */
 export default function LoginScreen() {
+  useLocale();
   const { providers, signInWithProvider, claimableMatches } = useSession();
   const [error, setError] = useState('');
   const [busyProvider, setBusyProvider] = useState<string | null>(null);

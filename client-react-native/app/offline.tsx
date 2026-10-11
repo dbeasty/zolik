@@ -21,6 +21,7 @@ import { shareInviteLink } from '@/src/lib/inviteLink';
 import { loadFlag, saveFlag, useDeviceFlag } from '@/src/notify/prefs';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /** The same heading the home screen's cards use. */
 const cardTitle = { color: colors.text, fontWeight: '600', marginBottom: 8 } as const;
@@ -37,6 +38,7 @@ const KEEP_AWAKE = 'zolik-room';
  * comes in, lets the room in, and leaves.
  */
 export default function OfflineScreen() {
+  useLocale();
   const { offline } = useSession();
   if (!offline) return <NotSeated />;
   return offline.role === 'host' ? <Hosting /> : <Guesting />;

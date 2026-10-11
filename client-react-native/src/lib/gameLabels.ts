@@ -52,12 +52,40 @@ export function variationLabel(moduleId: string, v: { id: string; label: string 
  * build has never heard of.
  */
 export function moduleName(moduleId: string): string {
-  return t(`module.${moduleId}`, undefined, moduleId);
+  return t(`module.${moduleId}`, undefined, SERVER_MODULE_NAMES[moduleId] ?? moduleId);
 }
+
+/**
+ * The server's own labels for the games and rule sets that have no key (their
+ * names are the same in every language), for the places that hold only ids:
+ * without them a "My games" row read "prsi · Classic" and "holdem · omaha".
+ */
+const SERVER_MODULE_NAMES: Record<string, string> = {
+  zolik: 'Žolíky',
+  prsi: 'Prší',
+  canasta: 'Canasta',
+  holdem: 'Poker',
+  ginrummy: 'Gin Rummy',
+  rummytiles: 'Rummy Tiles',
+  blackjack: 'Blackjack',
+  marias: 'Mariáš',
+  lastcard: 'Last Card',
+};
+
+const SERVER_VARIATION_NAMES: Record<string, string> = {
+  'zolik.zolik_classic': 'Žolík Classic',
+  'zolik.continental': 'Continental',
+  'holdem.holdem': "Texas Hold'em",
+  'holdem.omaha': 'Pot-Limit Omaha',
+  'holdem.draw': 'Five-Card Draw',
+  'ginrummy.oklahoma': 'Oklahoma',
+  'blackjack.vegas': 'Vegas Strip',
+  'blackjack.atlantic': 'Atlantic City',
+};
 
 /** The bare-id counterpart to `variationLabel` — see `moduleName`. */
 export function variationName(moduleId: string, variationId: string): string {
-  return t(`variation.${moduleId}.${variationId}`, undefined, variationId);
+  return t(`variation.${moduleId}.${variationId}`, undefined, SERVER_VARIATION_NAMES[`${moduleId}.${variationId}`] ?? variationId);
 }
 
 /**

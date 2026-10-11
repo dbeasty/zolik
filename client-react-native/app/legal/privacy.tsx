@@ -1,4 +1,5 @@
 import { LegalDocumentScreen } from '@/src/components/LegalDocumentScreen';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * `/legal/privacy`. Apple and Google both ask for a privacy-policy URL at
@@ -6,5 +7,6 @@ import { LegalDocumentScreen } from '@/src/components/LegalDocumentScreen';
  * than something the router could renumber.
  */
 export default function PrivacyScreen() {
+  useLocale();
   return <LegalDocumentScreen id="privacy" />;
 }

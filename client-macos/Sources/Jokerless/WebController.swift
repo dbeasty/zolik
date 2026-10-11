@@ -261,6 +261,12 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     decisionHandler(.cancel)
   }
 
+  func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+    // A new document (a reload, a new address) replaces the page that opened
+    // the sockets, so they go with it. A move inside the page is not this.
+    bridge.closeSockets()
+  }
+
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { emitNav() }
 
   func webView(_ webView: WKWebView, webContentProcessDidTerminate: WKWebView) {

@@ -92,6 +92,52 @@ func (h *Handler) Lookup(urlPath string) (string, bool) {
 	return "", false
 }
 
+// LookupDynamic resolves a route whose pre-rendered page has a parameter in
+// its name, as expo-router writes them (`match/[matchId].html`,
+// `seat/[matchId]/[secret].html`): /match/abc names match/[matchId].html.
+// Lookup reports false for those, and the server answers index.html, which
+// the client then hydrates as a different screen (hydration error #418). An
+// app that knows which route it is loading uses this to start from the right
+// page. It reports false when no such page exists.
+func (h *Handler) LookupDynamic(urlPath string) (string, bool) {
+	if !h.Available() {
+		return "", false
+	}
+	segs := strings.Split(strings.Trim(path.Clean("/"+urlPath), "/"), "/")
+	dir := "."
+	for i, seg := range segs {
+		last := i == len(segs)-1
+		entries, err := fs.ReadDir(h.files, dir)
+		if err != nil {
+			return "", false
+		}
+		next := ""
+		for _, e := range entries {
+			n := e.Name()
+			switch {
+			case last && !e.IsDir() && strings.HasPrefix(n, "[") && strings.HasSuffix(n, "].html") && !strings.HasPrefix(n, "[..."):
+				next = n
+			case !last && e.IsDir() && strings.HasPrefix(n, "[") && strings.HasSuffix(n, "]") && !strings.HasPrefix(n, "[..."):
+				if next == "" {
+					next = n
+				}
+			}
+			if n == seg && (!last && e.IsDir()) {
+				next = n
+				break
+			}
+		}
+		if next == "" || seg == "" {
+			return "", false
+		}
+		dir = path.Join(dir, next)
+	}
+	if info, err := fs.Stat(h.files, dir); err == nil && !info.IsDir() {
+		return dir, true
+	}
+	return "", false
+}
+
 // ServeFile writes one file from the bundle.
 func (h *Handler) ServeFile(w http.ResponseWriter, r *http.Request, name string) {
 	// Expo fingerprints everything under _expo/static/, so those URLs name one

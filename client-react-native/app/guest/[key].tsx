@@ -9,6 +9,7 @@ import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { guestIdOfKey } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a guest link lands: `/guest/<key>`.
@@ -24,6 +25,7 @@ import { colors, shared } from '@/src/theme';
  * outranks any guest's.
  */
 export default function GuestLinkScreen() {
+  useLocale();
   const { onlineSession, loading, resumeGuestFromLink } = useSession();
   const { key } = useLocalSearchParams<{ key: string }>();
   const guestKey = String(key ?? '').trim();

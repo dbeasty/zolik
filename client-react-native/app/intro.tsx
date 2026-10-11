@@ -12,6 +12,7 @@ import { markIntroSeen } from '@/src/lib/introStore';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { t } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Three short reasons to tap Play, each led by a card suit rather than an
@@ -39,6 +40,7 @@ const BULLETS: { mark: string; key: string }[] = [
  * centered above it. See `app/match/[matchId].tsx` for the same idiom.
  */
 export default function IntroScreen() {
+  useLocale();
   const metrics = useMetrics();
   // The first paint must match the pre-rendered (narrow) HTML; see useHydrated.
   const narrow = narrowOnFirstPaint(useHydrated(), metrics.narrow);

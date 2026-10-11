@@ -112,9 +112,10 @@ import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
 import { seatIsShareable } from '@/src/desktop/seat';
-import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
+import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
 import { isTableZone } from '@/src/lib/board';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -166,6 +167,7 @@ const DROP_DWELL_MS = 700;
 const BAND_DWELL_MS = 600;
 
 function MatchScreen() {
+  useLocale();
   const edges = useScreenEdges();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
@@ -819,6 +821,7 @@ function MatchScreen() {
   if (!state) {
     return (
       <View style={styles.root}>
+        <GoneWindowCloser gone={error?.code === 'MATCH_NOT_FOUND' || error?.code === 'MATCH_DELETED'} />
         <TableSurface />
         <SafeAreaView style={styles.safe} edges={edges}>
           {/* A refusal that arrives before any board has to be drawn here,

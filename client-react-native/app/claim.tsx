@@ -10,6 +10,7 @@ import { t } from '@/src/lib/i18n';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { forgetReceipts, pendingReceipts, receiptFromHash, rememberReceipt } from '@/src/lib/seatReceipts';
 import { shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a guest's "keep this game" link lands: `/claim#r=<receipt>`.
@@ -22,6 +23,7 @@ import { shared } from '@/src/theme';
  * redeem it to.
  */
 export default function ClaimScreen() {
+  useLocale();
   const { session, client, loading } = useSession();
   const [state, setState] = useState<'reading' | 'signIn' | 'claiming' | 'done' | 'none' | 'error'>('reading');
   const [seats, setSeats] = useState<ClaimedSeat[]>([]);

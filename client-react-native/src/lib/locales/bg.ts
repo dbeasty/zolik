@@ -18,6 +18,8 @@ export const bg: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'Масата е на пауза — чака се играч да се свърже отново',
   'err.NOT_CONNECTED': 'Няма връзка с масата — свързваме се отново, после опитай пак',
   'err.DISPLACED': 'Отворено в друг раздел — този спря да се синхронизира',
+  'err.UNREACHABLE': 'Няма връзка със сървъра. Проверете връзката си и опитайте отново.',
+  'err.INVALID_CREDENTIALS': 'Потребителското име и паролата не съвпадат.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

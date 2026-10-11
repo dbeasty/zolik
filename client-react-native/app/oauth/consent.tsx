@@ -9,6 +9,7 @@ import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where an AI client's sign-in lands: `/oauth/consent?req=…`.
@@ -24,6 +25,7 @@ import { colors, shared } from '@/src/theme';
  * screen was handed in a query string.
  */
 export default function OAuthConsentScreen() {
+  useLocale();
   const { client, session, loading } = useSession();
   const { req } = useLocalSearchParams<{ req: string }>();
   const request = String(req ?? '');

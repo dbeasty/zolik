@@ -492,6 +492,9 @@ async function main() {
     expect(lastCard === `match:${decodeURIComponent(p.split('/')[2])}`, `window 2 moved to ${p}`);
     const titles = (await windowsOf(a)).map((w) => w.title);
     expect(titles.length === 3 && new Set(titles).size === 3, `window titles ${JSON.stringify(titles)}`);
+    // Each new window steps down and to the right of the newest, so none hides another exactly.
+    const frames = (await windowsOf(a)).filter((w) => w.role === 'game').map((w) => w.frame.map(Math.round).join(','));
+    expect(new Set(frames).size === frames.length && (await windowsOf(a)).every((w) => w.onScreen), `game windows share a spot or are off screen: ${JSON.stringify(frames)}`);
     await a.screenshot('second-window');
   }, [a]);
 
@@ -589,6 +592,111 @@ async function main() {
       }
     }
     expect(played, 'no card dragged onto the discard pile with the mouse was played');
+  }, [a]);
+
+  await step('View › Reload in a game window brings the same board back, not "opened in another tab"', async () => {
+    const n = await indexOfGame(a, lastCard);
+    await on(a, n);
+    await a.js(`
+      ${DEALT}
+    `);
+    // Twice: the second reload meets sockets the first one left behind, if any.
+    for (let i = 0; i < 2; i++) {
+      await a.native('menu Reload');
+      await sleep(1500);
+      const v = await a.js(`
+        await e2e.waitFor(() => document.querySelectorAll('[data-card]').length >= 5 || /another tab|stopped syncing/.test(e2e.text()), 'the board after the reload', 20000);
+        await e2e.sleep(1500);
+        return { cards: document.querySelectorAll('[data-card]').length, text: e2e.text().slice(0, 200), path: location.pathname };
+      `);
+      expect(v.cards >= 5 && !/another tab|stopped syncing/.test(v.text), `after reload ${i + 1} the game window shows ${JSON.stringify(v)}`);
+      expect(lastCard === `match:${decodeURIComponent(v.path.split('/')[2])}`, `reload moved the window to ${v.path}`);
+    }
+    await a.screenshot('after-reload');
+  }, [a]);
+
+  await step('the board and My games name the game, not its ids', async () => {
+    await on(a, await indexOfGame(a, lastCard));
+    const head = await a.js(`
+      const el = await e2e.waitFor(() => document.querySelector('[data-testid="match-module"]'), 'the board heading', 15000);
+      return el.innerText;
+    `);
+    expect(head === 'Last Card · Classic', `the board's heading reads ${JSON.stringify(head)}`);
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/lobby/mine'); await e2e.waitFor(() => location.pathname === '/lobby/mine', 'my games', 15000); await e2e.sleep(800); return 1`);
+    const rows = await a.js(`return e2e.text()`);
+    expect(/Last Card · Classic/.test(rows) && /Prší · Classic/.test(rows), `My games reads ${JSON.stringify(rows.slice(0, 300))}`);
+    expect(!/lastcard|prsi · /.test(rows), `My games shows an id: ${JSON.stringify(rows.slice(0, 300))}`);
+    // A replay opens in a window of its own, named for the game.
+    await a.js(`
+      const b = await e2e.waitFor(() => [...document.querySelectorAll('[role="button"],button')].find((x) => /Replay/.test(x.getAttribute('aria-label') || '') && /Last Card/.test(x.getAttribute('aria-label') || '')), 'Replay for Last Card', 15000);
+      const r = b.getBoundingClientRect();
+      const o = { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons: 1 };
+      setTimeout(() => { b.dispatchEvent(new PointerEvent('pointerdown', o)); o.buttons = 0; b.dispatchEvent(new PointerEvent('pointerup', o)); b.dispatchEvent(new MouseEvent('click', o)); }, 0);
+      return 1;
+    `);
+    const rw = await waitWindows(a, (w) => w.some((x) => x.key.startsWith('replay:')), 'the replay window');
+    const rep = rw.find((x) => x.key.startsWith('replay:'));
+    let repTitle = rep.title;
+    for (let i = 0; i < 100 && repTitle !== 'Replay · Last Card'; i++) {
+      await sleep(100);
+      repTitle = (await windowsOf(a)).find((x) => x.key.startsWith('replay:')).title;
+    }
+    expect(repTitle === 'Replay · Last Card', `the replay window is titled ${JSON.stringify(repTitle)}`);
+    await a.native(`window close ${await indexOfGame(a, (w) => w.key.startsWith('replay:'))}`);
+    await waitWindows(a, (w) => !w.some((x) => x.key.startsWith('replay:')), 'the replay window to close');
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
+    // A language chosen in the main window reaches the game windows too.
+    await a.native('menu Settings…');
+    await a.js(`await e2e.clickTestId('language-choice-cs'); return 1`);
+    const lcw = await indexOfGame(a, lastCard);
+    await on(a, lcw);
+    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'cs' && !/Read table/.test(e2e.text()), 'the game window to turn Czech, words and all', 25000); return 1`);
+    await on(a, 1);
+    await a.js(`await e2e.clickTestId('language-choice-en'); return 1`);
+    await on(a, lcw);
+    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'en' && /Read table/.test(e2e.text()), 'the game window to turn English again, words and all', 25000); return 1`);
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
+    // So does a table look: the board in the game window changes colour.
+    const boardColour = `return [...new Set([...document.querySelectorAll('*')].map((e) => getComputedStyle(e).backgroundColor).filter((c) => c !== 'rgba(0, 0, 0, 0)'))].sort().join(' ')`;
+    await on(a, lcw);
+    const before = await a.js(boardColour);
+    await on(a, 1);
+    await a.native('menu Settings…');
+    // (The settings screen the language check left is still mounted below this one.)
+    await a.js(`await e2e.sleep(500); await e2e.click('Casino', { exact: true }); return 1`);
+    await on(a, lcw);
+    let after = before;
+    for (let i = 0; i < 250 && after === before; i++) {
+      await sleep(100);
+      after = await a.js(boardColour);
+    }
+    expect(after !== before, `the game window kept its table look (${before}) after Casino was chosen in the main window`);
+    await on(a, 1);
+    await a.js(`await e2e.click('Heirloom', { exact: true }); return 1`);
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
+    // The Window menu lists the main window once (its ⌘1 item), not twice.
+    const windowMenu = await a.native('menuitems Window');
+    expect(windowMenu.filter((t) => /^Jokerless$/.test(t)).length === 1, `the Window menu lists ${JSON.stringify(windowMenu)}`);
+  }, [a]);
+
+  await step('a mistyped join code is refused in words, not as "not found"', async () => {
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/join/ZZZZZZ'); await e2e.waitFor(() => /no longer exists|not found/.test(e2e.text()), 'the refusal', 15000); return 1`);
+    const text = await a.js(`return e2e.text()`);
+    expect(/That table no longer exists/.test(text) && !/not found/.test(text), `joining a code nobody holds says ${JSON.stringify(text.slice(0, 200))}`);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+  }, [a]);
+
+  await step('a refused username sign-in is worded, not the server’s phrase', async () => {
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/auth/username-login'); await e2e.sleep(1200); await e2e.fill('Username', 'nobody-here'); await e2e.fill('Password', 'not-a-password-1'); await e2e.click('Sign in', { exact: true }); await e2e.waitFor(() => /do not match|invalid credentials/.test(e2e.text()), 'the refusal', 15000); return 1`);
+    const text = await a.js(`return e2e.text()`);
+    expect(/That username and password do not match/.test(text) && !/invalid credentials/.test(text), `the refusal reads ${JSON.stringify(text.slice(0, 200))}`);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
   }, [a]);
 
   let invite = '';
@@ -746,6 +854,19 @@ async function main() {
     const names = await bonjourNames();
     expect(names.includes('Mac Host'), `Bonjour shows ${JSON.stringify(names)}`);
     await a.screenshot('hosting');
+    // The online game still open in its own window stays on the internet
+    // server: sitting at an offline table elsewhere must not move it to one
+    // where its match does not exist.
+    const online = (await windowsOf(a)).findIndex((w) => w.key === lastCard) + 1;
+    if (online > 0) {
+      await on(a, online);
+      await sleep(1500);
+      const v = await a.js(`return { cards: document.querySelectorAll('[data-card]').length, text: e2e.text().slice(0, 4000) }`);
+      expect(v.cards >= 5 && !/no longer exists/.test(v.text), `the online game window after hosting offline: ${JSON.stringify({ cards: v.cards, gone: /no longer exists/.test(v.text) })}`);
+      const w = (await windowsOf(a))[online - 1];
+      expect(!/Server:/.test(w.subtitle), `the online game window is titled as an offline table's: ${JSON.stringify(w)}`);
+      await on(a, 1);
+    }
   }, [a]);
 
   let guestPage;
@@ -1139,6 +1260,25 @@ async function main() {
     expect((await windowsOf(r)).length === 3, 'a reopened game window closed itself');
   }, [r]);
 
+  await step('a game deleted elsewhere is not brought back as a dead window at the next launch', async () => {
+    const tokens = JSON.parse(await r.js(`return localStorage.getItem('zolik_session')`));
+    const gone = games2[0];
+    const kept = games2[1];
+    const del = await fetch(new URL(`/matches/${gone.split(':')[1]}`, server.base), { method: 'DELETE', headers: { Authorization: `Bearer ${tokens.accessToken}` } });
+    expect(del.ok, `deleting ${gone}: ${del.status}`);
+    await r.quit();
+    r = new MacApp('relaunch', binary, server.base, { dir: 'relaunch', env: rEnv });
+    cleanups.push(() => r.quit());
+    await r.ready();
+    // The game that still exists comes back; the deleted one does not stay
+    // open on "That table no longer exists".
+    await waitWindows(r, (w) => w.some((x) => x.key === kept), 'the surviving game window', 30_000);
+    await sleep(6000);
+    const wins = await windowsOf(r);
+    expect(wins.some((x) => x.key === kept), `the surviving game is gone: ${JSON.stringify(wins)}`);
+    expect(!wins.some((x) => x.key === gone), `the deleted game's window is still open: ${JSON.stringify(wins)}`);
+  }, [r]);
+
   await step('signing out closes every game window and forgets them', async () => {
     await on(r, 1);
     await r.native('menu Sign out');
@@ -1157,6 +1297,33 @@ async function main() {
     const wins = await windowsOf(r);
     expect(wins.length === 1, `after sign-out and relaunch: ${JSON.stringify(wins)}`);
   }, [r]);
+
+  const ob = new MacApp('offbots', binary, server.base);
+  cleanups.push(() => ob.quit());
+  await step('leaving the offline table (Back to online play) closes the games played on it', async () => {
+    await ob.ready();
+    await ob.js(`await e2e.click('Play', { exact: true }); await e2e.click('Continue as guest', { exact: true }); await e2e.waitForText('Display name'); await e2e.click('Continue', { exact: true }); await e2e.waitFor(() => location.pathname === '/', 'home', 20000); return 1`);
+    await ob.native('menu Start an offline table');
+    await ob.js(`await e2e.waitForText('Your name at the table'); await e2e.fill('Your name at the table', 'Mac Solo'); await e2e.click('Start an offline table', { exact: true }); return 1`);
+    await ob.js(`await e2e.waitFor(() => ZolikNearbyDesktop.hostStatus(), 'the host', 45000); window.__zolikNavigate('/'); await e2e.waitForText('No internet needed'); await e2e.sleep(1500); return 1`);
+    await ob.js(`await e2e.click('Last Card', { exact: true }); await e2e.click('Play against bots', { exact: true }); await e2e.sleep(400); await e2e.click('Deal me in', { exact: true }); return 1`);
+    const wins = await waitWindows(ob, (w) => w.length === 2 && /Server: this computer/.test(w[1].subtitle), 'the offline bot game window, titled for its server');
+    expect(wins[1].role === 'game', `windows ${JSON.stringify(wins)}`);
+    await on(ob, 1);
+    await ob.native('menu Back to online play');
+    await waitWindows(ob, (w) => w.length === 1, 'the offline game window to close');
+    await ob.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+  }, [ob]);
+
+  const dead = new MacApp('unreachable', binary, 'http://127.0.0.1:1');
+  cleanups.push(() => dead.quit());
+  await step('with no server to reach, the home screen says so in words, not in Go’s', async () => {
+    await dead.ready();
+    await dead.js(`await e2e.click('Play', { exact: true }); return 1`);
+    const text = await dead.js(`await e2e.waitFor(() => /reach the server/.test(e2e.text()) || /dial tcp|Load failed/.test(e2e.text()), 'a load error', 20000); return e2e.text()`);
+    expect(/Can’t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
+    await dead.screenshot('unreachable');
+  }, [dead]);
 
   // Opt-in, because the first run asks the person at the Mac to allow
   // Bluetooth. A Mac cannot hear its own advertisement, so this proves the
@@ -1181,7 +1348,7 @@ async function main() {
     }, [c]);
   }
 
-  const consoleLines = [a, b, r, n, l].flatMap((x) => x.console().split('\n'))
+  const consoleLines = [a, b, r, n, l, ob].flatMap((x) => x.console().split('\n'))
     .filter((l) => /^(\[game [^\]]*\] )?(pageerror|unhandledrejection|error):/.test(l));
   if (consoleLines.length) {
     log(`\npage errors seen (not failures):\n  ${[...new Set(consoleLines)].slice(0, 10).join('\n  ')}`);

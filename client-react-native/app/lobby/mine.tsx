@@ -14,6 +14,7 @@ import { moduleName, variationName } from '@/src/lib/gameLabels';
 import { routeForMatch, routeForReplay } from '@/src/lib/matchRoute';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 type Scope = 'unfinished' | 'finished';
 
@@ -34,6 +35,7 @@ type Scope = 'unfinished' | 'finished';
  * this screen offers exactly the buttons the server would honour.
  */
 export default function MyGamesScreen() {
+  useLocale();
   const openGames = useOpenGames();
   const { client } = useSession();
   // Arriving from a game's page narrows the list to that game and opens on

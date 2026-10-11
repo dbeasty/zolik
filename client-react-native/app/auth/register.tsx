@@ -7,8 +7,10 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 export default function RegisterScreen() {
+  useLocale();
   const { register } = useSession();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');

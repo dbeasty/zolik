@@ -18,6 +18,8 @@ export const ro: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'Masa este în pauză — se așteaptă reconectarea unui jucător',
   'err.NOT_CONNECTED': 'Fără conexiune la masă — se reconectează, apoi încearcă din nou',
   'err.DISPLACED': 'Deschisă într-o altă filă — aceasta a încetat să se sincronizeze',
+  'err.UNREACHABLE': 'Nu se poate contacta serverul. Verificați conexiunea și încercați din nou.',
+  'err.INVALID_CREDENTIALS': 'Numele de utilizator și parola nu se potrivesc.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

@@ -18,6 +18,8 @@ export const da: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'Bordet er på pause — vi venter på, at en spiller kommer tilbage',
   'err.NOT_CONNECTED': 'Ingen forbindelse til bordet — der forbindes igen, prøv bagefter',
   'err.DISPLACED': 'Åbnet i en anden fane — denne er stoppet med at synkronisere',
+  'err.UNREACHABLE': 'Kan ikke nå serveren. Tjek din forbindelse, og prøv igen.',
+  'err.INVALID_CREDENTIALS': 'Brugernavnet og adgangskoden passer ikke sammen.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

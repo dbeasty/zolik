@@ -186,6 +186,13 @@ func (m *Manager) matchID(ctx context.Context, idOrCode string) (bson.ObjectID, 
 func (m *Manager) lockMatch(ctx context.Context, idOrCode string) (*liveMatch, error) {
 	id, err := m.matchID(ctx, idOrCode)
 	if err != nil {
+		// A code or id that names no table is MATCH_NOT_FOUND, wording every
+		// client carries. Left as the store's own error it reaches a player as
+		// the generic code ERROR with the message "not found" (joining with a
+		// mistyped code showed exactly that).
+		if db.IsNotFound(err) {
+			return nil, module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
+		}
 		return nil, err
 	}
 	var e *liveMatch
@@ -214,6 +221,7 @@ func (m *Manager) lockMatch(ctx context.Context, idOrCode string) (*liveMatch, e
 			e.mu.Unlock()
 			if db.IsNotFound(err) {
 				m.live.forget(id.Hex())
+				return nil, module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
 			}
 			return nil, err
 		}

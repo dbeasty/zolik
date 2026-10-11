@@ -9,6 +9,7 @@ import { RelayHostAway, RelayNotFound, normaliseRelayCode, relayInfo, type Relay
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a link to a table on somebody's phone lands: `/r/ABC123`.
@@ -20,6 +21,7 @@ import { colors, shared } from '@/src/theme';
  * a pause as the host's phone, rather than as this site being broken.
  */
 export default function JoinRelayScreen() {
+  useLocale();
   const { session, joinRelay } = useSession();
   const { code: raw } = useLocalSearchParams<{ code: string }>();
   const code = normaliseRelayCode(String(raw ?? ''));

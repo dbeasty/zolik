@@ -18,6 +18,8 @@ export const nl: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'De tafel is gepauzeerd — er wordt gewacht tot een speler terugkomt',
   'err.NOT_CONNECTED': 'Geen verbinding met de tafel — opnieuw verbinden, probeer het daarna nog eens',
   'err.DISPLACED': 'Geopend in een ander tabblad — deze synchroniseert niet meer',
+  'err.UNREACHABLE': 'De server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.',
+  'err.INVALID_CREDENTIALS': 'Die gebruikersnaam en dat wachtwoord komen niet overeen.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
