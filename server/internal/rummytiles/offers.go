@@ -77,7 +77,7 @@ func (m *Module) turnOffers(raw module.State, s *GameState, playerID string) []m
 	place := module.ActionOffer{
 		ID: OfferPlace, Verb: VerbPlace, LabelKey: "rummytiles.offer.place", Composite: true,
 		Source: &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-			Cards: sortedUnique(hand), MinCards: 1},
+			Cards: sortedTiles(hand), MinCards: 1, MaxCards: len(hand)},
 	}
 	if len(hand) > 0 {
 		place.Enabled, place.WhyNot = m.probe(raw, playerID, module.Action{OfferID: place.ID, Verb: VerbPlace, Cards: hand[:1]})
@@ -87,8 +87,8 @@ func (m *Module) turnOffers(raw module.State, s *GameState, playerID string) []m
 	offers = append(offers, place)
 
 	for _, set := range ws.Sets {
-		offers = append(offers, m.addOffer(raw, s, playerID, set, module.FromHand, sortedUnique(hand))...)
-		offers = append(offers, m.addOffer(raw, s, playerID, set, module.FromTable, sortedUnique(ws.Tray))...)
+		offers = append(offers, m.addOffer(raw, s, playerID, set, module.FromHand, sortedTiles(hand))...)
+		offers = append(offers, m.addOffer(raw, s, playerID, set, module.FromTable, sortedTiles(ws.Tray))...)
 		offers = append(offers, m.takeOffer(raw, s, playerID, set))
 		offers = append(offers, m.splitOffer(raw, s, playerID, set))
 		if o, ok := m.swapJokerOffer(raw, s, playerID, set, hand); ok {
@@ -138,7 +138,7 @@ func (m *Module) addOffer(raw module.State, s *GameState, playerID string, set S
 		o.WhyNot = ErrTileNotInHand
 		return []module.ActionOffer{o}
 	}
-	o.Source = &module.Selector{Zone: zone, OwnerID: playerID, ZoneID: handZoneID(playerID), Cards: cards, MinCards: 1}
+	o.Source = &module.Selector{Zone: zone, OwnerID: playerID, ZoneID: handZoneID(playerID), Cards: cards, MinCards: 1, MaxCards: len(cards)}
 	if zone == module.FromTable {
 		o.Source.ZoneID = trayZoneID
 	}
@@ -147,7 +147,7 @@ func (m *Module) addOffer(raw module.State, s *GameState, playerID string, set S
 }
 
 func (m *Module) takeOffer(raw module.State, s *GameState, playerID string, set Set) module.ActionOffer {
-	cards := sortedUnique(set.Cards)
+	cards := sortedTiles(set.Cards)
 	// Target names the set this move concerns, per the convention every
 	// verb here shares — SubmissionFor only ever reads Target.MeldID into
 	// Action.Target, never Source.MeldID, so a take's addressed set has to
@@ -155,7 +155,7 @@ func (m *Module) takeOffer(raw module.State, s *GameState, playerID string, set 
 	// destination, is what Target usually means elsewhere.
 	o := module.ActionOffer{
 		ID: "take:" + set.ID, Verb: VerbTake, LabelKey: "rummytiles.offer.take", Composite: true,
-		Source: &module.Selector{Zone: module.FromMeld, MeldID: set.ID, Cards: cards, MinCards: 1},
+		Source: &module.Selector{Zone: module.FromMeld, MeldID: set.ID, Cards: cards, MinCards: 1, MaxCards: len(cards)},
 		Target: &module.Selector{MeldID: set.ID},
 		Facts:  []module.Fact{setFact(set)},
 	}
