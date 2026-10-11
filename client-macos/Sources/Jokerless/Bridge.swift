@@ -25,6 +25,19 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
   private lazy var sink = NetSinkBridge(bridge: self)
   /// Fetches waiting for the core's answer, by the page's request id.
   private var pending: [Int64: (Any?, String?) -> Void] = [:]
+  /// Sockets this page has open in the core. They belong to the page: when it
+  /// goes (a reload, a new address, the window closing) so do they, or the
+  /// core keeps them and the server sees a second connection for the seat.
+  private var openSockets = Set<Int64>()
+
+  deinit { closeSockets() }
+
+  /// Ends every socket the page opened. Called when the page is replaced.
+  func closeSockets() {
+    for id in openSockets { ZolikcoreNetSocketClose(id, 1001, "page gone") }
+    openSockets.removeAll()
+    pending.removeAll()
+  }
 
   init(nearby: NearbyService) {
     self.nearby = nearby
@@ -55,6 +68,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
       ZolikcoreNetFetch(
         sink, id, body["method"] as? String ?? "GET", body["url"] as? String ?? "", headersJSON, payload)
     case "ws.open":
+      openSockets.insert(Self.int64(body["id"]))
       ZolikcoreNetSocketOpen(sink, Self.int64(body["id"]), body["url"] as? String ?? "")
       replyHandler(true, nil)
     case "ws.send":
@@ -109,6 +123,14 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     reply(["status": status, "headers": headers, "body": (body ?? Data()).base64EncodedString()], nil)
   }
 
+  /// Passes a socket's traffic to the page, unless the page that opened it is
+  /// gone: a replaced page must not hear about its predecessor's sockets.
+  fileprivate func socketEvent(_ id: Int64, _ payload: [String: Any], last: Bool = false) {
+    guard openSockets.contains(id) else { return }
+    if last { openSockets.remove(id) }
+    emit("ws", payload)
+  }
+
   func emit(_ name: String, _ payload: Any) {
     guard let webView,
       let data = try? JSONSerialization.data(withJSONObject: ["name": name, "payload": payload]),
@@ -133,16 +155,16 @@ private final class NetSinkBridge: NSObject, ZolikcoreNetSinkProtocol {
   }
 
   func socketOpened(_ id_: Int64) {
-    DispatchQueue.main.async { self.bridge?.emit("ws", ["id": id_, "type": "open"]) }
+    DispatchQueue.main.async { self.bridge?.socketEvent(id_, ["id": id_, "type": "open"]) }
   }
 
   func socketMessage(_ id_: Int64, data: String?) {
-    DispatchQueue.main.async { self.bridge?.emit("ws", ["id": id_, "type": "message", "data": data ?? ""]) }
+    DispatchQueue.main.async { self.bridge?.socketEvent(id_, ["id": id_, "type": "message", "data": data ?? ""]) }
   }
 
   func socketClosed(_ id_: Int64, code: Int, reason: String?) {
     DispatchQueue.main.async {
-      self.bridge?.emit("ws", ["id": id_, "type": "close", "code": code, "reason": reason ?? ""])
+      self.bridge?.socketEvent(id_, ["id": id_, "type": "close", "code": code, "reason": reason ?? ""], last: true)
     }
   }
 }

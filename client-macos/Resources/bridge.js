@@ -39,7 +39,10 @@
   // ---- fetch ----------------------------------------------------------------
 
   var nativeFetch = window.fetch.bind(window);
-  var nextId = 1;
+  // Ids are never reused by a later page of the same window: the app is still
+  // closing its predecessor's sockets, and their last words must not land on
+  // this page's.
+  var nextId = Date.now() * 1000;
 
   function isRemote(url) {
     return /^(https?|wss?):$/i.test(url.protocol);
