@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"zolik/server/internal/learn"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -204,8 +205,36 @@ func (h *Handlers) debugState(w http.ResponseWriter, req *http.Request) {
 func (h *Handlers) listModules(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"modules": h.manager.Registry().Descriptors(),
+		"modules": withoutIdleAI(h.manager.Registry().Descriptors()),
 	})
+}
+
+// withoutIdleAI drops the "AI" opponent choice from a game whose trained model
+// is switched off. Such a seat would play the Hard heuristic under the AI's
+// name, so offering it says the model is on when the console says it is not.
+func withoutIdleAI(ds []module.ModuleDescriptor) []module.ModuleDescriptor {
+	for i := range ds {
+		d := &ds[i]
+		if !module.OffersAI(*d) || learn.HardModelPlays(d.ID) {
+			continue
+		}
+		opts := make([]module.OptionSpec, len(d.Options))
+		copy(opts, d.Options)
+		for j := range opts {
+			if opts[j].Name != module.OptBotSkill {
+				continue
+			}
+			var keep []module.OptionChoice
+			for _, c := range opts[j].Choices {
+				if c.Value != module.SkillOpt(module.SkillAI) {
+					keep = append(keep, c)
+				}
+			}
+			opts[j].Choices = keep
+		}
+		d.Options = opts
+	}
+	return ds
 }
 
 // moduleRules writes out one module's rules, resolved against the variation

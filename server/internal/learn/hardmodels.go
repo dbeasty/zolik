@@ -48,6 +48,17 @@ func HardModel(game Game, heuristic module.Bot) module.Bot {
 	return m.bot(game, heuristic)
 }
 
+// HardModelPlays reports whether AI seats of the named game play a trained
+// model right now: the console switch is on, or a local model file overrides
+// it. A game that ships no model never does.
+func HardModelPlays(game string) bool {
+	m := hardModels[game]
+	if m == nil {
+		return false
+	}
+	return m.enabled.Load() || os.Getenv(m.envKey) != ""
+}
+
 // ErrUnknownGame is a switch asked for a game that ships no model.
 var ErrUnknownGame = errors.New("learn: no shipped model for that game")
 
