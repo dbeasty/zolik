@@ -977,8 +977,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // The seat the app held at load, once the stored session is read.
     if (!IS_DESKTOP || loading) return;
     const seat = wantedSeat.current;
-    if (seat && seatIsShareable(seat) && !offline) void sitFromApp(seat);
-    else setSeatPending(false);
+    if (seat && seatIsShareable(seat) && !offline) {
+      // A game window opened for an ONLINE match while the app holds an
+      // offline seat follows the match it was opened for: if the internet
+      // server knows the match, the window stays online (an offline table's
+      // match ids are not known there).
+      const matchId = IS_DESKTOP_GAME_WINDOW ? DESKTOP_WINDOW?.matchId : undefined;
+      if (matchId && session?.accessToken) {
+        void apiClient.getMatch(matchId).then(
+          () => {
+            gameWindowStartedOnline.current = true;
+            // This window is not at the app's table, and must not tell the
+            // app it left it.
+            appSeat.current = 'none';
+            wantedSeat.current = null;
+            setSeatPending(false);
+          },
+          () => void sitFromApp(seat),
+        );
+      } else {
+        void sitFromApp(seat);
+      }
+    } else setSeatPending(false);
     // Once, when loading ends.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
