@@ -7,6 +7,7 @@ import {
   planFlights,
   seatElementId,
   type BoardLike,
+  SHUFFLE_MS,
 } from '@/src/lib/flights';
 
 /**
@@ -198,6 +199,8 @@ describe('a deal', () => {
   it('sends one card to every seat, from the stack it came off', () => {
     const { prev, next } = dealt(5, 52, 37);
     const plan = planFlights(prev, next, ME);
+    expect(plan.flights.filter((f) => f.shuffle !== undefined).length).toBeGreaterThan(0);
+    plan.flights = plan.flights.filter((f) => f.shuffle === undefined);
     expect(plan.flights).toHaveLength(3);
     expect(new Set(plan.flights.map((f) => f.fromId)).size).toBe(1);
     // The viewer's own cards land in their fan; everyone else's at their seat.
@@ -212,7 +215,7 @@ describe('a deal', () => {
     const { prev, next } = dealt(5, 52, 37);
     const shuffled = { ...next, zones: [next.zones[0]!, next.zones[2]!, next.zones[3]!, next.zones[1]!] };
     const plan = planFlights(prev, shuffled, ME);
-    expect(plan.flights.map((f) => f.toId)).toEqual([
+    expect(plan.flights.filter((f) => f.shuffle === undefined).map((f) => f.toId)).toEqual([
       'zone-h1',
       seatElementId('b'),
       seatElementId('c'),
@@ -221,7 +224,7 @@ describe('a deal', () => {
 
   it("holds the viewer's own entrance until their card lands", () => {
     const { prev, next } = dealt(5, 52, 37);
-    expect(planFlights(prev, next, ME).holds.get('zone-h1')).toBeGreaterThan(0);
+    expect(planFlights(prev, next, ME).holds.get('zone-h1')).toBeGreaterThan(SHUFFLE_MS);
   });
 
   it('declines when the count does not add up', () => {

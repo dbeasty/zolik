@@ -32,6 +32,18 @@ export type Flight = {
   card?: string;
   /** Lands back-up — the closing gesture some tables end on. */
   faceDown?: boolean;
+  /**
+   * A riffle card rather than a journey: it leaves the stack, springs out to
+   * one side and slaps back onto it. The number is its place in the riffle,
+   * which also picks the side (even left, odd right).
+   */
+  shuffle?: number;
+  /**
+   * Wait this long before taking off, instead of the default queue-off-the-
+   * table stagger. Set by plans that sequence several phases (shuffle, then
+   * deal).
+   */
+  delayMs?: number;
 };
 
 export type FlightPlan = {
@@ -54,6 +66,14 @@ export const FLIGHT_HOLD_MS = ms(360);
  * three cards.
  */
 export const FLIGHT_SEQUENCE_MS = ms(90);
+/** How long one riffle card takes to spring out and back. */
+export const SHUFFLE_CARD_MS = ms(360);
+/** Gap between one riffle card's departure and the next's. */
+export const SHUFFLE_STAGGER_MS = ms(70);
+/** Riffle cards per shuffle — enough to read as a shuffle, not a cloud. */
+export const SHUFFLE_CARDS = 8;
+/** The whole shuffle; the deal starts once the last card has slapped back. */
+export const SHUFFLE_MS = SHUFFLE_CARD_MS + (SHUFFLE_CARDS - 1) * SHUFFLE_STAGGER_MS;
 /**
  * A flight that has not taken off this long after being planned never does.
  * In a background tab the browser throttles animation frames, so planned
@@ -273,8 +293,17 @@ function planDeal(
   );
 
   const fromId = zoneElementId(sources[0]!.id);
-  const flights: Flight[] = [];
+  // The stack is shuffled before anyone is dealt to: riffle cards over the
+  // stack, then the deal proper once the last of them has landed.
+  const flights: Flight[] = Array.from({ length: SHUFFLE_CARDS }, (_, i) => ({
+    id: `${fromId}#shuffle${i}`,
+    fromId,
+    toId: fromId,
+    shuffle: i,
+    delayMs: i * SHUFFLE_STAGGER_MS,
+  }));
   const holds = new Map<string, number>();
+  let dealt = 0;
   for (const z of seated) {
     const own = z.ownerId === viewerId;
     const toId = own ? zoneElementId(z.id) : seatElementId(z.ownerId!);
@@ -283,8 +312,14 @@ function planDeal(
     // card stands for the round, and the fan's own staggered entrance —
     // which is already staggered, and now waits for this to land — carries
     // the rest.
-    flights.push({ id: `${fromId}>${toId}#deal${flights.length}`, fromId, toId });
-    if (own) holds.set(toId, FLIGHT_HOLD_MS + flights.length * FLIGHT_SEQUENCE_MS);
+    flights.push({
+      id: `${fromId}>${toId}#deal${dealt}`,
+      fromId,
+      toId,
+      delayMs: SHUFFLE_MS + dealt * FLIGHT_SEQUENCE_MS,
+    });
+    dealt++;
+    if (own) holds.set(toId, SHUFFLE_MS + FLIGHT_HOLD_MS + dealt * FLIGHT_SEQUENCE_MS);
   }
   return { flights, holds };
 }
