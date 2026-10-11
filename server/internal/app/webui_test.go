@@ -182,3 +182,25 @@ func TestNoBundleLeavesTheAPIAlone(t *testing.T) {
 		t.Error("the health route stopped answering when no bundle is present")
 	}
 }
+
+// TestParameterisedRouteStartsFromItsOwnPrerender: /match/<id> has a page of
+// its own in the export, match/[matchId].html. Served index.html instead, the
+// browser hydrates one screen's markup into another and React reports error
+// #418 on every visit.
+func TestParameterisedRouteStartsFromItsOwnPrerender(t *testing.T) {
+	a := offlineApp(t)
+	a.SetWebUI(fstest.MapFS{
+		"index.html":           {Data: []byte("<!doctype html><title>zolik</title>")},
+		"match/[matchId].html": {Data: []byte("<!doctype html><title>match</title>")},
+	})
+	r := chi.NewRouter()
+	a.RegisterRoutes(r)
+
+	rec := get(t, r, "/match/6a1f2c", acceptHTML)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "<title>match</title>") {
+		t.Errorf("GET /match/6a1f2c = %d %q; want the match page's own prerender", rec.Code, rec.Body.String())
+	}
+	if rec := get(t, r, "/lobby/games", acceptHTML); !servedTheApp(rec) {
+		t.Errorf("GET /lobby/games = %d; a route with no page of its own still gets the app", rec.Code)
+	}
+}
