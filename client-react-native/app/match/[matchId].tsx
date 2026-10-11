@@ -81,7 +81,7 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
-import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
+import { moduleLabel, moduleName, variationName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
@@ -2064,9 +2064,13 @@ function MatchScreen() {
       >
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
-            <Text testID="match-module" style={styles.module}>
-              {state.moduleId}
-              {state.variation ? ` · ${state.variation}` : ''}
+            <Text
+              testID="match-module"
+              style={styles.module}
+              {...(Platform.OS === 'web' ? ({ dataSet: { moduleId: state.moduleId } } as object) : {})}
+            >
+              {moduleName(state.moduleId)}
+              {state.variation ? ` · ${variationName(state.moduleId, state.variation)}` : ''}
             </Text>
             <Tip text={t('a11y.board.tip.rules')}>
             <Pressable

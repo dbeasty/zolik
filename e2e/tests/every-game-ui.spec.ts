@@ -188,7 +188,7 @@ test.describe('every game renders on every screen size', () => {
             await signIn(page, host);
             await page.goto(`/match/${matchId}`);
             await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
-            await expect(page.getByTestId('match-module')).toHaveText(new RegExp(mod.id));
+            await expect(page.getByTestId('match-module')).toHaveAttribute('data-module-id', mod.id);
             // A board: at least one zone drawn, and the controls bar.
             await expect
               .poll(() => page.locator('[data-testid^="zone-"]').count(), { timeout: 15_000 })
