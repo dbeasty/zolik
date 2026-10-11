@@ -51,6 +51,8 @@ import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
+import { SoundToggle } from '@/src/sound/SoundToggle';
+import { useBoardSounds } from '@/src/sound/useBoardSounds';
 import {
   dropSpotsFor,
   groupElementId,
@@ -494,6 +496,8 @@ function MatchScreen() {
   // state, `null` included, because "no board has arrived yet" is a state this
   // has to be able to tell apart from "no round has ended".
   const flash = useResultsFlash(state);
+  // Card, pile, turn, round and match sounds, and the announcer.
+  useBoardSounds(state, viewerId, flash);
 
   // The look the board is wearing, and the switcher's handle on the rest.
   // The style factory keys on the skin, so switching repaints everything at
@@ -2111,6 +2115,8 @@ function MatchScreen() {
           {/* Which look the board wears, cycled in place. A preference about
               pixels, not about the game — it lives on the device and no
               module knows it exists. */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <SoundToggle />
           <Tip text={t('a11y.board.tip.skin')}>
             <Pressable
               testID="skin-toggle"
@@ -2123,6 +2129,7 @@ function MatchScreen() {
               <Text style={styles.skinToggleText}>◈ {skin.label}</Text>
             </Pressable>
           </Tip>
+          </View>
         </View>
 
         {(view.header ?? []).some((f) => !f.standing) ? (
