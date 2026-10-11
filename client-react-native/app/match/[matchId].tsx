@@ -2009,8 +2009,13 @@ function MatchScreen() {
                 <View
                   style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
                 />
-                <Text testID="match-status" style={styles.status}>
-                  {state.status}
+                {/* In the player's language; the server's word stays on the element for tests. */}
+                <Text
+                  testID="match-status"
+                  style={styles.status}
+                  {...((Platform.OS === 'web' ? { dataSet: { status: state.status } } : {}) as object)}
+                >
+                  {t(`mine.status.${state.status}`, undefined, state.status)}
                 </Text>
                 {serverLabel ? (
                   <Text testID="match-server" style={styles.status} numberOfLines={1}>
