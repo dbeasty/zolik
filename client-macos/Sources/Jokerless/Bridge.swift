@@ -104,7 +104,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     case "log":
       onLog?(body["line"] as? String ?? "")
       replyHandler(true, nil)
-    case "openGame", "toMain", "windowInfo", "seat", "signedOut", "invites":
+    case "openGame", "toMain", "closeWindow", "windowInfo", "seat", "signedOut", "invites":
       onAppOp?(op, body)
       replyHandler(true, nil)
     default:

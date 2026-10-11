@@ -129,6 +129,20 @@ export function GameWindowGuard() {
   return null;
 }
 
+/**
+ * A game window whose table no longer exists (deleted elsewhere, or a game
+ * remembered from an earlier launch) has nothing to show: it closes, rather
+ * than sitting open on "That table no longer exists" and coming back at every
+ * launch. Renders nothing; a no-op outside a game window.
+ */
+export function GoneWindowCloser({ gone }: { gone: boolean }) {
+  useEffect(() => {
+    if (!IS_DESKTOP_GAME_WINDOW || !gone) return;
+    postToApp({ op: 'closeWindow' });
+  }, [gone]);
+  return null;
+}
+
 /** What a game window says about itself, for its title bar and the Dock. */
 export type GameWindowInfo = {
   title: string;

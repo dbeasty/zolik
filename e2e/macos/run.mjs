@@ -1257,6 +1257,25 @@ async function main() {
     expect((await windowsOf(r)).length === 3, 'a reopened game window closed itself');
   }, [r]);
 
+  await step('a game deleted elsewhere is not brought back as a dead window at the next launch', async () => {
+    const tokens = JSON.parse(await r.js(`return localStorage.getItem('zolik_session')`));
+    const gone = games2[0];
+    const kept = games2[1];
+    const del = await fetch(new URL(`/matches/${gone.split(':')[1]}`, server.base), { method: 'DELETE', headers: { Authorization: `Bearer ${tokens.accessToken}` } });
+    expect(del.ok, `deleting ${gone}: ${del.status}`);
+    await r.quit();
+    r = new MacApp('relaunch', binary, server.base, { dir: 'relaunch', env: rEnv });
+    cleanups.push(() => r.quit());
+    await r.ready();
+    // The game that still exists comes back; the deleted one does not stay
+    // open on "That table no longer exists".
+    await waitWindows(r, (w) => w.some((x) => x.key === kept), 'the surviving game window', 30_000);
+    await sleep(6000);
+    const wins = await windowsOf(r);
+    expect(wins.some((x) => x.key === kept), `the surviving game is gone: ${JSON.stringify(wins)}`);
+    expect(!wins.some((x) => x.key === gone), `the deleted game's window is still open: ${JSON.stringify(wins)}`);
+  }, [r]);
+
   await step('signing out closes every game window and forgets them', async () => {
     await on(r, 1);
     await r.native('menu Sign out');

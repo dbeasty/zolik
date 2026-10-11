@@ -111,7 +111,7 @@ import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
 import { seatIsShareable } from '@/src/desktop/seat';
-import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
+import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
 import { isTableZone } from '@/src/lib/board';
 
@@ -817,6 +817,7 @@ function MatchScreen() {
   if (!state) {
     return (
       <View style={styles.root}>
+        <GoneWindowCloser gone={error?.code === 'MATCH_NOT_FOUND' || error?.code === 'MATCH_DELETED'} />
         <TableSurface />
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           {/* A refusal that arrives before any board has to be drawn here,

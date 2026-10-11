@@ -168,6 +168,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
       showMain()
       if let path = body["path"] as? String { main.web.navigate(to: path) }
       if body["close"] as? Bool == true, c.role == .game { c.window?.close() }
+    case "closeWindow":
+      // The page has nothing left to show (its table was deleted): the window
+      // closes, and with it the app's memory of the game.
+      if c.role == .game { c.window?.close() }
     case "windowInfo":
       guard c.role == .game else { return }
       let before = c.gameKey
