@@ -56,3 +56,15 @@ describe('every shipped game is named, not shown by its id', () => {
     expect(moduleName(id)).toBe(name);
   });
 });
+
+describe('every variation the server advertises is named', () => {
+  it.each([
+    ['holdem', 'holdem', "Texas Hold'em"],
+    ['holdem', 'omaha', 'Pot-Limit Omaha'],
+    ['blackjack', 'atlantic', 'Atlantic City'],
+    ['ginrummy', 'oklahoma', 'Oklahoma'],
+    ['zolik', 'continental', 'Continental'],
+  ])('%s/%s reads %s', (m, v, name) => {
+    expect(variationName(m, v)).toBe(name);
+  });
+});
