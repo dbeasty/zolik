@@ -63,3 +63,17 @@ func TestJoinLetsASeatedPlayerBackInToAnAbandonedTable(t *testing.T) {
 		t.Errorf("a stranger joining an abandoned table got %v, want MATCH_ALREADY_STARTED", err)
 	}
 }
+
+// A mistyped join code names no table. It must come back as MATCH_NOT_FOUND,
+// which every client words, not as the store's own "not found" under the
+// generic code ERROR — which is what a player read on the join screen.
+func TestJoinWithACodeNobodyHoldsIsMatchNotFound(t *testing.T) {
+	ctx := context.Background()
+	m, _ := observedManager(t)
+	for _, code := range []string{"ZZZZZZ", "000000", "ffffffffffffffffffffffff"} {
+		_, err := m.Join(ctx, code, human("guest"))
+		if module.CodeOf(err) != "MATCH_NOT_FOUND" {
+			t.Errorf("joining %q got %v (code %q), want MATCH_NOT_FOUND", code, err, module.CodeOf(err))
+		}
+	}
+}

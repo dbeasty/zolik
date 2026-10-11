@@ -680,6 +680,14 @@ async function main() {
     expect(windowMenu.filter((t) => /^Jokerless$/.test(t)).length === 1, `the Window menu lists ${JSON.stringify(windowMenu)}`);
   }, [a]);
 
+  await step('a mistyped join code is refused in words, not as "not found"', async () => {
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/join/ZZZZZZ'); await e2e.waitFor(() => /no longer exists|not found/.test(e2e.text()), 'the refusal', 15000); return 1`);
+    const text = await a.js(`return e2e.text()`);
+    expect(/That table no longer exists/.test(text) && !/not found/.test(text), `joining a code nobody holds says ${JSON.stringify(text.slice(0, 200))}`);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+  }, [a]);
+
   let invite = '';
   await step('View › Hide/Show Hand, Table and Log act on the game in front; Help › Rules opens in the main window', async () => {
     const lc = await indexOfGame(a, lastCard);
