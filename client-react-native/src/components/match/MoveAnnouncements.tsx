@@ -214,7 +214,13 @@ export function MoveAnnouncements({
         </View>
         )}
         {turnPrompts.map((f, i) => (
-          <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
+          <Text
+            key={`prompt-${i}`}
+            testID={`prompt-${i}`}
+            // With no move above it, the first prompt is the box's first line
+            // and shares the corner with the buttons: a long one ran under them.
+            style={[styles.prompt, i === 0 && shown.length === 0 && styles.firstOpenRow]}
+          >
             <LastCardInk text={factText(f, players)} />
           </Text>
         ))}
