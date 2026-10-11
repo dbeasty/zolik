@@ -32,6 +32,7 @@ import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
 import { OfferBar, OfferGlance, leadOffer, pressOf, type OfferParams } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
+import { RulesButton } from '@/src/components/match/RulesButton';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { InviteBackSheet } from '@/src/components/match/InviteBackSheet';
@@ -2121,9 +2122,8 @@ function MatchScreen() {
               {state.variation ? ` · ${variationName(state.moduleId, state.variation)}` : ''}
             </Text>
             <Tip text={t('a11y.board.tip.rules')}>
-            <Pressable
-              testID="match-rules"
-              accessibilityRole="link"
+            <RulesButton
+              pulse={state.status === 'lobby'}
               onPress={() =>
                 // One continuous template literal — see the matching comment
                 // in app/lobby/setup.tsx for why a `+` chain fails to typecheck
@@ -2132,11 +2132,7 @@ function MatchScreen() {
                   `/rules?moduleId=${encodeURIComponent(state.moduleId)}&variation=${encodeURIComponent(state.variation ?? '')}&options=${encodeURIComponent(JSON.stringify(state.options ?? {}))}`,
                 )
               }
-              hitSlop={8}
-              style={styles.linkTarget}
-            >
-              <Text style={styles.rulesLink}>{t('nav.rules')}</Text>
-            </Pressable>
+            />
             </Tip>
             {/* The whole table, said — for a screen reader, the one control
                 that answers "where are we?" in one go. Also R, and the iOS
