@@ -61,7 +61,10 @@ export function MoveAnnouncements({
   const hints = prompts.filter((f) => f.hint);
   const turnPrompts = prompts.filter((f) => !f.hint);
   const scroller = useRef<ScrollView>(null);
-  const styles = useMemo(() => announceStyles(skin, linesHeight, short, standing.length > 0, hints.length > 0), [skin, linesHeight, short, standing.length, hints.length]);
+  // The corner's real width, measured: its labels are translated and the
+  // standing facts vary, so a guessed width let the first line run under it.
+  const [cornerWidth, setCornerWidth] = useState(0);
+  const styles = useMemo(() => announceStyles(skin, linesHeight, short, cornerWidth), [skin, linesHeight, short, cornerWidth]);
 
   // Everything after the viewer's own last move. When their move was the
   // last one, that move alone, dimmed — so the box says what the table is
@@ -130,7 +133,13 @@ export function MoveAnnouncements({
     >
       {/* Repeat-last, over the box's corner rather than in its flow: the box
           keeps one fixed height whatever is in it (see below). */}
-      <View style={styles.repeatAt}>
+      <View
+        style={styles.repeatAt}
+        onLayout={(e) => {
+          const w = Math.ceil(e.nativeEvent.layout.width);
+          setCornerWidth((prev) => (prev === w ? prev : w));
+        }}
+      >
         {hints.length > 0 ? (
           <Pressable
             testID="hints-open"
@@ -248,16 +257,10 @@ export function setMovesOpen(v: boolean) {
 /** One line's room in the box. */
 const LINE = 24;
 
-/** Room a standing fact takes in the corner, so a folded line stops short of it. */
-const STANDING_ROOM = 150;
-
-/** Room the hints button takes in the corner. */
-const HINTS_ROOM = 80;
-
 /** Below this window height the box keeps two lines' room rather than four. */
 const SHORT_WINDOW = 760;
 
-function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean, standing: boolean, hinted: boolean) {
+function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean, cornerWidth: number) {
   const colors = s.colors;
   return StyleSheet.create({
     box: {
@@ -293,9 +296,9 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     repeatText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
     toggleText: { color: colors.muted, fontSize: 16, fontWeight: '700' },
     // Clear of the two buttons in the corner.
-    foldedLine: { paddingRight: 64 + (standing ? STANDING_ROOM : 0) + (hinted ? HINTS_ROOM : 0) },
+    foldedLine: { paddingRight: cornerWidth + 8 },
     // Open, only the first row shares the corner with the buttons.
-    firstOpenRow: { paddingRight: 64 + (hinted ? HINTS_ROOM : 0) },
+    firstOpenRow: { paddingRight: cornerWidth + 8 },
     newestRow: { borderLeftColor: colors.accent },
     line: { color: colors.text, fontSize: 15 },
     newest: { fontSize: 17, fontWeight: '700' },
