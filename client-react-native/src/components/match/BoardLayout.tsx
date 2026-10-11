@@ -11,7 +11,7 @@ import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import type { ChangeMarks } from '@/src/lib/changes';
-import { drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
+import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
 import { isSeatArranged } from '@/src/lib/seatArrangement';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -335,9 +335,9 @@ export function Section({
         </View>
       }
     >
-      {beside.length > 0 ? (
-        <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
-          {beside.map((z) =>
+      {besideRows(beside).map((row) => (
+        <View key={row[0].id} style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
+          {row.map((z) =>
             // Compact is right for a pile you glance at and wrong for cards
             // you read: a stack is a count and a pile is its top card, but a
             // shared spread is half of everyone's hand and is drawn at the
@@ -358,7 +358,7 @@ export function Section({
             ),
           )}
         </View>
-      ) : null}
+      ))}
       {stacked.map((z) => (
         <ZoneView key={z.id} zone={z} compact={compact} nested {...panelPropsFor(z.id)} {...drops} />
       ))}

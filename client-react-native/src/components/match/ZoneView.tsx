@@ -15,7 +15,7 @@ import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
-import { concealedCount } from '@/src/lib/board';
+import { concealedCount, isWideSpread } from '@/src/lib/board';
 import { marksIn, type ChangeMarks } from '@/src/lib/changes';
 import { groupElementId, liftKey, zoneElementId } from '@/src/lib/drops';
 import {
@@ -382,7 +382,7 @@ export function ZoneView({
   // across the whole board, every group an equal column of it. Wrapped like
   // any other spread, the last columns fell to a second line and stopped
   // reading as a tableau at all.
-  const wide = zone.kind === 'spread' && !!zone.shared && groups.length >= WIDE_GROUPS;
+  const wide = isWideSpread(zone);
   // How many of this zone's groups carry a mark — said on the panel's own
   // header too, which stays in view when the panel is put away or scrolled
   // past, so a change is never only visible from inside the group.
@@ -871,8 +871,6 @@ export function ZoneView({
  */
 const MAX_BACKS = 4;
 
-/** How many groups a table spread needs before it is laid out as one row of columns. */
-const WIDE_GROUPS = 6;
 
 /**
  * A table card a player may pick up: a press lifts it (the match screen then
