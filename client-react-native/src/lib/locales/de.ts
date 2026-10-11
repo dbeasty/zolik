@@ -1914,6 +1914,8 @@ export const de: Record<string, string> = {
   'notify.addedToCircle': '{name} ist in deinem Kreis',
   'notify.push.inviteTitle': '{host} hat einen Tisch eröffnet',
   'notify.push.inviteBody': 'Spiel {game} mit {host}. Tippe zum Beitreten.',
+  'notify.push.joinedTitle': '{name} sitzt jetzt am Tisch',
+  'notify.push.joinedBody': '{game} · tippe, um den Tisch zu öffnen',
   'notify.push.rematchTitle': '{host} möchte eine Revanche',
   'notify.push.rematchBody': 'Dein Platz bei {game} ist freigehalten. Tippe zum Beitreten.',
   'offline.tellNearby': 'Spielern in der Nähe Bescheid geben',

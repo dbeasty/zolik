@@ -425,3 +425,49 @@ func TestTheRoomGetsTheWebClientButNotTheOwnersGames(t *testing.T) {
 		t.Fatalf("the phone's own app could not list its games: %d %q", code, body)
 	}
 }
+
+type fakeNotifier struct{ got chan [4]string }
+
+func (f fakeNotifier) Notify(tag, title, body, url string) { f.got <- [4]string{tag, title, body, url} }
+
+// The host is told, on the phone itself, when somebody sits down at its
+// table - in the words the app gave it - and only then: not for a bot, and
+// not for a player coming back to a seat they already had.
+func TestTheHostPhoneIsToldWhenSomebodySitsDown(t *testing.T) {
+	n := fakeNotifier{got: make(chan [4]string, 4)}
+	SetNotifier(n)
+	SetJoinedTexts("{name} sat down", "at {game}")
+	t.Cleanup(func() { SetNotifier(nil); SetJoinedTexts("{name} joined your table", "{game} · tap to open the table") })
+
+	h := startHost(t, t.TempDir())
+	host := postJSON[map[string]any](t, h, "/auth/guest", "", map[string]any{"guestName": "Ada"}, http.StatusOK)
+	hostToken, _ := host["accessToken"].(string)
+	created := postJSON[map[string]any](t, h, "/matches", hostToken, map[string]any{"moduleId": "prsi"}, http.StatusOK)
+	matchID, _ := created["matchId"].(string)
+
+	postJSON[map[string]any](t, h, "/matches/"+matchID+"/add-bot", hostToken, map[string]any{}, http.StatusOK)
+	select {
+	case got := <-n.got:
+		t.Fatalf("a bot sitting down was announced: %v", got)
+	case <-time.After(300 * time.Millisecond):
+	}
+
+	bea := postJSON[map[string]any](t, h, "/auth/guest", "", map[string]any{"guestName": "Bea"}, http.StatusOK)
+	beaToken, _ := bea["accessToken"].(string)
+	postJSON[map[string]any](t, h, "/matches/"+matchID+"/join", beaToken, map[string]any{}, http.StatusOK)
+	select {
+	case got := <-n.got:
+		if got[1] != "Bea sat down" || !strings.HasPrefix(got[2], "at ") || !strings.Contains(got[3], "/join/") {
+			t.Fatalf("the host was told %q", got)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("the host was not told that Bea sat down")
+	}
+
+	postJSON[map[string]any](t, h, "/matches/"+matchID+"/join", beaToken, map[string]any{}, http.StatusOK)
+	select {
+	case got := <-n.got:
+		t.Fatalf("coming back to the same seat was announced again: %v", got)
+	case <-time.After(300 * time.Millisecond):
+	}
+}

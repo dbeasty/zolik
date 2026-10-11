@@ -107,6 +107,7 @@ import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
 import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
+import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
 import { seatIsShareable } from '@/src/desktop/seat';
@@ -276,6 +277,11 @@ function MatchScreen() {
   // only means a sheet shows its reason and remedy with no rule behind it.
   const ruleIndex = useRuleIndex(state);
   const viewerId = session?.userId ?? '';
+  // A game that takes players mid-play tells the table who just sat down.
+  useAnnounceArrivals(matchId ? String(matchId) : undefined, state?.players, viewerId, {
+    moduleId: state?.moduleId,
+    joinCode: state?.joinCode,
+  });
 
   const view = state?.view ?? { zones: [] };
   const zones = view.zones ?? [];

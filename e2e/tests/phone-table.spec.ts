@@ -152,6 +152,18 @@ test('a browser in the room plays at the phone, and keeps the game only by sayin
   await expect(page.getByTestId('invite-url')).toHaveText(`${ROOM}/join/${joinCode}`);
 
   // What the browser holds is a session on the phone, not on the cloud.
+  // A second person in the room sits down while Bea waits: Bea is told.
+  const otherContext = await browser.newContext();
+  const other = await otherContext.newPage();
+  await seedIntroSeen(other);
+  await other.goto(`${ROOM}/join/${joinCode}`);
+  await other.getByPlaceholder('Display name').fill('Cyd');
+  await other.getByText('Continue', { exact: true }).click();
+  await expect(other.getByTestId('lobby-joined')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('arrival-banner')).toContainText('Cyd joined the table', { timeout: 10_000 });
+  const cyd = await other.evaluate(() => JSON.parse(window.localStorage.getItem('zolik_session') ?? '{}'));
+  await otherContext.close();
+
   const bea = await page.evaluate(() => JSON.parse(window.localStorage.getItem('zolik_session') ?? '{}'));
   expect(bea.isGuest).toBe(true);
   expect(bea.seatReceipt, 'the phone signs a receipt for the seat').toBeTruthy();
@@ -163,6 +175,7 @@ test('a browser in the room plays at the phone, and keeps the game only by sayin
   const status = await playToTheEnd(page, ROOM.replace(/^http/, 'ws'), matchId, [
     host.accessToken,
     bea.accessToken,
+    cyd.accessToken,
   ]);
   expect(status).toBe('completed');
   // The test's own socket for Bea's seat displaced the page's ("opened in
@@ -177,6 +190,9 @@ test('a browser in the room plays at the phone, and keeps the game only by sayin
   await expect(linkText).toBeVisible();
   const claimLink = (await linkText.textContent())!.trim();
   expect(claimLink.startsWith(`${WEB_BASE}/claim#r=`), claimLink).toBeTruthy();
+
+  // Cyd keeps their seat out of it; every seat has now answered.
+  await postOk(request, `${ROOM}/matches/${matchId}/save-consent`, cyd.accessToken, { save: false });
 
   // 4. Nothing has left the phone. The room cannot list or save its games;
   //    the owner's own app can.
@@ -199,8 +215,11 @@ test('a browser in the room plays at the phone, and keeps the game only by sayin
     })
     .toBe(200);
   const inCloud = (await getJson(request, `${API_BASE}/matches/${matchId}`, OWNER_TOKEN)).body;
-  const names = inCloud.players.map((p: any) => p.name).sort();
-  expect(names).toEqual(['Bea', expect.stringMatching(/owner/)].sort());
+  const names = inCloud.players.map((p: any) => p.name);
+  expect(names).toContain('Bea');
+  expect(names.some((n: string) => /owner/.test(n))).toBeTruthy();
+  // Cyd said no: an anonymous seat, with no name.
+  expect(names).not.toContain('Cyd');
 
   // And the phone lets the bundle go once it sees the game in its owner's
   // history.

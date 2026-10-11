@@ -13,6 +13,8 @@ public class ZolikNearbyModule: Module {
   private let bleHost = NearbyBleHost()
   private let bleGuest = NearbyBleGuest()
   private let thermal = NearbyThermal()
+  private let joinNotifier = JoinNotifier()
+  private let grace = HostBackgroundGrace()
 
   public func definition() -> ModuleDefinition {
     Name("ZolikNearby")
@@ -28,6 +30,25 @@ public class ZolikNearbyModule: Module {
       }
       self.bleGuest.onClosed = { [weak self] linkId in self?.sendEvent("onBleClosed", ["linkId": linkId]) }
       self.bleHost.onGuestsChanged = { [weak self] n in self?.sendEvent("onBleGuests", ["count": n]) }
+      ZolikcoreSetNotifier(self.joinNotifier)
+    }
+
+    // A hosting phone keeps answering for the grace iOS allows once the app
+    // leaves the screen, so a guest who arrives just then still gets a seat
+    // and the host is still told (see HostBackgroundGrace).
+    OnAppEntersBackground {
+      self.grace.enterBackground()
+    }
+
+    OnAppEntersForeground {
+      self.grace.enterForeground()
+    }
+
+    // The words of the notification a host phone shows when somebody sits
+    // down at its table, in the app's language: {name} and {game} are filled
+    // in by the embedded server.
+    Function("setJoinedTexts") { (title: String, body: String) in
+      ZolikcoreSetJoinedTexts(title, body)
     }
 
     // Bluetooth, host side: advertise the table and serve guests through
@@ -178,9 +199,7 @@ public class ZolikNearbyModule: Module {
     // The internet door: guests anywhere, through the cloud's relay. The
     // phone stays the server (zolikcore/relay.go).
     AsyncFunction("openRelay") { (name: String) -> [String: Any] in
-      guard let host = ZolikcoreCurrent() else { throw HostException("no host is running") }
-      _ = try host.openRelay(name)
-      return Self.relay(host)
+      try Self.openRelay(name)
     }
 
     AsyncFunction("closeRelay") {
@@ -209,6 +228,17 @@ public class ZolikNearbyModule: Module {
     Function("localAddresses") { () -> [String] in
       NearbyAddresses.ipv4()
     }
+  }
+
+  // Outside the definition's builder, where a type error gets a diagnostic
+  // instead of crashing the type-checker on the whole module.
+  private static func openRelay(_ name: String) throws -> [String: Any] {
+    guard let host = ZolikcoreCurrent() else { throw HostException("no host is running") }
+    // gomobile hands back an error pointer here rather than a Swift throw.
+    var error: NSError?
+    _ = host.openRelay(name, error: &error)
+    if let error { throw HostException(error.localizedDescription) }
+    return relay(host)
   }
 
   private static func relay(_ host: ZolikcoreHost) -> [String: Any] {

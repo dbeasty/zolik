@@ -1883,6 +1883,8 @@ export const sl: Record<string, string> = {
   'notify.addedToCircle': '{name} je v vašem krogu',
   'notify.push.inviteTitle': '{host} je odprl mizo',
   'notify.push.inviteBody': 'Pridite igrat {game} z igralcem {host}. Dotaknite se za pridružitev.',
+  'notify.push.joinedTitle': '{name} je prisedel k mizi',
+  'notify.push.joinedBody': '{game} · dotaknite se za odprtje mize',
   'notify.push.rematchTitle': '{host} želi revanšo',
   'notify.push.rematchBody': 'Vaše mesto pri igri {game} je zadržano. Tapnite za pridružitev.',
   'offline.tellNearby': 'Obvesti igralce v bližini',

@@ -8,6 +8,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Елате да играете {game} с {host}. Докоснете, за да се присъедините.",
     "notify.push.inviteTitle": "{host} отвори маса",
+    "notify.push.joinedBody": "{game} · докоснете, за да отворите масата",
+    "notify.push.joinedTitle": "{name} се присъедини към масата",
     "notify.push.rematchBody": "Мястото ви на {game} е запазено. Докоснете, за да се присъедините.",
     "notify.push.rematchTitle": "{host} иска реванш"
   },
@@ -20,6 +22,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Přijďte si zahrát {game} s hráčem {host}. Klepněte a přisedněte.",
     "notify.push.inviteTitle": "{host} otevřel(a) stůl",
+    "notify.push.joinedBody": "{game} · klepnutím otevřete stůl",
+    "notify.push.joinedTitle": "{name} přisedl(a) ke stolu",
     "notify.push.rematchBody": "Vaše místo u hry {game} je drženo. Klepněte a přisedněte.",
     "notify.push.rematchTitle": "{host} chce odvetu"
   },
@@ -32,6 +36,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom og spil {game} med {host}. Tryk for at deltage.",
     "notify.push.inviteTitle": "{host} har åbnet et bord",
+    "notify.push.joinedBody": "{game} · tryk for at åbne bordet",
+    "notify.push.joinedTitle": "{name} har sat sig ved bordet",
     "notify.push.rematchBody": "Din plads ved {game} er holdt. Tryk for at deltage.",
     "notify.push.rematchTitle": "{host} vil have en revanche"
   },
@@ -44,6 +50,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Spiel {game} mit {host}. Tippe zum Beitreten.",
     "notify.push.inviteTitle": "{host} hat einen Tisch eröffnet",
+    "notify.push.joinedBody": "{game} · tippe, um den Tisch zu öffnen",
+    "notify.push.joinedTitle": "{name} sitzt jetzt am Tisch",
     "notify.push.rematchBody": "Dein Platz bei {game} ist freigehalten. Tippe zum Beitreten.",
     "notify.push.rematchTitle": "{host} möchte eine Revanche"
   },
@@ -56,6 +64,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ελάτε να παίξετε {game} με {host}. Αγγίξτε για συμμετοχή.",
     "notify.push.inviteTitle": "{host} άνοιξε τραπέζι",
+    "notify.push.joinedBody": "{game} · αγγίξτε για να ανοίξετε το τραπέζι",
+    "notify.push.joinedTitle": "{name} μπήκε στο τραπέζι",
     "notify.push.rematchBody": "Η θέση σας στο {game} κρατιέται. Αγγίξτε για συμμετοχή.",
     "notify.push.rematchTitle": "{host} θέλει ρεβάνς"
   },
@@ -68,6 +78,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Come and play {game} with {host}. Tap to join.",
     "notify.push.inviteTitle": "{host} opened a table",
+    "notify.push.joinedBody": "{game} · tap to open the table",
+    "notify.push.joinedTitle": "{name} joined the table",
     "notify.push.rematchBody": "Your seat at {game} is being held. Tap to join.",
     "notify.push.rematchTitle": "{host} wants a rematch"
   },
@@ -80,6 +92,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ven a jugar a {game} con {host}. Toca para unirte.",
     "notify.push.inviteTitle": "{host} abrió una mesa",
+    "notify.push.joinedBody": "{game} · toca para abrir la mesa",
+    "notify.push.joinedTitle": "{name} se unió a la mesa",
     "notify.push.rematchBody": "Tu sitio en {game} está reservado. Toca para unirte.",
     "notify.push.rematchTitle": "{host} quiere la revancha"
   },
@@ -92,6 +106,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tule mängima {game} koos mängijaga {host}. Puuduta liitumiseks.",
     "notify.push.inviteTitle": "{host} avas laua",
+    "notify.push.joinedBody": "{game} · puuduta laua avamiseks",
+    "notify.push.joinedTitle": "{name} liitus lauaga",
     "notify.push.rematchBody": "Sinu koht mängus {game} on hoitud. Puuduta, et liituda.",
     "notify.push.rematchTitle": "{host} tahab revanši"
   },
@@ -104,6 +120,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tule pelaamaan {game} pelaajan {host} kanssa. Napauta liittyäksesi.",
     "notify.push.inviteTitle": "{host} avasi pöydän",
+    "notify.push.joinedBody": "{game} · avaa pöytä napauttamalla",
+    "notify.push.joinedTitle": "{name} liittyi pöytään",
     "notify.push.rematchBody": "Paikkasi pelissä {game} on varattu. Liity napauttamalla.",
     "notify.push.rematchTitle": "{host} haluaa uusintaottelun"
   },
@@ -116,6 +134,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Venez jouer à {game} avec {host}. Touchez pour rejoindre.",
     "notify.push.inviteTitle": "{host} a ouvert une table",
+    "notify.push.joinedBody": "{game} · touchez pour ouvrir la table",
+    "notify.push.joinedTitle": "{name} a rejoint la table",
     "notify.push.rematchBody": "Votre place à {game} vous attend. Touchez pour rejoindre.",
     "notify.push.rematchTitle": "{host} veut une revanche"
   },
@@ -128,6 +148,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Tar agus imir {game} le {host}. Tapáil chun páirt a ghlacadh.",
     "notify.push.inviteTitle": "D’oscail {host} bord",
+    "notify.push.joinedBody": "{game} · tapáil chun an bord a oscailt",
+    "notify.push.joinedTitle": "Shuigh {name} ag an mbord",
     "notify.push.rematchBody": "Tá do shuíochán ag {game} á choinneáil. Tapáil le páirt a ghlacadh.",
     "notify.push.rematchTitle": "Tá athchluiche ag teastáil ó {host}"
   },
@@ -140,6 +162,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Dođite igrati {game} s igračem {host}. Dodirnite za pridruživanje.",
     "notify.push.inviteTitle": "{host} je otvorio stol",
+    "notify.push.joinedBody": "{game} · dodirnite za otvaranje stola",
+    "notify.push.joinedTitle": "{name} je sjeo za stol",
     "notify.push.rematchBody": "Vaše mjesto u igri {game} čeka vas. Dodirnite za pridruživanje.",
     "notify.push.rematchTitle": "{host} želi revanš"
   },
@@ -152,6 +176,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Gyere, játssz {game} játékot vele: {host}. Koppints a csatlakozáshoz.",
     "notify.push.inviteTitle": "{host} asztalt nyitott",
+    "notify.push.joinedBody": "{game} · koppints az asztal megnyitásához",
+    "notify.push.joinedTitle": "{name} leült az asztalhoz",
     "notify.push.rematchBody": "A helyed a(z) {game} játékban fenntartva. Koppints a csatlakozáshoz.",
     "notify.push.rematchTitle": "{host} visszavágót szeretne"
   },
@@ -164,6 +190,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Vieni a giocare a {game} con {host}. Tocca per unirti.",
     "notify.push.inviteTitle": "{host} ha aperto un tavolo",
+    "notify.push.joinedBody": "{game} · tocca per aprire il tavolo",
+    "notify.push.joinedTitle": "{name} si è unito al tavolo",
     "notify.push.rematchBody": "Il tuo posto a {game} è tenuto per te. Tocca per unirti.",
     "notify.push.rematchTitle": "{host} vuole la rivincita"
   },
@@ -176,6 +204,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ateikite žaisti {game} su {host}. Palieskite, kad prisijungtumėte.",
     "notify.push.inviteTitle": "{host} atidarė stalą",
+    "notify.push.joinedBody": "{game} · palieskite, kad atidarytumėte stalą",
+    "notify.push.joinedTitle": "{name} prisijungė prie stalo",
     "notify.push.rematchBody": "Jūsų vieta žaidime {game} laikoma. Palieskite, kad prisijungtumėte.",
     "notify.push.rematchTitle": "{host} nori revanšo"
   },
@@ -188,6 +218,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Nāc spēlēt {game} kopā ar {host}. Pieskaries, lai pievienotos.",
     "notify.push.inviteTitle": "{host} atvēra galdu",
+    "notify.push.joinedBody": "{game} · pieskaries, lai atvērtu galdu",
+    "notify.push.joinedTitle": "{name} pievienojās galdam",
     "notify.push.rematchBody": "Jūsu vieta spēlē {game} ir rezervēta. Pieskarieties, lai pievienotos.",
     "notify.push.rematchTitle": "{host} vēlas revanšu"
   },
@@ -200,6 +232,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Ejja ilgħab {game} ma’ {host}. Agħfas biex tingħaqad.",
     "notify.push.inviteTitle": "{host} fetaħ mejda",
+    "notify.push.joinedBody": "{game} · agħfas biex tiftaħ il-mejda",
+    "notify.push.joinedTitle": "{name} ingħaqad mal-mejda",
     "notify.push.rematchBody": "Il-post tiegħek f'{game} miżmum. Agħfas biex tingħaqad.",
     "notify.push.rematchTitle": "{host} irid rivinċita"
   },
@@ -212,6 +246,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom {game} spelen met {host}. Tik om mee te doen.",
     "notify.push.inviteTitle": "{host} heeft een tafel geopend",
+    "notify.push.joinedBody": "{game} · tik om de tafel te openen",
+    "notify.push.joinedTitle": "{name} is aan tafel gaan zitten",
     "notify.push.rematchBody": "Je plaats bij {game} wordt vrijgehouden. Tik om mee te doen.",
     "notify.push.rematchTitle": "{host} wil een revanche"
   },
@@ -224,6 +260,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Zagraj w {game} z: {host}. Dotknij, aby dołączyć.",
     "notify.push.inviteTitle": "{host} otwiera stół",
+    "notify.push.joinedBody": "{game} · dotknij, aby otworzyć stół",
+    "notify.push.joinedTitle": "{name} dołącza do stołu",
     "notify.push.rematchBody": "Twoje miejsce w grze {game} czeka. Dotknij, aby dołączyć.",
     "notify.push.rematchTitle": "{host} chce rewanżu"
   },
@@ -236,6 +274,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Venha jogar {game} com {host}. Toque para se juntar.",
     "notify.push.inviteTitle": "{host} abriu uma mesa",
+    "notify.push.joinedBody": "{game} · toque para abrir a mesa",
+    "notify.push.joinedTitle": "{name} juntou-se à mesa",
     "notify.push.rematchBody": "O seu lugar em {game} está guardado. Toque para entrar.",
     "notify.push.rematchTitle": "{host} quer uma desforra"
   },
@@ -248,6 +288,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Vino să joci {game} cu {host}. Atinge pentru a te alătura.",
     "notify.push.inviteTitle": "{host} a deschis o masă",
+    "notify.push.joinedBody": "{game} · atinge pentru a deschide masa",
+    "notify.push.joinedTitle": "{name} s-a alăturat mesei",
     "notify.push.rematchBody": "Locul tău la {game} este păstrat. Atinge pentru a intra.",
     "notify.push.rematchTitle": "{host} vrea o revanșă"
   },
@@ -260,6 +302,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Príďte si zahrať {game} s hráčom {host}. Ťuknite a prisadnite.",
     "notify.push.inviteTitle": "{host} otvoril(a) stôl",
+    "notify.push.joinedBody": "{game} · ťuknutím otvoríte stôl",
+    "notify.push.joinedTitle": "{name} prisadol(a) k stolu",
     "notify.push.rematchBody": "Vaše miesto v hre {game} je držané. Ťuknite a prisadnite si.",
     "notify.push.rematchTitle": "{host} chce odvetu"
   },
@@ -272,6 +316,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Pridite igrat {game} z igralcem {host}. Dotaknite se za pridružitev.",
     "notify.push.inviteTitle": "{host} je odprl mizo",
+    "notify.push.joinedBody": "{game} · dotaknite se za odprtje mize",
+    "notify.push.joinedTitle": "{name} je prisedel k mizi",
     "notify.push.rematchBody": "Vaše mesto pri igri {game} je zadržano. Tapnite za pridružitev.",
     "notify.push.rematchTitle": "{host} želi revanšo"
   },
@@ -284,6 +330,8 @@
     "module.snaps": "Šnaps",
     "notify.push.inviteBody": "Kom och spela {game} med {host}. Tryck för att gå med.",
     "notify.push.inviteTitle": "{host} har öppnat ett bord",
+    "notify.push.joinedBody": "{game} · tryck för att öppna bordet",
+    "notify.push.joinedTitle": "{name} har satt sig vid bordet",
     "notify.push.rematchBody": "Din plats i {game} hålls åt dig. Tryck för att gå med.",
     "notify.push.rematchTitle": "{host} vill ha en returmatch"
   }

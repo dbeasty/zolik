@@ -8,6 +8,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { formatApiError } from '@/src/lib/apiError';
 import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
@@ -22,7 +23,7 @@ import { t } from '@/src/lib/i18n';
  * polls a match and hands over to the one screen that plays all of them.
  */
 export default function JoinMatchScreen() {
-  const { client } = useSession();
+  const { client, session } = useSession();
   // A host's invite lands the player here with the match already decided —
   // they were seated server-side the moment the host picked them, so there is
   // no code to type and nothing left to do but watch the table fill up, same
@@ -32,6 +33,11 @@ export default function JoinMatchScreen() {
   const [matchId, setMatchId] = useState(invitedMatchId ?? '');
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState('');
+  // Everybody else who sits down while this player waits for the host.
+  useAnnounceArrivals(state?.matchId, state?.players, session?.userId, {
+    moduleId: state?.moduleId,
+    joinCode: state?.joinCode,
+  });
 
   const poll = useCallback(async () => {
     if (!matchId) return;

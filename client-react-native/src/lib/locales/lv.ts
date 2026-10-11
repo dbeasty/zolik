@@ -1888,6 +1888,8 @@ export const lv: Record<string, string> = {
   'notify.addedToCircle': '{name} ir tavā lokā',
   'notify.push.inviteTitle': '{host} atvēra galdu',
   'notify.push.inviteBody': 'Nāc spēlēt {game} kopā ar {host}. Pieskaries, lai pievienotos.',
+  'notify.push.joinedTitle': '{name} pievienojās galdam',
+  'notify.push.joinedBody': '{game} · pieskaries, lai atvērtu galdu',
   'notify.push.rematchTitle': '{host} vēlas revanšu',
   'notify.push.rematchBody': 'Jūsu vieta spēlē {game} ir rezervēta. Pieskarieties, lai pievienotos.',
   'offline.tellNearby': 'Paziņot spēlētājiem tuvumā',

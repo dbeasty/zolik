@@ -48,6 +48,7 @@ type NativeModule = {
   startNode(credential: string, userHex: string, cloudBaseUrl: string): Promise<HostInfo>;
   syncNow(): Promise<void>;
   nodeIdentity(): NodeIdentity | null;
+  setJoinedTexts?(title: string, body: string): void;
   replicaReady(): boolean;
   followMatch(matchId: string): Promise<void>;
   stopHost(): Promise<void>;
@@ -171,6 +172,15 @@ export async function startNode(
 }
 
 /** This install's node identity, or null while no host is running. */
+/**
+ * The words of the notification this phone shows when somebody sits down at
+ * a table it hosts, in the app's language ({name} and {game} are filled in by
+ * the embedded server). Older builds of the native module have no such call.
+ */
+export function setJoinedTexts(title: string, body: string): void {
+  native?.setJoinedTexts?.(title, body);
+}
+
 export function nodeIdentity(): NodeIdentity | null {
   return native?.nodeIdentity() ?? null;
 }

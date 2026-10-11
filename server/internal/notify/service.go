@@ -772,6 +772,76 @@ func (s *Service) RematchOpened(next models.Match, host models.Player, held []mo
 	go s.pushRematch(recipients, invite)
 }
 
+// PlayerJoined tells everybody already sitting at a table that somebody has
+// just sat down, on their own socket and, where they have one, as a push.
+// Satisfies match.JoinObserver.
+//
+// Only the people at that table, and never the person who sat down: they
+// know. A push is the host's way of hearing about it with the phone in a
+// pocket; a client that is open shows its own banner instead (the OS one is
+// suppressed in front, see push.native.ts and sw.js).
+func (s *Service) PlayerJoined(m models.Match, p models.Player) {
+	joiner := KeyForPlayer(p)
+	var recipients []string
+	for _, other := range m.Players {
+		k := KeyForPlayer(other)
+		if k == "" || k == joiner || other.ID == p.ID {
+			continue
+		}
+		recipients = append(recipients, k)
+	}
+	if len(recipients) == 0 {
+		return
+	}
+	msg := TableJoined{
+		Type: "table_joined", MatchID: m.ID.Hex(), JoinCode: m.JoinCode,
+		ModuleID: m.ModuleID, PlayerID: p.ID, Name: p.Name, Avatar: p.Avatar,
+	}
+	payload := map[string]any{
+		"type": msg.Type, "matchId": msg.MatchID, "joinCode": msg.JoinCode, "moduleId": msg.ModuleID,
+		"playerId": msg.PlayerID, "name": msg.Name, "avatar": msg.Avatar,
+	}
+	for _, k := range recipients {
+		s.publish(k, payload)
+	}
+	go s.pushJoined(recipients, msg)
+}
+
+// TableJoined is the message that tells a seated player somebody sat down.
+type TableJoined struct {
+	Type     string `json:"type"`
+	MatchID  string `json:"matchId"`
+	JoinCode string `json:"joinCode,omitempty"`
+	ModuleID string `json:"moduleId"`
+	PlayerID string `json:"playerId"`
+	Name     string `json:"name"`
+	Avatar   string `json:"avatar,omitempty"`
+}
+
+func (s *Service) pushJoined(keys []string, msg TableJoined) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	url := "/match/" + msg.MatchID
+	if msg.JoinCode != "" {
+		url = "/join/" + msg.JoinCode
+	}
+	for _, k := range keys {
+		s.pushTo(ctx, k, func(d Device) *Push {
+			params := map[string]string{"name": msg.Name, "game": s.gameName(d.Locale, msg.ModuleID)}
+			return &Push{
+				Title: text(d.Locale, "notify.push.joinedTitle", params),
+				Body:  text(d.Locale, "notify.push.joinedBody", params),
+				URL:   s.publicBaseURL + url,
+				Tag:   "joined:" + msg.MatchID + ":" + msg.PlayerID,
+				Data: map[string]any{
+					"type": "table_joined", "matchId": msg.MatchID, "joinCode": msg.JoinCode,
+					"moduleId": msg.ModuleID, "playerId": msg.PlayerID, "name": msg.Name, "url": url,
+				},
+			}
+		})
+	}
+}
+
 // HeldSeatReleased withdraws a rematch invite from the one person whose seat
 // was let go — they said no, or the host stopped waiting. Everybody else's
 // stands. Satisfies match.RematchObserver.

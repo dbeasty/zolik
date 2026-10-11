@@ -1911,6 +1911,8 @@ export const mt: Record<string, string> = {
   'notify.addedToCircle': '{name} jinsab fiċ-ċirku tiegħek',
   'notify.push.inviteTitle': '{host} fetaħ mejda',
   'notify.push.inviteBody': 'Ejja ilgħab {game} ma’ {host}. Agħfas biex tingħaqad.',
+  'notify.push.joinedTitle': '{name} ingħaqad mal-mejda',
+  'notify.push.joinedBody': '{game} · agħfas biex tiftaħ il-mejda',
   'notify.push.rematchTitle': '{host} irid rivinċita',
   'notify.push.rematchBody': "Il-post tiegħek f'{game} miżmum. Agħfas biex tingħaqad.",
   'offline.tellNearby': 'Għarraf lill-plejers fil-qrib',

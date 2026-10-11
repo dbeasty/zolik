@@ -1905,6 +1905,8 @@ export const hu: Record<string, string> = {
   'notify.addedToCircle': '{name} a körödben van',
   'notify.push.inviteTitle': '{host} asztalt nyitott',
   'notify.push.inviteBody': 'Gyere, játssz {game} játékot vele: {host}. Koppints a csatlakozáshoz.',
+  'notify.push.joinedTitle': '{name} leült az asztalhoz',
+  'notify.push.joinedBody': '{game} · koppints az asztal megnyitásához',
   'notify.push.rematchTitle': '{host} visszavágót szeretne',
   'notify.push.rematchBody': 'A helyed a(z) {game} játékban fenntartva. Koppints a csatlakozáshoz.',
   'offline.tellNearby': 'Szólj a közeli játékosoknak',

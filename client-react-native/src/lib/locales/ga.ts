@@ -1923,6 +1923,8 @@ export const ga: Record<string, string> = {
   'notify.addedToCircle': 'Tá {name} i do chiorcal',
   'notify.push.inviteTitle': 'D’oscail {host} bord',
   'notify.push.inviteBody': 'Tar agus imir {game} le {host}. Tapáil chun páirt a ghlacadh.',
+  'notify.push.joinedTitle': 'Shuigh {name} ag an mbord',
+  'notify.push.joinedBody': '{game} · tapáil chun an bord a oscailt',
   'notify.push.rematchTitle': 'Tá athchluiche ag teastáil ó {host}',
   'notify.push.rematchBody': 'Tá do shuíochán ag {game} á choinneáil. Tapáil le páirt a ghlacadh.',
   'offline.tellNearby': 'Inis d’imreoirí in aice láimhe',

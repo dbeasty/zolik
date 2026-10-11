@@ -1898,6 +1898,8 @@ export const fi: Record<string, string> = {
   'notify.addedToCircle': '{name} on piirissäsi',
   'notify.push.inviteTitle': '{host} avasi pöydän',
   'notify.push.inviteBody': 'Tule pelaamaan {game} pelaajan {host} kanssa. Napauta liittyäksesi.',
+  'notify.push.joinedTitle': '{name} liittyi pöytään',
+  'notify.push.joinedBody': '{game} · avaa pöytä napauttamalla',
   'notify.push.rematchTitle': '{host} haluaa uusintaottelun',
   'notify.push.rematchBody': 'Paikkasi pelissä {game} on varattu. Liity napauttamalla.',
   'offline.tellNearby': 'Kerro lähellä oleville pelaajille',

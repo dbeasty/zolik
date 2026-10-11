@@ -1930,6 +1930,8 @@ export const el: Record<string, string> = {
   'notify.addedToCircle': '{name}: στον κύκλο σας',
   'notify.push.inviteTitle': '{host} άνοιξε τραπέζι',
   'notify.push.inviteBody': 'Ελάτε να παίξετε {game} με {host}. Αγγίξτε για συμμετοχή.',
+  'notify.push.joinedTitle': '{name} μπήκε στο τραπέζι',
+  'notify.push.joinedBody': '{game} · αγγίξτε για να ανοίξετε το τραπέζι',
   'notify.push.rematchTitle': '{host} θέλει ρεβάνς',
   'notify.push.rematchBody': 'Η θέση σας στο {game} κρατιέται. Αγγίξτε για συμμετοχή.',
   'offline.tellNearby': 'Ειδοποίηση παικτών κοντά',

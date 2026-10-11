@@ -377,7 +377,19 @@ export type MeWSMessage =
   | { type: 'table_invite'; invite: TableInvite }
   | { type: 'invite_revoked'; id: string }
   | { type: 'lobby_invited'; matchId: string; joinCode: string }
-  | { type: 'circle_changed' };
+  | { type: 'circle_changed' }
+  | TableJoinedMessage;
+
+/** Somebody sat down at a table this player is already sitting at. */
+export type TableJoinedMessage = {
+  type: 'table_joined';
+  matchId: string;
+  joinCode?: string;
+  moduleId?: string;
+  playerId: string;
+  name: string;
+  avatar?: string;
+};
 
 /** What the cloud answers when a device enrols as a node of the database. */
 export type NodeEnrolment = {

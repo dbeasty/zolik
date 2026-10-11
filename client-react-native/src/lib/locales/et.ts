@@ -1892,6 +1892,8 @@ export const et: Record<string, string> = {
   'notify.addedToCircle': '{name} on sinu ringis',
   'notify.push.inviteTitle': '{host} avas laua',
   'notify.push.inviteBody': 'Tule mängima {game} koos mängijaga {host}. Puuduta liitumiseks.',
+  'notify.push.joinedTitle': '{name} liitus lauaga',
+  'notify.push.joinedBody': '{game} · puuduta laua avamiseks',
   'notify.push.rematchTitle': '{host} tahab revanši',
   'notify.push.rematchBody': 'Sinu koht mängus {game} on hoitud. Puuduta, et liituda.',
   'offline.tellNearby': 'Teavita lähedal olevaid mängijaid',

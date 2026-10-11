@@ -38,3 +38,16 @@ describe('push payloads', () => {
     expect(messageFromPush({ type: 'something_new' })).toBeNull();
   });
 });
+
+describe('a push saying somebody sat down', () => {
+  it('reads back into the socket message', () => {
+    expect(
+      messageFromPush({ type: 'table_joined', matchId: 'm1', joinCode: 'ABC123', playerId: 'p2', name: 'Bea', url: '/join/ABC123' }),
+    ).toEqual({ type: 'table_joined', matchId: 'm1', joinCode: 'ABC123', moduleId: undefined, playerId: 'p2', name: 'Bea' });
+  });
+
+  it('drops one that names no table or no player', () => {
+    expect(messageFromPush({ type: 'table_joined', playerId: 'p2' })).toBeNull();
+    expect(messageFromPush({ type: 'table_joined', matchId: 'm1' })).toBeNull();
+  });
+});

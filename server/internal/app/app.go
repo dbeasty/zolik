@@ -727,6 +727,7 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	if a.notify != nil {
 		matchMgr.SetLobbyObserver(a.notify)
 		matchMgr.SetRematchObserver(a.notify)
+		matchMgr.AddJoinObserver(a.notify)
 		a.notify.SetGameLabel(func(id string) string {
 			if mod := matchMgr.Registry().Get(id); mod != nil {
 				return mod.Descriptor().Label
