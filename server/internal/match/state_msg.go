@@ -286,7 +286,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	}
 	if o.withOffers {
 		if offers, err := mod.LegalActions(module.State(match.State), viewerID); err == nil && offers != nil {
-			msg.LegalActions = offers
+			msg.LegalActions = holdOffers(match.Status, offers)
 		}
 	}
 	msg.Standings = module.StandingsFor(mod, module.State(match.State))
@@ -315,4 +315,23 @@ func randInt(n int) int {
 		return 0
 	}
 	return int(v.Int64())
+}
+
+// holdOffers greys out every live offer while the table is not running. A
+// suspended or set-aside match refuses every action with MATCH_NOT_ACTIVE, so
+// an enabled "start the next round" beside "pick up where you left off" was a
+// button that did nothing until the table had been resumed first.
+func holdOffers(status string, offers []module.ActionOffer) []module.ActionOffer {
+	if status != "suspended" && status != "abandoned" {
+		return offers
+	}
+	held := make([]module.ActionOffer, len(offers))
+	for i, o := range offers {
+		if o.Enabled {
+			o.Enabled = false
+			o.WhyNot = "MATCH_NOT_ACTIVE"
+		}
+		held[i] = o
+	}
+	return held
 }
