@@ -273,6 +273,7 @@ export const hr: Record<string, string> = {
   'sel.tooMany.1': 'Odaberi samo jednu kartu',
   'sel.tooMany.n': 'Odaberi najviše {n} karata',
   'sel.needMore': 'Odaberi karte: {n}',
+  'sel.needMore.1': 'Odaberi 1 kartu',
   'sel.notThese': 'Te karte ne mogu ovdje',
   'sel.needsCompany': 'Toj karti trebaju one pored nje',
 
@@ -502,6 +503,7 @@ export const hr: Record<string, string> = {
     '{value} je došla sa stola — mora ući u kombinaciju prije nego što možeš završiti potez.',
   'prompt.initialMeld': 'Otvaranje tvoje strane mora doseći {n} bodova.',
   'prompt.canastasNeeded': 'Tvojoj strani treba još {n} canasta prije nego što može izaći.',
+  'prompt.canastasNeeded.1': 'Tvojoj strani treba još 1 canasta prije nego što može izaći.',
   'prompt.mustDrawOrAnswerSeven': 'Odgovori sedmicom ili vuci {n} karata.',
   'prompt.chooseSuit': 'Odaberi boju koja se nastavlja',
   'prompt.skipPending': 'Tvoj potez se preskače',

@@ -276,6 +276,7 @@ export const pl: Record<string, string> = {
   'sel.tooMany.1': 'Wybierz tylko jedną kartę',
   'sel.tooMany.n': 'Wybierz najwyżej {n} kart',
   'sel.needMore': 'Wybierz karty: {n}',
+  'sel.needMore.1': 'Wybierz 1 kartę',
   'sel.notThese': 'Te karty nie mogą tu trafić',
   'sel.needsCompany': 'Ta karta potrzebuje sąsiednich',
 
@@ -505,6 +506,7 @@ export const pl: Record<string, string> = {
   'prompt.jokerMustBePlayed': '{value} pochodzi ze stołu — musi trafić do układu, zanim zakończysz kolejkę.',
   'prompt.initialMeld': 'Otwarcie twojej strony musi osiągnąć {n} punktów.',
   'prompt.canastasNeeded': 'Twojej stronie brakuje jeszcze {n} canast, żeby móc wyjść.',
+  'prompt.canastasNeeded.1': 'Twojej stronie brakuje jeszcze 1 canasty, żeby móc wyjść.',
   'prompt.mustDrawOrAnswerSeven': 'Odpowiedz siódemką albo dobierz {n} kart.',
   'prompt.chooseSuit': 'Wybierz kolor, który obowiązuje dalej',
   'prompt.skipPending': 'Tracisz kolejkę',

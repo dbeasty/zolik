@@ -280,6 +280,7 @@ export const de: Record<string, string> = {
   'sel.tooMany.1': 'Wähle nur eine Karte',
   'sel.tooMany.n': 'Wähle höchstens {n} Karten',
   'sel.needMore': 'Wähle {n} Karte(n)',
+  'sel.needMore.1': 'Wähle 1 Karte',
   'sel.notThese': 'Diese Karten können hier nicht hin',
   'sel.needsCompany': 'Diese Karte braucht die Karten daneben',
 
@@ -513,6 +514,7 @@ export const de: Record<string, string> = {
     '{value} kam vom Tisch — die Karte muss in eine Auslage, bevor du deinen Zug beenden kannst.',
   'prompt.initialMeld': 'Die Erstauslage deiner Seite muss {n} Punkte erreichen.',
   'prompt.canastasNeeded': 'Deiner Seite fehlen noch {n} Canastas, bevor sie hinausgehen kann.',
+  'prompt.canastasNeeded.1': 'Deiner Seite fehlt noch 1 Canasta, bevor sie hinausgehen kann.',
   'prompt.mustDrawOrAnswerSeven': 'Kontere mit einer Sieben oder zieh {n} Karten.',
   'prompt.chooseSuit': 'Wähle die Farbe, die weitergeht',
   'prompt.skipPending': 'Dein Zug wird übersprungen',

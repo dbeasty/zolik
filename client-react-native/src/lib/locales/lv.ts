@@ -273,6 +273,7 @@ export const lv: Record<string, string> = {
   'sel.tooMany.1': 'Izvēlies tikai vienu kārti',
   'sel.tooMany.n': 'Izvēlies ne vairāk kā {n} kārtis',
   'sel.needMore': 'Izvēlies kārtis: {n}',
+  'sel.needMore.1': 'Izvēlies 1 kārti',
   'sel.notThese': 'Šīs kārtis šeit nevar nonākt',
   'sel.needsCompany': 'Šai kārtij vajadzīgas blakus esošās',
 
@@ -501,6 +502,7 @@ export const lv: Record<string, string> = {
   'prompt.jokerMustBePlayed': '{value} nāca no galda — tai jānonāk kombinācijā, pirms vari beigt gājienu.',
   'prompt.initialMeld': 'Tavas puses pirmajai kombinācijai jāsasniedz {n} punkti.',
   'prompt.canastasNeeded': 'Tavai pusei trūkst vēl {n} kanastu, lai varētu iziet.',
+  'prompt.canastasNeeded.1': 'Tavai pusei trūkst vēl 1 kanastas, lai varētu iziet.',
   'prompt.mustDrawOrAnswerSeven': 'Atbildi ar septītnieku vai pavelc {n} kārtis.',
   'prompt.chooseSuit': 'Izvēlies krāsu, kas turpinās',
   'prompt.skipPending': 'Tavs gājiens tiek izlaists',

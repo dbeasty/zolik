@@ -285,6 +285,7 @@ export const ga: Record<string, string> = {
   'sel.tooMany.1': 'Roghnaigh cárta amháin agus é sin amháin',
   'sel.tooMany.n': 'Roghnaigh {n} chárta ar a mhéad',
   'sel.needMore': 'Roghnaigh {n} chárta',
+  'sel.needMore.1': 'Roghnaigh 1 chárta',
   'sel.notThese': 'Ní féidir leis na cártaí sin dul anseo',
   'sel.needsCompany': 'Teastaíonn na cinn in aice leis ón gcárta sin',
 
@@ -517,6 +518,7 @@ export const ga: Record<string, string> = {
     'Tháinig {value} ón mbord — caithfidh sé dul isteach i gcumasc sula bhféadfaidh tú do sheal a chríochnú.',
   'prompt.initialMeld': 'Caithfidh céad chumasc do thaobha {n} bpointe a bhaint amach.',
   'prompt.canastasNeeded': 'Teastaíonn {n} chanasta eile ó do thaobh sula bhféadfaidh sé dul amach.',
+  'prompt.canastasNeeded.1': 'Teastaíonn 1 chanasta eile ó do thaobh sula bhféadfaidh sé dul amach.',
   'prompt.mustDrawOrAnswerSeven': 'Freagair le seacht, nó tarraing {n} chárta.',
   'prompt.chooseSuit': 'Roghnaigh an dath a leanann',
   'prompt.skipPending': 'Scipeáiltear do sheal',

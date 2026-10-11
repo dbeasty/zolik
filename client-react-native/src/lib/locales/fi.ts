@@ -273,6 +273,7 @@ export const fi: Record<string, string> = {
   'sel.tooMany.1': 'Valitse vain yksi kortti',
   'sel.tooMany.n': 'Valitse enintään {n} korttia',
   'sel.needMore': 'Valitse {n} korttia',
+  'sel.needMore.1': 'Valitse 1 kortti',
   'sel.notThese': 'Nuo kortit eivät voi mennä tähän',
   'sel.needsCompany': 'Tuo kortti tarvitsee viereisensä',
 
@@ -502,6 +503,7 @@ export const fi: Record<string, string> = {
     '{value} tuli pöydästä — sen on mentävä yhdistelmään ennen kuin voit päättää vuorosi.',
   'prompt.initialMeld': 'Puolesi avauksen on yllettävä {n} pisteeseen.',
   'prompt.canastasNeeded': 'Puolesi tarvitsee vielä {n} canastaa ennen kuin se pääsee ulos.',
+  'prompt.canastasNeeded.1': 'Puolesi tarvitsee vielä 1 canastan ennen kuin se pääsee ulos.',
   'prompt.mustDrawOrAnswerSeven': 'Vastaa seiskalla tai nosta {n} korttia.',
   'prompt.chooseSuit': 'Valitse maa, joka jatkuu',
   'prompt.skipPending': 'Vuorosi ohitetaan',

@@ -272,6 +272,7 @@ export const et: Record<string, string> = {
   'sel.tooMany.1': 'Vali ainult üks kaart',
   'sel.tooMany.n': 'Vali kõige rohkem {n} kaarti',
   'sel.needMore': 'Vali {n} kaarti',
+  'sel.needMore.1': 'Vali 1 kaart',
   'sel.notThese': 'Need kaardid ei saa siia minna',
   'sel.needsCompany': 'See kaart vajab kõrvalolevaid',
 
@@ -503,6 +504,7 @@ export const et: Record<string, string> = {
     '{value} tuli laualt — see peab minema kombinatsiooni, enne kui saad oma käigu lõpetada.',
   'prompt.initialMeld': 'Sinu poole avang peab ulatuma {n} punktini.',
   'prompt.canastasNeeded': 'Sinu poolel on puudu veel {n} canastat, enne kui ta saab välja minna.',
+  'prompt.canastasNeeded.1': 'Sinu poolel on puudu veel 1 canasta, enne kui ta saab välja minna.',
   'prompt.mustDrawOrAnswerSeven': 'Vasta seitsmega või tõmba {n} kaarti.',
   'prompt.chooseSuit': 'Vali mast, mis jätkub',
   'prompt.skipPending': 'Sinu käik jäetakse vahele',

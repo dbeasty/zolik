@@ -277,6 +277,7 @@ export const nl: Record<string, string> = {
   'sel.tooMany.1': 'Kies maar één kaart',
   'sel.tooMany.n': 'Kies hoogstens {n} kaarten',
   'sel.needMore': 'Kies {n} kaart(en)',
+  'sel.needMore.1': 'Kies 1 kaart',
   'sel.notThese': 'Die kaarten kunnen hier niet heen',
   'sel.needsCompany': 'Die kaart heeft de kaarten ernaast nodig',
 
@@ -510,6 +511,7 @@ export const nl: Record<string, string> = {
     '{value} komt van tafel — die kaart moet in een combinatie voordat je je beurt kunt beëindigen.',
   'prompt.initialMeld': 'De openingsleg van jouw partij moet {n} punten halen.',
   'prompt.canastasNeeded': "Jouw partij heeft nog {n} canasta's nodig voordat ze kan uitgaan.",
+  'prompt.canastasNeeded.1': 'Jouw partij heeft nog 1 canasta nodig voordat ze kan uitgaan.',
   'prompt.mustDrawOrAnswerSeven': 'Antwoord met een zeven, of pak {n} kaarten.',
   'prompt.chooseSuit': 'Kies de kleur die verdergaat',
   'prompt.skipPending': 'Je beurt wordt overgeslagen',

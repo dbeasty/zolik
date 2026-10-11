@@ -275,6 +275,7 @@ export const bg: Record<string, string> = {
   'sel.tooMany.1': 'Избери само една карта',
   'sel.tooMany.n': 'Избери най-много {n} карти',
   'sel.needMore': 'Избери карти: {n}',
+  'sel.needMore.1': 'Избери 1 карта',
   'sel.notThese': 'Тези карти не могат да отидат тук',
   'sel.needsCompany': 'Тази карта се нуждае от съседните',
 
@@ -507,6 +508,7 @@ export const bg: Record<string, string> = {
     '{value} дойде от масата — трябва да влезе в комбинация, преди да можеш да завършиш хода си.',
   'prompt.initialMeld': 'Отварянето на страната ти трябва да достигне {n} точки.',
   'prompt.canastasNeeded': 'На страната ти липсват още {n} канасти, преди да може да излезе.',
+  'prompt.canastasNeeded.1': 'На страната ти липсва още 1 канаста, преди да може да излезе.',
   'prompt.mustDrawOrAnswerSeven': 'Отговори със седмица или изтегли {n} карти.',
   'prompt.chooseSuit': 'Избери боята, която продължава',
   'prompt.skipPending': 'Ходът ти се пропуска',

@@ -271,6 +271,7 @@ export const sl: Record<string, string> = {
   'sel.tooMany.1': 'Izberi samo eno karto',
   'sel.tooMany.n': 'Izberi največ {n} kart',
   'sel.needMore': 'Izberi karte: {n}',
+  'sel.needMore.1': 'Izberi 1 karto',
   'sel.notThese': 'Te karte ne morejo sem',
   'sel.needsCompany': 'Ta karta potrebuje sosednji',
 
@@ -498,6 +499,7 @@ export const sl: Record<string, string> = {
   'prompt.jokerMustBePlayed': '{value} je prišla z mize — mora v kombinacijo, preden lahko končaš potezo.',
   'prompt.initialMeld': 'Prva kombinacija tvoje strani mora doseči {n} točk.',
   'prompt.canastasNeeded': 'Tvoji strani manjka še {n} canast, preden lahko izide.',
+  'prompt.canastasNeeded.1': 'Tvoji strani manjka še 1 canasta, preden lahko izide.',
   'prompt.mustDrawOrAnswerSeven': 'Odgovori s sedmico ali vzemi {n} kart.',
   'prompt.chooseSuit': 'Izberi barvo, ki se nadaljuje',
   'prompt.skipPending': 'Tvoja poteza se preskoči',

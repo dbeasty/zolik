@@ -275,6 +275,7 @@ export const fr: Record<string, string> = {
   'sel.tooMany.1': "Ne choisis qu'une seule carte",
   'sel.tooMany.n': 'Choisis au plus {n} cartes',
   'sel.needMore': 'Choisis {n} carte(s)',
+  'sel.needMore.1': 'Choisis 1 carte',
   'sel.notThese': 'Ces cartes ne peuvent pas aller là',
   'sel.needsCompany': "Cette carte a besoin de celles qui l'entourent",
 
@@ -505,6 +506,7 @@ export const fr: Record<string, string> = {
     '{value} vient de la table — cette carte doit entrer dans une combinaison avant que tu puisses finir ton tour.',
   'prompt.initialMeld': "L'ouverture de ton camp doit atteindre {n} points.",
   'prompt.canastasNeeded': "Il manque {n} canastas à ton camp avant qu'il puisse sortir.",
+  'prompt.canastasNeeded.1': 'Il manque 1 canasta à ton camp avant qu\'il puisse sortir.',
   'prompt.mustDrawOrAnswerSeven': 'Réponds par un sept, ou pioche {n} cartes.',
   'prompt.chooseSuit': 'Choisis la couleur qui continue',
   'prompt.skipPending': 'Ton tour est sauté',

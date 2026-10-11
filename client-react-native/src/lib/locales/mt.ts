@@ -277,6 +277,7 @@ export const mt: Record<string, string> = {
   'sel.tooMany.1': 'Agħżel karta waħda biss',
   'sel.tooMany.n': 'Agħżel l-aktar {n} karti',
   'sel.needMore': 'Agħżel {n} karti',
+  'sel.needMore.1': 'Agħżel karta 1',
   'sel.notThese': 'Dawk il-karti ma jistgħux jiġu hawn',
   'sel.needsCompany': "Dik il-karta għandha bżonn dawk ta' maġenbha",
 
@@ -508,6 +509,7 @@ export const mt: Record<string, string> = {
   'prompt.initialMeld': 'Il-ftuħ tan-naħa tiegħek irid jilħaq {n} punti.',
   'prompt.canastasNeeded':
     "In-naħa tiegħek għad għandha bżonn {n} canastas oħra qabel ma tkun tista' toħroġ.",
+  'prompt.canastasNeeded.1': 'Id-naħa tiegħek għandha bżonn 1 canasta oħra qabel ma tkun tista’ toħroġ.',
   'prompt.mustDrawOrAnswerSeven': "Wieġeb b'sebgħa, jew iġbed {n} karti.",
   'prompt.chooseSuit': 'Agħżel il-kulur li jkompli',
   'prompt.skipPending': 'Id-dawra tiegħek tinqabeż',

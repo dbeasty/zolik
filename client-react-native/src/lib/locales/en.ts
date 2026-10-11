@@ -285,6 +285,7 @@ export const en: Record<string, string> = {
   'sel.tooMany.1': 'Select just one card',
   'sel.tooMany.n': 'Select at most {n} cards',
   'sel.needMore': 'Select {n} card(s)',
+  'sel.needMore.1': 'Select 1 card',
   'sel.notThese': "Those cards can't go here",
   'sel.needsCompany': 'That card needs the ones next to it',
 
@@ -503,6 +504,7 @@ export const en: Record<string, string> = {
   'prompt.jokerMustBePlayed': '{value} came off the table — it has to go into a meld before you can end your turn.',
   'prompt.initialMeld': 'Your side\'s first meld must reach {n} points.',
   'prompt.canastasNeeded': 'Your side needs {n} more canastas before it can go out.',
+  'prompt.canastasNeeded.1': 'Your side needs 1 more canasta before it can go out.',
   'prompt.mustDrawOrAnswerSeven': 'Answer with a seven, or draw {n} cards.',
   'prompt.chooseSuit': 'Choose the suit that continues',
   'prompt.skipPending': 'Your turn is skipped',

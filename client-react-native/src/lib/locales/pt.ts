@@ -274,6 +274,7 @@ export const pt: Record<string, string> = {
   'sel.tooMany.1': 'Escolhe apenas uma carta',
   'sel.tooMany.n': 'Escolhe no máximo {n} cartas',
   'sel.needMore': 'Escolhe {n} carta(s)',
+  'sel.needMore.1': 'Escolhe 1 carta',
   'sel.notThese': 'Essas cartas não podem ir aqui',
   'sel.needsCompany': 'Essa carta precisa das que estão ao lado',
 
@@ -505,6 +506,7 @@ export const pt: Record<string, string> = {
     '{value} veio da mesa — tem de entrar numa combinação antes de poderes terminar a tua vez.',
   'prompt.initialMeld': 'A abertura do teu lado tem de chegar a {n} pontos.',
   'prompt.canastasNeeded': 'Ao teu lado faltam {n} canastras para poder sair.',
+  'prompt.canastasNeeded.1': 'Ao teu lado falta 1 canastra para poder sair.',
   'prompt.mustDrawOrAnswerSeven': 'Responde com um sete, ou compra {n} cartas.',
   'prompt.chooseSuit': 'Escolhe o naipe que continua',
   'prompt.skipPending': 'Perdes a vez',

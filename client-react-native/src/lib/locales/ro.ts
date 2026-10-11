@@ -274,6 +274,7 @@ export const ro: Record<string, string> = {
   'sel.tooMany.1': 'Alege doar o carte',
   'sel.tooMany.n': 'Alege cel mult {n} cărți',
   'sel.needMore': 'Alege {n} cărți',
+  'sel.needMore.1': 'Alege 1 carte',
   'sel.notThese': 'Acele cărți nu pot ajunge aici',
   'sel.needsCompany': 'Acea carte are nevoie de cele de lângă ea',
 
@@ -505,6 +506,7 @@ export const ro: Record<string, string> = {
     '{value} a venit de pe masă — trebuie să intre într-o combinație înainte să îți poți încheia tura.',
   'prompt.initialMeld': 'Deschiderea taberei tale trebuie să ajungă la {n} puncte.',
   'prompt.canastasNeeded': 'Taberei tale îi mai trebuie {n} canaste ca să poată ieși.',
+  'prompt.canastasNeeded.1': 'Taberei tale îi mai trebuie 1 canastă ca să poată ieși.',
   'prompt.mustDrawOrAnswerSeven': 'Răspunde cu un șapte, sau trage {n} cărți.',
   'prompt.chooseSuit': 'Alege culoarea care continuă',
   'prompt.skipPending': 'Rândul tău este sărit',

@@ -268,6 +268,7 @@ export const da: Record<string, string> = {
   'sel.tooMany.1': 'Vælg kun ét kort',
   'sel.tooMany.n': 'Vælg højst {n} kort',
   'sel.needMore': 'Vælg {n} kort',
+  'sel.needMore.1': 'Vælg 1 kort',
   'sel.notThese': 'De kort kan ikke ligge her',
   'sel.needsCompany': 'Det kort har brug for dem ved siden af',
 
@@ -498,6 +499,7 @@ export const da: Record<string, string> = {
     '{value} kom fra bordet — det skal indgå i en kombination, før du kan afslutte din tur.',
   'prompt.initialMeld': 'Din sides åbning skal nå {n} point.',
   'prompt.canastasNeeded': 'Din side mangler {n} canastaer mere, før den kan gå ud.',
+  'prompt.canastasNeeded.1': 'Din side mangler 1 canasta mere, før den kan gå ud.',
   'prompt.mustDrawOrAnswerSeven': 'Svar med en syver, eller træk {n} kort.',
   'prompt.chooseSuit': 'Vælg den farve, der fortsætter',
   'prompt.skipPending': 'Din tur springes over',

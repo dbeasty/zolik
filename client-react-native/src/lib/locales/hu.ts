@@ -280,6 +280,7 @@ export const hu: Record<string, string> = {
   'sel.tooMany.1': 'Csak egy lapot válassz',
   'sel.tooMany.n': 'Legfeljebb {n} lapot válassz',
   'sel.needMore': 'Válassz {n} lapot',
+  'sel.needMore.1': 'Válassz 1 lapot',
   'sel.notThese': 'Ezek a lapok nem kerülhetnek ide',
   'sel.needsCompany': 'Ennek a lapnak a mellette lévőkre is szüksége van',
 
@@ -512,6 +513,7 @@ export const hu: Record<string, string> = {
     'A(z) {value} az asztalról jött — kombinációba kell kerülnie, mielőtt lezárhatnád a köröd.',
   'prompt.initialMeld': 'Az oldalad nyitásának el kell érnie a(z) {n} pontot.',
   'prompt.canastasNeeded': 'Az oldaladnak még {n} canastára van szüksége, hogy kiszállhasson.',
+  'prompt.canastasNeeded.1': 'Az oldaladnak még 1 canastára van szüksége, hogy kiszállhasson.',
   'prompt.mustDrawOrAnswerSeven': 'Válaszolj hetessel, vagy húzz {n} lapot.',
   'prompt.chooseSuit': 'Válaszd ki a folytatódó színt',
   'prompt.skipPending': 'A köröd kimarad',

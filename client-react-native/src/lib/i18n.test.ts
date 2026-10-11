@@ -123,3 +123,12 @@ describe('countLabel', () => {
     expect(countLabel(7, 'sets')).toBe('7 skupin');
   });
 });
+
+describe('a count of one', () => {
+  it('uses the singular wording where a language has one, the plural form otherwise', () => {
+    expect(t('prompt.canastasNeeded', { n: 1 })).toBe('Your side needs 1 more canasta before it can go out.');
+    expect(t('prompt.canastasNeeded', { n: 2 })).toBe('Your side needs 2 more canastas before it can go out.');
+    expect(t('sel.needMore', { n: 1 })).toBe('Select 1 card');
+    expect(t('sel.needMore', { n: 3 })).toBe('Select 3 card(s)');
+  });
+});

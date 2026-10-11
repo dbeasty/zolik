@@ -274,6 +274,7 @@ export const it: Record<string, string> = {
   'sel.tooMany.1': 'Seleziona una sola carta',
   'sel.tooMany.n': 'Seleziona al massimo {n} carte',
   'sel.needMore': 'Seleziona {n} carta/e',
+  'sel.needMore.1': 'Seleziona 1 carta',
   'sel.notThese': 'Quelle carte non possono andare qui',
   'sel.needsCompany': 'Quella carta ha bisogno di quelle accanto',
 
@@ -503,6 +504,7 @@ export const it: Record<string, string> = {
     '{value} viene dal tavolo — deve finire in una combinazione prima che tu possa chiudere il turno.',
   'prompt.initialMeld': "L'apertura della tua coppia deve raggiungere {n} punti.",
   'prompt.canastasNeeded': 'Alla tua coppia servono altre {n} canaste prima di poter chiudere.',
+  'prompt.canastasNeeded.1': 'Alla tua coppia serve ancora 1 canasta prima di poter chiudere.',
   'prompt.mustDrawOrAnswerSeven': 'Rispondi con un sette, oppure pesca {n} carte.',
   'prompt.chooseSuit': 'Scegli il seme che prosegue',
   'prompt.skipPending': 'Il tuo turno salta',

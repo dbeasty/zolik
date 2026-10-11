@@ -266,6 +266,7 @@ export const sv: Record<string, string> = {
   'sel.tooMany.1': 'Välj bara ett kort',
   'sel.tooMany.n': 'Välj högst {n} kort',
   'sel.needMore': 'Välj {n} kort',
+  'sel.needMore.1': 'Välj 1 kort',
   'sel.notThese': 'De korten kan inte ligga här',
   'sel.needsCompany': 'Det kortet behöver korten bredvid',
 
@@ -496,6 +497,7 @@ export const sv: Record<string, string> = {
     '{value} kom från bordet — det måste ingå i en kombination innan du kan avsluta din tur.',
   'prompt.initialMeld': 'Din sidas öppning måste nå {n} poäng.',
   'prompt.canastasNeeded': 'Din sida behöver {n} canastor till innan den kan gå ut.',
+  'prompt.canastasNeeded.1': 'Din sida behöver 1 canasta till innan den kan gå ut.',
   'prompt.mustDrawOrAnswerSeven': 'Svara med en sjua, eller dra {n} kort.',
   'prompt.chooseSuit': 'Välj färgen som gäller vidare',
   'prompt.skipPending': 'Din tur hoppas över',

@@ -277,6 +277,7 @@ export const es: Record<string, string> = {
   'sel.tooMany.1': 'Elige solo una carta',
   'sel.tooMany.n': 'Elige como mucho {n} cartas',
   'sel.needMore': 'Elige {n} carta(s)',
+  'sel.needMore.1': 'Elige 1 carta',
   'sel.notThese': 'Esas cartas no pueden ir aquí',
   'sel.needsCompany': 'Esa carta necesita las de al lado',
 
@@ -507,6 +508,7 @@ export const es: Record<string, string> = {
     '{value} vino de la mesa — tiene que entrar en una combinación antes de que puedas terminar tu turno.',
   'prompt.initialMeld': 'La combinación inicial de tu bando debe llegar a {n} puntos.',
   'prompt.canastasNeeded': 'A tu bando le faltan {n} canastas para poder irse.',
+  'prompt.canastasNeeded.1': 'A tu bando le falta 1 canasta para poder irse.',
   'prompt.mustDrawOrAnswerSeven': 'Responde con un siete, o roba {n} cartas.',
   'prompt.chooseSuit': 'Elige el palo que continúa',
   'prompt.skipPending': 'Pierdes tu turno',

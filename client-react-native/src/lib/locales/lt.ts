@@ -271,6 +271,7 @@ export const lt: Record<string, string> = {
   'sel.tooMany.1': 'Pasirink tik vieną kortą',
   'sel.tooMany.n': 'Pasirink daugiausia {n} kortų',
   'sel.needMore': 'Pasirink kortų: {n}',
+  'sel.needMore.1': 'Pasirink 1 kortą',
   'sel.notThese': 'Šios kortos čia negali patekti',
   'sel.needsCompany': 'Šiai kortai reikia gretimų',
 
@@ -500,6 +501,7 @@ export const lt: Record<string, string> = {
     '{value} atkeliavo nuo stalo — ji turi patekti į derinį, kad galėtum baigti ėjimą.',
   'prompt.initialMeld': 'Tavo pusės pradinis derinys turi pasiekti {n} taškų.',
   'prompt.canastasNeeded': 'Tavo pusei trūksta dar {n} kanastų, kad galėtų išeiti.',
+  'prompt.canastasNeeded.1': 'Tavo pusei trūksta dar 1 kanastos, kad galėtų išeiti.',
   'prompt.mustDrawOrAnswerSeven': 'Atsakyk septynetu arba paimk {n} kortų.',
   'prompt.chooseSuit': 'Pasirink rūšį, kuri tęsiasi',
   'prompt.skipPending': 'Tavo ėjimas praleidžiamas',

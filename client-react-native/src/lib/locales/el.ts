@@ -282,6 +282,7 @@ export const el: Record<string, string> = {
   'sel.tooMany.1': 'Διάλεξε μόνο ένα φύλλο',
   'sel.tooMany.n': 'Διάλεξε το πολύ {n} φύλλα',
   'sel.needMore': 'Διάλεξε {n} φύλλο/α',
+  'sel.needMore.1': 'Διάλεξε 1 φύλλο',
   'sel.notThese': 'Αυτά τα φύλλα δεν μπορούν να πάνε εδώ',
   'sel.needsCompany': 'Αυτό το φύλλο χρειάζεται τα διπλανά του',
 
@@ -515,6 +516,7 @@ export const el: Record<string, string> = {
     'Το {value} ήρθε από το τραπέζι — πρέπει να μπει σε συνδυασμό πριν μπορέσεις να τελειώσεις τη σειρά σου.',
   'prompt.initialMeld': 'Το άνοιγμα της πλευράς σου πρέπει να φτάσει τους {n} πόντους.',
   'prompt.canastasNeeded': 'Στην πλευρά σου λείπουν ακόμα {n} καναστες πριν μπορέσει να βγει.',
+  'prompt.canastasNeeded.1': 'Στην πλευρά σου λείπει ακόμα 1 κανάστα πριν μπορεί να βγει.',
   'prompt.mustDrawOrAnswerSeven': 'Απάντησε με εφτάρι, ή τράβα {n} φύλλα.',
   'prompt.chooseSuit': 'Διάλεξε το χρώμα που συνεχίζει',
   'prompt.skipPending': 'Η σειρά σου προσπερνιέται',

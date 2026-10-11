@@ -270,6 +270,7 @@ export const cs: Record<string, string> = {
   'sel.tooMany.1': 'Vyber jen jednu kartu',
   'sel.tooMany.n': 'Vyber nejvýš {n} karet',
   'sel.needMore': 'Vyber {n} kartu/karty',
+  'sel.needMore.1': 'Vyber 1 kartu',
   'sel.notThese': 'Tyhle karty sem nepatří',
   'sel.needsCompany': 'Tahle karta potřebuje ty vedle sebe',
 
@@ -497,6 +498,7 @@ export const cs: Record<string, string> = {
   'prompt.jokerMustBePlayed': '{value} je ze stolu — než ukončíš tah, musí jít do kombinace.',
   'prompt.initialMeld': 'První kombinace tvé strany musí mít {n} bodů.',
   'prompt.canastasNeeded': 'Tvé straně chybí ještě {n} canasty, než může vyjít.',
+  'prompt.canastasNeeded.1': 'Tvé straně chybí ještě 1 canasta, než může vyjít.',
   'prompt.mustDrawOrAnswerSeven': 'Odpověz sedmičkou, nebo si lízni {n} karty.',
   'prompt.chooseSuit': 'Vyber barvu, která se hraje dál',
   'prompt.skipPending': 'Tvůj tah se přeskakuje',
