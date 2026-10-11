@@ -316,6 +316,7 @@ function GameRow({
           {resume ? (
             <Text
               testID={`picker-${mod.id}-table`}
+              numberOfLines={1}
               style={[styles.badge, status.yourTurn ? styles.badgeTurn : styles.badgeQuiet]}
             >
               {status.yourTurn
@@ -567,16 +568,19 @@ const styles = StyleSheet.create({
   rowPressed: { borderColor: colors.accent },
   tile: { position: 'relative' },
   resumeCorner: { position: 'absolute', right: 10, bottom: 10, backgroundColor: colors.surface },
-  badgesClearOfResume: { paddingRight: 76 },
+  badgesClearOfResume: { paddingRight: 70 },
   name: { color: colors.text, fontSize: 16, fontWeight: '600' },
   badges: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 6, minHeight: 24 },
   badge: {
     fontSize: 12,
     fontWeight: '600',
     borderRadius: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     overflow: 'hidden',
+    // One line, shrinking to an ellipsis at worst: "In progress" wrapped to
+    // two lines beside Resume at 402 pt and made its tile taller than the rest.
+    flexShrink: 1,
   },
   badgeTurn: { color: colors.onAccent, backgroundColor: colors.gold },
   badgeQuiet: { color: colors.muted, borderWidth: 1, borderColor: colors.border },
