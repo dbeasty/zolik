@@ -122,12 +122,12 @@ export function moveSlot<T>(items: T[], from: number, to: number): T[] {
   return out;
 }
 
-/** Ace-low rank order, the one thing a shell may know about a card without
+/** Ace-high rank order, the one thing a shell may know about a card without
  * knowing a rule: it's a fact about the deck, not about any game's play. */
 function rankOrder(card: string): number {
   if (card.startsWith('JOKER')) return 100;
   const order: Record<string, number> = {
-    A: 1,
+    A: 14,
     '2': 2,
     '3': 3,
     '4': 4,
