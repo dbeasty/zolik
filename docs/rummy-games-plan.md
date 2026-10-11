@@ -652,3 +652,22 @@ in that order, rather than begun and left inconsistent:
 **No file outside `internal/rummytiles` learned a Rummy Tiles rule, and no client file learned one at
 all** — trivially true right now, since no client file changed, which is the honest reading of that
 exit criterion until B1 lands.
+
+
+### Phase B follow-up: B1 and B4 landed
+
+*Written after the work.* B1 and B4 turned out smaller than the Phase B outcome predicted, and the
+real blockers were elsewhere:
+
+- **B1.** `parseCard` reads a tile (`TILE_GLYPH` gives each colour a shape too, so colour is never the
+  only signal) and `CardView` draws it through `components/cards/TileFace.tsx`, on the plain card
+  chassis in every skin. Sizes come from the card metrics, so no skin changes them.
+- **B4 was mostly already there** (the CanastaX meld pick covers tapping a tile inside an open meld
+  to take it). The failure was server-side: `place`/`add`/`take` offered `MinCards: 1` with no
+  `MaxCards`, which the client reads as "exactly one", hence "Select just one card" after a hint
+  picked three. The offers now carry `MaxCards` and the candidate lists keep duplicate tiles. The one
+  real client gap was the tray: a loose tile was not pressable. `app/match/[matchId].tsx` now treats
+  `from_table` offers listing `source.cards` as lifts, so a tray tile can be tapped or dragged onto
+  a meld.
+- **Still open:** B5 (solver). The Add button's set facts now read as tiles (`labels.ts`).
+- `e2e/tests/rummytiles-ui.spec.ts` drives all of this through the real UI.

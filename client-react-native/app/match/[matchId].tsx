@@ -927,7 +927,12 @@ function MatchScreen() {
   const fromMeld = (o: ActionOffer) => o.source?.zone === 'from_meld' && !o.source?.submit?.length;
   // Everything a hand selection could be for: the whole list, less the moves
   // that start on the table.
-  const handOffers = state.legalActions.filter((o) => !fromMeld(o));
+  // A tile lying loose in a tray is lifted the same way, except that the offer
+  // lists every tile it would take (`source.cards`) rather than naming one run
+  // (`source.submit`): any of them is a head, and the pick is just that tile.
+  const isTrayLift = (o: ActionOffer) =>
+    o.source?.zone === 'from_table' && !o.source.submit?.length && !!o.source.cards?.length;
+  const handOffers = state.legalActions.filter((o) => !fromMeld(o) && !isTrayLift(o));
   // Melds whose cards may be picked up right now, by meld id.
   const pickableGroups = new Set(
     state.legalActions
@@ -964,13 +969,21 @@ function MatchScreen() {
   const liftOffers = state.legalActions.filter(
     (o) =>
       o.enabled &&
-      !!o.source?.submit?.length &&
-      (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))),
+      (isTrayLift(o) ||
+        (!!o.source?.submit?.length &&
+          (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))))),
   );
+  /** The cards an offer lifts when `card` is the one pressed. */
+  const liftedBy = (o: ActionOffer, card: string) => (isTrayLift(o) ? [card] : o.source!.submit!);
   const liftable = new Set(
-    liftOffers.map((o) => liftKey(o.source!.meldId ?? o.source!.zoneId!, o.source!.submit![0]!)),
+    liftOffers.flatMap((o) =>
+      isTrayLift(o)
+        ? o.source!.cards!.map((c) => liftKey(o.source!.zoneId!, c))
+        : [liftKey(o.source!.meldId ?? o.source!.zoneId!, o.source!.submit![0]!)],
+    ),
   );
-  const liftsOf = (card: string) => liftOffers.filter((o) => o.source!.submit![0] === card);
+  const liftsOf = (card: string) =>
+    liftOffers.filter((o) => (isTrayLift(o) ? o.source!.cards!.includes(card) : o.source!.submit![0] === card));
 
   const canAct = state.legalActions.some(isLive);
   const step = turnStep(state.legalActions);
@@ -1139,7 +1152,7 @@ function MatchScreen() {
     const aimed = armedMeldIdLive ? offers.filter((o) => o.target?.meldId === armedMeldIdLive) : [];
     const only = aimed.length === 1 ? aimed[0] : offers.length === 1 ? offers[0] : undefined;
     if (only) {
-      const action = submissionFor(only, { cards: only.source!.submit });
+      const action = submissionFor(only, { cards: liftedBy(only, card) });
       if (!action) return;
       send(action);
       clearSelection();
@@ -1148,14 +1161,14 @@ function MatchScreen() {
     }
     clearSelection();
     setPendingGroupKey(null);
-    setTablePick((was) => (was?.[0] === card ? null : offers[0]!.source!.submit!));
+    setTablePick((was) => (was?.[0] === card ? null : liftedBy(offers[0]!, card)));
   };
 
   // The same run carried by hand rather than picked by a press.
   const beginTableDrag = (card: string) => {
     const offer = liftsOf(card)[0];
     if (!offer) return;
-    const cards = offer.source!.submit!;
+    const cards = liftedBy(offer, card);
     setTablePick(null);
     dragRef.current = { slotIds: [], cards, fromTable: true };
     setDrag({ cards, fromTable: true });

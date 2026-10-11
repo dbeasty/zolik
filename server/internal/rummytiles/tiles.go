@@ -11,6 +11,7 @@ package rummytiles
 
 import (
 	"math/rand"
+	"sort"
 	"strconv"
 )
 
@@ -144,5 +145,15 @@ func sortedUnique(tiles []string) []string {
 		seen[t] = true
 		out = append(out, t)
 	}
+	return out
+}
+
+// sortedTiles is the tiles in a stable order, duplicates kept. An offer's
+// candidate list has to be a multiset: a hand holding two 7-R can place both,
+// and a client that checks a pick against a de-duplicated list refuses the
+// second.
+func sortedTiles(tiles []string) []string {
+	out := append([]string(nil), tiles...)
+	sort.Strings(out)
 	return out
 }
