@@ -1112,6 +1112,31 @@ func TestLegacyRegisterRejectsADuplicateUsername(t *testing.T) {
 	if res.status == http.StatusOK {
 		t.Fatal("registering an already-taken username succeeded")
 	}
+	if res.status != http.StatusConflict || res.str("code") != "USERNAME_TAKEN" {
+		t.Fatalf("duplicate username: status %d code %q, want 409 USERNAME_TAKEN (body %s)", res.status, res.str("code"), res.raw)
+	}
+}
+
+// Refusals the player reads carry a code the client words in their language,
+// not an English sentence that would reach the screen as it is.
+func TestAuthRefusalsCarryCodes(t *testing.T) {
+	h := newTestHarness(t)
+	for _, c := range []struct {
+		name, path string
+		body       map[string]any
+		status     int
+		code       string
+	}{
+		{"missing fields", "/auth/register", map[string]any{"username": "", "password": ""}, http.StatusBadRequest, "CREDENTIALS_REQUIRED"},
+		{"long password", "/auth/register", map[string]any{"username": "u", "password": strings.Repeat("x", 100000)}, http.StatusBadRequest, "PASSWORD_TOO_LONG"},
+		{"bad email", "/auth/email/start", map[string]any{"email": "nope"}, http.StatusBadRequest, "INVALID_EMAIL"},
+		{"bad code", "/auth/email/verify", map[string]any{"email": "a@example.com", "code": "000000"}, http.StatusUnauthorized, "CODE_INVALID"},
+	} {
+		res := h.do(http.MethodPost, c.path, "", c.body)
+		if res.status != c.status || res.str("code") != c.code {
+			t.Errorf("%s: status %d code %q, want %d %s (body %s)", c.name, res.status, res.str("code"), c.status, c.code, res.raw)
+		}
+	}
 }
 
 // A passphrase longer than bcrypt reads used to be a 500 on register ("internal

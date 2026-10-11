@@ -20,6 +20,12 @@ export const bg: Record<string, string> = {
   'err.DISPLACED': 'Отворено в друг раздел — този спря да се синхронизира',
   'err.UNREACHABLE': 'Няма връзка със сървъра. Проверете връзката си и опитайте отново.',
   'err.INVALID_CREDENTIALS': 'Потребителското име и паролата не съвпадат.',
+  'err.CREDENTIALS_REQUIRED': 'Въведете потребителско име и парола.',
+  'err.PASSWORD_TOO_LONG': 'Паролата е твърде дълга.',
+  'err.USERNAME_TAKEN': 'Това потребителско име или имейл вече е заето.',
+  'err.INVALID_EMAIL': 'Това не прилича на имейл адрес.',
+  'err.CODE_INVALID': 'Този код не е валиден. Поискайте нов.',
+  'err.TOO_MANY_CODES': 'Поискани са твърде много кодове за този адрес. Опитайте отново след малко.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

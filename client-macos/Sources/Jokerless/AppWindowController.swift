@@ -77,15 +77,17 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     window.delegate = self
 
     if let previous {
-      window.setFrame(previous.frame, display: false)
-      // A step down and to the right of the newest window, so each one is
+      // A new window opens at its own default size (a game window is not the
+      // main window's, nor the size the player stretched the last one to),
+      // a step down and to the right of the newest window, so each one is
       // seen; at the screen's edge the stack starts over at the top left
       // rather than piling every later window on one spot (AppKit's own
       // cascade stops moving there).
+      let size = window.frame.size
       let step: CGFloat = 29
       var topLeft = NSPoint(x: previous.frame.minX + step, y: previous.frame.maxY - step)
       let screen = (previous.screen ?? NSScreen.main)?.visibleFrame ?? .zero
-      if topLeft.y - previous.frame.height < screen.minY || topLeft.x + previous.frame.width > screen.maxX {
+      if topLeft.y - size.height < screen.minY || topLeft.x + size.width > screen.maxX {
         topLeft = NSPoint(x: screen.minX + 40, y: screen.maxY - 40)
       }
       window.setFrameTopLeftPoint(topLeft)

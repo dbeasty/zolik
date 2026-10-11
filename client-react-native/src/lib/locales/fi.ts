@@ -20,6 +20,12 @@ export const fi: Record<string, string> = {
   'err.DISPLACED': 'Avattu toisessa välilehdessä — tämä lakkasi synkronoimasta',
   'err.UNREACHABLE': 'Palvelimeen ei saada yhteyttä. Tarkista yhteytesi ja yritä uudelleen.',
   'err.INVALID_CREDENTIALS': 'Käyttäjänimi ja salasana eivät täsmää.',
+  'err.CREDENTIALS_REQUIRED': 'Anna käyttäjätunnus ja salasana.',
+  'err.PASSWORD_TOO_LONG': 'Salasana on liian pitkä.',
+  'err.USERNAME_TAKEN': 'Tämä käyttäjätunnus tai sähköposti on jo käytössä.',
+  'err.INVALID_EMAIL': 'Tämä ei näytä sähköpostiosoitteelta.',
+  'err.CODE_INVALID': 'Koodi ei kelpaa. Pyydä uusi.',
+  'err.TOO_MANY_CODES': 'Tälle osoitteelle on pyydetty liian monta koodia. Yritä hetken kuluttua uudelleen.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

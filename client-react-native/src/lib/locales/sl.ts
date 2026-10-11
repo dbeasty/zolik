@@ -20,6 +20,12 @@ export const sl: Record<string, string> = {
   'err.DISPLACED': 'Odprto v drugem zavihku — ta se je nehal sinhronizirati',
   'err.UNREACHABLE': 'Strežnik ni dosegljiv. Preverite povezavo in poskusite znova.',
   'err.INVALID_CREDENTIALS': 'Uporabniško ime in geslo se ne ujemata.',
+  'err.CREDENTIALS_REQUIRED': 'Vnesite uporabniško ime in geslo.',
+  'err.PASSWORD_TOO_LONG': 'To geslo je predolgo.',
+  'err.USERNAME_TAKEN': 'To uporabniško ime ali e-poštni naslov je že zaseden.',
+  'err.INVALID_EMAIL': 'To ne izgleda kot e-poštni naslov.',
+  'err.CODE_INVALID': 'Ta koda ni veljavna. Zahtevajte novo.',
+  'err.TOO_MANY_CODES': 'Za ta naslov je bilo zahtevanih preveč kod. Poskusite znova čez trenutek.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

@@ -20,6 +20,12 @@ export const nl: Record<string, string> = {
   'err.DISPLACED': 'Geopend in een ander tabblad — deze synchroniseert niet meer',
   'err.UNREACHABLE': 'De server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.',
   'err.INVALID_CREDENTIALS': 'Die gebruikersnaam en dat wachtwoord komen niet overeen.',
+  'err.CREDENTIALS_REQUIRED': 'Voer een gebruikersnaam en wachtwoord in.',
+  'err.PASSWORD_TOO_LONG': 'Dat wachtwoord is te lang.',
+  'err.USERNAME_TAKEN': 'Die gebruikersnaam of dat e-mailadres is al in gebruik.',
+  'err.INVALID_EMAIL': 'Dat lijkt niet op een e-mailadres.',
+  'err.CODE_INVALID': 'Die code is niet geldig. Vraag een nieuwe aan.',
+  'err.TOO_MANY_CODES': 'Er zijn te veel codes aangevraagd voor dat adres. Probeer het zo meteen opnieuw.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

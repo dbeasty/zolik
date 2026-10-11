@@ -15,6 +15,17 @@
   var handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zolik;
   if (!handler) return;
 
+  // The pages in the export are prerendered for a browser: with the header,
+  // the account menu and no window role. Inside the app the same page draws a
+  // different tree (no header, a game window's guard, the app's own seat), so
+  // React could never adopt the prerendered markup, and trying to reported
+  // hydration error #418 in every window. The app has nothing to adopt: the
+  // page is drawn fresh into #root. The export's own boot line sets the flag
+  // that asks for hydration; it is held at false here.
+  try {
+    Object.defineProperty(window, '__EXPO_ROUTER_HYDRATE__', { get: function () { return false; }, set: function () {}, configurable: false });
+  } catch (e) {}
+
   function post(msg) {
     return handler.postMessage(msg);
   }

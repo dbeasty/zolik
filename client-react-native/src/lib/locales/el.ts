@@ -20,6 +20,12 @@ export const el: Record<string, string> = {
   'err.DISPLACED': 'Άνοιξε σε άλλη καρτέλα — αυτή σταμάτησε να συγχρονίζεται',
   'err.UNREACHABLE': 'Δεν είναι δυνατή η σύνδεση με τον διακομιστή. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.',
   'err.INVALID_CREDENTIALS': 'Το όνομα χρήστη και ο κωδικός πρόσβασης δεν ταιριάζουν.',
+  'err.CREDENTIALS_REQUIRED': 'Εισάγετε όνομα χρήστη και κωδικό πρόσβασης.',
+  'err.PASSWORD_TOO_LONG': 'Ο κωδικός πρόσβασης είναι πολύ μεγάλος.',
+  'err.USERNAME_TAKEN': 'Αυτό το όνομα χρήστη ή email χρησιμοποιείται ήδη.',
+  'err.INVALID_EMAIL': 'Αυτό δεν μοιάζει με διεύθυνση email.',
+  'err.CODE_INVALID': 'Αυτός ο κωδικός δεν είναι έγκυρος. Ζητήστε νέο.',
+  'err.TOO_MANY_CODES': 'Ζητήθηκαν πάρα πολλοί κωδικοί για αυτή τη διεύθυνση. Δοκιμάστε ξανά σε λίγο.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

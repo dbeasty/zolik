@@ -6,6 +6,7 @@ import { Field, FormError } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
+import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
@@ -25,7 +26,7 @@ export default function RegisterScreen() {
       await register(username.trim(), password, email.trim() || undefined);
       router.replace('/');
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('error.register'));
+      setError(formatApiError(e, t('error.register')));
     } finally {
       setBusy(false);
     }

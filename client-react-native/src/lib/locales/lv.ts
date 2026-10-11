@@ -20,6 +20,12 @@ export const lv: Record<string, string> = {
   'err.DISPLACED': 'Atvērts citā cilnē — šis pārtrauca sinhronizēties',
   'err.UNREACHABLE': 'Nevar sazināties ar serveri. Pārbaudiet savienojumu un mēģiniet vēlreiz.',
   'err.INVALID_CREDENTIALS': 'Lietotājvārds un parole nesakrīt.',
+  'err.CREDENTIALS_REQUIRED': 'Ievadiet lietotājvārdu un paroli.',
+  'err.PASSWORD_TOO_LONG': 'Šī parole ir pārāk gara.',
+  'err.USERNAME_TAKEN': 'Šis lietotājvārds vai e-pasts jau ir aizņemts.',
+  'err.INVALID_EMAIL': 'Tas neizskatās pēc e-pasta adreses.',
+  'err.CODE_INVALID': 'Šis kods nav derīgs. Pieprasiet jaunu.',
+  'err.TOO_MANY_CODES': 'Šai adresei pieprasīts pārāk daudz kodu. Mēģiniet vēlreiz pēc brīža.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

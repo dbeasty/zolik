@@ -20,6 +20,12 @@ export const ga: Record<string, string> = {
   'err.DISPLACED': 'Osclaíodh i gcluaisín eile é — stad an ceann seo ag sioncronú',
   'err.UNREACHABLE': 'Ní féidir teacht ar an bhfreastalaí. Seiceáil do cheangal agus bain triail eile as.',
   'err.INVALID_CREDENTIALS': 'Ní hionann an t-ainm úsáideora agus an focal faire.',
+  'err.CREDENTIALS_REQUIRED': 'Cuir isteach ainm úsáideora agus pasfhocal.',
+  'err.PASSWORD_TOO_LONG': 'Tá an pasfhocal sin rófhada.',
+  'err.USERNAME_TAKEN': 'Tá an t-ainm úsáideora nó an ríomhphost sin in úsáid cheana.',
+  'err.INVALID_EMAIL': 'Ní chosúil le seoladh ríomhphoist é sin.',
+  'err.CODE_INVALID': 'Níl an cód sin bailí. Iarr ceann nua.',
+  'err.TOO_MANY_CODES': 'Iarradh an iomarca cód don seoladh sin. Bain triail eile as i gceann tamaill.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

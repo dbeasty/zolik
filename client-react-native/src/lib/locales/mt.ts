@@ -20,6 +20,12 @@ export const mt: Record<string, string> = {
   'err.DISPLACED': 'Infetħet f\'tab ieħor — dan waqaf jissinkronizza',
   'err.UNREACHABLE': 'Ma nistgħux naslu mas-server. Iċċekkja l-konnessjoni tiegħek u erġa\' pprova.',
   'err.INVALID_CREDENTIALS': 'L-isem tal-utent u l-password ma jaqblux.',
+  'err.CREDENTIALS_REQUIRED': 'Daħħal isem tal-utent u password.',
+  'err.PASSWORD_TOO_LONG': 'Dik il-password twila wisq.',
+  'err.USERNAME_TAKEN': 'Dak l-isem tal-utent jew l-email diġà qed jintuża.',
+  'err.INVALID_EMAIL': 'Dan ma jidhirx bħala indirizz tal-email.',
+  'err.CODE_INVALID': 'Dak il-kodiċi mhux validu. Itlob wieħed ġdid.',
+  'err.TOO_MANY_CODES': 'Intalbu wisq kodiċijiet għal dak l-indirizz. Erġa’ pprova mhux dalwaqt.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
