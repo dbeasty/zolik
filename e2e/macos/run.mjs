@@ -537,6 +537,45 @@ async function main() {
     await a.js(`await e2e.waitFor(() => /Stock, \\d+ cards/.test(e2e.text()), 'the table', 15000); return 1`);
   }, [a]);
 
+  await step('View › Reload in a game window brings the same board back, not "opened in another tab"', async () => {
+    const n = await indexOfGame(a, lastCard);
+    await on(a, n);
+    await a.js(`
+      ${DEALT}
+    `);
+    // Twice: the second reload meets sockets the first one left behind, if any.
+    for (let i = 0; i < 2; i++) {
+      await a.native('menu Reload');
+      await sleep(1500);
+      const v = await a.js(`
+        await e2e.waitFor(() => document.querySelectorAll('[data-card]').length >= 5 || /another tab|stopped syncing/.test(e2e.text()), 'the board after the reload', 20000);
+        await e2e.sleep(1500);
+        return { cards: document.querySelectorAll('[data-card]').length, text: e2e.text().slice(0, 200), path: location.pathname };
+      `);
+      expect(v.cards >= 5 && !/another tab|stopped syncing/.test(v.text), `after reload ${i + 1} the game window shows ${JSON.stringify(v)}`);
+      expect(lastCard === `match:${decodeURIComponent(v.path.split('/')[2])}`, `reload moved the window to ${v.path}`);
+    }
+    await a.screenshot('after-reload');
+  }, [a]);
+
+  await step('the board and My games name the game, not its ids', async () => {
+    await on(a, await indexOfGame(a, lastCard));
+    const head = await a.js(`
+      const el = await e2e.waitFor(() => document.querySelector('[data-testid="match-module"]'), 'the board heading', 15000);
+      return el.innerText;
+    `);
+    expect(head === 'Last Card · Classic', `the board's heading reads ${JSON.stringify(head)}`);
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/lobby/mine'); await e2e.waitFor(() => location.pathname === '/lobby/mine', 'my games', 15000); await e2e.sleep(800); return 1`);
+    const rows = await a.js(`return e2e.text()`);
+    expect(/Last Card · Classic/.test(rows) && /Prší · Classic/.test(rows), `My games reads ${JSON.stringify(rows.slice(0, 300))}`);
+    expect(!/lastcard|prsi · /.test(rows), `My games shows an id: ${JSON.stringify(rows.slice(0, 300))}`);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
+    // The Window menu lists the main window once (its ⌘1 item), not twice.
+    const windowMenu = await a.native('menuitems Window');
+    expect(windowMenu.filter((t) => /^Jokerless$/.test(t)).length === 1, `the Window menu lists ${JSON.stringify(windowMenu)}`);
+  }, [a]);
+
   await step('a card is dragged onto the pile with the mouse, in a game window', async () => {
     await on(a, await indexOfGame(a, lastCard));
     // The mouse picks cards up one at a time and carries each to the discard

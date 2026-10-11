@@ -84,7 +84,12 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
       if role == .main { window.setFrameAutosaveName("JokerlessMain") }
     }
 
-    if role == .main { installToolbar(on: window) }
+    if role == .main {
+      installToolbar(on: window)
+      // The Window menu has its own "Jokerless" (⌘1) for this window; macOS
+      // listing it a second time, under the screen's title, is a duplicate.
+      window.isExcludedFromWindowsMenu = true
+    }
 
     // The window is named after the screen it shows: the page sets
     // document.title per screen, which also names the window in the Window
