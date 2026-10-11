@@ -18,6 +18,7 @@ export const cs: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'Stůl je pozastavený — čeká se na návrat hráče',
   'err.NOT_CONNECTED': 'Nejsi připojen ke stolu — připojuji znovu, pak to zkus',
   'err.DISPLACED': 'Otevřeno v jiné kartě — tahle přestala synchronizovat',
+  'err.UNREACHABLE': 'Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

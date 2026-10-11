@@ -1,5 +1,6 @@
 import { ApiError } from '@/src/api/client';
 import { formatApiError } from '@/src/lib/apiError';
+import { t } from '@/src/lib/i18n';
 
 describe('formatApiError', () => {
   it('uses the message of an ApiError that carries no code', () => {
@@ -31,5 +32,18 @@ describe('formatApiError', () => {
   it('never returns an empty string', () => {
     expect(formatApiError('')).toBe('Something went wrong');
     expect(formatApiError(undefined)).toBeTruthy();
+  });
+
+  it('never shows a player the words of a request that nothing answered', () => {
+    for (const raw of [
+      'Failed to fetch',
+      'Load failed',
+      'Load failed: Get "http://127.0.0.1:1/modules": dial tcp 127.0.0.1:1: connect: connection refused',
+      'Get "https://jokerless.com/modules": dial tcp: lookup jokerless.com: no such host',
+    ]) {
+      const text = formatApiError(new TypeError(raw));
+      expect(text).toBe(t('err.UNREACHABLE'));
+      expect(text).not.toMatch(/dial|fetch|Load failed/i);
+    }
   });
 });

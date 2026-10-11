@@ -18,6 +18,7 @@ export const es: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'La mesa está en pausa — se espera a que un jugador vuelva a conectarse',
   'err.NOT_CONNECTED': 'Sin conexión con la mesa — reconectando; inténtalo después',
   'err.DISPLACED': 'Abierta en otra pestaña — esta ha dejado de sincronizarse',
+  'err.UNREACHABLE': 'No se puede conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

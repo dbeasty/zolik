@@ -966,6 +966,7 @@
  "err.UNKNOWN_FRIEND_CODE": "That friend link does not work any more.",
  "err.UNKNOWN_PLAYER": "Nobody plays under that name.",
  "err.UNKNOWN_SKILL": "Unknown bot strength",
+ "err.UNREACHABLE": "Can’t reach the server. Check your connection and try again.",
  "err.UPCARD_DECLINED": "You already passed on that card",
  "err.WAITING_ROOM_UNAVAILABLE": "The waiting room isn't available",
  "err.WASTE_EMPTY": "There is nothing in the waste to turn over",

@@ -18,6 +18,7 @@ export const ga: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'Tá an bord ar sos — ag fanacht le himreoir ceangal a dhéanamh arís',
   'err.NOT_CONNECTED': 'Gan cheangal leis an mbord — ag athcheangal, bain triail eile as ansin',
   'err.DISPLACED': 'Osclaíodh i gcluaisín eile é — stad an ceann seo ag sioncronú',
+  'err.UNREACHABLE': 'Ní féidir teacht ar an bhfreastalaí. Seiceáil do cheangal agus bain triail eile as.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

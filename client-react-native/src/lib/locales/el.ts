@@ -18,6 +18,7 @@ export const el: Record<string, string> = {
   'err.MATCH_NOT_ACTIVE': 'Το τραπέζι είναι σε παύση — περιμένουμε να επανασυνδεθεί ένας παίκτης',
   'err.NOT_CONNECTED': 'Δεν υπάρχει σύνδεση με το τραπέζι — γίνεται επανασύνδεση, δοκίμασε μετά',
   'err.DISPLACED': 'Άνοιξε σε άλλη καρτέλα — αυτή σταμάτησε να συγχρονίζεται',
+  'err.UNREACHABLE': 'Δεν είναι δυνατή η σύνδεση με τον διακομιστή. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
