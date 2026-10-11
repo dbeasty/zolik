@@ -153,6 +153,15 @@ test('the results table names the reader and lines its columns up', async ({ pag
     }
   }
 
+  // The table uses the room the panel has: at 900 wide the last column ends
+  // within a panel's padding of the panel's own edge, not two thirds across.
+  const edges = await page.evaluate(() => {
+    const panel = document.querySelector('[data-testid="round-results"]')!.getBoundingClientRect();
+    const heads = [...document.querySelectorAll('[data-testid^="round-head-"]')];
+    return { panelRight: panel.right, lastRight: heads[heads.length - 1].getBoundingClientRect().right };
+  });
+  expect(edges.panelRight - edges.lastRight, 'the table fills the panel').toBeLessThan(40);
+
   // And one width for all of them, rather than each as wide as its own name.
   const widths = new Set(seen.columns.map((c) => c.headBox!.width));
   expect([...widths], 'every column is the same width').toHaveLength(1);
