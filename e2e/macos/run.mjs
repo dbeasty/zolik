@@ -492,6 +492,9 @@ async function main() {
     expect(lastCard === `match:${decodeURIComponent(p.split('/')[2])}`, `window 2 moved to ${p}`);
     const titles = (await windowsOf(a)).map((w) => w.title);
     expect(titles.length === 3 && new Set(titles).size === 3, `window titles ${JSON.stringify(titles)}`);
+    // Each new window steps down and to the right of the newest, so none hides another exactly.
+    const frames = (await windowsOf(a)).filter((w) => w.role === 'game').map((w) => w.frame.map(Math.round).join(','));
+    expect(new Set(frames).size === frames.length && (await windowsOf(a)).every((w) => w.onScreen), `game windows share a spot or are off screen: ${JSON.stringify(frames)}`);
     await a.screenshot('second-window');
   }, [a]);
 

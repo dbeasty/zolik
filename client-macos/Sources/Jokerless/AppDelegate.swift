@@ -69,7 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   {
     let controller = AppWindowController(
       role: role, matchId: matchId, kind: kind, nearby: NearbyService.shared,
-      cascadeFrom: active?.window ?? windows.last?.window, seat: { [weak self] in self?.seat })
+      cascadeFrom: windows.last?.window ?? active?.window, seat: { [weak self] in self?.seat })
     controller.web.openGames = { [weak self] in self?.openMatchIds ?? [] }
     controller.onActivate = { [weak self] c in
       self?.active = c

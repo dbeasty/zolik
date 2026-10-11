@@ -78,7 +78,17 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
 
     if let previous {
       window.setFrame(previous.frame, display: false)
-      window.setFrameTopLeftPoint(window.cascadeTopLeft(from: NSPoint(x: previous.frame.minX, y: previous.frame.maxY)))
+      // A step down and to the right of the newest window, so each one is
+      // seen; at the screen's edge the stack starts over at the top left
+      // rather than piling every later window on one spot (AppKit's own
+      // cascade stops moving there).
+      let step: CGFloat = 29
+      var topLeft = NSPoint(x: previous.frame.minX + step, y: previous.frame.maxY - step)
+      let screen = (previous.screen ?? NSScreen.main)?.visibleFrame ?? .zero
+      if topLeft.y - previous.frame.height < screen.minY || topLeft.x + previous.frame.width > screen.maxX {
+        topLeft = NSPoint(x: screen.minX + 40, y: screen.maxY - 40)
+      }
+      window.setFrameTopLeftPoint(topLeft)
     } else {
       window.center()
       if role == .main { window.setFrameAutosaveName("JokerlessMain") }

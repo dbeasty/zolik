@@ -161,6 +161,8 @@ final class E2EControl {
           "role": w.role == .main ? "main" : "game", "key": w.gameKey ?? "", "title": w.window?.title ?? "",
           "subtitle": w.window?.subtitle ?? "", "visible": w.window?.isVisible ?? false,
           "hidden": w.hidden,
+          "frame": [w.window?.frame.minX ?? 0, w.window?.frame.minY ?? 0, w.window?.frame.width ?? 0, w.window?.frame.height ?? 0],
+          "onScreen": w.window.map { win in NSScreen.screens.contains { $0.visibleFrame.intersects(win.frame) } } ?? false,
         ] as [String: Any]
       }))
     case "toolbar":
