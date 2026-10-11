@@ -644,6 +644,18 @@ async function main() {
     await waitWindows(a, (w) => !w.some((x) => x.key.startsWith('replay:')), 'the replay window to close');
     await on(a, 1);
     await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
+    // A language chosen in the main window reaches the game windows too.
+    await a.native('menu Settings…');
+    await a.js(`await e2e.clickTestId('language-choice-cs'); return 1`);
+    const lcw = await indexOfGame(a, lastCard);
+    await on(a, lcw);
+    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'cs', 'the game window to turn Czech', 25000); return 1`);
+    await on(a, 1);
+    await a.js(`await e2e.clickTestId('language-choice-en'); return 1`);
+    await on(a, lcw);
+    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'en', 'the game window to turn English again', 25000); return 1`);
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
     // The Window menu lists the main window once (its ⌘1 item), not twice.
     const windowMenu = await a.native('menuitems Window');
     expect(windowMenu.filter((t) => /^Jokerless$/.test(t)).length === 1, `the Window menu lists ${JSON.stringify(windowMenu)}`);
