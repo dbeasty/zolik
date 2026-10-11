@@ -1554,6 +1554,7 @@ export const el: Record<string, string> = {
   'banner.botIn': 'Σε {time} ένα bot θα παίξει για λογαριασμό του.',
   'banner.botSoon': 'Ένα bot αναλαμβάνει…',
   'banner.letBotPlay': 'Να παίξει bot τώρα',
+  'banner.keepWaiting': 'Συνέχεια αναμονής',
   'banner.back': 'Όσο έλειπες έπαιζε ένα bot για σένα. Η θέση είναι ξανά δική σου.',
   'banner.standIn': 'Ένα bot παίζει για {name} μέχρι να επιστρέψει.',
   'seat.standInBadge': 'ΠΑΙΖΕΙ BOT',

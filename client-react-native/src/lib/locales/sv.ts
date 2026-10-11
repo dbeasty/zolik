@@ -1509,6 +1509,7 @@ export const sv: Record<string, string> = {
   'banner.botIn': 'Om {time} spelar en bot åt dem.',
   'banner.botSoon': 'En bot tar över…',
   'banner.letBotPlay': 'Låt en bot spela nu',
+  'banner.keepWaiting': 'Fortsätt vänta',
   'banner.back': 'En bot spelade åt dig medan du var borta. Platsen är din igen.',
   'banner.standIn': 'En bot spelar åt {name} tills de är tillbaka.',
   'seat.standInBadge': 'BOT SPELAR',

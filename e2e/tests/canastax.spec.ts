@@ -190,6 +190,28 @@ test('a wild is moved off one meld onto another, and the move undone', async ({ 
   expect((await onServer(request, matchId, host)).melds['t0-seq1']).toBe('5H 6H 7H 8H');
 });
 
+test('a wild is dragged off one meld and let go on another', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { matchId, host } = await canastaXTable(request);
+  await openMatch(page, host, matchId);
+
+  await openMeld(page, 't0-K');
+  const from = page.getByTestId('card-t0-K-4');
+  await from.scrollIntoViewIfNeeded();
+  const a = (await from.boundingBox())!;
+  const target = page.getByTestId('group-press-t0-seq1');
+  // Nothing is picked yet, so nothing is lit: pick up first, as a drag does.
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2 + 12, { steps: 4 });
+  await expect(target).toBeVisible();
+  const b = (await target.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height - 6, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-seq1']).toBe('5H 6H 7H 8H 2C');
+  expect((await onServer(request, matchId, host)).melds['t0-K']).toBe('KH KD KS KC');
+});
+
 test('a card out of the middle of a sequence cannot be moved', async ({ page, request }) => {
   test.setTimeout(60_000);
   const { matchId, host } = await canastaXTable(request, (s) => {
@@ -286,5 +308,52 @@ test('moving cards between melds works at phone width', async ({ page, request }
   const target = page.getByTestId('group-press-t0-9');
   await target.scrollIntoViewIfNeeded();
   await target.click();
+  await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-9']).toBe('9C 9D 9S 2C');
+});
+
+/** Carries a card by hand from `from` to the point `to` returns, in steps. */
+async function dragCard(
+  page: Page,
+  from: import('@playwright/test').Locator,
+  to: () => Promise<{ x: number; y: number }>,
+) {
+  await from.scrollIntoViewIfNeeded();
+  const a = (await from.boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2 + 12, { steps: 4 });
+  const p = await to();
+  await page.mouse.move(p.x, p.y, { steps: 12 });
+  await page.mouse.up();
+}
+
+test('a card dragged and let go on nothing moves nowhere', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { matchId, host } = await canastaXTable(request);
+  await openMatch(page, host, matchId);
+
+  await openMeld(page, 't0-K');
+  const before = (await onServer(request, matchId, host)).melds;
+  await dragCard(page, page.getByTestId('card-t0-K-4'), async () => {
+    const h = (await page.getByTestId('move-hint').boundingBox())!;
+    return { x: h.x + 4, y: h.y + h.height / 2 };
+  });
+  // Still picked up and waiting for a target, and nothing on the server moved.
+  await expect(page.getByTestId('move-hint')).toContainText('Now tap the meld');
+  expect((await onServer(request, matchId, host)).melds).toEqual(before);
+});
+
+test('dragging cards between melds works at phone width', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { matchId, host } = await canastaXTable(request);
+  await openMatch(page, host, matchId, 390);
+
+  await openMeld(page, 't0-K');
+  const target = page.getByTestId('group-press-t0-9');
+  await dragCard(page, page.getByTestId('card-t0-K-4'), async () => {
+    await target.scrollIntoViewIfNeeded();
+    const b = (await target.boundingBox())!;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  });
   await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-9']).toBe('9C 9D 9S 2C');
 });

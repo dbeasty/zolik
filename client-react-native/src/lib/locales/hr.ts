@@ -1511,6 +1511,7 @@ export const hr: Record<string, string> = {
   'banner.botIn': 'Za {time} umjesto njega igra bot.',
   'banner.botSoon': 'Bot preuzima…',
   'banner.letBotPlay': 'Neka bot igra odmah',
+  'banner.keepWaiting': 'Nastavi čekati',
   'banner.back': 'Dok vas nije bilo, za vas je igrao bot. Mjesto je opet vaše.',
   'banner.standIn': 'Bot igra umjesto igrača {name} dok se ne vrati.',
   'seat.standInBadge': 'IGRA BOT',

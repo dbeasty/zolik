@@ -1516,6 +1516,7 @@ export const et: Record<string, string> = {
   'banner.botIn': 'Bot hakkab tema eest mängima {time} pärast.',
   'banner.botSoon': 'Bot võtab üle…',
   'banner.letBotPlay': 'Las bot mängib kohe',
+  'banner.keepWaiting': 'Jätka ootamist',
   'banner.back': 'Sinu äraolekul mängis sinu eest bot. Koht on jälle sinu.',
   'banner.standIn': 'Bot mängib mängija {name} eest, kuni ta naaseb.',
   'seat.standInBadge': 'BOT MÄNGIB',

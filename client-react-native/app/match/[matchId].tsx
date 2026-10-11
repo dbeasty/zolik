@@ -407,8 +407,8 @@ function MatchScreen() {
   // arrive before the state that started the drag has been committed, and a
   // drag whose first frames land nowhere reads as an unresponsive one.
   const drops = useDropRegistry();
-  const dragRef = useRef<{ slotIds: string[]; cards: string[]; fromTable?: boolean } | null>(null);
-  const [drag, setDrag] = useState<{ cards: string[]; fromTable?: boolean } | null>(null);
+  const dragRef = useRef<{ slotIds: string[]; cards: string[]; fromTable?: boolean; fromMeld?: string } | null>(null);
+  const [drag, setDrag] = useState<{ cards: string[]; fromTable?: boolean; fromMeld?: string } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
   // Cards picked up off a meld on the table rather than out of the hand — the
   // source of a move between melds (Canasta's rearranging). Kept apart from
@@ -1022,9 +1022,16 @@ function MatchScreen() {
   // A run lifted off the table goes only where an offer for that very run
   // says: every other offer names other cards, and would only light up as
   // refusing.
-  const spotsFor = (cards: string[], fromTable?: boolean) =>
-    dropSpotsFor(fromTable ? liftsOf(cards[0] ?? '') : handOffers, cards);
-  const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable) : [];
+  const spotsFor = (cards: string[], fromTable?: boolean, fromMeldId?: string) =>
+    dropSpotsFor(
+      fromMeldId
+        ? state.legalActions.filter((o) => o.enabled && fromMeld(o) && o.source?.meldId === fromMeldId)
+        : fromTable
+          ? liftsOf(cards[0] ?? '')
+          : handOffers,
+      cards,
+    );
+  const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable, drag.fromMeld) : [];
   const liveTakeable = takeableSpots(liveSpots);
 
   // A card in hand is a card looking for somewhere to go. Every enabled offer
@@ -1154,6 +1161,24 @@ function MatchScreen() {
     drops.measure();
   };
 
+  // Cards of an open meld carried by hand: the ones already picked in that
+  // meld if this is one of them, else just this one. Mirrors a press (see
+  // `onPickGroupCard`) so a drag and a tap-then-target are the same move.
+  const beginMeldDrag = (meldId: string, index: number, card: string) => {
+    if (!pickableGroups.has(meldId)) return;
+    const live = meldPickLive && meldPickLive.meldId === meldId && meldPickLive.indices.includes(index);
+    const pick = live ? meldPickLive : { meldId, indices: [index], cards: [card] };
+    setSelected(new Set());
+    setSelectionIsAuto(false);
+    setPendingGroupKey(null);
+    setArmedMeldId(null);
+    setTablePick(null);
+    setMeldPick(pick);
+    dragRef.current = { slotIds: [], cards: pick.cards, fromMeld: meldId };
+    setDrag({ cards: pick.cards, fromMeld: meldId });
+    drops.measure();
+  };
+
   const beginDrag = (zoneId: string, index: number) => {
     const slots = slotsFor(zoneId);
     // Picking a card up is as much "I mean this one" as tapping it, so the
@@ -1190,7 +1215,7 @@ function MatchScreen() {
     const current = dragRef.current;
     if (!current) return;
     dragPoint.current = { x, y };
-    const spots = takeableSpots(spotsFor(current.cards, current.fromTable));
+    const spots = takeableSpots(spotsFor(current.cards, current.fromTable, current.fromMeld));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     if (!scrolling.current && overDrop.current !== (over ?? null)) overSince.current = Date.now();
     overDrop.current = over ?? null;
@@ -1233,7 +1258,7 @@ function MatchScreen() {
     setHoveredPosition(null);
     if (!current) return false;
 
-    const spots = spotsFor(current.cards, current.fromTable);
+    const spots = spotsFor(current.cards, current.fromTable, current.fromMeld);
     const takeable = takeableSpots(spots);
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     const spot = takeable.find((s) => s.elementId === over);
@@ -1520,6 +1545,7 @@ function MatchScreen() {
     pickableGroups,
     pickedInGroup: meldPickLive ? { groupId: meldPickLive.meldId, indices: meldPickLive.indices } : null,
     onPickGroupCard,
+    onMeldDragStart: beginMeldDrag,
     entranceDelays: flightPlan.holds,
     changedGroups: changeMarks,
     liftable,
@@ -2065,6 +2091,7 @@ function MatchScreen() {
         notice={notice}
         onDismissNotice={clearNotice}
         onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
+        onKeepWaiting={standIn.act ? (id) => void standIn.act?.(id, false) : undefined}
       />
       <ScrollView
         ref={scrollRef}

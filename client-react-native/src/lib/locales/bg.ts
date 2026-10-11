@@ -1524,6 +1524,7 @@ export const bg: Record<string, string> = {
   'banner.botIn': 'След {time} бот ще играе вместо него.',
   'banner.botSoon': 'Бот поема играта…',
   'banner.letBotPlay': 'Нека бот играе сега',
+  'banner.keepWaiting': 'Изчакване на играча',
   'banner.back': 'Докато ви нямаше, бот игра вместо вас. Мястото отново е ваше.',
   'banner.standIn': 'Бот играе вместо {name}, докато се върне.',
   'seat.standInBadge': 'ИГРАЕ БОТ',

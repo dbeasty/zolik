@@ -1531,6 +1531,7 @@ export const ro: Record<string, string> = {
   'banner.botIn': 'În {time} un bot joacă în locul lui.',
   'banner.botSoon': 'Un bot preia jocul…',
   'banner.letBotPlay': 'Lasă un bot să joace acum',
+  'banner.keepWaiting': 'Continuă să aștepți',
   'banner.back': 'Cât ai lipsit, a jucat un bot pentru tine. Locul e din nou al tău.',
   'banner.standIn': 'Un bot joacă pentru {name} până revine.',
   'seat.standInBadge': 'JOACĂ UN BOT',

@@ -138,6 +138,12 @@ type Props = {
   pickedInGroup?: { groupId: string; indices: number[] } | null;
   onPickGroupCard?: (groupId: string, index: number, card: string) => void;
   /**
+   * A pickable card was picked up by hand. The cards that go with it are the
+   * ones already picked in its group if it is one of them, and otherwise it
+   * alone — the screen applies the same rule to what it sends.
+   */
+  onMeldDragStart?: (groupId: string, index: number, card: string) => void;
+  /**
    * How long this zone's newest card should hold its entrance, keyed by the
    * zone's own element id — set while a flight is landing here, so the card
    * doesn't greet its own arrival. Absent or zero means enter at once, which
@@ -194,6 +200,7 @@ export function ZoneView({
   pickableGroups,
   pickedInGroup,
   onPickGroupCard,
+  onMeldDragStart,
   entranceDelays,
   changedGroups,
   liftable,
@@ -228,9 +235,9 @@ export function ZoneView({
   // A run being carried off a group or a pile by hand: which, from where in
   // it, and how far it has travelled. Drawn by moving those cards and nothing
   // else, so no box anything is measured against moves with them.
-  const [carry, setCarry] = useState<{ where: string; from: number; dx: number; dy: number } | null>(null);
+  const [carry, setCarry] = useState<{ where: string; from: number; only?: number[]; dx: number; dy: number } | null>(null);
   const carriedStyle = (where: string, index: number) =>
-    carry && carry.where === where && index >= carry.from
+    carry && carry.where === where && (carry.only ? carry.only.includes(index) : index >= carry.from)
       ? { transform: [{ translateX: carry.dx }, { translateY: carry.dy }], zIndex: 50 }
       : null;
   /** A card wrapped so it can be pressed or dragged, when an offer lifts it. */
@@ -259,6 +266,30 @@ export function ZoneView({
     ) : (
       child
     );
+  /** A card of an open meld, pressed to pick it or dragged to move it (with whatever else is picked). */
+  const pickable = (where: string, card: string, index: number, picks: number[], child: ReactNode, spoken: string) => (
+    <LiftableCard
+      card={card}
+      testId={`pick-${where}-${index}`}
+      spoken={spoken}
+      picked={picks.includes(index)}
+      onLift={() => onPickGroupCard?.(where, index, card)}
+      onStart={() => {
+        setCarry({ where, from: index, only: picks.includes(index) ? picks : [index], dx: 0, dy: 0 });
+        onMeldDragStart?.(where, index, card);
+      }}
+      onMove={(x, y, dx, dy) => {
+        setCarry((was) => (was ? { ...was, dx, dy } : was));
+        onDragMove?.(x, y);
+      }}
+      onEnd={(x, y) => {
+        setCarry(null);
+        onDragEnd?.(x, y);
+      }}
+    >
+      {child}
+    </LiftableCard>
+  );
   /**
    * Cards this zone holds and is not showing — a blackjack dealer's hole
    * card, an opponent's hand. Drawn face down rather than described in
@@ -660,7 +691,10 @@ export function ZoneView({
                             mounting right now, which is exactly the one a
                             flight is bringing. */}
                         <SettleIn kind="settle" delay={entranceDelay}>
-                          {lift(
+                          {(cardsPickable
+                            ? (_w: string, cc: string, ii: number, child: ReactNode, spoken?: string) =>
+                                pickable(g.id, cc, ii, pickedHere, child, spoken ?? cardSpokenName(cc))
+                            : lift)(
                             g.id,
                             c,
                             i,
@@ -685,7 +719,6 @@ export function ZoneView({
                                 // reduced to their corner.
                                 stacked={!groupOpen && !(wide && i === g.cards.length - 1)}
                                 selected={pickedHere.includes(i) || (picked === c && !!liftable?.has(liftKey(g.id, c)))}
-                                onPress={cardsPickable ? () => onPickGroupCard?.(g.id, i, c) : undefined}
                                 testID={`card-${g.id}-${i}`}
                               />
                             ),
@@ -879,6 +912,7 @@ const MAX_BACKS = 4;
  */
 function LiftableCard({
   card,
+  testId,
   spoken,
   picked,
   onLift,
@@ -888,6 +922,7 @@ function LiftableCard({
   children,
 }: {
   card: string;
+  testId?: string;
   spoken: string;
   picked: boolean;
   onLift?: (card: string) => void;
@@ -942,7 +977,7 @@ function LiftableCard({
         accessibilityLabel={spoken}
         accessibilityState={{ selected: picked }}
         {...((Platform.OS === 'web' ? { 'aria-pressed': picked, dataSet: { selected: picked ? 'true' : 'false' } } : {}) as object)}
-        testID={`lift-${card}`}
+        testID={testId ?? `lift-${card}`}
         onPress={() => {
           if (swallow.current) {
             swallow.current = false;

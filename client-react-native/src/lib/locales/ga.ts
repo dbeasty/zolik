@@ -1547,6 +1547,7 @@ export const ga: Record<string, string> = {
   'banner.botIn': 'Imreoidh bota ar a son i gceann {time}.',
   'banner.botSoon': 'Tá bota ag glacadh seilbhe…',
   'banner.letBotPlay': 'Lig do bhota imirt anois',
+  'banner.keepWaiting': 'Lean ort ag fanacht',
   'banner.back': 'D’imir bota ar do shon fad a bhí tú imithe. Is leatsa do shuíochán arís.',
   'banner.standIn': 'Tá bota ag imirt ar son {name} go dtiocfaidh siad ar ais.',
   'seat.standInBadge': 'BOTA AG IMIRT',

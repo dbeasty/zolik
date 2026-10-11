@@ -1513,6 +1513,7 @@ export const lt: Record<string, string> = {
   'banner.botIn': 'Po {time} už jį žais botas.',
   'banner.botSoon': 'Perima botas…',
   'banner.letBotPlay': 'Tegul botas žaidžia dabar',
+  'banner.keepWaiting': 'Toliau laukti',
   'banner.back': 'Kol tavęs nebuvo, už tave žaidė botas. Vieta vėl tavo.',
   'banner.standIn': 'Botas žaidžia už {name}, kol jis grįš.',
   'seat.standInBadge': 'ŽAIDŽIA BOTAS',
