@@ -12,6 +12,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 
 import { announce, announceGame } from '@/src/a11y/announce';
 import { cardSpokenName, cardsSpoken } from '@/src/a11y/cardNames';
@@ -81,7 +82,7 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
-import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
+import { moduleLabel, moduleName, variationName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
@@ -165,6 +166,7 @@ const DROP_DWELL_MS = 700;
 const BAND_DWELL_MS = 600;
 
 function MatchScreen() {
+  const edges = useScreenEdges();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
   // A seat taken through a seat link plays this table — and only this one —
@@ -818,7 +820,7 @@ function MatchScreen() {
     return (
       <View style={styles.root}>
         <TableSurface />
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.safe} edges={edges}>
           {/* A refusal that arrives before any board has to be drawn here,
               because the one place this screen renders `error` is inside the
               controls panel — which does not exist until there is a state to
@@ -2029,7 +2031,7 @@ function MatchScreen() {
           ),
         }}
       />
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safe} edges={edges}>
       {/* Drawn outside the board rather than at the top of it, so it answers
           the tap wherever the player happens to be scrolled to. */}
       {statusExplainerOpen ? (
@@ -2064,9 +2066,17 @@ function MatchScreen() {
       >
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
-            <Text testID="match-module" style={styles.module}>
-              {state.moduleId}
-              {state.variation ? ` · ${state.variation}` : ''}
+            {/* The game's name, in the player's language; the bare ids stay
+                on the element for tests and tooling. */}
+            <Text
+              testID="match-module"
+              style={styles.module}
+              {...((Platform.OS === 'web'
+                ? { dataSet: { module: state.moduleId, variation: state.variation ?? '' } }
+                : {}) as object)}
+            >
+              {moduleName(state.moduleId)}
+              {state.variation ? ` · ${variationName(state.moduleId, state.variation)}` : ''}
             </Text>
             <Tip text={t('a11y.board.tip.rules')}>
             <Pressable

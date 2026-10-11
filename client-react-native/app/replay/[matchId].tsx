@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 
 import { ApiError } from '@/src/api/client';
 import type { MatchState, Replay, ReplayFrame, RoundLog } from '@/src/api/matchTypes';
@@ -54,6 +55,7 @@ export default function ReplayRoute() {
 }
 
 function ReplayScreen() {
+  const edges = useScreenEdges();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const id = matchId ? String(matchId) : '';
@@ -218,7 +220,7 @@ function ReplayScreen() {
     return (
       <View style={styles.root}>
         <TableSurface />
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.safe} edges={edges}>
           <Text testID="replay-error" style={styles.error}>
             {error}
           </Text>
@@ -231,7 +233,7 @@ function ReplayScreen() {
     return (
       <View style={styles.root}>
         <TableSurface />
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.safe} edges={edges}>
           <Text testID="replay-loading" style={styles.muted}>
             {t('replay.loading')}
           </Text>
@@ -316,7 +318,7 @@ function ReplayScreen() {
           title: t('nav.replay'),
         }}
       />
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safe} edges={edges}>
         <ScrollView
           contentContainerStyle={[
             styles.body,
