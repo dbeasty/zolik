@@ -184,8 +184,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         remembered.add(key: key, path: "/\(parts[0])/\(parts.count > 1 ? parts[1] : "")")
       }
     case "seat":
+      let previous = seat
       seat = body["table"] as? [String: Any]
       for other in windows where other !== c { other.web.emitSeat(seat) }
+      // The player left the offline table (Back to online play, or the table
+      // was stopped): the games on it are gone, so their windows go with it
+      // rather than staying open on a board whose table no longer exists.
+      if previous != nil, seat == nil {
+        for g in games where g.info.offline { g.window?.close() }
+      }
     case "signedOut":
       for g in games { g.window?.close() }
       remembered.clear()

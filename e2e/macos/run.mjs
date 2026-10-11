@@ -1229,6 +1229,23 @@ async function main() {
     expect(wins.length === 1, `after sign-out and relaunch: ${JSON.stringify(wins)}`);
   }, [r]);
 
+  const ob = new MacApp('offbots', binary, server.base);
+  cleanups.push(() => ob.quit());
+  await step('leaving the offline table (Back to online play) closes the games played on it', async () => {
+    await ob.ready();
+    await ob.js(`await e2e.click('Play', { exact: true }); await e2e.click('Continue as guest', { exact: true }); await e2e.waitForText('Display name'); await e2e.click('Continue', { exact: true }); await e2e.waitFor(() => location.pathname === '/', 'home', 20000); return 1`);
+    await ob.native('menu Start an offline table');
+    await ob.js(`await e2e.waitForText('Your name at the table'); await e2e.fill('Your name at the table', 'Mac Solo'); await e2e.click('Start an offline table', { exact: true }); return 1`);
+    await ob.js(`await e2e.waitFor(() => ZolikNearbyDesktop.hostStatus(), 'the host', 45000); window.__zolikNavigate('/'); await e2e.waitForText('No internet needed'); await e2e.sleep(1500); return 1`);
+    await ob.js(`await e2e.click('Last Card', { exact: true }); await e2e.click('Play against bots', { exact: true }); await e2e.sleep(400); await e2e.click('Deal me in', { exact: true }); return 1`);
+    const wins = await waitWindows(ob, (w) => w.length === 2 && /Server: this computer/.test(w[1].subtitle), 'the offline bot game window, titled for its server');
+    expect(wins[1].role === 'game', `windows ${JSON.stringify(wins)}`);
+    await on(ob, 1);
+    await ob.native('menu Back to online play');
+    await waitWindows(ob, (w) => w.length === 1, 'the offline game window to close');
+    await ob.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+  }, [ob]);
+
   // Opt-in, because the first run asks the person at the Mac to allow
   // Bluetooth. A Mac cannot hear its own advertisement, so this proves the
   // host side only; a guest needs a phone or a second Mac.
@@ -1252,7 +1269,7 @@ async function main() {
     }, [c]);
   }
 
-  const consoleLines = [a, b, r, n, l].flatMap((x) => x.console().split('\n'))
+  const consoleLines = [a, b, r, n, l, ob].flatMap((x) => x.console().split('\n'))
     .filter((l) => /^(\[game [^\]]*\] )?(pageerror|unhandledrejection|error):/.test(l));
   if (consoleLines.length) {
     log(`\npage errors seen (not failures):\n  ${[...new Set(consoleLines)].slice(0, 10).join('\n  ')}`);
