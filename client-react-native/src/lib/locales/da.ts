@@ -1717,6 +1717,7 @@ export const da: Record<string, string> = {
   'holdem.unit.chips': 'jetoner',
   'prsi.unit.cardsLeft': 'kort tilbage',
   'rummytiles.prompt.initialMeld': 'Din første udlægning skal være {n} point værd.',
+  'rummytiles.prompt.yourTurn': 'Læg brikker, eller træk en',
   'rummytiles.unit.points': 'point',
   'zolik.unit.penalty': 'straf',
   'header.pileFrozen': 'Bunken frosset',

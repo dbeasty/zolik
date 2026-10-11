@@ -1761,6 +1761,7 @@ export const el: Record<string, string> = {
   'holdem.unit.chips': 'μάρκες',
   'prsi.unit.cardsLeft': 'φύλλα απομένουν',
   'rummytiles.prompt.initialMeld': 'Το πρώτο σου κατέβασμα πρέπει να αξίζει {n} πόντους.',
+  'rummytiles.prompt.yourTurn': 'Βάλτε πλακίδια ή τραβήξτε ένα',
   'rummytiles.unit.points': 'πόντοι',
   'zolik.unit.penalty': 'ποινή',
   'header.pileFrozen': 'Ο σωρός πάγωσε',

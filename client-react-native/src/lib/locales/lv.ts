@@ -1719,6 +1719,7 @@ export const lv: Record<string, string> = {
   'holdem.unit.chips': 'žetoni',
   'prsi.unit.cardsLeft': 'atlikušas kārtis',
   'rummytiles.prompt.initialMeld': 'Tavai pirmajai izlikšanai jābūt {n} punktu vērtai.',
+  'rummytiles.prompt.yourTurn': 'Izvietojiet kauliņus vai paņemiet vienu',
   'rummytiles.unit.points': 'punkti',
   'zolik.unit.penalty': 'sods',
   'header.pileFrozen': 'Kaudze iesaldēta',

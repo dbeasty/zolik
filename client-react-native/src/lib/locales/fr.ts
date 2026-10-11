@@ -1745,6 +1745,7 @@ export const fr: Record<string, string> = {
   'holdem.unit.chips': 'jetons',
   'prsi.unit.cardsLeft': 'cartes restantes',
   'rummytiles.prompt.initialMeld': 'Ta première pose doit valoir {n} points.',
+  'rummytiles.prompt.yourTurn': 'Posez des tuiles ou piochez-en une',
   'rummytiles.unit.points': 'points',
   'zolik.unit.penalty': 'pénalité',
   'header.pileFrozen': 'Pile gelée',

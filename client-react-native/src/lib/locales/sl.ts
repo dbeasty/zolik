@@ -1714,6 +1714,7 @@ export const sl: Record<string, string> = {
   'holdem.unit.chips': 'žetonov',
   'prsi.unit.cardsLeft': 'preostalo kart',
   'rummytiles.prompt.initialMeld': 'Tvoje prvo polaganje mora biti vredno {n} točk.',
+  'rummytiles.prompt.yourTurn': 'Položite ploščice ali povlecite eno',
   'rummytiles.unit.points': 'točk',
   'zolik.unit.penalty': 'kazen',
   'header.pileFrozen': 'Kup zamrznjen',

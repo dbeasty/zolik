@@ -1725,6 +1725,7 @@ export const pl: Record<string, string> = {
   'holdem.unit.chips': 'żetonów',
   'prsi.unit.cardsLeft': 'kart zostało',
   'rummytiles.prompt.initialMeld': 'Twoje pierwsze wyłożenie musi być warte {n} punktów.',
+  'rummytiles.prompt.yourTurn': 'Wyłóż kostki albo dobierz jedną',
   'rummytiles.unit.points': 'pkt',
   'zolik.unit.penalty': 'punkty karne',
   'header.pileFrozen': 'Stos zamrożony',

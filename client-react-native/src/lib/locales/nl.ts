@@ -1745,6 +1745,7 @@ export const nl: Record<string, string> = {
   'holdem.unit.chips': 'fiches',
   'prsi.unit.cardsLeft': 'kaarten over',
   'rummytiles.prompt.initialMeld': 'Je eerste leg moet {n} punten waard zijn.',
+  'rummytiles.prompt.yourTurn': 'Leg stenen neer of pak er een',
   'rummytiles.unit.points': 'punten',
   'zolik.unit.penalty': 'strafpunten',
   'header.pileFrozen': 'Stapel bevroren',

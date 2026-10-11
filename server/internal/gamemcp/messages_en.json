@@ -2232,6 +2232,7 @@
  "rummytiles.offer.take": "Take",
  "rummytiles.param.position": "Split at",
  "rummytiles.prompt.initialMeld": "Your first lay must be worth {n} points.",
+ "rummytiles.prompt.yourTurn": "Lay tiles, or draw one",
  "rummytiles.remedy.emptyTheTray": "Place the {n} tiles still in your tray, or reset the turn.",
  "rummytiles.remedy.fixOrReset": "Every set on the table has to be a valid group or run — fix them, or reset the turn.",
  "rummytiles.remedy.matchTheJoker": "Swap the joker for the exact tile it stands for.",

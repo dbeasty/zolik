@@ -1736,6 +1736,7 @@ export const hu: Record<string, string> = {
   'holdem.unit.chips': 'zseton',
   'prsi.unit.cardsLeft': 'lap maradt',
   'rummytiles.prompt.initialMeld': 'Az első lerakásodnak {n} pontot kell érnie.',
+  'rummytiles.prompt.yourTurn': 'Rakjon le kockákat, vagy húzzon egyet',
   'rummytiles.unit.points': 'pont',
   'zolik.unit.penalty': 'büntetés',
   'header.pileFrozen': 'A pakli befagyasztva',

@@ -1754,6 +1754,7 @@ export const ga: Record<string, string> = {
   'holdem.unit.chips': 'slis',
   'prsi.unit.cardsLeft': 'cárta fágtha',
   'rummytiles.prompt.initialMeld': 'Caithfidh do chéad leagan síos {n} pointe a bheith fiú.',
+  'rummytiles.prompt.yourTurn': 'Leag tíleanna síos nó tarraing ceann',
   'rummytiles.unit.points': 'pointe',
   'zolik.unit.penalty': 'pionós',
   'header.pileFrozen': 'Carn reoite',

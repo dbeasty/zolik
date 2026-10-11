@@ -1742,6 +1742,7 @@ export const mt: Record<string, string> = {
   'holdem.unit.chips': 'ċipsijiet',
   'prsi.unit.cardsLeft': 'karti fadal',
   'rummytiles.prompt.initialMeld': 'L-ewwel tniżżil tiegħek irid jiswa {n} punti.',
+  'rummytiles.prompt.yourTurn': 'Poġġi t-tiles jew iġbed waħda',
   'rummytiles.unit.points': 'punti',
   'zolik.unit.penalty': 'penali',
   'header.pileFrozen': 'Il-munzell iffriżat',

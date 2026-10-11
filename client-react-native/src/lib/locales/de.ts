@@ -1745,6 +1745,7 @@ export const de: Record<string, string> = {
   'holdem.unit.chips': 'Chips',
   'prsi.unit.cardsLeft': 'Karten übrig',
   'rummytiles.prompt.initialMeld': 'Deine erste Auslage muss {n} Punkte wert sein.',
+  'rummytiles.prompt.yourTurn': 'Legen Sie Steine aus oder ziehen Sie einen',
   'rummytiles.unit.points': 'Punkte',
   'zolik.unit.penalty': 'Strafpunkte',
   'header.pileFrozen': 'Stapel eingefroren',

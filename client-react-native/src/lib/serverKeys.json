@@ -1135,6 +1135,8 @@
     "rummytiles.offer.swapJoker",
     "rummytiles.offer.take",
     "rummytiles.param.position",
+    "rummytiles.prompt.initialMeld",
+    "rummytiles.prompt.yourTurn",
     "rummytiles.remedy.emptyTheTray",
     "rummytiles.remedy.fixOrReset",
     "rummytiles.remedy.matchTheJoker",
@@ -3156,6 +3158,9 @@
       "cards",
       "player"
     ],
+    "rummytiles.prompt.initialMeld": [
+      "n"
+    ],
     "rummytiles.remedy.emptyTheTray": [
       "n"
     ],
@@ -3747,6 +3752,7 @@
     "rummytiles.move.split",
     "rummytiles.move.swappedJoker",
     "rummytiles.move.took",
+    "rummytiles.prompt.initialMeld",
     "rummytiles.remedy.emptyTheTray",
     "rummytiles.remedy.needMorePoints",
     "rummytiles.remedy.ownNewSetsOnly",

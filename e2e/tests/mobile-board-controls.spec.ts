@@ -19,7 +19,7 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
-async function canastaTable(request: Ctx) {
+async function canastaTable(request: Ctx, moduleId = 'canasta') {
   const res = await request.post(`${API_BASE}/auth/guest`, {
     data: { guestName: `mobctl-${Math.random().toString(36).slice(2, 10)}` },
   });
@@ -28,7 +28,7 @@ async function canastaTable(request: Ctx) {
   const auth = { Authorization: `Bearer ${host.accessToken}` };
   const created = await request.post(`${API_BASE}/matches`, {
     headers: auth,
-    data: { moduleId: 'canasta', options: {} },
+    data: { moduleId, options: {} },
   });
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
@@ -120,4 +120,21 @@ test('requirement hints live in their own sheet, not the log', async ({ page, re
   await expect(page.getByTestId('hint-1')).toContainText('canastas');
   await page.getByTestId('hints-close').click();
   await expect(sheet).toBeHidden();
+});
+
+test('Rummy Tiles: the first-lay requirement is a hint, the turn prompt stays in the log', async ({ page, request }) => {
+  const { matchId, host } = await canastaTable(request, 'rummytiles');
+  await openMatch(page, host, matchId);
+
+  const box = page.getByTestId('move-announcements');
+  await expect(box).not.toContainText('first lay');
+
+  const open = page.getByTestId('hints-open');
+  await expect(open).toContainText('1');
+  await open.click();
+  await expect(page.getByTestId('hint-0')).toContainText('first lay');
+  await page.getByTestId('hints-close').click();
+
+  // The turn prompt is worded, not a raw key (it had no wording before).
+  await expect(box).not.toContainText('rummytiles.prompt');
 });

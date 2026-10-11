@@ -1740,6 +1740,7 @@ export const es: Record<string, string> = {
   'holdem.unit.chips': 'fichas',
   'prsi.unit.cardsLeft': 'cartas restantes',
   'rummytiles.prompt.initialMeld': 'Tu primera bajada debe valer {n} puntos.',
+  'rummytiles.prompt.yourTurn': 'Baja fichas o roba una',
   'rummytiles.unit.points': 'puntos',
   'zolik.unit.penalty': 'penalización',
   'header.pileFrozen': 'Montón congelado',

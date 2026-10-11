@@ -1735,6 +1735,7 @@ export const it: Record<string, string> = {
   'holdem.unit.chips': 'fiches',
   'prsi.unit.cardsLeft': 'carte rimaste',
   'rummytiles.prompt.initialMeld': 'La tua prima calata deve valere {n} punti.',
+  'rummytiles.prompt.yourTurn': 'Cala delle tessere o pescane una',
   'rummytiles.unit.points': 'punti',
   'zolik.unit.penalty': 'penalità',
   'header.pileFrozen': 'Pila congelata',

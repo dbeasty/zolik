@@ -1729,6 +1729,7 @@ export const fi: Record<string, string> = {
   'holdem.unit.chips': 'pelimerkkiä',
   'prsi.unit.cardsLeft': 'korttia jäljellä',
   'rummytiles.prompt.initialMeld': 'Ensimmäisen laskusi on oltava {n} pisteen arvoinen.',
+  'rummytiles.prompt.yourTurn': 'Laske laattoja tai nosta yksi',
   'rummytiles.unit.points': 'pistettä',
   'zolik.unit.penalty': 'rangaistus',
   'header.pileFrozen': 'Pino jäädytetty',

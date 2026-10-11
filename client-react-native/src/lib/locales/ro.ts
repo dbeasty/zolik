@@ -1738,6 +1738,7 @@ export const ro: Record<string, string> = {
   'holdem.unit.chips': 'jetoane',
   'prsi.unit.cardsLeft': 'cărți rămase',
   'rummytiles.prompt.initialMeld': 'Prima ta coborâre trebuie să valoreze {n} puncte.',
+  'rummytiles.prompt.yourTurn': 'Așază piese sau trage una',
   'rummytiles.unit.points': 'puncte',
   'zolik.unit.penalty': 'penalizare',
   'header.pileFrozen': 'Teanc înghețat',

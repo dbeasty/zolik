@@ -1731,6 +1731,7 @@ export const bg: Record<string, string> = {
   'holdem.unit.chips': 'чипа',
   'prsi.unit.cardsLeft': 'останали карти',
   'rummytiles.prompt.initialMeld': 'Първото ти сваляне трябва да струва {n} точки.',
+  'rummytiles.prompt.yourTurn': 'Положете плочки или изтеглете една',
   'rummytiles.unit.points': 'точки',
   'zolik.unit.penalty': 'наказание',
   'header.pileFrozen': 'Купчината е замразена',

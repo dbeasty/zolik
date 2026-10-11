@@ -1720,6 +1720,7 @@ export const lt: Record<string, string> = {
   'holdem.unit.chips': 'žetonų',
   'prsi.unit.cardsLeft': 'liko kortų',
   'rummytiles.prompt.initialMeld': 'Tavo pirmas išdėjimas turi būti vertas {n} taškų.',
+  'rummytiles.prompt.yourTurn': 'Padėkite plyteles arba patraukite vieną',
   'rummytiles.unit.points': 'taškų',
   'zolik.unit.penalty': 'bauda',
   'header.pileFrozen': 'Krūvelė užšaldyta',

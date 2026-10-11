@@ -1719,6 +1719,7 @@ export const sk: Record<string, string> = {
   'holdem.unit.chips': 'žetónov',
   'prsi.unit.cardsLeft': 'zostáva kariet',
   'rummytiles.prompt.initialMeld': 'Tvoje prvé vyloženie musí mať hodnotu {n} bodov.',
+  'rummytiles.prompt.yourTurn': 'Vyložte kamene alebo si jeden vytiahnite',
   'rummytiles.unit.points': 'bodov',
   'zolik.unit.penalty': 'trestné body',
   'header.pileFrozen': 'Kopa zamrznutá',

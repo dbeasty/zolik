@@ -1723,6 +1723,7 @@ export const et: Record<string, string> = {
   'holdem.unit.chips': 'žetooni',
   'prsi.unit.cardsLeft': 'kaarti jäänud',
   'rummytiles.prompt.initialMeld': 'Sinu esimene väljapanek peab olema väärt {n} punkti.',
+  'rummytiles.prompt.yourTurn': 'Pange kive välja või võtke üks',
   'rummytiles.unit.points': 'punkti',
   'zolik.unit.penalty': 'trahv',
   'header.pileFrozen': 'Hunnik külmutatud',

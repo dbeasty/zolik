@@ -1716,6 +1716,7 @@ export const sv: Record<string, string> = {
   'holdem.unit.chips': 'marker',
   'prsi.unit.cardsLeft': 'kort kvar',
   'rummytiles.prompt.initialMeld': 'Din första utläggning måste vara värd {n} poäng.',
+  'rummytiles.prompt.yourTurn': 'Lägg brickor eller dra en',
   'rummytiles.unit.points': 'poäng',
   'zolik.unit.penalty': 'straff',
   'header.pileFrozen': 'Högen frusen',
