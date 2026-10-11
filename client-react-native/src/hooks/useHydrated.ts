@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { IS_DESKTOP } from '@/src/config';
+
 /**
  * What a width-dependent screen should believe about the window on its first
  * paint.
@@ -25,4 +27,17 @@ export function useHydrated(): boolean {
 /** The width-dependent answer to give: the real one once hydrated, narrow before. */
 export function narrowOnFirstPaint(hydrated: boolean, narrow: boolean): boolean {
   return hydrated ? narrow : true;
+}
+
+/**
+ * Whether to draw the desktop app's chrome (no header, no footer).
+ *
+ * The app shows the same pre-rendered export the website does, and that HTML
+ * has the header and footer. Dropping them on the first client render makes
+ * React find the page and the HTML disagree (#418) in every window of the
+ * app. Draw what the HTML has until mounted, then the app's own.
+ */
+export function useDesktopChrome(): boolean {
+  const hydrated = useHydrated();
+  return IS_DESKTOP && hydrated;
 }
