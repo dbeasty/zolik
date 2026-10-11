@@ -656,6 +656,25 @@ async function main() {
     await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'en', 'the game window to turn English again', 25000); return 1`);
     await on(a, 1);
     await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
+    // So does a table look: the board in the game window changes colour.
+    const boardColour = `return [...new Set([...document.querySelectorAll('*')].map((e) => getComputedStyle(e).backgroundColor).filter((c) => c !== 'rgba(0, 0, 0, 0)'))].sort().join(' ')`;
+    await on(a, lcw);
+    const before = await a.js(boardColour);
+    await on(a, 1);
+    await a.native('menu Settings…');
+    // (The settings screen the language check left is still mounted below this one.)
+    await a.js(`await e2e.sleep(500); await e2e.click('Casino', { exact: true }); return 1`);
+    await on(a, lcw);
+    let after = before;
+    for (let i = 0; i < 250 && after === before; i++) {
+      await sleep(100);
+      after = await a.js(boardColour);
+    }
+    expect(after !== before, `the game window kept its table look (${before}) after Casino was chosen in the main window`);
+    await on(a, 1);
+    await a.js(`await e2e.click('Heirloom', { exact: true }); return 1`);
+    await on(a, 1);
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
     // The Window menu lists the main window once (its ⌘1 item), not twice.
     const windowMenu = await a.native('menuitems Window');
     expect(windowMenu.filter((t) => /^Jokerless$/.test(t)).length === 1, `the Window menu lists ${JSON.stringify(windowMenu)}`);

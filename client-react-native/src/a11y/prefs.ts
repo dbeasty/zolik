@@ -115,6 +115,17 @@ export async function setA11yPref<K extends keyof A11yPrefs>(key: K, value: A11y
   }
 }
 
+// Another window of the app (or tab) changed a choice: take it, so a game
+// window does not keep the old card size or motion setting until reloaded.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key !== null && e.key !== KEY) return;
+    current = parsePrefs(e.key === null ? null : e.newValue);
+    loaded = true;
+    listeners.forEach((fn) => fn(current));
+  });
+}
+
 export function subscribeA11yPrefs(fn: (p: A11yPrefs) => void): () => void {
   listeners.add(fn);
   return () => {
