@@ -55,6 +55,10 @@ func WebAsset(path string) *WebResponse {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	if name, ok := h.Lookup(path); ok {
 		h.ServeFile(rec, req, name)
+	} else if name, ok := h.LookupDynamic(path); ok {
+		// /match/<id> starts from match/[matchId].html, the page the client
+		// will draw, so React finds nothing to disagree with.
+		h.ServeFile(rec, req, name)
 	} else {
 		h.ServeIndex(rec, req)
 	}

@@ -148,3 +148,27 @@ func TestWantsHTMLOnlyForBrowserReads(t *testing.T) {
 		}
 	}
 }
+
+// TestLookupDynamicNamesTheParameterisedPage: /match/abc has a pre-rendered
+// match/[matchId].html even though Lookup, like nginx, cannot find it.
+func TestLookupDynamicNamesTheParameterisedPage(t *testing.T) {
+	b := bundle()
+	b["match/[matchId].html"] = &fstest.MapFile{Data: []byte("m")}
+	b["seat/[matchId]/[secret].html"] = &fstest.MapFile{Data: []byte("s")}
+	b["lobby/games.html"] = &fstest.MapFile{Data: []byte("g")}
+	h := NewHandler(b)
+	for url, want := range map[string]string{
+		"/match/abc":   "match/[matchId].html",
+		"/seat/m1/sec": "seat/[matchId]/[secret].html",
+	} {
+		got, ok := h.LookupDynamic(url)
+		if !ok || got != want {
+			t.Errorf("LookupDynamic(%q) = %q, %v; want %q", url, got, ok, want)
+		}
+	}
+	for _, url := range []string{"/", "/nothing/here", "/match", "/match/abc/extra", "/lobby/x"} {
+		if got, ok := h.LookupDynamic(url); ok {
+			t.Errorf("LookupDynamic(%q) = %q; want a miss", url, got)
+		}
+	}
+}
