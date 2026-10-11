@@ -31,7 +31,7 @@ function render(notes, tail = 0.05) {
       const env = Math.min(1, t / 0.004) * Math.exp((-5 * i) / len) * (1 - i / len);
       let s;
       if (n.type === 'noise') {
-        lp += 0.35 * (rand() - lp);
+        lp += 0.14 * (rand() - lp); // low cutoff: a dull rustle, not a hiss
         s = lp;
       } else if (n.type === 'tri') s = (2 / Math.PI) * Math.asin(Math.sin(phase));
       else s = Math.sin(phase) + 0.25 * Math.sin(2 * phase);
@@ -61,13 +61,14 @@ function wav(samples) {
 }
 
 const note = (f, at, dur, extra = {}) => ({ f, at, dur, ...extra });
-const C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5, A4 = 440, F4 = 349.23, D4 = 293.66;
+// An octave below concert pitch: the board's sounds are deliberately deep.
+const C5 = 261.63, E5 = 329.63, G5 = 392, C6 = 523.25, A4 = 220, F4 = 174.61, D4 = 146.83;
 
 const sounds = {
   // A card laid on felt: a short noise slap over a low thump.
-  card: [note(0, 0, 0.07, { type: 'noise', gain: 1.1 }), note(150, 0, 0.09, { slide: 90, gain: 0.5 })],
+  card: [note(0, 0, 0.07, { type: 'noise', gain: 1.1 }), note(95, 0, 0.11, { slide: 55, gain: 0.7 })],
   // A pile gathered up: a rising rustle and two soft ticks.
-  take: [note(0, 0, 0.22, { type: 'noise', gain: 0.8 }), note(330, 0.02, 0.12, { slide: 520, type: 'tri', gain: 0.35 }), note(520, 0.12, 0.12, { type: 'tri', gain: 0.3 })],
+  take: [note(0, 0, 0.22, { type: 'noise', gain: 0.8 }), note(165, 0.02, 0.12, { slide: 260, type: 'tri', gain: 0.45 }), note(260, 0.12, 0.14, { type: 'tri', gain: 0.4 })],
   // Your turn: one soft bell.
   turn: [note(E5, 0, 0.35, { gain: 0.4 }), note(E5 * 2, 0, 0.2, { gain: 0.12 })],
   // A round settles: a falling-then-rising pair.
