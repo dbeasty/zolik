@@ -2,12 +2,13 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 
 import { ApiError } from '@/src/api/client';
 import type { MatchState, Replay, ReplayFrame, RoundLog } from '@/src/api/matchTypes';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
-import { DesktopGameHandoff } from '@/src/desktop/windows';
+import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { DeckProvider } from '@/src/lib/deck';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
@@ -21,6 +22,7 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { label, playerName } from '@/src/lib/labels';
 import { loadMarks, saveMarks } from '@/src/lib/markStore';
 import type { Skin } from '@/src/skins/types';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Stepping back and forth through a game that has stopped.
@@ -54,6 +56,8 @@ export default function ReplayRoute() {
 }
 
 function ReplayScreen() {
+  const edges = useScreenEdges();
+  useLocale();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const id = matchId ? String(matchId) : '';
@@ -127,6 +131,14 @@ function ReplayScreen() {
 
   const frame = framesRef.current.get(index) ?? null;
   const total = replay?.total ?? 0;
+  // The Mac window's title bar: "Replay · Gin Rummy", and not one to reopen at
+  // the next launch.
+  const replayGame = useGameName(replay?.moduleId ?? '');
+  useGameWindowInfo(
+    replay?.moduleId
+      ? { title: `${t('nav.replay')} · ${replayGame}`, subtitle: '', finished: true, yourTurn: false, offline: false }
+      : null,
+  );
 
   // Fetch the page holding whatever is being looked at, and the one after it
   // while the reader is still on this one — a step forward should not wait on
@@ -218,7 +230,7 @@ function ReplayScreen() {
     return (
       <View style={styles.root}>
         <TableSurface />
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.safe} edges={edges}>
           <Text testID="replay-error" style={styles.error}>
             {error}
           </Text>
@@ -231,7 +243,7 @@ function ReplayScreen() {
     return (
       <View style={styles.root}>
         <TableSurface />
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.safe} edges={edges}>
           <Text testID="replay-loading" style={styles.muted}>
             {t('replay.loading')}
           </Text>
@@ -316,7 +328,7 @@ function ReplayScreen() {
           title: t('nav.replay'),
         }}
       />
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safe} edges={edges}>
         <ScrollView
           contentContainerStyle={[
             styles.body,

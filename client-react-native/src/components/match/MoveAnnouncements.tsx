@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useIsFocused } from 'expo-router';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { announce } from '@/src/a11y/announce';
@@ -58,6 +59,9 @@ export function MoveAnnouncements({
   const short = height < SHORT_WINDOW;
   const linesHeight = !open ? undefined : short ? LINE * 3 : LINE * 5;
   const [hintsOpen, setHintsOpen] = useState(false);
+  // Screens stay mounted under the one that replaced them, and a Modal does
+  // not hide with its screen: the sheet was left over every other screen.
+  const focused = useIsFocused();
   const hints = prompts.filter((f) => f.hint);
   const turnPrompts = prompts.filter((f) => !f.hint);
   const scroller = useRef<ScrollView>(null);
@@ -214,12 +218,18 @@ export function MoveAnnouncements({
         </View>
         )}
         {turnPrompts.map((f, i) => (
-          <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
+          <Text
+            key={`prompt-${i}`}
+            testID={`prompt-${i}`}
+            // With no move above it, the first prompt is the box's first line
+            // and shares the corner with the buttons: a long one ran under them.
+            style={[styles.prompt, i === 0 && shown.length === 0 && styles.firstOpenRow]}
+          >
             <LastCardInk text={factText(f, players)} />
           </Text>
         ))}
       </View>
-      {hintsOpen ? <HintsSheet hints={hints} players={players} onClose={() => setHintsOpen(false)} /> : null}
+      {hintsOpen && focused ? <HintsSheet hints={hints} players={players} onClose={() => setHintsOpen(false)} /> : null}
     </View>
   );
 }

@@ -12,6 +12,7 @@ import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { setSaveGamesMode, useSaveGamesMode, type SaveGamesMode } from '@/src/lib/saveGamesPref';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * The games this phone hosted that have not gone anywhere.
@@ -22,6 +23,7 @@ import { colors, shared } from '@/src/theme';
  * seat of every player who said yes on their own screen; nobody else's name.
  */
 export default function LocalGamesScreen() {
+  useLocale();
   const [client, setClient] = useState<ZolikClient | null>(null);
   const [games, setGames] = useState<LocalSave[] | null>(null);
   const [enrolled, setEnrolled] = useState(true);

@@ -211,6 +211,13 @@ export function t(key: string, params?: Params, fallback?: string): string {
     const desk = BUNDLES[currentLocale]?.[`${key}@desktop`];
     if (desk !== undefined) return interpolate(desk, params);
   }
+  // A count of exactly one has its own wording where the bundle gives it
+  // (`<key>.1`): "needs 1 more canasta", not "canastas" or "card(s)". Looked up
+  // in this language only, so a language without one keeps its plural form.
+  if (params && Number(params.n) === 1) {
+    const one = BUNDLES[currentLocale]?.[`${key}.1`];
+    if (one !== undefined) return interpolate(one, params);
+  }
   const own = BUNDLES[currentLocale]?.[key];
   if (own !== undefined) return interpolate(own, params);
   // Nothing in this language. Every fallback below renders *English* at a

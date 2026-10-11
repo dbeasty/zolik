@@ -172,7 +172,7 @@ test.describe('a table the sweeper set aside', () => {
     );
 
     // The status the header reports is the real one, not "in progress".
-    await expect(page.getByTestId('match-status')).toHaveText('abandoned');
+    await expect(page.getByTestId('match-status')).toHaveAttribute('data-status', 'abandoned');
 
     // Resuming carries this game on rather than starting a new one, so it is
     // offered above the rematch.
@@ -183,7 +183,7 @@ test.describe('a table the sweeper set aside', () => {
     // in the table's room and the revived board arrives as an ordinary state
     // message.
     await expect(page.getByTestId('match-over')).toBeHidden({ timeout: 30_000 });
-    await expect(page.getByTestId('match-status')).toHaveText('active');
+    await expect(page.getByTestId('match-status')).toHaveAttribute('data-status', 'active');
 
     // And the server agrees, which is what makes the board above real rather
     // than a client that merely stopped drawing the banner.
@@ -244,8 +244,8 @@ test.describe('a table the sweeper set aside', () => {
       // Both boards come back, and the friend's does so without a navigation
       // — the socket is already in the table's room.
       await expect(friendPage.getByTestId('match-over')).toBeHidden({ timeout: 30_000 });
-      await expect(friendPage.getByTestId('match-status')).toHaveText('active');
-      await expect(hostPage.getByTestId('match-status')).toHaveText('active', { timeout: 30_000 });
+      await expect(friendPage.getByTestId('match-status')).toHaveAttribute('data-status', 'active');
+      await expect(hostPage.getByTestId('match-status')).toHaveAttribute('data-status', 'active', { timeout: 30_000 });
 
       // And the server agrees, which is what makes either board real.
       const after = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();

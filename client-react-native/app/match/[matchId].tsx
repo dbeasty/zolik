@@ -12,6 +12,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 
 import { announce, announceGame } from '@/src/a11y/announce';
 import { cardSpokenName, cardsSpoken } from '@/src/a11y/cardNames';
@@ -81,7 +82,7 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
-import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
+import { moduleLabel, moduleName, variationName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
@@ -111,9 +112,10 @@ import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
 import { seatIsShareable } from '@/src/desktop/seat';
-import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
+import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
 import { isTableZone } from '@/src/lib/board';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -165,6 +167,8 @@ const DROP_DWELL_MS = 700;
 const BAND_DWELL_MS = 600;
 
 function MatchScreen() {
+  useLocale();
+  const edges = useScreenEdges();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
   // A seat taken through a seat link plays this table — and only this one —
@@ -647,7 +651,7 @@ function MatchScreen() {
   // True while the autoscroll itself re-aims the pointer after a scroll step,
   // so a target sliding under a held pointer does not restart the dwell below.
   const scrolling = useRef(false);
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dragging = drag !== null;
   useEffect(() => {
     if (!dragging) {
@@ -817,8 +821,9 @@ function MatchScreen() {
   if (!state) {
     return (
       <View style={styles.root}>
+        <GoneWindowCloser gone={error?.code === 'MATCH_NOT_FOUND' || error?.code === 'MATCH_DELETED'} />
         <TableSurface />
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.safe} edges={edges}>
           {/* A refusal that arrives before any board has to be drawn here,
               because the one place this screen renders `error` is inside the
               controls panel — which does not exist until there is a state to
@@ -2007,11 +2012,19 @@ function MatchScreen() {
                 <View
                   style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
                 />
-                <Text testID="match-status" style={styles.status}>
-                  {state.status}
+                {/* In the player's language; the server's word stays on the element for tests. */}
+                <Text
+                  testID="match-status"
+                  numberOfLines={1}
+                  style={[styles.status, { flexShrink: 1 }]}
+                  {...((Platform.OS === 'web' ? { dataSet: { status: state.status } } : {}) as object)}
+                >
+                  {t(`mine.status.${state.status}`, undefined, state.status)}
                 </Text>
-                {serverLabel ? (
-                  <Text testID="match-server" style={styles.status} numberOfLines={1}>
+                {serverLabel && windowWidth >= 480 ? (
+                  // A phone's bar has no room for it between the arrows and the
+                  // face: it ran under both. The status explainer says it instead.
+                  <Text testID="match-server" style={[styles.status, { flexShrink: 1 }]} numberOfLines={1}>
                     {`· ${serverLabel}`}
                   </Text>
                 ) : null}
@@ -2029,7 +2042,7 @@ function MatchScreen() {
           ),
         }}
       />
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safe} edges={edges}>
       {/* Drawn outside the board rather than at the top of it, so it answers
           the tap wherever the player happens to be scrolled to. */}
       {statusExplainerOpen ? (
@@ -2064,9 +2077,17 @@ function MatchScreen() {
       >
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
-            <Text testID="match-module" style={styles.module}>
-              {state.moduleId}
-              {state.variation ? ` · ${state.variation}` : ''}
+            {/* The game's name, in the player's language; the bare ids stay
+                on the element for tests and tooling. */}
+            <Text
+              testID="match-module"
+              style={styles.module}
+              {...((Platform.OS === 'web'
+                ? { dataSet: { module: state.moduleId, variation: state.variation ?? '' } }
+                : {}) as object)}
+            >
+              {moduleName(state.moduleId)}
+              {state.variation ? ` · ${variationName(state.moduleId, state.variation)}` : ''}
             </Text>
             <Tip text={t('a11y.board.tip.rules')}>
             <Pressable

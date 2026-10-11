@@ -69,7 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   {
     let controller = AppWindowController(
       role: role, matchId: matchId, kind: kind, nearby: NearbyService.shared,
-      cascadeFrom: active?.window ?? windows.last?.window, seat: { [weak self] in self?.seat })
+      cascadeFrom: windows.last?.window ?? active?.window, seat: { [weak self] in self?.seat })
     controller.web.openGames = { [weak self] in self?.openMatchIds ?? [] }
     controller.onActivate = { [weak self] c in
       self?.active = c
@@ -168,6 +168,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
       showMain()
       if let path = body["path"] as? String { main.web.navigate(to: path) }
       if body["close"] as? Bool == true, c.role == .game { c.window?.close() }
+    case "closeWindow":
+      // The page has nothing left to show (its table was deleted): the window
+      // closes, and with it the app's memory of the game.
+      if c.role == .game { c.window?.close() }
     case "windowInfo":
       guard c.role == .game else { return }
       let before = c.gameKey
@@ -184,8 +188,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         remembered.add(key: key, path: "/\(parts[0])/\(parts.count > 1 ? parts[1] : "")")
       }
     case "seat":
+      let previous = seat
       seat = body["table"] as? [String: Any]
       for other in windows where other !== c { other.web.emitSeat(seat) }
+      // The player left the offline table (Back to online play, or the table
+      // was stopped): the games on it are gone, so their windows go with it
+      // rather than staying open on a board whose table no longer exists.
+      if previous != nil, seat == nil {
+        for g in games where g.info.offline { g.window?.close() }
+      }
     case "signedOut":
       for g in games { g.window?.close() }
       remembered.clear()

@@ -14,8 +14,10 @@ import { guestNameFor } from '@/src/lib/guestName';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 export default function GuestScreen() {
+  useLocale();
   const { guestLogin } = useSession();
   const { avatarId, setAvatarId } = useAvatarControls();
   // Named, not numbered, and never "Player" — see src/lib/guestName.ts. The

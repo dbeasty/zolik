@@ -24,7 +24,7 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 		if hr.Winner != "" {
 			r.Winners = []string{hr.Winner}
 		}
-		r.Facts = []module.Fact{{LabelKey: "ginrummy.round.kind", Value: hr.Kind}}
+		r.Facts = []module.Fact{{LabelKey: "ginrummy.round.kind", Value: roundKindKey(hr.Kind)}}
 		for _, p := range s.Players {
 			r.Scores = append(r.Scores, module.RoundScore{
 				PlayerID: p, Delta: hr.Deltas[p], Total: hr.Totals[p],
@@ -33,4 +33,21 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 		log.Rounds = append(log.Rounds, r)
 	}
 	return log, nil
+}
+
+// roundKindKey words how a hand ended. Each key is a literal on purpose: a key
+// reaching a Fact through a variable never makes the key manifest, so no locale
+// is checked for it, and the player read the bare "knock".
+func roundKindKey(kind string) string {
+	switch kind {
+	case "gin":
+		return "ginrummy.kind.gin"
+	case "knock":
+		return "ginrummy.kind.knock"
+	case "undercut":
+		return "ginrummy.kind.undercut"
+	case "dead":
+		return "ginrummy.kind.dead"
+	}
+	return kind
 }

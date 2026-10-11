@@ -203,8 +203,8 @@ test.describe('one shell, every game', () => {
 
       // The screen knows which game it is showing only because the server told
       // it — and it is the only thing on the page that names one.
-      await expect(page.getByTestId('match-module')).toHaveText(new RegExp(game.moduleId));
-      await expect(page.getByTestId('match-status')).toHaveText(/active|completed/);
+      await expect(page.getByTestId('match-module')).toHaveAttribute('data-module', game.moduleId);
+      await expect(page.getByTestId('match-status')).toHaveAttribute('data-status', /active|completed/);
 
       // A table with people at it, exactly one of whom is on turn. Seat.Active
       // is a pushed fact — the shell never works it out.
@@ -244,7 +244,7 @@ test.describe('one shell, every game', () => {
 
       // Nothing crashed and the board is still there.
       await expect(page.getByTestId('match-screen')).toBeVisible();
-      await expect(page.getByTestId('match-status')).toHaveText(/active|completed|suspended/);
+      await expect(page.getByTestId('match-status')).toHaveAttribute('data-status', /active|completed|suspended/);
     });
   }
 
@@ -578,7 +578,7 @@ test.describe('one shell, every game', () => {
     await page.getByTestId('deal-me-in-canasta').click();
 
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId('match-module')).toHaveText(/canasta/);
+    await expect(page.getByTestId('match-module')).toHaveAttribute('data-module', 'canasta');
     await expect(page.getByTestId('action-bar')).toBeVisible();
   });
 
@@ -641,7 +641,7 @@ test.describe('the legacy path is gone', () => {
     expect(started.ok(), await started.text()).toBeTruthy();
 
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId('match-module')).toHaveText(/prsi/);
+    await expect(page.getByTestId('match-module')).toHaveAttribute('data-module', 'prsi');
   });
 
   test('the retired endpoints are actually retired', async ({ request }) => {

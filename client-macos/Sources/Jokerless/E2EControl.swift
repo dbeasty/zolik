@@ -161,6 +161,8 @@ final class E2EControl {
           "role": w.role == .main ? "main" : "game", "key": w.gameKey ?? "", "title": w.window?.title ?? "",
           "subtitle": w.window?.subtitle ?? "", "visible": w.window?.isVisible ?? false,
           "hidden": w.hidden,
+          "frame": [w.window?.frame.minX ?? 0, w.window?.frame.minY ?? 0, w.window?.frame.width ?? 0, w.window?.frame.height ?? 0],
+          "onScreen": w.window.map { win in NSScreen.screens.contains { $0.visibleFrame.intersects(win.frame) } } ?? false,
         ] as [String: Any]
       }))
     case "toolbar":
@@ -235,6 +237,13 @@ extension E2EControl {
       }
       app.select(target)
       done(.success(n))
+    case "size":
+      // `window size W H` resizes the active window's content to W x H points.
+      guard parts.count > 2, let w = Double(parts[1]), let h = Double(parts[2]), let win = app.active?.window else {
+        return done(.failure(E2EError("window size W H")))
+      }
+      win.setContentSize(NSSize(width: w, height: h))
+      done(.success(true))
     case "main":
       app.showMain()
       done(.success(true))

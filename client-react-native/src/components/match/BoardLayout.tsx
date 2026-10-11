@@ -11,7 +11,7 @@ import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import type { ChangeMarks } from '@/src/lib/changes';
-import { drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
+import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
 import { isSeatArranged } from '@/src/lib/seatArrangement';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -335,9 +335,9 @@ export function Section({
         </View>
       }
     >
-      {beside.length > 0 ? (
-        <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
-          {beside.map((z) =>
+      {besideRows(beside).map((row) => (
+        <View key={row[0].id} style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
+          {row.map((z) =>
             // Compact is right for a pile you glance at and wrong for cards
             // you read: a stack is a count and a pile is its top card, but a
             // shared spread is half of everyone's hand and is drawn at the
@@ -358,7 +358,7 @@ export function Section({
             ),
           )}
         </View>
-      ) : null}
+      ))}
       {stacked.map((z) => (
         <ZoneView key={z.id} zone={z} compact={compact} nested {...panelPropsFor(z.id)} {...drops} />
       ))}
@@ -400,7 +400,9 @@ export function matchStyles(s: Skin) {
   ending: { gap: 4 },
   // Wraps: at phone width the module group alone fills the row, which pushed the skin toggle off the right edge.
   headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: 8, rowGap: 4 },
-  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Shrinks: the bar's room between the arrows and the face is fixed, and a
+  // longer status plus the server's name ran under both.
+  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 },
   headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
   moduleGroup: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', flexShrink: 1, minWidth: 0, columnGap: 8 },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },

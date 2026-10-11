@@ -38,12 +38,12 @@ function withLocalNetwork(config) {
   return withInfoPlist(config, (cfg) => {
     cfg.modResults.NSLocalNetworkUsageDescription =
       cfg.modResults.NSLocalNetworkUsageDescription ??
-      'Zolik looks for card tables on this network so you can play with the people around you, with no internet needed.';
+      'Jokerless looks for card tables on this network so you can play with the people around you, with no internet needed.';
     // Bluetooth, for tables with no network at all. The phones never pair,
     // so this is the only prompt a player sees for it.
     cfg.modResults.NSBluetoothAlwaysUsageDescription =
       cfg.modResults.NSBluetoothAlwaysUsageDescription ??
-      'Zolik uses Bluetooth to play cards with the people around you when there is no Wi-Fi.';
+      'Jokerless uses Bluetooth to play cards with the people around you when there is no Wi-Fi.';
     const services = new Set(cfg.modResults.NSBonjourServices ?? []);
     services.add('_zolik._tcp');
     cfg.modResults.NSBonjourServices = [...services];

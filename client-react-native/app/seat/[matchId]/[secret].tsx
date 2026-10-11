@@ -13,6 +13,7 @@ import { moduleLabel } from '@/src/lib/gameLabels';
 import { reasonText, t } from '@/src/lib/i18n';
 import { saveSeatSession } from '@/src/lib/seatSessions';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a seat link lands: "You're Bob", before anything is taken.
@@ -27,6 +28,7 @@ import { colors, shared } from '@/src/theme';
  * alone (see seatSessions.ts), not an identity.
  */
 export default function SeatLinkScreen() {
+  useLocale();
   const { matchId, secret } = useLocalSearchParams<{ matchId: string; secret: string }>();
   const { client, loading } = useSession();
   const [preview, setPreview] = useState<SeatPreview | null>(null);

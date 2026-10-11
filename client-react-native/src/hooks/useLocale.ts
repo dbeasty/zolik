@@ -83,6 +83,19 @@ export function useLocaleBootstrap(): boolean {
     };
   }, []);
 
+  // Another window of the same app (or tab of the same site) changed the
+  // language: follow it, so a game window does not keep the old words until it
+  // is reloaded. `storage` events arrive only from other documents.
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && e.key !== 'zolik_locale') return;
+      void loadLocaleOverride().then((saved) => setLocale(saved ?? detectLocale()));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   return ready;
 }
 

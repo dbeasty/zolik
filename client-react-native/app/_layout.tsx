@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { A11yRoot } from '@/src/a11y/A11yRoot';
 import { AccountMenu } from '@/src/components/AccountMenu';
 import { IS_DESKTOP, IS_DESKTOP_GAME_WINDOW } from '@/src/config';
+import { useDesktopChrome } from '@/src/hooks/useHydrated';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
 import { NavArrows, NavHistoryTracker } from '@/src/desktop/NavArrows';
@@ -43,6 +44,7 @@ export default function RootLayout() {
   // who switched to German reads "Einstellungen" under a bar saying
   // "Settings".
   useLocale();
+  const desktopChrome = useDesktopChrome();
 
   useEffect(() => {
     SplashScreen.hideAsync();
@@ -93,7 +95,7 @@ export default function RootLayout() {
                     // title bar carries the screen's name, its back and
                     // forward arrows (main window) and a game's status
                     // (game window). See client-macos.
-                    headerShown: !IS_DESKTOP,
+                    headerShown: !desktopChrome,
                     headerStyle: { backgroundColor: colors.surface },
                     headerTintColor: colors.text,
                     contentStyle: { backgroundColor: colors.bg },
@@ -103,7 +105,7 @@ export default function RootLayout() {
                     // for free — see `src/components/AccountMenu.tsx`.
                     // In the Mac app the same menu is the menu bar's Account
                     // menu instead (src/desktop/DesktopMenuBridge.tsx).
-                    headerRight: IS_DESKTOP ? undefined : () => <AccountMenu />,
+                    headerRight: desktopChrome ? undefined : () => <AccountMenu />,
                     // Back and forward together, on every platform: going
                     // back always has a way forward (src/desktop/NavArrows.tsx).
                     headerLeft: () => <NavArrows />,

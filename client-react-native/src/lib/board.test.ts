@@ -1,5 +1,6 @@
 import type { Zone } from '@/src/api/matchTypes';
 import {
+  besideRows,
   concealedCount,
   drawableZones,
   isConcealed,
@@ -158,5 +159,24 @@ describe('where a zone is drawn', () => {
   it('gives a hand and an unshared spread the full width', () => {
     expect(sitsBeside(teamMelds)).toBe(false);
     expect(sitsBeside(zone({ kind: 'hand', count: 13 }))).toBe(false);
+  });
+});
+
+describe('besideRows', () => {
+  const group = (id: string) => ({ id, cards: ['3H'] });
+  const stock = zone({ id: 'stock', kind: 'stack', count: 24 });
+  const waste = zone({ id: 'waste', kind: 'pile', count: 0 });
+  const foundations = zone({ id: 'foundations', kind: 'spread', shared: true, groups: [1, 2, 3, 4].map((n) => group(`f${n}`)) });
+  const tableau = zone({ id: 'tableau', kind: 'spread', shared: true, groups: [1, 2, 3, 4, 5, 6, 7].map((n) => group(`t${n}`)) });
+
+  it('keeps small zones in one wrapping row', () => {
+    expect(besideRows([stock, waste, foundations])).toEqual([[stock, waste, foundations]]);
+  });
+
+  it("gives solitaire's seven columns a row of their own rather than the room left beside the foundations", () => {
+    // Left to flex-basis, a phone laid the tableau out in what remained of the
+    // foundations' row and ran it off the screen.
+    expect(besideRows([stock, waste, foundations, tableau])).toEqual([[stock, waste, foundations], [tableau]]);
+    expect(besideRows([tableau, stock])).toEqual([[tableau], [stock]]);
   });
 });

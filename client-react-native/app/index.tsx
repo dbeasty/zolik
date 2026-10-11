@@ -15,7 +15,7 @@ import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
-import { IS_DESKTOP } from '@/src/config';
+import { useDesktopChrome } from '@/src/hooks/useHydrated';
 import { useOpenGames } from '@/src/desktop/openGames';
 import { useAvailability } from '@/src/context/AvailabilityContext';
 import { useSession } from '@/src/context/SessionContext';
@@ -78,6 +78,7 @@ export default function MainMenu() {
   useFollowPendingDestination(!!session && !loading);
   // Nothing else here re-renders once the saved language has loaded.
   useLocale();
+  const desktopChrome = useDesktopChrome();
   const wide = useWide();
   // Read here rather than in the rows so the side panel and the tiles agree
   // about what a player has going without asking twice.
@@ -153,7 +154,7 @@ export default function MainMenu() {
 
       {/* In the Mac app the versions are in About and the notices in Help,
           where a Mac app keeps them. */}
-      {IS_DESKTOP ? null : <BuildFooter onPressVersions={() => router.push('/about')} />}
+      {desktopChrome ? null : <BuildFooter onPressVersions={() => router.push('/about')} />}
     </Screen>
   );
 }
@@ -316,6 +317,7 @@ function GameRow({
           {resume ? (
             <Text
               testID={`picker-${mod.id}-table`}
+              numberOfLines={1}
               style={[styles.badge, status.yourTurn ? styles.badgeTurn : styles.badgeQuiet]}
             >
               {status.yourTurn
@@ -567,16 +569,19 @@ const styles = StyleSheet.create({
   rowPressed: { borderColor: colors.accent },
   tile: { position: 'relative' },
   resumeCorner: { position: 'absolute', right: 10, bottom: 10, backgroundColor: colors.surface },
-  badgesClearOfResume: { paddingRight: 76 },
+  badgesClearOfResume: { paddingRight: 70 },
   name: { color: colors.text, fontSize: 16, fontWeight: '600' },
   badges: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 6, minHeight: 24 },
   badge: {
     fontSize: 12,
     fontWeight: '600',
     borderRadius: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     overflow: 'hidden',
+    // One line, shrinking to an ellipsis at worst: "In progress" wrapped to
+    // two lines beside Resume at 402 pt and made its tile taller than the rest.
+    flexShrink: 1,
   },
   badgeTurn: { color: colors.onAccent, backgroundColor: colors.gold },
   badgeQuiet: { color: colors.muted, borderWidth: 1, borderColor: colors.border },

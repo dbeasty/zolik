@@ -10,6 +10,7 @@ import { claimPrompt, claimedMessage, orderProviders, providerButtonLabel } from
 import { guestUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * The account screen: which sign-in methods are attached, and the chance to
@@ -20,6 +21,7 @@ import { t } from '@/src/lib/i18n';
  * never edits either directly.
  */
 export default function AccountScreen() {
+  useLocale();
   const {
     session,
     loading,

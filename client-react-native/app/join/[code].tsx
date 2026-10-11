@@ -11,6 +11,7 @@ import { routeForMatch } from '@/src/lib/matchRoute';
 import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a shared link lands: `/join/ABC123`.
@@ -39,6 +40,7 @@ import { t } from '@/src/lib/i18n';
  * clicked the link" and "I am in" is exactly the friction the feature removes.
  */
 export default function JoinByLinkScreen() {
+  useLocale();
   const { client, session, loading } = useSession();
   const { code } = useLocalSearchParams<{ code: string }>();
   const joinCode = String(code ?? '').trim();

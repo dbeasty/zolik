@@ -5,6 +5,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
+import { cssLoop } from '@/src/lib/cssLoop';
 
 /**
  * The table itself: whatever the skin says is behind the board.
@@ -116,8 +117,16 @@ function Sweep({ color, width }: { color: string; width: number }) {
   const progress = useRef(new Animated.Value(0)).current;
   const stillness = useReducedMotion();
 
+  const band = Math.max(180, width * 0.45);
+  // On the web the browser draws the drift (see `cssLoop`).
+  const web = cssLoop(
+    { '0%': { transform: [{ translateX: 0 }] }, '100%': { transform: [{ translateX: width + band }] } },
+    { duration: 12000, direction: 'alternate', timing: 'ease-in-out' },
+  );
+
   useEffect(() => {
     if (stillness) return;
+    if (web) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(progress, {
@@ -136,11 +145,23 @@ function Sweep({ color, width }: { color: string; width: number }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [stillness, progress]);
+  }, [stillness, progress, web]);
 
   if (stillness) return null;
 
-  const band = Math.max(180, width * 0.45);
+  if (web) {
+    return (
+      <View pointerEvents="none" style={[{ position: 'absolute', top: 0, bottom: 0, left: -band, width: band }, web]}>
+        <LinearGradient
+          colors={['transparent', color, 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+    );
+  }
+
   return (
     <Animated.View
       pointerEvents="none"

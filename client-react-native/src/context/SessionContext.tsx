@@ -20,7 +20,7 @@ import { RelayHostAway, relayInfo, relayLink, relayRandom32 } from '@/src/net/re
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
 import { guestIdOfKey } from '@/src/lib/inviteLink';
-import { DESKTOP_WINDOW, IS_DESKTOP, ZOLIK_BASE_URL } from '@/src/config';
+import { DESKTOP_WINDOW, IS_DESKTOP, IS_DESKTOP_GAME_WINDOW, ZOLIK_BASE_URL } from '@/src/config';
 import { bootSeat, postSeat, seatIsShareable, seatKey, subscribeSeat, type SeatTable } from '@/src/desktop/seat';
 import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
 import { servingTable } from '@/src/net/servingTable';
@@ -929,6 +929,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   offlineRef.current = offline;
   const appSeat = useRef<string>(seatKey(bootSeat()));
   const wantedSeat = useRef<SeatTable | null>(bootSeat());
+  // A game window that opened online is showing a match on the internet
+  // server. The player then sitting down at an offline table elsewhere in the
+  // app must not move this window to that table's server, where its match does
+  // not exist ("That table no longer exists").
+  const gameWindowStartedOnline = useRef(IS_DESKTOP_GAME_WINDOW && !bootSeat());
   const sitFromApp = useCallback(
     async (seat: SeatTable | null) => {
       if (!seat || !seatIsShareable(seat)) {
@@ -958,6 +963,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!IS_DESKTOP) return;
     return subscribeSeat((seat) => {
+      if (gameWindowStartedOnline.current) return;
       appSeat.current = seatKey(seat);
       wantedSeat.current = seat;
       const here = offlineRef.current;

@@ -19,6 +19,7 @@ import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * The host's table before it starts: who is seated, who can be pulled in, and
@@ -55,6 +56,7 @@ function skillLabel(id: (typeof BOT_SKILLS)[number]): string {
 }
 
 export default function TableScreen() {
+  useLocale();
   const { client, session, offline } = useSession();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
 

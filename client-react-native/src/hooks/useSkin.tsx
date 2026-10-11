@@ -68,6 +68,20 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Another window of the app (or tab) chose a look: follow it.
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && e.key !== 'zolik_skin') return;
+      void loadSkinId().then((id) => {
+        const saved = skinById(id);
+        if (saved) setChosen(saved);
+      });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const value = useMemo<SkinState>(
     () => ({
       skin: forced ? HIGH_CONTRAST_SKIN : chosen,

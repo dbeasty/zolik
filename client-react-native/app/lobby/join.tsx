@@ -13,6 +13,7 @@ import { formatApiError } from '@/src/lib/apiError';
 import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Joining a table somebody else opened, by code or by invitation.
@@ -23,6 +24,7 @@ import { t } from '@/src/lib/i18n';
  * polls a match and hands over to the one screen that plays all of them.
  */
 export default function JoinMatchScreen() {
+  useLocale();
   const { client, session } = useSession();
   // A host's invite lands the player here with the match already decided —
   // they were seated server-side the moment the host picked them, so there is

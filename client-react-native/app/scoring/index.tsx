@@ -7,8 +7,10 @@ import { SignInRequired } from '@/src/components/SignInRequired';
 import { useSession } from '@/src/context/SessionContext';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 export default function ScoringScreen() {
+  useLocale();
   const { client, session } = useSession();
   const signedIn = !!session && !session.isGuest;
   const [namesInput, setNamesInput] = useState('Alice,Bob,Carol,Dave');

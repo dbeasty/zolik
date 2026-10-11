@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
+import { Animated, View } from 'react-native';
 
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
+import { cssLoop } from '@/src/lib/cssLoop';
 import { ms } from '@/src/lib/motion';
 
 /**
@@ -51,12 +52,22 @@ export function Attention({ active, radius = 8, gap = 4, color }: Props) {
   const stillness = useReducedMotion();
   const breath = useRef(new Animated.Value(0)).current;
 
+  // On the web the browser draws the breathing (see `cssLoop`).
+  const web = cssLoop(
+    {
+      '0%': { opacity: 0.25, transform: [{ scale: 1 }] },
+      '100%': { opacity: 1, transform: [{ scale: 1.04 }] },
+    },
+    { duration: ms(BREATH_MS), direction: 'alternate', timing: 'ease-in-out' },
+  );
+
   useEffect(() => {
     if (!active) return;
     if (stillness) {
       breath.setValue(1);
       return;
     }
+    if (web) return;
     breath.setValue(0);
     const loop = Animated.loop(
       Animated.sequence([
@@ -74,9 +85,31 @@ export function Attention({ active, radius = 8, gap = 4, color }: Props) {
     );
     loop.start();
     return () => loop.stop();
-  }, [active, stillness, breath]);
+  }, [active, stillness, breath, web]);
 
   if (!active) return null;
+
+  if (web && !stillness) {
+    return (
+      <View
+        testID="attention-ring"
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute',
+            top: -gap,
+            left: -gap,
+            right: -gap,
+            bottom: -gap,
+            borderWidth: 2,
+            borderColor: color ?? skin.colors.accent,
+            borderRadius: radius + gap,
+          },
+          web,
+        ]}
+      />
+    );
+  }
 
   return (
     <Animated.View

@@ -3,6 +3,7 @@ import { Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { heading } from '@/src/a11y/props';
+import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 import { shared } from '@/src/theme';
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export function Screen({ title, subtitle, children, scroll, wide }: Props) {
+  const edges = useScreenEdges();
   const body = (
     <>
       {/* A heading, so a screen reader's heading list starts here. Level 2:
@@ -34,7 +36,7 @@ export function Screen({ title, subtitle, children, scroll, wide }: Props) {
     body
   );
   return (
-    <SafeAreaView style={shared.screen} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={shared.screen} edges={edges}>
       {scroll ? (
         <ScrollView
           keyboardShouldPersistTaps="handled"

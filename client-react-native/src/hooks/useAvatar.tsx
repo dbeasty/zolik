@@ -50,6 +50,19 @@ export function AvatarProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Another window of the app (or tab) picked a face: follow it.
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && e.key !== 'zolik_avatar') return;
+      void loadAvatarId().then((id) => {
+        if (avatarById(id)) setAvatar(id);
+      });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   // The account's answer, whenever one arrives, overriding the device's. Also
   // written back to the device, so the next reload starts from the right face
   // rather than from whatever this browser last happened to hold.

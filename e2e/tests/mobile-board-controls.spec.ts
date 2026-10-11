@@ -117,7 +117,7 @@ test('requirement hints live in their own sheet, not the log', async ({ page, re
   await expect(sheet).toBeVisible();
   // Most relevant first: the first meld, then the canastas needed to go out.
   await expect(page.getByTestId('hint-0')).toContainText('first meld');
-  await expect(page.getByTestId('hint-1')).toContainText('canastas');
+  await expect(page.getByTestId('hint-1')).toContainText(/canastas?/);
   await page.getByTestId('hints-close').click();
   await expect(sheet).toBeHidden();
 });
@@ -137,4 +137,29 @@ test('Rummy Tiles: the first-lay requirement is a hint, the turn prompt stays in
 
   // The turn prompt is worded, not a raw key (it had no wording before).
   await expect(box).not.toContainText('rummytiles.prompt');
+});
+
+test('with no move above it, a long turn prompt stops short of the corner buttons', async ({ page, request }) => {
+  // Mariáš words its opening prompt at length ("Say dobrá, or take it over with
+  // a higher game"); when it is the box's first line it shares the row with the
+  // hints, repeat and fold buttons and used to run under them.
+  const { matchId, host } = await canastaTable(request, 'marias');
+  await openMatch(page, host, matchId);
+
+  const prompt = page.getByTestId('prompt-0');
+  await expect(prompt).toBeVisible();
+  const clash = await page.evaluate(() => {
+    const p = document.querySelector('[data-testid="prompt-0"]');
+    const corner = document.querySelector('[data-testid="moves-repeat"]');
+    if (!p || !corner) return 'missing';
+    const range = document.createRange();
+    range.selectNodeContents(p);
+    const c = corner.getBoundingClientRect();
+    for (const r of Array.from(range.getClientRects())) {
+      const overlapsRow = r.top < c.bottom && r.bottom > c.top;
+      if (overlapsRow && r.right > c.left) return `text ends at ${r.right}, corner starts at ${c.left}`;
+    }
+    return '';
+  });
+  expect(clash).toBe('');
 });
