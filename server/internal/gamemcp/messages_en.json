@@ -303,6 +303,7 @@
  "banner.back": "A bot played for you while you were away. Your seat is yours again.",
  "banner.botIn": "A bot plays for them in {time}.",
  "banner.botSoon": "A bot is taking over…",
+ "banner.keepWaiting": "Keep waiting for them",
  "banner.letBotPlay": "Let a bot play now",
  "banner.offline": "You’re offline. Reconnecting…",
  "banner.serverOffline": "The server ({name}) is offline. The game is paused and nothing is lost.",
