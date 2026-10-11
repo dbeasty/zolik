@@ -20,6 +20,12 @@ export const hu: Record<string, string> = {
   'err.DISPLACED': 'Másik lapon nyílt meg — ez leállt a szinkronizálással',
   'err.UNREACHABLE': 'A szerver nem érhető el. Ellenőrizd a kapcsolatot, és próbáld újra.',
   'err.INVALID_CREDENTIALS': 'A felhasználónév és a jelszó nem egyezik.',
+  'err.CREDENTIALS_REQUIRED': 'Adj meg felhasználónevet és jelszót.',
+  'err.PASSWORD_TOO_LONG': 'Ez a jelszó túl hosszú.',
+  'err.USERNAME_TAKEN': 'Ez a felhasználónév vagy e-mail-cím már foglalt.',
+  'err.INVALID_EMAIL': 'Ez nem úgy néz ki, mint egy e-mail-cím.',
+  'err.CODE_INVALID': 'Ez a kód érvénytelen. Kérj újat.',
+  'err.TOO_MANY_CODES': 'Túl sok kódot kértek erre a címre. Próbáld újra egy kicsit később.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

@@ -20,6 +20,12 @@ export const es: Record<string, string> = {
   'err.DISPLACED': 'Abierta en otra pestaña — esta ha dejado de sincronizarse',
   'err.UNREACHABLE': 'No se puede conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.',
   'err.INVALID_CREDENTIALS': 'El nombre de usuario y la contraseña no coinciden.',
+  'err.CREDENTIALS_REQUIRED': 'Introduce un nombre de usuario y una contraseña.',
+  'err.PASSWORD_TOO_LONG': 'Esa contraseña es demasiado larga.',
+  'err.USERNAME_TAKEN': 'Ese nombre de usuario o correo ya está en uso.',
+  'err.INVALID_EMAIL': 'Eso no parece una dirección de correo.',
+  'err.CODE_INVALID': 'Ese código no es válido. Pide uno nuevo.',
+  'err.TOO_MANY_CODES': 'Se han pedido demasiados códigos para esa dirección. Inténtalo de nuevo en un momento.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

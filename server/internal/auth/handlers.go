@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"zolik/server/internal/db"
 	"zolik/server/internal/geo"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/metrics"
@@ -474,10 +475,13 @@ func (h *Handlers) emailStart(w http.ResponseWriter, req *http.Request) {
 	err := h.email.StartSignIn(req.Context(), body.Email, clientIP(req))
 	switch {
 	case errors.Is(err, ErrTooManyCodes):
-		http.Error(w, "too many codes requested for that address — try again shortly", http.StatusTooManyRequests)
+		writeAuthError(w, http.StatusTooManyRequests, "TOO_MANY_CODES", "too many codes requested for that address — try again shortly")
+		return
+	case errors.Is(err, ErrInvalidEmail):
+		writeAuthError(w, http.StatusBadRequest, "INVALID_EMAIL", err.Error())
 		return
 	case err != nil:
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		internalError(w, "emailStart", err)
 		return
 	}
 	// The response says nothing about whether that address has an account,
@@ -497,8 +501,12 @@ func (h *Handlers) emailVerify(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	claims, err := h.email.VerifyCode(req.Context(), body.Email, body.Code)
+	if errors.Is(err, ErrInvalidCode) {
+		writeAuthError(w, http.StatusUnauthorized, "CODE_INVALID", err.Error())
+		return
+	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		internalError(w, "emailVerify", err)
 		return
 	}
 
@@ -622,11 +630,11 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 	}
 	body.Username = CleanDisplayName(body.Username, MaxUsernameRunes)
 	if body.Username == "" || body.Password == "" {
-		http.Error(w, "username/password required", http.StatusBadRequest)
+		writeAuthError(w, http.StatusBadRequest, "CREDENTIALS_REQUIRED", "username/password required")
 		return
 	}
 	if len(body.Password) > MaxPasswordBytes {
-		http.Error(w, "password too long", http.StatusBadRequest)
+		writeAuthError(w, http.StatusBadRequest, "PASSWORD_TOO_LONG", "password too long")
 		return
 	}
 
@@ -646,8 +654,12 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 			CardStyle: "classic",
 		},
 	})
+	if db.IsDuplicateKey(err) {
+		writeAuthError(w, http.StatusConflict, "USERNAME_TAKEN", "that username or email is already taken")
+		return
+	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		internalError(w, "register", err)
 		return
 	}
 	// The password itself is the identity's proof, so the identity row records
@@ -903,4 +915,12 @@ func clientIP(req *http.Request) string {
 		return req.RemoteAddr
 	}
 	return host
+}
+
+// writeAuthError answers a refusal the player is meant to read, as a code the
+// client words in its own language ("err.<code>") plus an English fallback.
+func writeAuthError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"code": code, "message": message})
 }

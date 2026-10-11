@@ -20,6 +20,12 @@ export const ro: Record<string, string> = {
   'err.DISPLACED': 'Deschisă într-o altă filă — aceasta a încetat să se sincronizeze',
   'err.UNREACHABLE': 'Nu se poate contacta serverul. Verificați conexiunea și încercați din nou.',
   'err.INVALID_CREDENTIALS': 'Numele de utilizator și parola nu se potrivesc.',
+  'err.CREDENTIALS_REQUIRED': 'Introdu un nume de utilizator și o parolă.',
+  'err.PASSWORD_TOO_LONG': 'Parola aceea este prea lungă.',
+  'err.USERNAME_TAKEN': 'Numele de utilizator sau e-mailul acela este deja folosit.',
+  'err.INVALID_EMAIL': 'Aceasta nu pare o adresă de e-mail.',
+  'err.CODE_INVALID': 'Codul acela nu este valid. Cere unul nou.',
+  'err.TOO_MANY_CODES': 'Au fost cerute prea multe coduri pentru acea adresă. Încearcă din nou peste puțin timp.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

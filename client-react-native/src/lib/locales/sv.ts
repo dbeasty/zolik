@@ -20,6 +20,12 @@ export const sv: Record<string, string> = {
   'err.DISPLACED': 'Öppnad i en annan flik — den här har slutat synkronisera',
   'err.UNREACHABLE': 'Det går inte att nå servern. Kontrollera din anslutning och försök igen.',
   'err.INVALID_CREDENTIALS': 'Användarnamnet och lösenordet stämmer inte överens.',
+  'err.CREDENTIALS_REQUIRED': 'Ange ett användarnamn och ett lösenord.',
+  'err.PASSWORD_TOO_LONG': 'Lösenordet är för långt.',
+  'err.USERNAME_TAKEN': 'Det användarnamnet eller den e-postadressen är redan upptagen.',
+  'err.INVALID_EMAIL': 'Det ser inte ut som en e-postadress.',
+  'err.CODE_INVALID': 'Koden är inte giltig. Begär en ny.',
+  'err.TOO_MANY_CODES': 'För många koder har begärts för den adressen. Försök igen om en stund.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

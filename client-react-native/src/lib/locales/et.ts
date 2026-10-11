@@ -20,6 +20,12 @@ export const et: Record<string, string> = {
   'err.DISPLACED': 'Avatud teises vahekaardis — see lõpetas sünkroonimise',
   'err.UNREACHABLE': 'Serveriga ei saa ühendust. Kontrolli oma ühendust ja proovi uuesti.',
   'err.INVALID_CREDENTIALS': 'Kasutajanimi ja parool ei sobi kokku.',
+  'err.CREDENTIALS_REQUIRED': 'Sisesta kasutajanimi ja parool.',
+  'err.PASSWORD_TOO_LONG': 'See parool on liiga pikk.',
+  'err.USERNAME_TAKEN': 'See kasutajanimi või e-posti aadress on juba kasutusel.',
+  'err.INVALID_EMAIL': 'See ei tundu e-posti aadressina.',
+  'err.CODE_INVALID': 'See kood ei kehti. Küsi uus.',
+  'err.TOO_MANY_CODES': 'Selle aadressi jaoks on küsitud liiga palju koode. Proovi varsti uuesti.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

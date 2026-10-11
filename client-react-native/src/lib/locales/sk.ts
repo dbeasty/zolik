@@ -20,6 +20,12 @@ export const sk: Record<string, string> = {
   'err.DISPLACED': 'Otvorené na inej karte — táto prestala synchronizovať',
   'err.UNREACHABLE': 'Nepodarilo sa spojiť so serverom. Skontrolujte pripojenie a skúste to znova.',
   'err.INVALID_CREDENTIALS': 'Používateľské meno a heslo si nezodpovedajú.',
+  'err.CREDENTIALS_REQUIRED': 'Zadajte používateľské meno a heslo.',
+  'err.PASSWORD_TOO_LONG': 'Heslo je príliš dlhé.',
+  'err.USERNAME_TAKEN': 'Toto používateľské meno alebo e-mail je už obsadené.',
+  'err.INVALID_EMAIL': 'Toto nevyzerá ako e-mailová adresa.',
+  'err.CODE_INVALID': 'Tento kód nie je platný. Vyžiadajte si nový.',
+  'err.TOO_MANY_CODES': 'Pre túto adresu bolo vyžiadaných príliš veľa kódov. Skúste to o chvíľu.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

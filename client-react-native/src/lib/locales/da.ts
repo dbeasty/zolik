@@ -20,6 +20,12 @@ export const da: Record<string, string> = {
   'err.DISPLACED': 'Åbnet i en anden fane — denne er stoppet med at synkronisere',
   'err.UNREACHABLE': 'Kan ikke nå serveren. Tjek din forbindelse, og prøv igen.',
   'err.INVALID_CREDENTIALS': 'Brugernavnet og adgangskoden passer ikke sammen.',
+  'err.CREDENTIALS_REQUIRED': 'Indtast et brugernavn og en adgangskode.',
+  'err.PASSWORD_TOO_LONG': 'Adgangskoden er for lang.',
+  'err.USERNAME_TAKEN': 'Det brugernavn eller den e-mail er allerede i brug.',
+  'err.INVALID_EMAIL': 'Det ligner ikke en e-mailadresse.',
+  'err.CODE_INVALID': 'Koden er ikke gyldig. Bed om en ny.',
+  'err.TOO_MANY_CODES': 'Der er bedt om for mange koder til den adresse. Prøv igen om lidt.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
