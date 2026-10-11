@@ -123,7 +123,7 @@ export function sitsBeside(zone: Zone): boolean {
 /** How many groups a table spread needs before it is laid out as one row of columns. */
 export const WIDE_GROUPS = 6;
 
-/** A table spread of many groups — solitaire's seven columns — which needs the whole width of its row. */
+/** A table spread of many groups — seven columns of cards — which needs the whole width of its row. */
 export function isWideSpread(zone: Zone): boolean {
   return zone.kind === 'spread' && !!zone.shared && (zone.groups?.length ?? 0) >= WIDE_GROUPS;
 }
@@ -133,7 +133,7 @@ export function isWideSpread(zone: Zone): boolean {
  *
  * A wide spread gets a row of its own. It used to rely on `flex-basis: 100%` to
  * wrap onto its own line below its neighbours, which a browser does and the
- * native layout engine did not: on a phone solitaire's seven columns were
+ * native layout engine did not: on a phone seven such columns were
  * squeezed into what was left beside the foundations and ran off the screen.
  */
 export function besideRows(zones: Zone[]): Zone[][] {
