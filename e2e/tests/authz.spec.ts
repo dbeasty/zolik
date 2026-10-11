@@ -134,7 +134,7 @@ test.describe('table over the socket', () => {
     const wsBase = API_BASE.replace(/^http/, 'ws');
 
     const result = await page.evaluate(
-      async ({ wsBase, matchId, token }) => {
+      async ({ wsBase, apiBase, matchId, token }) => {
         const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
         const inbox: any[] = [];
         await new Promise<void>((resolve, reject) => {
@@ -204,7 +204,7 @@ test.describe('socket hygiene', () => {
     const wsBase = API_BASE.replace(/^http/, 'ws');
 
     const result = await page.evaluate(
-      async ({ wsBase, matchId, token }) => {
+      async ({ wsBase, apiBase, matchId, token }) => {
         const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
         const inbox: any[] = [];
         let closed = false;
@@ -234,17 +234,26 @@ test.describe('socket hygiene', () => {
         for (const f of frames) ws.send(f);
         await sleep(1500);
         const errors = inbox.filter((m) => m.type === 'error');
+        // Read the match while this socket is still the table's one person:
+        // once it closes, a table with nobody at it is suspended, by design.
+        const state = await (
+          await fetch(`${apiBase}/matches/${matchId}`, { headers: { Authorization: `Bearer ${token}` } })
+        ).json();
         ws.close();
-        return { closed, errors: errors.length, codes: [...new Set(errors.map((e) => String(e.code)))] };
+        return {
+          closed,
+          status: state.status as string,
+          errors: errors.length,
+          codes: [...new Set(errors.map((e) => String(e.code)))],
+        };
       },
-      { wsBase, matchId, token: host.accessToken },
+      { wsBase, apiBase: API_BASE, matchId, token: host.accessToken },
     );
 
     expect(result.closed, 'the socket stays open').toBe(false);
     expect(result.errors, 'every bad frame is answered').toBeGreaterThanOrEqual(10);
     for (const code of result.codes) expect(code).toMatch(/^[A-Z_]+$/);
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, { headers: as(host) })).json();
-    expect(state.status, 'and the match is untouched').toBe('active');
+    expect(result.status, 'and the match is untouched').toBe('active');
   });
 });
 
