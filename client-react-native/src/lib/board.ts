@@ -138,16 +138,16 @@ export function isWideSpread(zone: Zone): boolean {
  */
 export function besideRows(zones: Zone[]): Zone[][] {
   const rows: Zone[][] = [];
-  let run: Zone[] = [];
+  let pending: Zone[] = [];
   for (const z of zones) {
     if (isWideSpread(z)) {
-      if (run.length) rows.push(run);
+      if (pending.length) rows.push(pending);
       rows.push([z]);
-      run = [];
+      pending = [];
     } else {
-      run.push(z);
+      pending.push(z);
     }
   }
-  if (run.length) rows.push(run);
+  if (pending.length) rows.push(pending);
   return rows;
 }
