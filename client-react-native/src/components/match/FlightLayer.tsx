@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { CardBack } from '@/src/components/CardBack';
 import { CardView } from '@/src/components/CardView';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
-import { FLIGHT_MS, FLIGHT_SEQUENCE_MS, FLIGHT_STALE_MS, type Flight } from '@/src/lib/flights';
+import { FLIGHT_MS, FLIGHT_SEQUENCE_MS, FLIGHT_STALE_MS, SHUFFLE_CARD_MS, type Flight } from '@/src/lib/flights';
 import type { Rect } from '@/src/lib/hand';
 import { FLIGHT_EASING } from '@/src/lib/motion';
 
@@ -143,12 +143,12 @@ function FlightCard({
       setPath({ from, to });
       Animated.timing(progress, {
         toValue: 1,
-        duration: FLIGHT_MS,
+        duration: flight.shuffle !== undefined ? SHUFFLE_CARD_MS : FLIGHT_MS,
         // Cards from one transition leave one after another rather than in a
         // clump — the difference between reading as three cards and as one
         // event with three cards somewhere inside it.
-        delay: order * FLIGHT_SEQUENCE_MS,
-        easing: FLIGHT_EASING,
+        delay: flight.delayMs ?? order * FLIGHT_SEQUENCE_MS,
+        easing: flight.shuffle !== undefined ? Easing.inOut(Easing.quad) : FLIGHT_EASING,
         useNativeDriver: true,
       }).start(() => doneRef.current(flight.id));
     };
@@ -172,6 +172,29 @@ function FlightCard({
   // How high the journey arcs. A card thrown across the table rises; one
   // nudged to the next place along barely leaves the felt, so the lift is
   // taken from the distance rather than being one number for every journey.
+  if (flight.shuffle !== undefined) {
+    // Riffle: out to one side, tilted and lifted, then back onto the stack.
+    const side = flight.shuffle % 2 === 0 ? -1 : 1;
+    return (
+      <Animated.View
+        style={{
+          position: 'absolute',
+          left: from.x - w / 2 - origin.current.x,
+          top: from.y - h / 2 - origin.current.y,
+          opacity: progress.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 1, 1, 0] }),
+          transform: [
+            { translateX: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, side * w * 0.7, 0] }) },
+            { translateY: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -h * 0.12, 0] }) },
+            { rotateZ: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', `${side * 14}deg`, '0deg'] }) },
+          ],
+        }}
+      >
+        <View style={styles.shadow}>
+          <CardBack width={w} height={h} />
+        </View>
+      </Animated.View>
+    );
+  }
   const lift = Math.max(10, Math.min(46, Math.hypot(dx, dy) * 0.18));
   // Five samples of `dy * t - lift * sin(pi * t)` — a parabola drawn with the
   // straight segments the native driver can interpolate between.
