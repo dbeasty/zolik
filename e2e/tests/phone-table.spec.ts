@@ -96,13 +96,17 @@ async function playToTheEnd(page: Page, wsBase: string, matchId: string, tokens:
           status = 'completed';
           break;
         }
-        const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some((o: any) => o.enabled));
+        const idx = seats.findIndex((s) =>
+          (latest(s)?.legalActions ?? []).some((o: any) => o.enabled && order.includes(o.verb)),
+        );
         if (idx === -1) {
           await new Promise((r) => setTimeout(r, 50));
           continue;
         }
         const seat = seats[idx];
-        const enabled = latest(seat).legalActions.filter((o: any) => o.enabled);
+        // Only the verbs this loop knows: an unknown one (leave) sorted first, and the
+        // three of them got up from the table instead of playing it.
+        const enabled = latest(seat).legalActions.filter((o: any) => o.enabled && order.includes(o.verb));
         enabled.sort((a: any, b: any) => order.indexOf(a.verb) - order.indexOf(b.verb));
         let action: any = null;
         for (const o of enabled) {

@@ -238,10 +238,13 @@ func (i *Importer) ImportBundle(ctx context.Context, b zsync.Bundle) error {
 		}
 		state = next
 	}
-	outcome := outcomeOf(mod, envelope, state)
-	if len(outcome.Standings) == 0 {
+	// Finished is the module's own word for it. A table where everybody got
+	// up (blackjack, with every seat left) is over and has no standings to
+	// rank, so asking for standings refused a finished game for being empty.
+	if done, _, err := mod.Finished(state); err != nil || !done {
 		return fmt.Errorf("match %s: replaying its moves does not finish the game", b.Match)
 	}
+	outcome := outcomeOf(mod, envelope, state)
 
 	// Who sat in each seat is the node's word, and the one part of the bundle
 	// that cannot be checked by replaying anything: the cloud was not in the
