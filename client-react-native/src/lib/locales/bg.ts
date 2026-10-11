@@ -685,7 +685,7 @@ export const bg: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Джин',
   'ginrummy.kind.knock': 'Чукни',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Надиграване',
   'ginrummy.kind.dead': 'Мъртвото раздаване',
   'ginrummy.round.hand': 'Раздаване',
   'ginrummy.seat.score': 'Точки {value}',

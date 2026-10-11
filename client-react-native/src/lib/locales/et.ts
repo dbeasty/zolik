@@ -679,7 +679,7 @@ export const et: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Koputa',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Vastulöök',
   'ginrummy.kind.dead': 'Surnud jagamine',
   'ginrummy.round.hand': 'Käsi',
   'ginrummy.seat.score': 'Punktid {value}',

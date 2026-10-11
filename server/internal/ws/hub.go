@@ -23,6 +23,10 @@ type busEnvelope struct {
 	GameID         string          `json:"gameId"`
 	SourceInstance string          `json:"sourceInstance"`
 	Messages       []PlayerMessage `json:"messages"`
+	// Onlookers is what a socket that is not one of Messages' players is sent:
+	// somebody watching the table. Peers write it to every local connection in
+	// the game that Messages did not address.
+	Onlookers interface{} `json:"onlookers,omitempty"`
 }
 
 // Hub routes WebSocket payloads to local connections and, when Redis is configured,
@@ -94,6 +98,10 @@ func (h *Hub) Registry() *ConnRegistry {
 
 // Publish delivers messages to local sockets and fans out to peer instances.
 func (h *Hub) Publish(gameID string, messages []PlayerMessage) {
+	h.publish(gameID, messages, nil)
+}
+
+func (h *Hub) publish(gameID string, messages []PlayerMessage, onlookers interface{}) {
 	for _, m := range messages {
 		h.writeLocal(gameID, m.PlayerID, m.Payload)
 	}
@@ -104,6 +112,7 @@ func (h *Hub) Publish(gameID string, messages []PlayerMessage) {
 		GameID:         gameID,
 		SourceInstance: h.instanceID,
 		Messages:       messages,
+		Onlookers:      onlookers,
 	}
 	raw, err := json.Marshal(env)
 	if err != nil {
@@ -124,7 +133,24 @@ func (h *Hub) BroadcastGameState(gameID string, recipients []string, build func(
 	for _, pid := range recipients {
 		msgs = append(msgs, PlayerMessage{PlayerID: pid, Payload: build(pid)})
 	}
-	h.Publish(gameID, msgs)
+	// Whoever else has the table open — a link opened by somebody not seated —
+	// is sent the board as they are entitled to see it, or they would be left
+	// on the snapshot they were given when they arrived. build is asked for
+	// their own id locally; peers get the unseated view (id "").
+	seated := make(map[string]bool, len(recipients))
+	for _, pid := range recipients {
+		seated[pid] = true
+	}
+	for pid := range h.registry.ForGame(gameID) {
+		if !seated[pid] {
+			h.writeLocal(gameID, pid, build(pid))
+		}
+	}
+	var onlookers interface{}
+	if h.redis != nil {
+		onlookers = build("")
+	}
+	h.publish(gameID, msgs, onlookers)
 }
 
 func (h *Hub) writeLocal(gameID, playerID string, payload interface{}) {
@@ -150,8 +176,17 @@ func (h *Hub) subscribe(ctx context.Context) {
 			if env.SourceInstance == h.instanceID {
 				continue
 			}
+			addressed := make(map[string]bool, len(env.Messages))
 			for _, m := range env.Messages {
+				addressed[m.PlayerID] = true
 				h.writeLocal(env.GameID, m.PlayerID, m.Payload)
+			}
+			if env.Onlookers != nil {
+				for pid := range h.registry.ForGame(env.GameID) {
+					if !addressed[pid] {
+						h.writeLocal(env.GameID, pid, env.Onlookers)
+					}
+				}
 			}
 		}
 	}

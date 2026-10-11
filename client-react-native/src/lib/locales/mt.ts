@@ -688,7 +688,7 @@ export const mt: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Ħabbat',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Megħlub',
   'ginrummy.kind.dead': 'L-id mejta',
   'ginrummy.round.hand': 'Id',
   'ginrummy.seat.score': 'Punteġġ {value}',

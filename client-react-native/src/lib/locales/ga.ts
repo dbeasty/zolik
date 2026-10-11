@@ -697,7 +697,7 @@ export const ga: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Cnag',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Buaite',
   'ginrummy.kind.dead': 'An lámh mharbh',
   'ginrummy.round.hand': 'Lámh',
   'ginrummy.seat.score': 'Scór {value}',

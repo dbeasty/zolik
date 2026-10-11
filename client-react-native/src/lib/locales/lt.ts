@@ -675,7 +675,7 @@ export const lt: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Ginas',
   'ginrummy.kind.knock': 'Belsti',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Perlenkimas',
   'ginrummy.kind.dead': 'Negyvas dalijimas',
   'ginrummy.round.hand': 'Ranka',
   'ginrummy.seat.score': 'Taškai {value}',

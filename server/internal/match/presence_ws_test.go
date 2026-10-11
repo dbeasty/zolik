@@ -206,3 +206,30 @@ func TestSocketToAMissingMatchSaysSo(t *testing.T) {
 		t.Fatal("the socket stayed open after the refusal")
 	}
 }
+
+// Somebody watching a table without a seat is sent each change to it, not just
+// the snapshot they were given on arrival. Opened from a pasted link, a match
+// used to sit on "In progress" for as long as the watcher kept it open, even
+// after it had finished.
+func TestAnOnlookersSocketHearsWhenTheTableChanges(t *testing.T) {
+	h := newInviteHarness(t)
+	hostID := "host-ws-3"
+	hostToken := token(t, hostID, "Host", false)
+	matchID := startedMatch(t, h, hostToken)
+
+	watcher := dialMatch(t, h, matchID, token(t, "watcher-ws-3", "Watcher", false))
+	host := dialMatch(t, h, matchID, hostToken)
+	h.waitForPlayerAwaited(t, matchID, hostID, hostToken)
+	_ = host.Close() // the table was waiting on the host, so it pauses
+
+	_ = watcher.SetReadDeadline(time.Now().Add(5 * time.Second))
+	for {
+		var msg map[string]any
+		if err := watcher.ReadJSON(&msg); err != nil {
+			t.Fatalf("the onlooker never heard the table pause: %v", err)
+		}
+		if msg["type"] == "match_state" && msg["status"] == "suspended" {
+			return
+		}
+	}
+}

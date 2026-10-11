@@ -696,7 +696,7 @@ export const el: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Τζιν',
   'ginrummy.kind.knock': 'Χτύπα',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Ανατροπή',
   'ginrummy.kind.dead': 'Η νεκρή μοιρασιά',
   'ginrummy.round.hand': 'Μοιρασιά',
   'ginrummy.seat.score': 'Βαθμοί {value}',

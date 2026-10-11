@@ -115,3 +115,72 @@ func TestHub_BroadcastGameState_PublishesWithoutLocalConnections(t *testing.T) {
 		t.Fatal("expected game_state on peer instance without local connections on publisher")
 	}
 }
+
+// Somebody watching a table without a seat is sent each new board, built for
+// them — not left on the snapshot they were given when they arrived.
+func TestHub_BroadcastGameState_ReachesAnOnlookerLocally(t *testing.T) {
+	reg := NewConnRegistry()
+	hub, err := NewHub(reg, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hub.Close()
+
+	got := map[string][]string{}
+	add := func(id string) {
+		reg.Add("g1", id, &fakeConn{onWrite: func(v interface{}) {
+			got[id] = append(got[id], v.(map[string]interface{})["for"].(string))
+		}})
+	}
+	add("seated")
+	add("watcher")
+
+	hub.BroadcastGameState("g1", []string{"seated"}, func(pid string) interface{} {
+		return map[string]interface{}{"type": "match_state", "for": pid}
+	})
+	if len(got["seated"]) != 1 || got["seated"][0] != "seated" {
+		t.Fatalf("seated player got %v, want their own board once", got["seated"])
+	}
+	if len(got["watcher"]) != 1 || got["watcher"][0] != "watcher" {
+		t.Fatalf("onlooker got %v, want a board built for them", got["watcher"])
+	}
+}
+
+func TestHub_BroadcastGameState_ReachesAnOnlookerOnAnotherInstance(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mr.Close()
+	url := "redis://" + mr.Addr() + "/0"
+
+	hubA, err := NewHub(NewConnRegistry(), url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hubA.Close()
+	regB := NewConnRegistry()
+	hubB, err := NewHub(regB, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hubB.Close()
+
+	got := make(chan string, 4)
+	regB.Add("g1", "watcher", &fakeConn{onWrite: func(v interface{}) {
+		got <- v.(map[string]interface{})["for"].(string)
+	}})
+	time.Sleep(200 * time.Millisecond)
+
+	hubA.BroadcastGameState("g1", []string{"seated"}, func(pid string) interface{} {
+		return map[string]interface{}{"type": "match_state", "for": pid}
+	})
+	select {
+	case who := <-got:
+		if who != "" {
+			t.Fatalf("a peer's onlooker got a board built for %q, want the unseated view", who)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("onlooker on another instance never got the new board")
+	}
+}

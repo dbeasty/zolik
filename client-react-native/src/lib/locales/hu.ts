@@ -690,7 +690,7 @@ export const hu: Record<string, string> = {
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Kopogás',
-  'ginrummy.kind.undercut': 'Undercut',
+  'ginrummy.kind.undercut': 'Túlszárnyalás',
   'ginrummy.kind.dead': 'A holt leosztás',
   'ginrummy.round.hand': 'Leosztás',
   'ginrummy.seat.score': 'Pontszám {value}',
