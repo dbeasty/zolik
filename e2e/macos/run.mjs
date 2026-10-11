@@ -1277,6 +1277,16 @@ async function main() {
     await ob.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
   }, [ob]);
 
+  const dead = new MacApp('unreachable', binary, 'http://127.0.0.1:1');
+  cleanups.push(() => dead.quit());
+  await step('with no server to reach, the home screen says so in words, not in Go’s', async () => {
+    await dead.ready();
+    await dead.js(`await e2e.click('Play', { exact: true }); return 1`);
+    const text = await dead.js(`await e2e.waitFor(() => /reach the server/.test(e2e.text()) || /dial tcp|Load failed/.test(e2e.text()), 'a load error', 20000); return e2e.text()`);
+    expect(/Can’t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
+    await dead.screenshot('unreachable');
+  }, [dead]);
+
   // Opt-in, because the first run asks the person at the Mac to allow
   // Bluetooth. A Mac cannot hear its own advertisement, so this proves the
   // host side only; a guest needs a phone or a second Mac.
