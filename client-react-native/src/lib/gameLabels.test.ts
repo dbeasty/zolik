@@ -37,3 +37,12 @@ describe('gameLabels fall back to what the server sent', () => {
     expect(moduleLabel({ id: 'klondike', label: 'Klondike' })).toBe('Solitaire');
   });
 });
+
+describe('a stored game, which holds only ids, still reads as a game', () => {
+  it('names games and rule sets that have no key of their own', () => {
+    expect(moduleName('prsi')).toBe('Prší');
+    expect(moduleName('lastcard')).toBe('Last Card');
+    expect(variationName('holdem', 'omaha')).toBe('Pot-Limit Omaha');
+    expect(variationName('ginrummy', 'oklahoma')).toBe('Oklahoma');
+  });
+});
