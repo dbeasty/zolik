@@ -400,7 +400,9 @@ export function matchStyles(s: Skin) {
   ending: { gap: 4 },
   // Wraps: at phone width the module group alone fills the row, which pushed the skin toggle off the right edge.
   headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: 8, rowGap: 4 },
-  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Shrinks: the bar's room between the arrows and the face is fixed, and a
+  // longer status plus the server's name ran under both.
+  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 },
   headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
   moduleGroup: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', flexShrink: 1, minWidth: 0, columnGap: 8 },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },

@@ -649,7 +649,7 @@ function MatchScreen() {
   // True while the autoscroll itself re-aims the pointer after a scroll step,
   // so a target sliding under a held pointer does not restart the dwell below.
   const scrolling = useRef(false);
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const dragging = drag !== null;
   useEffect(() => {
     if (!dragging) {
@@ -2012,13 +2012,16 @@ function MatchScreen() {
                 {/* In the player's language; the server's word stays on the element for tests. */}
                 <Text
                   testID="match-status"
-                  style={styles.status}
+                  numberOfLines={1}
+                  style={[styles.status, { flexShrink: 1 }]}
                   {...((Platform.OS === 'web' ? { dataSet: { status: state.status } } : {}) as object)}
                 >
                   {t(`mine.status.${state.status}`, undefined, state.status)}
                 </Text>
-                {serverLabel ? (
-                  <Text testID="match-server" style={styles.status} numberOfLines={1}>
+                {serverLabel && windowWidth >= 480 ? (
+                  // A phone's bar has no room for it between the arrows and the
+                  // face: it ran under both. The status explainer says it instead.
+                  <Text testID="match-server" style={[styles.status, { flexShrink: 1 }]} numberOfLines={1}>
                     {`· ${serverLabel}`}
                   </Text>
                 ) : null}
