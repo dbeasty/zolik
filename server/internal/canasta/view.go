@@ -400,12 +400,14 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if !vt.HasMelded {
 			vm.Prompts = append(vm.Prompts, module.Fact{
 				LabelKey: "prompt.initialMeld",
+				Hint:     true,
 				Params:   map[string]any{"n": r.meldFloor(vt.Score)},
 			})
 		}
 		if !canGoOut(s, vt) {
 			vm.Prompts = append(vm.Prompts, module.Fact{
 				LabelKey: "prompt.canastasNeeded",
+				Hint:     true,
 				Params:   map[string]any{"n": s.CanastasToGoOut - vt.canastas()},
 			})
 		}

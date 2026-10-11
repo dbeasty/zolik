@@ -1997,6 +1997,7 @@ export const hu: Record<string, string> = {
   'rummytiles.move.committed': '{player} befejezte a körét',
   'rummytiles.move.drew': '{player} húzott egy követ',
   'moves.title': 'Legutóbbi lépések',
+  'hints.title': 'Tippek',
   'choice.cancel': 'Mégse',
   'hint.button': 'Tipp',
   'hint.line': 'Javaslat: {move} {cards}',

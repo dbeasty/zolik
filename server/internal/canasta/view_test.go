@@ -263,9 +263,23 @@ func TestPromptsExplainWhatIsMissing(t *testing.T) {
 		switch p.LabelKey {
 		case "prompt.initialMeld":
 			minimum = p.Params["n"]
+			if !p.Hint {
+				t.Error("initial meld prompt is a standing requirement and must be a hint")
+			}
 		case "prompt.canastasNeeded":
 			needCanastas = p.Params["n"]
+			if !p.Hint {
+				t.Error("canastas-needed prompt is a standing requirement and must be a hint")
+			}
+		case "prompt.yourTurnMeld", "prompt.yourTurnDraw":
+			if p.Hint {
+				t.Error("a turn prompt is not a hint")
+			}
 		}
+	}
+	// Most relevant first: the first meld comes ahead of the go-out count.
+	if len(vm.Prompts) >= 2 && (vm.Prompts[0].LabelKey != "prompt.initialMeld" || vm.Prompts[1].LabelKey != "prompt.canastasNeeded") {
+		t.Errorf("hints out of order: %v, %v", vm.Prompts[0].LabelKey, vm.Prompts[1].LabelKey)
 	}
 	if minimum != 90 {
 		t.Errorf("initial meld prompt says %v, want 90", minimum)

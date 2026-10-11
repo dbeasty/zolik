@@ -1978,6 +1978,7 @@ export const da: Record<string, string> = {
   'rummytiles.move.committed': '{player} afsluttede sin tur',
   'rummytiles.move.drew': '{player} trak en brik',
   'moves.title': 'Seneste træk',
+  'hints.title': 'Tip',
   'choice.cancel': 'Annuller',
   'hint.button': 'Tip',
   'hint.line': 'Forslag: {move} {cards}',

@@ -2000,6 +2000,7 @@ export const pt: Record<string, string> = {
   'rummytiles.move.committed': '{player} terminou a vez',
   'rummytiles.move.drew': '{player} comprou uma peça',
   'moves.title': 'Jogadas recentes',
+  'hints.title': 'Dicas',
   'choice.cancel': 'Cancelar',
   'hint.button': 'Dica',
   'hint.line': 'Sugestão: {move} {cards}',

@@ -18,6 +18,8 @@ export type Fact = {
   params?: Record<string, unknown>;
   /** True of the play as a whole (colour or suit in play): shown in the status box, not the header. */
   standing?: boolean;
+  /** A standing requirement, not what the table is waiting on now: listed in the hints sheet, not the log. */
+  hint?: boolean;
 };
 
 /** One thing a player did, worded by the module — see `RecentMoves`. */

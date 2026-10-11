@@ -2022,6 +2022,7 @@ export const el: Record<string, string> = {
   'rummytiles.move.committed': '{player}: τελείωσε τον γύρο του',
   'rummytiles.move.drew': '{player}: τράβηξε ένα πλακίδιο',
   'moves.title': 'Πρόσφατες κινήσεις',
+  'hints.title': 'Υποδείξεις',
   'choice.cancel': 'Ακύρωση',
   'hint.button': 'Βοήθεια',
   'hint.line': 'Πρόταση: {move} {cards}',

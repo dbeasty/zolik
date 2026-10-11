@@ -1990,6 +1990,7 @@ export const fi: Record<string, string> = {
   'rummytiles.move.committed': '{player} päätti vuoronsa',
   'rummytiles.move.drew': '{player} nosti laatan',
   'moves.title': 'Viimeisimmät siirrot',
+  'hints.title': 'Vihjeet',
   'choice.cancel': 'Peruuta',
   'hint.button': 'Vihje',
   'hint.line': 'Ehdotus: {move} {cards}',

@@ -1999,6 +1999,7 @@ export const ro: Record<string, string> = {
   'rummytiles.move.committed': '{player} și-a încheiat tura',
   'rummytiles.move.drew': '{player} a tras o piesă',
   'moves.title': 'Mutări recente',
+  'hints.title': 'Indicii',
   'choice.cancel': 'Anulează',
   'hint.button': 'Indiciu',
   'hint.line': 'Sugestie: {move} {cards}',

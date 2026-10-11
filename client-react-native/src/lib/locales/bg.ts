@@ -1992,6 +1992,7 @@ export const bg: Record<string, string> = {
   'rummytiles.move.committed': '{player} приключи хода си',
   'rummytiles.move.drew': '{player} изтегли плочка',
   'moves.title': 'Последни ходове',
+  'hints.title': 'Съвети',
   'choice.cancel': 'Отказ',
   'hint.button': 'Подсказка',
   'hint.line': 'Предложение: {move} {cards}',

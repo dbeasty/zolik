@@ -2015,6 +2015,7 @@ export const ga: Record<string, string> = {
   'rummytiles.move.committed': 'Chríochnaigh {player} a sheal',
   'rummytiles.move.drew': 'Tharraing {player} tíl',
   'moves.title': 'Bearta le déanaí',
+  'hints.title': 'Leideanna',
   'choice.cancel': 'Cealaigh',
   'hint.button': 'Leid',
   'hint.line': 'Moladh: {move} {cards}',

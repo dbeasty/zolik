@@ -1155,6 +1155,7 @@
  "hint.button": "Hint",
  "hint.line": "Suggested: {move} {cards}",
  "hint.lineNoCards": "Suggested: {move}",
+ "hints.title": "Hints",
  "holdem.cost.call": "to call",
  "holdem.cost.pot": "pot after call",
  "holdem.header.blinds": "Blinds",
