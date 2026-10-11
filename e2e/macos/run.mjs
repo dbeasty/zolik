@@ -804,6 +804,19 @@ async function main() {
     const names = await bonjourNames();
     expect(names.includes('Mac Host'), `Bonjour shows ${JSON.stringify(names)}`);
     await a.screenshot('hosting');
+    // The online game still open in its own window stays on the internet
+    // server: sitting at an offline table elsewhere must not move it to one
+    // where its match does not exist.
+    const online = (await windowsOf(a)).findIndex((w) => w.key === lastCard) + 1;
+    if (online > 0) {
+      await on(a, online);
+      await sleep(1500);
+      const v = await a.js(`return { cards: document.querySelectorAll('[data-card]').length, text: e2e.text().slice(0, 4000) }`);
+      expect(v.cards >= 5 && !/no longer exists/.test(v.text), `the online game window after hosting offline: ${JSON.stringify({ cards: v.cards, gone: /no longer exists/.test(v.text) })}`);
+      const w = (await windowsOf(a))[online - 1];
+      expect(!/Server:/.test(w.subtitle), `the online game window is titled as an offline table's: ${JSON.stringify(w)}`);
+      await on(a, 1);
+    }
   }, [a]);
 
   let guestPage;
