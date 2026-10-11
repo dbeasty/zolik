@@ -106,11 +106,30 @@ async function waitForHand(page: Page, zoneId: string) {
  * layout assertion lie.
  */
 async function handAndControls(page: Page, zoneId: string) {
-  const hand = await page.getByTestId(`zone-${zoneId}`).boundingBox();
-  const controls = await page.getByTestId('controls-panel').boundingBox();
-  expect(hand, 'the hand has a bounding box').toBeTruthy();
-  expect(controls, 'the controls panel has a bounding box').toBeTruthy();
-  return { hand: hand!, controls: controls! };
+  // A bot that folds the first hand leaves the table between hands: the board
+  // then puts the results and the "start the next round" control above the
+  // cards, because nothing is being played, and that is not the layout under
+  // test. Deal on until a hand is actually in play.
+  for (let i = 0; i < 6; i++) {
+    const next = page.getByRole('button', { name: /start the next round/i });
+    if (!(await next.isVisible().catch(() => false))) break;
+    await next.click();
+    await page.waitForTimeout(1500);
+  }
+  // One synchronous read of both rectangles. Two separate boundingBox() calls
+  // straddle the screen's own scroll to the hand on arrival: the first box is
+  // measured before it and the second after, and the pair disagrees by the
+  // distance scrolled (about one run in six at Hold'em).
+  const both = await page.evaluate((zone) => {
+    const rect = (id: string) => {
+      const r = document.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect();
+      return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null;
+    };
+    return { hand: rect(`zone-${zone}`), controls: rect('controls-panel') };
+  }, zoneId);
+  expect(both.hand, 'the hand has a bounding box').toBeTruthy();
+  expect(both.controls, 'the controls panel has a bounding box').toBeTruthy();
+  return { hand: both.hand!, controls: both.controls! };
 }
 
 for (const moduleId of MODULES) {
