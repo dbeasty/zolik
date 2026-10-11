@@ -563,6 +563,8 @@ export type MatchState = {
    * A flag, never the game it came from: that game's board would show the deal.
    */
   repeatDeal?: boolean;
+  /** The guided lesson this table was dealt for; absent at an ordinary table. */
+  tutorial?: { lessonId: string };
   /** Who a rematch lobby is still holding seats for, in seat order. */
   reserved?: { playerId: string; name: string; avatar?: string }[];
   /**

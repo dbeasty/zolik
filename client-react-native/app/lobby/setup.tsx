@@ -9,6 +9,7 @@ import { Tip } from '@/src/a11y/Tip';
 import type { MatchModule } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { LearnButton } from '@/src/guide/LearnButton';
 import { useLocale } from '@/src/hooks/useLocale';
 import { formatApiError } from '@/src/lib/apiError';
 import { choiceLabel, moduleLabel, optionHelp, optionLabel, variationLabel } from '@/src/lib/gameLabels';
@@ -310,6 +311,8 @@ export default function GameSetupScreen() {
             {mode === 'bots' ? t('setup.dealMeIn') : t('setup.openTable')}
           </Text>
         </Pressable>
+        {/* A lesson for exactly the variation and options selected above. */}
+        <LearnButton moduleId={mod.id} variation={variation} options={options} compact />
       </View>
     </Screen>
   );

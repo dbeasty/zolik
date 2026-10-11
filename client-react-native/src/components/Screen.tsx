@@ -3,6 +3,7 @@ import { Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { heading } from '@/src/a11y/props';
+import { TourBanner } from '@/src/guide/TourBanner';
 import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 import { shared } from '@/src/theme';
 
@@ -19,6 +20,9 @@ export function Screen({ title, subtitle, children, scroll, wide }: Props) {
   const edges = useScreenEdges();
   const body = (
     <>
+      {/* The app tour's step for this screen, when the tour is on and is
+          being told here. Above the title, in the page's flow. */}
+      <TourBanner />
       {/* A heading, so a screen reader's heading list starts here. Level 2:
           the navigation bar's title above it is the page's `<h1>`. */}
       {title ? (

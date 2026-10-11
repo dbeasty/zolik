@@ -13,6 +13,7 @@ import { useOrderedModules } from '@/src/components/GameButtons';
 import { StartHero } from '@/src/components/fun/StartHero';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
+import { TourLink } from '@/src/guide/TourLink';
 import { TableRow } from '@/src/components/TableRow';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
 import { useDesktopChrome } from '@/src/hooks/useHydrated';
@@ -151,6 +152,9 @@ export default function MainMenu() {
           {below}
         </>
       )}
+
+      {/* Replayable any time, not only on a first visit. */}
+      <TourLink />
 
       {/* In the Mac app the versions are in About and the notices in Help,
           where a Mac app keeps them. */}

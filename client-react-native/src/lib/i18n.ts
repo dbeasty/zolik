@@ -26,6 +26,7 @@
 
 import { IS_DESKTOP } from '@/src/config';
 
+import { guideStrings } from './locales/guide';
 import { bg } from './locales/bg';
 import { cs } from './locales/cs';
 import { da } from './locales/da';
@@ -133,30 +134,30 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export type Params = Record<string, string | number>;
 
 export const BUNDLES: Record<Locale, Record<string, string>> = {
-  bg,
-  cs,
-  da,
-  de,
-  el,
-  en,
-  es,
-  et,
-  fi,
-  fr,
-  ga,
-  hr,
-  hu,
-  it,
-  lt,
-  lv,
-  mt,
-  nl,
-  pl,
-  pt,
-  ro,
-  sk,
-  sl,
-  sv,
+  bg: { ...bg, ...guideStrings('bg') },
+  cs: { ...cs, ...guideStrings('cs') },
+  da: { ...da, ...guideStrings('da') },
+  de: { ...de, ...guideStrings('de') },
+  el: { ...el, ...guideStrings('el') },
+  en: { ...en, ...guideStrings('en') },
+  es: { ...es, ...guideStrings('es') },
+  et: { ...et, ...guideStrings('et') },
+  fi: { ...fi, ...guideStrings('fi') },
+  fr: { ...fr, ...guideStrings('fr') },
+  ga: { ...ga, ...guideStrings('ga') },
+  hr: { ...hr, ...guideStrings('hr') },
+  hu: { ...hu, ...guideStrings('hu') },
+  it: { ...it, ...guideStrings('it') },
+  lt: { ...lt, ...guideStrings('lt') },
+  lv: { ...lv, ...guideStrings('lv') },
+  mt: { ...mt, ...guideStrings('mt') },
+  nl: { ...nl, ...guideStrings('nl') },
+  pl: { ...pl, ...guideStrings('pl') },
+  pt: { ...pt, ...guideStrings('pt') },
+  ro: { ...ro, ...guideStrings('ro') },
+  sk: { ...sk, ...guideStrings('sk') },
+  sl: { ...sl, ...guideStrings('sl') },
+  sv: { ...sv, ...guideStrings('sv') },
 };
 
 /** Narrows an arbitrary string to a locale we actually ship. */

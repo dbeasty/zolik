@@ -1,4 +1,5 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
+import type { GuideLesson } from '@/src/guide/types';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
 import type { DealResult, MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
@@ -531,12 +532,46 @@ export class ZolikClient {
     );
   }
 
+  /**
+   * The guided lessons a module ships for the table being configured, with
+   * the same variation and options `moduleRules` takes — a lesson is written
+   * against the resolved table, so asking for the wrong one teaches the wrong
+   * game. Empty for a game with no guide yet.
+   */
+  async moduleLessons(
+    moduleId: string,
+    variation?: string,
+    options?: Record<string, number>,
+  ): Promise<GuideLesson[]> {
+    const q = new URLSearchParams();
+    if (variation) q.set('variation', variation);
+    for (const [name, value] of Object.entries(options ?? {})) {
+      q.set(`opt.${name}`, String(value));
+    }
+    const qs = q.toString();
+    const data = await this.get<{ lessons: GuideLesson[] }>(
+      `/modules/${encodeURIComponent(moduleId)}/lessons${qs ? `?${qs}` : ''}`,
+      false,
+    );
+    return data.lessons ?? [];
+  }
+
+  /**
+   * `lessonId` deals the table for one of the module's guided lessons: the
+   * lesson's own deal, and a table that keeps out of statistics and out of
+   * the host's games.
+   */
   async createMatch(
     moduleId: string,
     variation?: string,
     options: Record<string, number> = {},
+    lessonId?: string,
   ): Promise<{ matchId: string; joinCode: string; inviteUrl?: string }> {
-    return this.post('/matches', { moduleId, variation, options, avatar: this.avatarId }, true);
+    return this.post(
+      '/matches',
+      { moduleId, variation, options, avatar: this.avatarId, ...(lessonId ? { lessonId } : {}) },
+      true,
+    );
   }
 
   /** Joins by match id or by the short code a host reads out. */

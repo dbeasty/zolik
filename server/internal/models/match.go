@@ -115,6 +115,11 @@ type Match struct {
 	// sits down late is put back where they sat, not at the end.
 	SeatOrder []string `bson:"seatOrder,omitempty" json:"-"`
 
+	// Tutorial marks a table dealt for a guided lesson. It is a real match —
+	// real engine, real bots — that keeps out of everything a played game
+	// feeds: statistics, the list of a player's games, rematches.
+	Tutorial *TutorialRef `bson:"tutorial,omitempty" json:"tutorial,omitempty"`
+
 	// Version drives the same optimistic-concurrency scheme Game uses: a
 	// filtered replace that fails if someone else wrote first.
 	Version int64 `bson:"version" json:"-"`
@@ -124,6 +129,11 @@ type Match struct {
 	// already carrying it — and leaves a trail back to the original if a
 	// migrated match ever looks wrong.
 	MigratedFrom bson.ObjectID `bson:"migratedFrom,omitempty" json:"-"`
+}
+
+// TutorialRef names the lesson a tutorial table was dealt for.
+type TutorialRef struct {
+	LessonID string `bson:"lessonId" json:"lessonId"`
 }
 
 // RematchRef points a finished table at the one it is being played again at.
