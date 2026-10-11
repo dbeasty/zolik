@@ -1521,6 +1521,7 @@ export const nl: Record<string, string> = {
   'banner.botIn': 'Over {time} speelt een bot voor hen.',
   'banner.botSoon': 'Een bot neemt het over…',
   'banner.letBotPlay': 'Laat nu een bot spelen',
+  'banner.keepWaiting': 'Blijf wachten',
   'banner.back': 'Terwijl je weg was, speelde een bot voor je. Je plaats is weer van jou.',
   'banner.standIn': 'Een bot speelt voor {name} tot ze terug zijn.',
   'seat.standInBadge': 'BOT SPEELT',

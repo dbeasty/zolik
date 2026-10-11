@@ -53,6 +53,7 @@ describe('tableBanner', () => {
     expect(b?.playerId).toBe('bo');
     expect(b?.text).toContain('Bo');
     expect(b?.text).toContain('0:42');
+    expect(b?.counting).toBe(true);
   });
 
   it('counts down on an active table waiting on an away seat, too', () => {

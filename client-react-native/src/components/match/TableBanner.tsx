@@ -23,6 +23,8 @@ type Props = {
   onDismissNotice: () => void;
   /** The host's one-tap "let a bot play now", where this viewer is the host. */
   onLetBotPlay?: (playerId: string) => void;
+  /** The host's "cancel the pending bot and wait for them". */
+  onKeepWaiting?: (playerId: string) => void;
 };
 
 /**
@@ -37,7 +39,7 @@ type Props = {
  * *player* is missing, the table waits for them for as long as it was set up
  * to, and then a bot plays their seat. Only the first that holds is shown.
  */
-export function TableBanner({ state, seats, viewerId, connected, serverGone, notice, onDismissNotice, onLetBotPlay }: Props) {
+export function TableBanner({ state, seats, viewerId, connected, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting }: Props) {
   const counting = !!awaitedAway(state, seats)?.standInAt;
   const now = useNow(counting);
 
@@ -49,7 +51,17 @@ export function TableBanner({ state, seats, viewerId, connected, serverGone, not
   }, [notice, onDismissNotice]);
 
   const b = tableBanner({ state, seats, viewerId, connected, serverGone, notice, now });
+  // The bot banners are information, not an error: the viewer may wave them
+  // away. Dismissal is per situation (kind + who), so a different player
+  // dropping, or the same one dropping again, shows it afresh.
+  const situation = b ? `${b.kind}:${b.playerId ?? b.text}` : null;
+  const [hidden, setHidden] = useState<string | null>(null);
+  useEffect(() => {
+    if (hidden && hidden !== situation) setHidden(null);
+  }, [hidden, situation]);
   if (!b) return null;
+  const botBanner = b.kind === 'waiting' || b.kind === 'standin';
+  if (botBanner && hidden === situation) return null;
   return (
     <Banner tone={b.tone} testID={`table-banner-${b.kind}`} text={b.text}>
       {b.kind === 'waiting' && onLetBotPlay && b.playerId ? (
@@ -60,6 +72,27 @@ export function TableBanner({ state, seats, viewerId, connected, serverGone, not
           accessibilityRole="button"
         >
           <Text style={styles.buttonText}>{t('banner.letBotPlay')}</Text>
+        </Pressable>
+      ) : null}
+      {b.kind === 'waiting' && b.counting && onKeepWaiting && b.playerId ? (
+        <Pressable
+          testID="table-banner-keep-waiting"
+          onPress={() => onKeepWaiting(b.playerId!)}
+          style={styles.button}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{t('banner.keepWaiting')}</Text>
+        </Pressable>
+      ) : null}
+      {botBanner ? (
+        <Pressable
+          testID="table-banner-hide"
+          onPress={() => setHidden(situation)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('score.close')}
+        >
+          <Text style={styles.dismiss}>×</Text>
         </Pressable>
       ) : null}
       {b.kind === 'back' ? (
@@ -94,7 +127,7 @@ export function tableBanner({
   serverGone?: { name: string };
   notice: string | null;
   now: number;
-}): { kind: BannerKind; tone: 'bad' | 'info' | 'ok'; text: string; playerId?: string } | null {
+}): { kind: BannerKind; tone: 'bad' | 'info' | 'ok'; text: string; playerId?: string; counting?: boolean } | null {
   // The server going is known for certain — the relay said so — and it takes
   // this player's socket down with it; so it is said before "you are offline",
   // which is only what a dropped socket looks like from here.
@@ -113,6 +146,7 @@ export function tableBanner({
       tone: 'bad',
       text: [t('banner.waitingFor', { name }), detail].filter(Boolean).join(' '),
       playerId: waitingOn.id,
+      counting: !!waitingOn.standInAt,
     };
   }
   if (notice === 'stand_in_ended') return { kind: 'back', tone: 'ok', text: t('banner.back') };

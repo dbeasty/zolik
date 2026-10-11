@@ -1505,6 +1505,7 @@ export const fi: Record<string, string> = {
   'banner.botIn': 'Botti pelaa hänen puolestaan {time} kuluttua.',
   'banner.botSoon': 'Botti ottaa ohjat…',
   'banner.letBotPlay': 'Anna botin pelata nyt',
+  'banner.keepWaiting': 'Jatka odottamista',
   'banner.back': 'Botti pelasi puolestasi, kun olit poissa. Paikka on taas sinun.',
   'banner.standIn': 'Botti pelaa pelaajan {name} puolesta, kunnes hän palaa.',
   'seat.standInBadge': 'BOTTI PELAA',

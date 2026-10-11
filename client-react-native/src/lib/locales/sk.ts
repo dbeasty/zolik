@@ -1495,6 +1495,7 @@ export const sk: Record<string, string> = {
   'banner.botIn': 'Bot zaňho začne hrať o {time}.',
   'banner.botSoon': 'Hru preberá bot…',
   'banner.letBotPlay': 'Nech hrá bot hneď',
+  'banner.keepWaiting': 'Pokračovať v čakaní',
   'banner.back': 'Kým ste boli preč, hral za vás bot. Miesto je opäť vaše.',
   'banner.standIn': 'Za hráča {name} hrá bot, kým sa nevráti.',
   'seat.standInBadge': 'HRÁ BOT',

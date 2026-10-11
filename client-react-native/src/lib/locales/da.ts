@@ -1493,6 +1493,7 @@ export const da: Record<string, string> = {
   'banner.botIn': 'Om {time} spiller en bot for dem.',
   'banner.botSoon': 'En bot tager over…',
   'banner.letBotPlay': 'Lad en bot spille nu',
+  'banner.keepWaiting': 'Bliv ved med at vente',
   'banner.back': 'En bot spillede for dig, mens du var væk. Pladsen er din igen.',
   'banner.standIn': 'En bot spiller for {name}, til de er tilbage.',
   'seat.standInBadge': 'BOT SPILLER',

@@ -1490,6 +1490,7 @@ export const sl: Record<string, string> = {
   'banner.botIn': 'Čez {time} bo namesto njega igral bot.',
   'banner.botSoon': 'Bot prevzema…',
   'banner.letBotPlay': 'Naj bot igra takoj',
+  'banner.keepWaiting': 'Še naprej čakaj',
   'banner.back': 'Medtem ko vas ni bilo, je za vas igral bot. Mesto je spet vaše.',
   'banner.standIn': 'Bot igra namesto igralca {name}, dokler se ne vrne.',
   'seat.standInBadge': 'IGRA BOT',

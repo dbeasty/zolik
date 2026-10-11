@@ -1512,6 +1512,7 @@ export const hu: Record<string, string> = {
   'banner.botIn': '{time} múlva egy bot játszik helyette.',
   'banner.botSoon': 'Egy bot veszi át…',
   'banner.letBotPlay': 'Játsszon most egy bot',
+  'banner.keepWaiting': 'Várakozás tovább',
   'banner.back': 'Amíg távol voltál, egy bot játszott helyetted. A helyed újra a tiéd.',
   'banner.standIn': 'Egy bot játszik {name} helyett, amíg vissza nem tér.',
   'seat.standInBadge': 'BOT JÁTSZIK',

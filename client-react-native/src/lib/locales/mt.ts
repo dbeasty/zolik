@@ -1518,6 +1518,7 @@ export const mt: Record<string, string> = {
   'banner.botIn': 'Fi {time} bot jilgħab minfloku.',
   'banner.botSoon': 'Bot qed jieħu f’idejh…',
   'banner.letBotPlay': 'Ħalli bot jilgħab issa',
+  'banner.keepWaiting': 'Kompli stenna',
   'banner.back': 'Bot lagħab minflokok waqt li ma kontx hawn. Postok reġa’ tiegħek.',
   'banner.standIn': 'Bot qed jilgħab minflok {name} sakemm jirritorna.',
   'seat.standInBadge': 'BOT QED JILGĦAB',

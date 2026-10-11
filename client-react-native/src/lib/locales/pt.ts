@@ -1515,6 +1515,7 @@ export const pt: Record<string, string> = {
   'banner.botIn': 'Um bot joga por ele dentro de {time}.',
   'banner.botSoon': 'Um bot está a assumir…',
   'banner.letBotPlay': 'Deixar um bot jogar já',
+  'banner.keepWaiting': 'Continuar à espera',
   'banner.back': 'Um bot jogou por si enquanto esteve fora. O lugar é seu outra vez.',
   'banner.standIn': 'Um bot está a jogar por {name} até voltar.',
   'seat.standInBadge': 'BOT A JOGAR',

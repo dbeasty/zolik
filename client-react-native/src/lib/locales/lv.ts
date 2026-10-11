@@ -1495,6 +1495,7 @@ export const lv: Record<string, string> = {
   'banner.botIn': 'Pēc {time} viņa vietā spēlēs bots.',
   'banner.botSoon': 'Bots pārņem…',
   'banner.letBotPlay': 'Ļaut botam spēlēt tūlīt',
+  'banner.keepWaiting': 'Turpināt gaidīt',
   'banner.back': 'Kamēr tevis nebija, tavā vietā spēlēja bots. Vieta atkal ir tava.',
   'banner.standIn': 'Bots spēlē spēlētāja {name} vietā, līdz viņš atgriezīsies.',
   'seat.standInBadge': 'SPĒLĒ BOTS',
