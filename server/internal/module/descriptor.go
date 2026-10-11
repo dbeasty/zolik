@@ -299,7 +299,36 @@ func (r *Registry) IDs() []string { return append([]string(nil), r.ids...) }
 func (r *Registry) Descriptors() []ModuleDescriptor {
 	out := make([]ModuleDescriptor, 0, len(r.ids))
 	for _, id := range r.ids {
-		out = append(out, r.byID[id].Descriptor())
+		out = append(out, withHintsDefault(r.byID[id].Descriptor()))
 	}
 	return out
+}
+
+// withHintsDefault gives every variation a starting value for Hints, which is
+// on (HintsAllowed). Modules declare the option but leave it out of their
+// Defaults, and a lobby that finds no default for a choice highlights neither.
+func withHintsDefault(d ModuleDescriptor) ModuleDescriptor {
+	declared := false
+	for _, o := range d.Options {
+		if o.Name == OptHints {
+			declared = true
+		}
+	}
+	if !declared {
+		return d
+	}
+	vars := make([]VariationSpec, len(d.Variations))
+	for i, v := range d.Variations {
+		defaults := make(map[string]int, len(v.Defaults)+1)
+		for k, x := range v.Defaults {
+			defaults[k] = x
+		}
+		if _, ok := defaults[OptHints]; !ok {
+			defaults[OptHints] = OptOn
+		}
+		v.Defaults = defaults
+		vars[i] = v
+	}
+	d.Variations = vars
+	return d
 }
