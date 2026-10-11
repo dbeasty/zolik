@@ -8,6 +8,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
 import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Legacy username/password sign-in.
@@ -18,6 +19,7 @@ import { t } from '@/src/lib/i18n';
  * `/auth/login`.
  */
 export default function UsernameLoginScreen() {
+  useLocale();
   const { login } = useSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

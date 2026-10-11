@@ -114,6 +114,7 @@ import { seatIsShareable } from '@/src/desktop/seat';
 import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
 import { isTableZone } from '@/src/lib/board';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
 const IDLE_NUDGE_MS = 20_000;
@@ -165,6 +166,7 @@ const DROP_DWELL_MS = 700;
 const BAND_DWELL_MS = 600;
 
 function MatchScreen() {
+  useLocale();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
   // A seat taken through a seat link plays this table — and only this one —

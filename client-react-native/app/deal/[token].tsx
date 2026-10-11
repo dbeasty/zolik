@@ -11,6 +11,7 @@ import { routeForMatch } from '@/src/lib/matchRoute';
 import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a sent deal lands: `/deal/<token>`.
@@ -26,6 +27,7 @@ import { t } from '@/src/lib/i18n';
  * game is something to choose to start.
  */
 export default function SentDealScreen() {
+  useLocale();
   const { client, session, loading } = useSession();
   const { token: raw } = useLocalSearchParams<{ token: string }>();
   const token = String(raw ?? '').trim();

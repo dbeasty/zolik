@@ -8,6 +8,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { claimedMessage } from '@/src/lib/auth';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Passwordless email sign-in: an address, a mailed six-digit code, done.
@@ -19,6 +20,7 @@ import { t } from '@/src/lib/i18n';
  * covers a first-time player and a returning one.
  */
 export default function EmailSignInScreen() {
+  useLocale();
   const { startEmailSignIn, verifyEmailCode } = useSession();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');

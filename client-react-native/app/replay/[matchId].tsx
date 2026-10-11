@@ -21,6 +21,7 @@ import { reasonText, t } from '@/src/lib/i18n';
 import { label, playerName } from '@/src/lib/labels';
 import { loadMarks, saveMarks } from '@/src/lib/markStore';
 import type { Skin } from '@/src/skins/types';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Stepping back and forth through a game that has stopped.
@@ -54,6 +55,7 @@ export default function ReplayRoute() {
 }
 
 function ReplayScreen() {
+  useLocale();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const id = matchId ? String(matchId) : '';

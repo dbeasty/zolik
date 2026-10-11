@@ -652,11 +652,11 @@ async function main() {
     await a.js(`await e2e.clickTestId('language-choice-cs'); return 1`);
     const lcw = await indexOfGame(a, lastCard);
     await on(a, lcw);
-    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'cs', 'the game window to turn Czech', 25000); return 1`);
+    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'cs' && !/Read table/.test(e2e.text()), 'the game window to turn Czech, words and all', 25000); return 1`);
     await on(a, 1);
     await a.js(`await e2e.clickTestId('language-choice-en'); return 1`);
     await on(a, lcw);
-    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'en', 'the game window to turn English again', 25000); return 1`);
+    await a.js(`await e2e.waitFor(() => document.documentElement.lang === 'en' && /Read table/.test(e2e.text()), 'the game window to turn English again, words and all', 25000); return 1`);
     await on(a, 1);
     await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
     // So does a table look: the board in the game window changes colour.

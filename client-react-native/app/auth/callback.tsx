@@ -7,6 +7,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { authErrorMessage, claimedMessage } from '@/src/lib/auth';
 import { shared, colors } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where the browser lands if the OAuth redirect actually navigates the app,
@@ -20,6 +21,7 @@ import { t } from '@/src/lib/i18n';
  * because on web that promise lives in the tab that is being replaced.
  */
 export default function AuthCallbackScreen() {
+  useLocale();
   const params = useGlobalSearchParams<{ code?: string; error?: string }>();
   const { client, setSession } = useSession();
   const [message, setMessage] = useState(() => t('a11y.auth.signingIn'));

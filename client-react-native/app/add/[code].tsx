@@ -15,6 +15,7 @@ import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendi
 import { useInvites } from '@/src/notify/InviteProvider';
 import { PushPrompt } from '@/src/notify/PushPrompt';
 import { colors, shared } from '@/src/theme';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * Where a friend link lands: `/add/ABCD2345`.
@@ -31,6 +32,7 @@ import { colors, shared } from '@/src/theme';
  * now with a session to add them under.
  */
 export default function AddFriendScreen() {
+  useLocale();
   const { onlineSession, loading } = useSession();
   const { refreshCircle } = useInvites();
   const { code } = useLocalSearchParams<{ code: string }>();

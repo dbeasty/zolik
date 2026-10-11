@@ -11,6 +11,7 @@ import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { useLocale } from '@/src/hooks/useLocale';
 
 /**
  * A game's written rules, resolved against the variation and options a
@@ -23,6 +24,7 @@ import { t } from '@/src/lib/i18n';
  * screen carries no game's vocabulary of its own.
  */
 export default function RulesScreen() {
+  useLocale();
   const { client } = useSession();
   // Arriving at a rule rather than at the top of the rules. Measured against
   // the scroll view once the sections are on screen, because the position of
