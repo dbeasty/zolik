@@ -624,6 +624,25 @@ async function main() {
     const rows = await a.js(`return e2e.text()`);
     expect(/Last Card · Classic/.test(rows) && /Prší · Classic/.test(rows), `My games reads ${JSON.stringify(rows.slice(0, 300))}`);
     expect(!/lastcard|prsi · /.test(rows), `My games shows an id: ${JSON.stringify(rows.slice(0, 300))}`);
+    // A replay opens in a window of its own, named for the game.
+    await a.js(`
+      const b = await e2e.waitFor(() => [...document.querySelectorAll('[role="button"],button')].find((x) => /Replay/.test(x.getAttribute('aria-label') || '') && /Last Card/.test(x.getAttribute('aria-label') || '')), 'Replay for Last Card', 15000);
+      const r = b.getBoundingClientRect();
+      const o = { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons: 1 };
+      setTimeout(() => { b.dispatchEvent(new PointerEvent('pointerdown', o)); o.buttons = 0; b.dispatchEvent(new PointerEvent('pointerup', o)); b.dispatchEvent(new MouseEvent('click', o)); }, 0);
+      return 1;
+    `);
+    const rw = await waitWindows(a, (w) => w.some((x) => x.key.startsWith('replay:')), 'the replay window');
+    const rep = rw.find((x) => x.key.startsWith('replay:'));
+    let repTitle = rep.title;
+    for (let i = 0; i < 100 && repTitle !== 'Replay · Last Card'; i++) {
+      await sleep(100);
+      repTitle = (await windowsOf(a)).find((x) => x.key.startsWith('replay:')).title;
+    }
+    expect(repTitle === 'Replay · Last Card', `the replay window is titled ${JSON.stringify(repTitle)}`);
+    await a.native(`window close ${await indexOfGame(a, (w) => w.key.startsWith('replay:'))}`);
+    await waitWindows(a, (w) => !w.some((x) => x.key.startsWith('replay:')), 'the replay window to close');
+    await on(a, 1);
     await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); await e2e.sleep(500); return 1`);
     // The Window menu lists the main window once (its ⌘1 item), not twice.
     const windowMenu = await a.native('menuitems Window');

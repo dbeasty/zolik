@@ -7,7 +7,7 @@ import { ApiError } from '@/src/api/client';
 import type { MatchState, Replay, ReplayFrame, RoundLog } from '@/src/api/matchTypes';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
-import { DesktopGameHandoff } from '@/src/desktop/windows';
+import { DesktopGameHandoff, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { DeckProvider } from '@/src/lib/deck';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
@@ -127,6 +127,14 @@ function ReplayScreen() {
 
   const frame = framesRef.current.get(index) ?? null;
   const total = replay?.total ?? 0;
+  // The Mac window's title bar: "Replay · Gin Rummy", and not one to reopen at
+  // the next launch.
+  const replayGame = useGameName(replay?.moduleId ?? '');
+  useGameWindowInfo(
+    replay?.moduleId
+      ? { title: `${t('nav.replay')} · ${replayGame}`, subtitle: '', finished: true, yourTurn: false, offline: false }
+      : null,
+  );
 
   // Fetch the page holding whatever is being looked at, and the one after it
   // while the reader is still on this one — a step forward should not wait on
