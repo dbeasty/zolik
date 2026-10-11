@@ -155,12 +155,12 @@ describe('arrangeAuto', () => {
     expect(runIdx[2] - runIdx[0]).toBe(2);
   });
 
-  it('orders clusters low to high, ace low, and keeps jokers last', () => {
+  it('orders clusters low to high, ace high, and keeps jokers last', () => {
     const out = arrangeAuto(slots('KS', 'JOKER1', '3H', '3D', 'AC')).map((s) => s.card);
 
     // 3H/3D are a multiples cluster sorted before KS; suit ordering within
-    // the cluster is alphabetical (D before H). Ace sorts below everything.
-    expect(out).toEqual(['AC', '3D', '3H', 'KS', 'JOKER1']);
+    // the cluster is alphabetical (D before H). Ace sorts above everything.
+    expect(out).toEqual(['3D', '3H', 'KS', 'AC', 'JOKER1']);
   });
 
   it('is a permutation of the slots handed in, not a re-minting of them', () => {
