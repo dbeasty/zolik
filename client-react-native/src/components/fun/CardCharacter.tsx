@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { loopWithHeadStart } from '@/src/components/fun/loopWithHeadStart';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { cssLoop } from '@/src/lib/cssLoop';
 import { ms } from '@/src/lib/motion';
 
 /**
@@ -46,6 +47,7 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
       beat.setValue(0.25);
       return;
     }
+    if (Platform.OS === 'web') return;
     beat.setValue(0);
     // The delay is a one-off head start, not a pause before every step.
     return loopWithHeadStart(
@@ -86,6 +88,45 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
   const armA = swing(lift[0]!, lift[1]!);
   const armB = swing(lift[1]!, lift[0]!);
 
+  // On the web the browser draws the steps (see `cssLoop`): the same curves,
+  // sampled into keyframes, so a row of walkers costs the page nothing.
+  const webDuration = mode === 'dance' ? ms(520) : mode === 'twirl' ? ms(900) : ms(480);
+  const sample = (points: [number, number][], x: number) => {
+    for (let k = 1; k < points.length; k++) {
+      const [x0, y0] = points[k - 1]!;
+      const [x1, y1] = points[k]!;
+      if (x <= x1) return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0 || 1);
+    }
+    return points[points.length - 1]![1];
+  };
+  const deg = (v: string) => parseFloat(v);
+  const tiltPts: [number, number][] = twirl
+    ? [[0, 0], [1, 0]]
+    : [[0, deg(mode === 'dance' ? '-10deg' : '-3deg')], [0.5, deg(mode === 'dance' ? '10deg' : '3deg')], [1, deg(mode === 'dance' ? '-10deg' : '-3deg')]];
+  const hopPts: [number, number][] = twirl
+    ? [[0, 0], [0.3, -size * 0.45], [0.6, 0], [1, 0]]
+    : [[0, 0], [0.25, -size * 0.12], [0.5, 0], [0.75, -size * 0.12], [1, 0]];
+  const turnPts: [number, number][] = [[0, 1], [0.2, 0.08], [0.4, 1], [0.6, 0.08], [0.8, 1], [1, 1]];
+  const stops = twirl ? [0, 0.2, 0.3, 0.4, 0.6, 0.8, 1] : [0, 0.25, 0.5, 0.75, 1];
+  const bodyFrames: Record<string, ViewStyle> = {};
+  for (const x of stops) {
+    bodyFrames[`${Math.round(x * 100)}%`] = {
+      transform: [
+        { translateY: sample(hopPts, x) },
+        { rotateZ: `${sample(tiltPts, x)}deg` },
+        ...(twirl ? [{ scaleX: sample(turnPts, x) }] : []),
+      ],
+    };
+  }
+  const swingFrames = (a: string, b: string): Record<string, ViewStyle> => ({
+    '0%': { transform: [{ rotateZ: a }] },
+    '50%': { transform: [{ rotateZ: b }] },
+    '100%': { transform: [{ rotateZ: a }] },
+  });
+  const webBody = cssLoop(bodyFrames, { duration: webDuration, delay });
+  const webA = cssLoop(swingFrames(lift[0]!, lift[1]!), { duration: webDuration, delay });
+  const webB = cssLoop(swingFrames(lift[1]!, lift[0]!), { duration: webDuration, delay });
+
   const limb = (width: number, length: number) => ({
     position: 'absolute' as const,
     width,
@@ -94,6 +135,35 @@ export function CardCharacter({ suit, size = 34, mode = 'walk', delay = 0 }: Pro
     backgroundColor: INK,
     transformOrigin: ['50%', '0%', 0] as [string, string, number],
   });
+
+  const face = (
+    <View style={[styles.card, { width: size, height: h, borderRadius: size * 0.14 }]}>
+      <Text style={[styles.corner, { color: colour, fontSize: size * 0.3 }]}>{GLYPH[suit]}</Text>
+      <Text style={[styles.pip, { color: colour, fontSize: size * 0.62 }]}>{GLYPH[suit]}</Text>
+      {/* Eyes — the difference between a card and a character. */}
+      <View style={[styles.eyes, { top: h * 0.1, gap: size * 0.16 }]}>
+        <View style={[styles.eye, { width: size * 0.12, height: size * 0.16 }]} />
+        <View style={[styles.eye, { width: size * 0.12, height: size * 0.16 }]} />
+      </View>
+    </View>
+  );
+  if (webBody && webA && webB && !stillness) {
+    return (
+      <View
+        aria-hidden
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[{ width: size + leg, height: h + leg, alignItems: 'center' }, webBody]}
+      >
+        {face}
+        <View style={[limb(size * 0.1, leg), { top: h - 2, left: leg / 2 + size * 0.25 }, webA]} />
+        <View style={[limb(size * 0.1, leg), { top: h - 2, left: leg / 2 + size * 0.65 }, webB]} />
+        <View style={[limb(size * 0.08, leg * 0.8), { top: h * 0.4, left: leg / 2 - 2 }, webB]} />
+        <View style={[limb(size * 0.08, leg * 0.8), { top: h * 0.4, left: leg / 2 + size - 2 }, webA]} />
+      </View>
+    );
+  }
 
   return (
     <Animated.View

@@ -14,6 +14,7 @@ import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
 import { scoreText, seatSpokenLabel } from '@/src/lib/boardSpeech';
+import { cssLoop } from '@/src/lib/cssLoop';
 import { factText, isDealerLabel, label, playerName, shownScore } from '@/src/lib/labels';
 import { partnerText, partnersOf } from '@/src/lib/sides';
 import type { Skin } from '@/src/skins/types';
@@ -598,11 +599,21 @@ function TurnPulse({ color }: { color: string }) {
   const progress = useRef(new Animated.Value(0)).current;
   const stillness = useReducedMotion();
 
+  // On the web the browser draws this (see `cssLoop`).
+  const web = cssLoop(
+    {
+      '0%': { opacity: 0.45, transform: [{ scale: 0.85 }] },
+      '100%': { opacity: 1, transform: [{ scale: 1.2 }] },
+    },
+    { duration: ms(700), direction: 'alternate', timing: 'ease-in-out' },
+  );
+
   useEffect(() => {
     if (stillness) {
       progress.setValue(1);
       return;
     }
+    if (web) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(progress, {
@@ -621,7 +632,11 @@ function TurnPulse({ color }: { color: string }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [stillness, progress]);
+  }, [stillness, progress, web]);
+
+  if (web && !stillness) {
+    return <View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }, web]} />;
+  }
 
   return (
     <Animated.View

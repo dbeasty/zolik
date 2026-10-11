@@ -4,6 +4,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { CardCharacter, type Suit } from '@/src/components/fun/CardCharacter';
 import { loopWithHeadStart } from '@/src/components/fun/loopWithHeadStart';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { cssLoop } from '@/src/lib/cssLoop';
 import { ms } from '@/src/lib/motion';
 import { colors } from '@/src/theme';
 
@@ -29,9 +30,15 @@ export function StartHero() {
   const march = useRef(new Animated.Value(0)).current;
 
   const train = SUITS.length * SPACING;
+  const travel = width + train;
+  // On the web the browser draws the march (see `cssLoop`).
+  const web = cssLoop(
+    { '0%': { transform: [{ translateX: 0 }] }, '100%': { transform: [{ translateX: travel }] } },
+    { duration: ms(9000) },
+  );
   // Walks off the right edge and comes back on at the left, forever.
   useEffect(() => {
-    if (stillness || !width) return;
+    if (stillness || !width || web) return;
     march.setValue(0);
     const loop = Animated.loop(
       Animated.timing(march, {
@@ -43,9 +50,7 @@ export function StartHero() {
     );
     loop.start();
     return () => loop.stop();
-  }, [march, stillness, width]);
-
-  const travel = width + train;
+  }, [march, stillness, width, web]);
 
   return (
     <View
@@ -61,7 +66,15 @@ export function StartHero() {
         <Drifter key={i} glyph={g} index={i} still={stillness} />
       ))}
       <View style={styles.floor} />
-      {width ? (
+      {width && web && !stillness ? (
+        <View style={[styles.train, { left: -train }, web]}>
+          {SUITS.map((s, i) => (
+            <View key={s} style={{ width: SPACING }}>
+              <CardCharacter suit={s} size={CARD} delay={i * 90} />
+            </View>
+          ))}
+        </View>
+      ) : width ? (
         <Animated.View
           style={[
             styles.train,
@@ -90,8 +103,17 @@ export function StartHero() {
 
 function Drifter({ glyph, index, still }: { glyph: string; index: number; still: boolean }) {
   const t = useRef(new Animated.Value(0)).current;
+  // On the web the browser draws the drift (see `cssLoop`).
+  const web = cssLoop(
+    {
+      '0%': { opacity: 0.05, transform: [{ translateY: 14 }, { rotateZ: '-12deg' }] },
+      '50%': { opacity: 0.28, transform: [{ translateY: 0 }, { rotateZ: '0deg' }] },
+      '100%': { opacity: 0.05, transform: [{ translateY: -14 }, { rotateZ: '12deg' }] },
+    },
+    { duration: ms(4200 + index * 650), timing: 'ease-in-out', delay: index * ms(500) },
+  );
   useEffect(() => {
-    if (still) return;
+    if (still || web) return;
     return loopWithHeadStart(
       t,
       {
@@ -101,9 +123,16 @@ function Drifter({ glyph, index, still }: { glyph: string; index: number; still:
       },
       index * ms(500),
     );
-  }, [t, still, index]);
+  }, [t, still, index, web]);
 
   const red = glyph === '♥' || glyph === '♦';
+  if (web && !still) {
+    return (
+      <View style={[{ position: 'absolute', left: `${8 + index * 16}%`, top: 6 + (index % 3) * 10 }, web]}>
+        <Text style={{ fontSize: 26, color: red ? '#ef5350' : colors.text }}>{glyph}</Text>
+      </View>
+    );
+  }
   return (
     <Animated.View
       style={{
