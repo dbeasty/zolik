@@ -283,6 +283,13 @@ type Fact struct {
 	// on the right of the status box beside the moves instead of in the
 	// header lines.
 	Standing bool `json:"standing,omitempty"`
+	// Hint marks a prompt that is a standing requirement — "your side needs
+	// 50 to meld", "two canastas before going out" — rather than what the
+	// table is waiting on right now. The client keeps those out of the log
+	// box and lists them in a sheet of their own. Prompts carrying it are
+	// sent most relevant first, and only while unmet: a requirement that has
+	// been met is simply no longer sent.
+	Hint bool `json:"hint,omitempty"`
 }
 
 // Seat is one player as the board shows them.

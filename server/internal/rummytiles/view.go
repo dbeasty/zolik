@@ -179,12 +179,20 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		vm.Header = append(vm.Header, module.Fact{LabelKey: "header.target", Value: strconv.Itoa(s.TargetScore)})
 	}
 
+	if s.Status == "active" && s.Hands[viewerID] != nil && !s.InitialMeld[viewerID] {
+		// A standing requirement, not the turn's prompt: the client lists it
+		// in the hints sheet, and it stops being sent once the first lay is
+		// made.
+		vm.Prompts = append(vm.Prompts, module.Fact{
+			LabelKey: "rummytiles.prompt.initialMeld",
+			Params:   map[string]any{"n": 30},
+			Hint:     true,
+		})
+	}
 	if s.Current == viewerID && s.Status == "active" {
-		key := "rummytiles.prompt.yourTurn"
-		if !s.InitialMeld[viewerID] {
-			key = "rummytiles.prompt.initialMeld"
-		}
-		vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: key, Params: map[string]any{"n": 30}})
+		// A literal key: one passed through a variable never reaches
+		// cmd/dump-keys, which is how this one went without wording.
+		vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "rummytiles.prompt.yourTurn"})
 	}
 
 	if len(s.Rounds) > 0 {

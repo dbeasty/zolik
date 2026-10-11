@@ -398,10 +398,11 @@ export function matchStyles(s: Skin) {
   // put in front of the player can be measured as one. Spaced like the body,
   // which is what was between them before they were grouped.
   ending: { gap: 4 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // Wraps: at phone width the module group alone fills the row, which pushed the skin toggle off the right edge.
+  headerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: 8, rowGap: 4 },
   headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
-  moduleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  moduleGroup: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', flexShrink: 1, minWidth: 0, columnGap: 8 },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },
   // The links in the board's header line: 12px text, but a 24px target (WCAG 2.2).
   linkTarget: { minHeight: 24, justifyContent: 'center' },
