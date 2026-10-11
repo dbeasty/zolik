@@ -403,6 +403,8 @@ export function matchStyles(s: Skin) {
   headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
   moduleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  // The links in the board's header line: 12px text, but a 24px target (WCAG 2.2).
+  linkTarget: { minHeight: 24, justifyContent: 'center' },
   rulesLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
@@ -437,6 +439,8 @@ export function matchStyles(s: Skin) {
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 3,
+    minHeight: 24,
+    justifyContent: 'center',
   },
   hintButtonText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
   // The hint button's tooltip wrapper is the row's flex item, so it is the

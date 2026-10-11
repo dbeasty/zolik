@@ -19,6 +19,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
@@ -1110,6 +1111,99 @@ func TestLegacyRegisterRejectsADuplicateUsername(t *testing.T) {
 	res := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": "dupe", "password": "bbbbbbbb"})
 	if res.status == http.StatusOK {
 		t.Fatal("registering an already-taken username succeeded")
+	}
+}
+
+// A passphrase longer than bcrypt reads used to be a 500 on register ("internal
+// server error"), for the people most likely to be using one. It registers, and
+// every byte of it counts when signing in.
+func TestLegacyRegisterAcceptsALongPassphrase(t *testing.T) {
+	h := newTestHarness(t)
+	long := strings.Repeat("correct horse battery staple ", 5) // 145 bytes
+	reg := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": "longpass", "password": long})
+	if reg.status != http.StatusOK {
+		t.Fatalf("register with a %d-byte password: status %d body %s", len(long), reg.status, reg.raw)
+	}
+	ok := h.do(http.MethodPost, "/auth/login", "", map[string]any{"username": "longpass", "password": long})
+	if ok.status != http.StatusOK {
+		t.Fatalf("login with the same password: status %d", ok.status)
+	}
+	// Differing only after bcrypt's 72-byte horizon.
+	bad := h.do(http.MethodPost, "/auth/login", "", map[string]any{"username": "longpass", "password": long + "!"})
+	if bad.status != http.StatusUnauthorized {
+		t.Fatalf("a password that differs past byte 72 must be refused, got %d", bad.status)
+	}
+}
+
+func TestLegacyRegisterRefusesAnAbsurdPasswordWithoutHashingIt(t *testing.T) {
+	h := newTestHarness(t)
+	res := h.do(http.MethodPost, "/auth/register", "", map[string]any{
+		"username": "toolong", "password": strings.Repeat("p", auth.MaxPasswordBytes+1),
+	})
+	if res.status != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", res.status)
+	}
+}
+
+// A username is shown to everyone it plays with, so what is stored is the
+// cleaned name — and two spellings of the same cleaned name are one account.
+func TestLegacyUsernamesAreCleanedAndCannotImpersonate(t *testing.T) {
+	h := newTestHarness(t)
+
+	for _, blank := range []string{"", "   ", "\u200b\u200b", "\u202e"} {
+		res := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": blank, "password": "secretpass1"})
+		if res.status != http.StatusBadRequest {
+			t.Errorf("username %q: status %d, want 400 (a blank seat is nobody)", blank, res.status)
+		}
+	}
+
+	reg := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": "  Ann\u202e  ", "password": "secretpass1"})
+	if reg.status != http.StatusOK {
+		t.Fatalf("register: status %d body %s", reg.status, reg.raw)
+	}
+	if got := reg.str("username"); got != "Ann" {
+		t.Errorf("stored username = %q, want %q", got, "Ann")
+	}
+
+	// "Ann " is not a second Ann.
+	again := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": "Ann ", "password": "secretpass2"})
+	if again.status == http.StatusOK {
+		t.Error("\"Ann \" registered as a separate account from \"Ann\"")
+	}
+
+	// And signing in as the sloppy spelling reaches the real one.
+	login := h.do(http.MethodPost, "/auth/login", "", map[string]any{"username": " Ann ", "password": "secretpass1"})
+	if login.status != http.StatusOK {
+		t.Errorf("login with stray spaces: status %d", login.status)
+	}
+
+	long := h.do(http.MethodPost, "/auth/register", "", map[string]any{
+		"username": strings.Repeat("n", 5000), "password": "secretpass1",
+	})
+	if long.status == http.StatusOK && utf8.RuneCountInString(long.str("username")) > auth.MaxUsernameRunes {
+		t.Errorf("a %d-rune username was stored", utf8.RuneCountInString(long.str("username")))
+	}
+}
+
+func TestAGuestNameIsCleanedAndAnUnusableOneIsReplaced(t *testing.T) {
+	h := newTestHarness(t)
+
+	res := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "  \u202eBob   the\x00Builder  "})
+	if got := res.str("guestName"); got != "Bob theBuilder" {
+		t.Errorf("guestName = %q, want %q", got, "Bob theBuilder")
+	}
+
+	for _, unusable := range []string{"   ", "\u200b\u200b\u200b", "\u202e"} {
+		res := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": unusable})
+		name := res.str("guestName")
+		if strings.TrimSpace(name) == "" || auth.CleanDisplayName(name, auth.MaxGuestNameRunes) != name {
+			t.Errorf("guestName %q for %q: wanted a generated, visible name", name, unusable)
+		}
+	}
+
+	long := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": strings.Repeat("x", 10_000)})
+	if n := utf8.RuneCountInString(long.str("guestName")); n != auth.MaxGuestNameRunes {
+		t.Errorf("a 10000-character guest name came back as %d runes, want %d", n, auth.MaxGuestNameRunes)
 	}
 }
 

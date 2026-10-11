@@ -75,6 +75,7 @@ function BotPress({
     <Pressable
       onPress={onPress}
       hitSlop={6}
+      style={tapTarget}
       accessibilityRole="button"
       accessibilityLabel={t('bot.strength.title', { name })}
       testID={testID}
@@ -87,6 +88,9 @@ function BotPress({
 
 /** A badge wears its tooltip as a wrapper; a badge is a word, so the wrapper never shrinks either. */
 const badgeTipStyle = { flexShrink: 0 };
+
+/** A badge you can press is a 24px target (WCAG 2.2) however small its word is. */
+const tapTarget = { minHeight: 24, justifyContent: 'center' } as const;
 
 type Props = {
   seats: Seat[];
@@ -337,6 +341,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             <Pressable
               onPress={() => onOpenScore(seat.playerId)}
               hitSlop={8}
+              style={tapTarget}
               accessibilityRole="button"
               accessibilityLabel={`${name}: ${scoreText(standing)}`}
               accessibilityHint={t('score.open')}

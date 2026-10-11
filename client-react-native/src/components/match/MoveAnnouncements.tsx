@@ -248,7 +248,7 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     // In the box's top-right corner, out of the flow — see the render.
     repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
     standing: { color: colors.text, fontSize: 14, fontWeight: '600', marginRight: 6 },
-    repeat: { minWidth: 24, alignItems: 'center' },
+    repeat: { minWidth: 24, minHeight: 24, alignItems: 'center', justifyContent: 'center' },
     repeatText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
     toggleText: { color: colors.muted, fontSize: 16, fontWeight: '700' },
     // Clear of the two buttons in the corner.

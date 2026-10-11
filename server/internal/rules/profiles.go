@@ -43,9 +43,9 @@ var ProfileZolikClassic = RulesConfig{
 	GoOutDiscardFaceDown: true,
 	FixedDealCount:       0,
 	StaticContract:       ContractRequirement{Sets: 0, Runs: 0, RequireCleanRun: true},
-	DealStarter:            DealStarterRotate,
-	MatchEndMode:           MatchEndAtScore,
-	TargetScore:            200,
+	DealStarter:          DealStarterRotate,
+	MatchEndMode:         MatchEndAtScore,
+	TargetScore:          200,
 }
 
 // ResolveProfile returns the named base profile, or ProfileZolikClassic for

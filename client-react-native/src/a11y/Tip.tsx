@@ -212,7 +212,7 @@ export function Tip({ text, shortcut, focusable, label, testID, style, children 
       ref={ref}
       testID={testID}
       collapsable={false}
-      style={style}
+      style={focusable ? [style, styles.focusTarget] : style}
       {...(Platform.OS === 'web' && focusable
         ? { tabIndex: 0, role: 'note', 'aria-label': label ?? full, 'aria-describedby': label ? id : undefined }
         : {})}
@@ -288,6 +288,9 @@ export function TipHost() {
 }
 
 const styles = StyleSheet.create({
+  // A focusable wrapper is something a finger can land on: 24px each way (WCAG 2.2 2.5.8),
+  // whatever 12px line of text it happens to carry.
+  focusTarget: { minHeight: 24, justifyContent: 'center' },
   bubble: {
     position: 'absolute',
     zIndex: 10000,

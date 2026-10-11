@@ -9,6 +9,19 @@ import { expect, type Locator, type Page } from '@playwright/test';
  * knowledge lives, so the next spec that needs a drag does not rediscover it.
  */
 
+/**
+ * A window tall enough to hold the hand *and* a meld two rows down at once.
+ *
+ * A drag is two points on one screen, so a spec that lays off onto a meld needs
+ * both visible. The board has grown (the controls panel wraps to three rows of
+ * offers), and a meld that sits below the window's edge is not a target a
+ * pointer can reach: the board now scrolls itself when a dragged card nears
+ * the bottom edge, which moves the very meld the spec is aiming at. Specs that
+ * mean "drop on a meld that is already in view" use this; the autoscroll has
+ * its own spec (drag-edge-autoscroll.spec.ts).
+ */
+export const BOARD_FITS_HEIGHT = 1800;
+
 /** Drags the centre of one element onto the centre of another, and lets go. */
 export async function dragLocatorTo(page: Page, from: Locator, to: Locator) {
   await carryLocatorOver(page, from, to);

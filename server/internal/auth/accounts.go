@@ -452,6 +452,7 @@ func (a *Accounts) uniqueUsername(ctx context.Context, base string) (string, err
 	// GuestNameFor. "Player" stood here before, which made every nameless
 	// sign-in the same person and left the numeric suffix below to tell them
 	// apart: Player, Player2, Player3.
+	base = CleanDisplayName(base, MaxUsernameRunes-3)
 	if base == "" {
 		base = GuestNameFor("")
 	}

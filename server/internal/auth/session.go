@@ -6,8 +6,6 @@ import (
 	"log"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 )
@@ -97,6 +95,7 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 	// no name of its own — the SSH host, a returning device whose stored
 	// session has lapsed — is greeted as the same player every time instead of
 	// as a new one. See GuestNameFor.
+	guestName = CleanDisplayName(guestName, MaxGuestNameRunes)
 	if guestName == "" {
 		guestName = GuestNameFor(guestID)
 	}
@@ -216,7 +215,7 @@ func (h *Handlers) offlinePassFor(ctx context.Context, userID, username string) 
 // LoginSession authenticates a legacy username/password account. It stays for
 // the SSH/TUI client, which can neither open a browser nor read mail.
 func (h *Handlers) LoginSession(ctx context.Context, username, password string) (SessionTokens, error) {
-	u, err := h.store.FindUserByUsername(ctx, username)
+	u, err := h.store.FindUserByUsername(ctx, CleanDisplayName(username, MaxUsernameRunes))
 	if err != nil {
 		return SessionTokens{}, err
 	}
@@ -226,7 +225,7 @@ func (h *Handlers) LoginSession(ctx context.Context, username, password string) 
 		// with a confusing error.
 		return SessionTokens{}, errInvalidCredentials
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
+	if !passwordMatches(u.PasswordHash, password) {
 		return SessionTokens{}, errInvalidCredentials
 	}
 	return h.issueUserSession(ctx, u)

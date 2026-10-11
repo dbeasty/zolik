@@ -6,6 +6,7 @@ import type { MatchModule } from '@/src/api/matchTypes';
 import { heading } from '@/src/a11y/props';
 import { GameButtons } from '@/src/components/GameButtons';
 import { useSession } from '@/src/context/SessionContext';
+import { narrowOnFirstPaint, useHydrated } from '@/src/hooks/useHydrated';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { markIntroSeen } from '@/src/lib/introStore';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
@@ -38,7 +39,9 @@ const BULLETS: { mark: string; key: string }[] = [
  * centered above it. See `app/match/[matchId].tsx` for the same idiom.
  */
 export default function IntroScreen() {
-  const { narrow } = useMetrics();
+  const metrics = useMetrics();
+  // The first paint must match the pre-rendered (narrow) HTML; see useHydrated.
+  const narrow = narrowOnFirstPaint(useHydrated(), metrics.narrow);
   const { session } = useSession();
 
   const onPlay = () => {

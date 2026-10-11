@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -622,12 +620,17 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	body.Username = CleanDisplayName(body.Username, MaxUsernameRunes)
 	if body.Username == "" || body.Password == "" {
 		http.Error(w, "username/password required", http.StatusBadRequest)
 		return
 	}
+	if len(body.Password) > MaxPasswordBytes {
+		http.Error(w, "password too long", http.StatusBadRequest)
+		return
+	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 12)
+	hash, err := hashPassword(body.Password, 12)
 	if err != nil {
 		internalError(w, "register", err)
 		return
@@ -636,7 +639,7 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 	created, err := h.store.InsertUser(ctx, models.User{
 		Username:     body.Username,
 		Email:        NormalizeEmail(body.Email),
-		PasswordHash: string(hash),
+		PasswordHash: hash,
 		AuthProvider: models.IdentityProviderLocal,
 		Preferences: models.UserPreferences{
 			Language:  "en",
@@ -680,13 +683,12 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	u, err := h.store.FindUserByUsername(ctx, body.Username)
+	u, err := h.store.FindUserByUsername(ctx, CleanDisplayName(body.Username, MaxUsernameRunes))
 	if err != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
-	if u.PasswordHash == "" ||
-		bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(body.Password)) != nil {
+	if u.PasswordHash == "" || !passwordMatches(u.PasswordHash, body.Password) {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}

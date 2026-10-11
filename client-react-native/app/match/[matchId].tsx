@@ -158,6 +158,11 @@ export default function MatchRoute() {
   return <MatchScreen />;
 }
 
+/** How long a held pointer over a drop target waits before the board scrolls. */
+const DROP_DWELL_MS = 700;
+/** How long a pointer must rest in an edge band before the board scrolls. */
+const BAND_DWELL_MS = 600;
+
 function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const own = useSession();
@@ -627,26 +632,48 @@ function MatchScreen() {
   const scrollMax = useRef(Infinity);
   const dragPoint = useRef<{ x: number; y: number } | null>(null);
   const dragMoveRef = useRef<((x: number, y: number) => void) | null>(null);
+  // Whether the pointer is over a place the card can be dropped right now. A
+  // person aiming at a target they can see must not have it scrolled away from
+  // under them just because it sits inside the edge band (the discard pile,
+  // with the hand scrolled to the middle of the window, is exactly that).
+  const overDrop = useRef<string | null>(null);
+  const overSince = useRef(0);
+  // True while the autoscroll itself re-aims the pointer after a scroll step,
+  // so a target sliding under a held pointer does not restart the dwell below.
+  const scrolling = useRef(false);
   const { height: windowHeight } = useWindowDimensions();
   const dragging = drag !== null;
   useEffect(() => {
     if (!dragging) {
       dragPoint.current = null;
+      overDrop.current = null;
       return;
     }
     const EDGE = 110;
     const MAX_STEP = 22;
     const armed = { top: false, bottom: false };
+    const inBandSince = { top: 0, bottom: 0 };
     const id = setInterval(() => {
       const p = dragPoint.current;
       if (!p) return;
+      const now = Date.now();
       const intoTop = EDGE - p.y;
       const intoBottom = p.y - (windowHeight - EDGE);
       if (intoTop <= 0) armed.top = true;
       if (intoBottom <= 0) armed.bottom = true;
+      // How long the pointer has been in each band. Passing through a band on
+      // the way to a target is not asking to scroll; resting in it is.
+      inBandSince.top = intoTop > 0 ? inBandSince.top || now : 0;
+      inBandSince.bottom = intoBottom > 0 ? inBandSince.bottom || now : 0;
+      // Aiming at a target that is on screen is not asking to scroll either:
+      // give the person a moment over it to let go before the board moves.
+      if (overDrop.current && now - overSince.current < DROP_DWELL_MS) return;
       let step = 0;
-      if (armed.top && intoTop > 0) step = -Math.min(1, intoTop / EDGE) * MAX_STEP;
-      else if (armed.bottom && intoBottom > 0) step = Math.min(1, intoBottom / EDGE) * MAX_STEP;
+      if (armed.top && intoTop > 0 && now - inBandSince.top >= BAND_DWELL_MS) {
+        step = -Math.min(1, intoTop / EDGE) * MAX_STEP;
+      } else if (armed.bottom && intoBottom > 0 && now - inBandSince.bottom >= BAND_DWELL_MS) {
+        step = Math.min(1, intoBottom / EDGE) * MAX_STEP;
+      }
       if (!step) return;
       const next = Math.max(0, Math.min(scrollMax.current, scrollY.current + step));
       if (next === scrollY.current) return;
@@ -654,7 +681,9 @@ function MatchScreen() {
       scrollRef.current?.scrollTo({ y: next, animated: false });
       // Where the melds are in the window just changed.
       drops.measure();
+      scrolling.current = true;
       dragMoveRef.current?.(p.x, p.y);
+      scrolling.current = false;
     }, 16);
     return () => clearInterval(id);
     // `drops.measure` is stable; the registry object around it is not.
@@ -1148,6 +1177,8 @@ function MatchScreen() {
     dragPoint.current = { x, y };
     const spots = takeableSpots(spotsFor(current.cards, current.fromTable));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
+    if (!scrolling.current && overDrop.current !== (over ?? null)) overSince.current = Date.now();
+    overDrop.current = over ?? null;
     setHoveredDrop((prev) => (prev === over ? prev : over));
 
     // Which of the target's ordered positions this hover currently means,
@@ -2044,6 +2075,7 @@ function MatchScreen() {
                 )
               }
               hitSlop={8}
+              style={styles.linkTarget}
             >
               <Text style={styles.rulesLink}>{t('nav.rules')}</Text>
             </Pressable>
@@ -2052,7 +2084,7 @@ function MatchScreen() {
                 that answers "where are we?" in one go. Also R, and the iOS
                 magic tap (see the root view). */}
             <Tip text={t('a11y.board.read.tip')} shortcut={a11yPrefs.shortcuts ? SHORTCUT_KEYS.read : undefined}>
-              <Pressable testID="read-table" accessibilityRole="button" onPress={readTable} hitSlop={8}>
+              <Pressable testID="read-table" accessibilityRole="button" onPress={readTable} hitSlop={8} style={styles.linkTarget}>
                 <Text style={styles.rulesLink}>{t('a11y.board.read.button')}</Text>
               </Pressable>
             </Tip>
@@ -2063,6 +2095,7 @@ function MatchScreen() {
                   accessibilityRole="button"
                   onPress={() => setHelpOpen(true)}
                   hitSlop={8}
+                  style={styles.linkTarget}
                 >
                   <Text style={styles.rulesLink}>{t('a11y.board.shortcuts.button')}</Text>
                 </Pressable>

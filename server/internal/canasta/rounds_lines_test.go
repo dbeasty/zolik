@@ -163,7 +163,7 @@ func TestTeamLinesBreakTheDealDown(t *testing.T) {
 		t.Fatalf("both partners were caught: %s", dump(in))
 	}
 	p2 := in.Sub[0]
-	if p2.Points != -(200 + 70 + 10) || len(p2.Sub) != 3 {
+	if p2.Points != -(200+70+10) || len(p2.Sub) != 3 {
 		t.Errorf("p2's hand: two black threes, two wilds, a nine: %s", dump(p2))
 	}
 	if p4 := in.Sub[1]; p4.Points != -10 || p4.Sub != nil {

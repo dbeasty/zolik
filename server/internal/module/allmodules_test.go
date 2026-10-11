@@ -3,6 +3,8 @@ package module_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -1904,4 +1906,218 @@ func TestEveryTableThatPausesOffersAStandIn(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAnOnlookerNeverKnowsMoreThanAPlayer — the leak the per-seat test above
+// cannot see, because it only ever asks the seats.
+//
+// Anyone may open a match: a signed-in stranger, or somebody with no sign-in at
+// all, whose id is the empty string. A module that decides "this viewer may see
+// the talon" with `viewerID == s.Declarer` has shown it to that second kind of
+// viewer for as long as no declarer has been chosen, since "" == "" — Mariáš's
+// licitovany table did exactly that.
+//
+// The rule, stated so no module's vocabulary is in it: at every point in a
+// play-through, a card an onlooker can see in a zone is a card every seated
+// player can see in that zone too. An onlooker who knows something none of the
+// players does is a leak, whatever the zone is called.
+func TestAnOnlookerNeverKnowsMoreThanAPlayer(t *testing.T) {
+	type key struct{ zone, card string }
+	seen := func(g hosted, state module.State, viewer string) map[key]bool {
+		t.Helper()
+		vm, err := g.mod.View(state, viewer)
+		if err != nil {
+			t.Fatalf("View(%q): %v", viewer, err)
+		}
+		out := map[key]bool{}
+		for _, z := range vm.Zones {
+			for _, c := range z.Cards {
+				if c.Card != "" {
+					out[key{z.ID, c.Card}] = true
+				}
+			}
+			for _, gr := range z.Groups {
+				for _, c := range gr.Cards {
+					if c != "" {
+						out[key{z.ID, c}] = true
+					}
+				}
+			}
+		}
+		return out
+	}
+
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 11)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			checked := 0
+			check := func(s module.State, step int) {
+				for _, onlooker := range []string{"", "a-stranger-who-is-not-seated"} {
+					watching := seen(g, s, onlooker)
+					for _, p := range g.players {
+						playing := seen(g, s, p.ID)
+						for k := range watching {
+							if !playing[k] {
+								t.Errorf("step %d: onlooker %q sees %s in zone %q, which %s cannot", step, onlooker, k.card, k.zone, p.ID)
+							}
+						}
+					}
+				}
+				checked++
+			}
+
+			check(state, 0)
+			for step := 1; step <= 200; step++ {
+				done, _, err := g.mod.Finished(state)
+				if err != nil {
+					t.Fatalf("Finished: %v", err)
+				}
+				if done {
+					break
+				}
+				var actor string
+				var offers []module.ActionOffer
+				for _, p := range g.players {
+					o, err := g.mod.LegalActions(state, p.ID)
+					if err != nil {
+						t.Fatalf("LegalActions: %v", err)
+					}
+					for _, x := range o {
+						// Leaving is always on the table; it is not having the turn.
+						if x.Enabled && !x.Manual {
+							actor, offers = p.ID, o
+							break
+						}
+					}
+					if actor != "" {
+						break
+					}
+				}
+				if actor == "" {
+					break
+				}
+				a, ok := module.ChooseAction(offers, g.prefer)
+				if !ok {
+					break
+				}
+				next, _, err := g.mod.Apply(state, actor, a)
+				if err != nil {
+					t.Fatalf("an offered action was refused: %v", err)
+				}
+				state = next
+				check(state, step)
+			}
+			if checked < 5 {
+				t.Errorf("only %d positions checked; the test proved little", checked)
+			}
+		})
+	}
+}
+
+// TestRandomPlayNeverBreaksTheContract plays every module the way nobody would —
+// a random enabled offer each time, over many seeds — and checks the terms the
+// runtime lives on at every step.
+//
+// The driver everything else uses always takes the most-preferred offer, so a
+// whole game is walked down one narrow path and the corners (an undo after a
+// meld, a pass into a challenge, a raise into an all-in) are only ever reached
+// by accident. Here an offer that is on must be accepted by the engine, the
+// board must render for every viewer — including nobody — and the state must
+// survive being written down and read back, wherever the match has got to.
+func TestRandomPlayNeverBreaksTheContract(t *testing.T) {
+	seeds := 12
+	steps := 250
+	if testing.Short() {
+		seeds, steps = 3, 120
+	}
+	// ZOLIK_FUZZ_SEEDS=500 for a long soak; the default is what a build can afford.
+	if n, err := strconv.Atoi(os.Getenv("ZOLIK_FUZZ_SEEDS")); err == nil && n > 0 {
+		seeds = n
+	}
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			for seed := 1; seed <= seeds; seed++ {
+				rng := rand.New(rand.NewSource(int64(seed) * 7919))
+				state, err := g.mod.NewMatch(g.cfg, g.players, int64(seed))
+				if err != nil {
+					t.Fatalf("seed %d: NewMatch: %v", seed, err)
+				}
+				for step := 1; step <= steps; step++ {
+					done, _, err := g.mod.Finished(state)
+					if err != nil {
+						t.Fatalf("seed %d step %d: Finished: %v", seed, step, err)
+					}
+					if done {
+						break
+					}
+
+					type choice struct {
+						player string
+						offers []module.ActionOffer
+						action module.Action
+					}
+					var options []choice
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(state, p.ID)
+						if err != nil {
+							t.Fatalf("seed %d step %d: LegalActions(%s): %v", seed, step, p.ID, err)
+						}
+						for _, a := range module.ChooseActions(offers, nil) {
+							options = append(options, choice{p.ID, offers, a})
+						}
+					}
+					if len(options) == 0 {
+						// Nothing a driver can send: a composite-only moment, or the
+						// match is waiting. The other tests own "is it stuck".
+						break
+					}
+					c := options[rng.Intn(len(options))]
+					next, _, err := g.mod.Apply(state, c.player, c.action)
+					if err != nil {
+						t.Fatalf("seed %d step %d: %s was offered %+v but the engine refused it: %v\n%s",
+							seed, step, c.player, c.action, err, module.DescribeOffers(c.offers))
+					}
+					state = next
+
+					// Every viewer, and nobody, can be shown the board.
+					for _, viewer := range append([]string{""}, playerIDs(g.players)...) {
+						vm, err := g.mod.View(state, viewer)
+						if err != nil {
+							t.Fatalf("seed %d step %d: View(%q): %v", seed, step, viewer, err)
+						}
+						if _, err := json.Marshal(vm); err != nil {
+							t.Fatalf("seed %d step %d: View(%q) does not marshal: %v", seed, step, viewer, err)
+						}
+					}
+					// Written down and read back, the board is the same board.
+					var generic any
+					if err := json.Unmarshal(state, &generic); err != nil {
+						t.Fatalf("seed %d step %d: state is not JSON: %v", seed, step, err)
+					}
+					round, _ := json.Marshal(generic)
+					a, _ := g.mod.View(state, g.players[0].ID)
+					b, err := g.mod.View(round, g.players[0].ID)
+					if err != nil {
+						t.Fatalf("seed %d step %d: View after round trip: %v", seed, step, err)
+					}
+					ja, _ := json.Marshal(a)
+					jb, _ := json.Marshal(b)
+					if string(ja) != string(jb) {
+						t.Fatalf("seed %d step %d: the board changed by being persisted and read back", seed, step)
+					}
+				}
+			}
+		})
+	}
+}
+
+func playerIDs(ps []module.PlayerRef) []string {
+	out := make([]string, 0, len(ps))
+	for _, p := range ps {
+		out = append(out, p.ID)
+	}
+	return out
 }

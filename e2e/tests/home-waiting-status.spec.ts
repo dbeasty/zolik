@@ -156,7 +156,9 @@ test.describe("a game's page shows its waiting room", () => {
 
       // Leaving the page does not stop them waiting: the menu says so, and
       // Stop there takes them out.
-      await waiterPage.getByLabel('Jokerless, back').click();
+      // The header's Back arrow (nav-arrows.spec.ts owns what it means); it used to
+      // be labelled with the screen it returned to.
+      await waiterPage.getByRole('button', { name: 'Back', exact: true }).click();
       const strip = waiterPage.getByTestId('availability-strip');
       await expect(strip).toContainText('Canasta', { timeout: 10_000 });
       await waiterPage.getByTestId('availability-strip-stop').click();

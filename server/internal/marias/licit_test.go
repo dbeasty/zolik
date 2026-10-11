@@ -34,6 +34,32 @@ var (
 	passAct = module.Action{OfferID: OfferAuctionPass, Verb: VerbPass}
 )
 
+// Somebody watching, who is not at the table — signed in or not — is nobody's
+// declarer. Before a declarer is chosen s.Declarer is empty, and an anonymous
+// viewer's id is empty too: comparing the two showed the talon to anyone who
+// opened the match without a token, while every seat and every signed-in
+// stranger was (rightly) refused it.
+func TestASpectatorNeverSeesTheTalon(t *testing.T) {
+	for _, variation := range []string{variationLicit, ""} {
+		s := newStateVariation(t, variation, nil)
+		if len(s.Talon) == 0 {
+			continue
+		}
+		raw, _ := encode(s)
+		for _, viewer := range []string{"", "somebody-not-seated"} {
+			vm, err := New().View(raw, viewer)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, z := range vm.Zones {
+				if z.ID == talonZoneID && len(z.Cards) > 0 {
+					t.Errorf("variation %q: viewer %q sees the talon: %v", variation, viewer, z.Cards)
+				}
+			}
+		}
+	}
+}
+
 func TestLicitDealsTenEachAndATalonNobodySees(t *testing.T) {
 	s := licitState(t)
 	for _, p := range s.Players {

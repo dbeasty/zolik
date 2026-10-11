@@ -43,5 +43,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // The same specs on a touch phone: `ZOLIK_E2E_PHONE=1 npx playwright test
+    // --project=phone <specs>`. Opt-in rather than doubling every run — name the
+    // specs that care about a small screen (a11y, phone-table, tap-to-play,
+    // hand-selection, controls-below-hand, ...).
+    ...(process.env.ZOLIK_E2E_PHONE ? [{ name: 'phone', use: { ...devices['Pixel 7'] } }] : []),
   ],
 });

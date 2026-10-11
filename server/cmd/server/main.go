@@ -52,6 +52,7 @@ func main() {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+	r.Use(app.LimitRequestBody(app.MaxRequestBody))
 	a.RegisterRoutes(r)
 
 	if a.Hub() != nil {
