@@ -8,6 +8,8 @@
 	<string>Jokerless</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.jokerless.mac</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleName</key>
 	<string>Jokerless</string>
 	<key>CFBundleDisplayName</key>

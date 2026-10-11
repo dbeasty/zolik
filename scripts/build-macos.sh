@@ -65,7 +65,17 @@ cp "$BIN" "$APP/Contents/MacOS/Jokerless"
 cp -R "$OUT/web" "$APP/Contents/Resources/web"
 cp "$MAC/Resources/bridge.js" "$APP/Contents/Resources/bridge.js"
 cp "$MAC/Resources/e2e.js" "$APP/Contents/Resources/e2e.js"
-cp "$ROOT/client-react-native/assets/images/icon.png" "$APP/Contents/Resources/AppIcon.png"
+# The Dock and Finder icon: the phones' icon, as an .icns (Info.plist names it).
+ICONSET="$OUT/AppIcon.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+SRC_ICON="$ROOT/client-react-native/assets/images/icon.png"
+for size in 16 32 128 256 512; do
+  sips -z "$size" "$size" "$SRC_ICON" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+  sips -z "$((size * 2))" "$((size * 2))" "$SRC_ICON" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "$ICONSET"
 sed -e "s/__VERSION__/$ZOLIK_VERSION/g" -e "s/__COMMIT__/$ZOLIK_COMMIT/g" \
   "$MAC/Resources/Info.plist" > "$APP/Contents/Info.plist"
 # Ad hoc signing is enough to run here; a release is signed and notarized
