@@ -207,3 +207,54 @@ export async function handCards(page: Page): Promise<string[]> {
     }),
   );
 }
+
+/**
+ * A finger, not a mouse: real touch events, through the browser's own input
+ * pipeline, so its scrolling gets its say exactly as it does on a phone.
+ *
+ * `page.mouse` cannot stand in for this. A mouse never scrolls the page by
+ * dragging, so every drag spec above passed while a phone could not carry a
+ * card onto the board at all: the browser took the vertical swipe for a
+ * scroll and cancelled the drag. Needs a context with `hasTouch`.
+ *
+ * `holdMs` is how long the finger rests before moving. Past the client's
+ * `HOLD_TO_DRAG_MS` the card is picked up; `0` is a swipe.
+ */
+export async function touchCarry(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  { holdMs = 600, steps = 20 }: { holdMs?: number; steps?: number } = {},
+) {
+  const cdp = await page.context().newCDPSession(page);
+  const at = (x: number, y: number) => [{ x: Math.round(x), y: Math.round(y), id: 1 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(from.x, from.y) });
+  if (holdMs) await page.waitForTimeout(holdMs);
+  for (let i = 1; i <= steps; i++) {
+    const x = from.x + ((to.x - from.x) * i) / steps;
+    const y = from.y + ((to.y - from.y) * i) / steps;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(x, y) });
+    await page.waitForTimeout(16);
+  }
+  await page.waitForTimeout(150);
+  return async () => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(400);
+    await cdp.detach();
+  };
+}
+
+/** Holds a card, carries it onto `to`, and lifts the finger. */
+export async function touchDragLocatorTo(
+  page: Page,
+  from: Locator,
+  to: Locator,
+  opts?: { holdMs?: number },
+) {
+  await from.scrollIntoViewIfNeeded();
+  const grab = await grabPoint(from);
+  const box = await to.boundingBox();
+  if (!box) throw new Error('drag target has no bounding box (not visible?)');
+  const lift = await touchCarry(page, grab, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, opts);
+  await lift();
+}
