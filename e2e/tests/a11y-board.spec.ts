@@ -269,6 +269,11 @@ test.describe('screen-reader path', () => {
         if (await isLive(pass)) {
           await pass.first().focus();
           await page.keyboard.press('Enter');
+          // Wait for the pass to land. The seat still reads "your turn" until
+          // the server answers, so without this the next turn is read from the
+          // old board (no card seems to fit) and its D is sent while it is not
+          // our turn, is refused, and the hand never changes (1 run in ~25).
+          await expect.poll(() => isLive(pass), { timeout: 10_000 }).toBe(false);
         }
       }
       if ((await page.getByRole('heading', { name: /over/i }).count()) > 0) break;

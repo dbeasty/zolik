@@ -894,6 +894,14 @@ func (a *App) serveWebUI(status int) http.HandlerFunc {
 				return
 			}
 			if webui.WantsHTML(req) {
+				// A route with a parameter (/match/<id>) has a prerendered
+				// page of its own, match/[matchId].html. Starting from
+				// index.html instead hands React another screen's markup to
+				// adopt: hydration error #418 on every visit.
+				if name, ok := a.web.LookupDynamic(req.URL.Path); ok {
+					a.web.ServeFile(w, req, name)
+					return
+				}
 				a.web.ServeIndex(w, req)
 				return
 			}
