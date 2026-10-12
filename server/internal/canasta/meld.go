@@ -444,6 +444,56 @@ func runExtensions(hand []string, m *Meld, room int) []string {
 	return sortedUnique(out)
 }
 
+// runBridges is the naturals a dirty sequence would take only with a wild
+// standing in the gap between it and the run: the nine of hearts onto a run
+// ending at the seven, from a hand holding a joker and no eight.
+//
+// Kept out of layOffCards, whose callers ask about one card at a time and would
+// only be told no; the offer list probes these in company (layOffPlacements).
+// Holding the nine and a joker, the player used to see the joker offered and
+// the nine refused, though the engine took the two together.
+func runBridges(r ruleset, hand []string, m *Meld) []string {
+	if !r.DirtySequences || m.kind() != meldRun || m.closed(r) {
+		return nil
+	}
+	room := m.room(r)
+	budget := min(len(handWilds(hand)), r.MaxWilds-m.wilds())
+	if room <= 1 || budget <= 0 {
+		return nil
+	}
+	byIndex := map[int]string{}
+	for _, c := range hand {
+		if suitOf(c) != m.Suit {
+			continue
+		}
+		if i, ok := runIndexOf(c); ok {
+			if _, taken := byIndex[i]; !taken {
+				byIndex[i] = c
+			}
+		}
+	}
+	low, high := m.span()
+	var out []string
+	walk := func(from, step int) {
+		gaps := 0
+		for i, n := from, 1; i >= 0 && i < len(runRanks) && n <= room; i, n = i+step, n+1 {
+			c, ok := byIndex[i]
+			if !ok {
+				if gaps++; gaps > budget {
+					return
+				}
+				continue
+			}
+			if gaps > 0 {
+				out = append(out, c)
+			}
+		}
+	}
+	walk(high+1, 1)
+	walk(low-1, -1)
+	return sortedUnique(out)
+}
+
 // runCandidates enumerates the sequences a hand could lay right now.
 //
 // This is the function the whole "Samba is still offer-driven" claim rests on
