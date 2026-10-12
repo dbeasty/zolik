@@ -144,16 +144,16 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
       )}
       {session ? (
         <View style={[styles.buttons, { marginTop: 8 }]}>
-          {/* Every finished game of this one, not just the latest: the menu
-              tile resumes a single table, so the rest are reached from here. */}
+          {/* Every stored game of this one, not just the latest: the menu
+              tile resumes a single table, so the rest are reached from here.
+              It opens on the ones still in progress, the tables a player
+              most often comes back for; Finished is one tap away. */}
           <SettleIn kind="deal" delay={140} style={styles.cell}>
             <Pressable
               testID={`previous-games-${mod.id}`}
               accessibilityRole="button"
               style={[shared.button, shared.buttonSecondary, styles.cellButton]}
-              onPress={() =>
-                router.push(`/lobby/mine?moduleId=${encodeURIComponent(mod.id)}&scope=finished`)
-              }
+              onPress={() => router.push(`/lobby/mine?moduleId=${encodeURIComponent(mod.id)}`)}
             >
               <Text style={[shared.buttonText, shared.buttonTextSecondary, styles.cellText]}>
                 {t('game.previousGames')}
