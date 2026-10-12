@@ -558,3 +558,88 @@ func TestBotFinishesACanastaByMoving(t *testing.T) {
 		t.Fatalf("bot chose %+v", a)
 	}
 }
+
+// A natural that reaches a dirty sequence only across a gap is offered with a
+// wild for the gap, and with the natural for it where the hand has both; a
+// wild the 2:1 ratio refuses alone is offered with a natural beside it.
+func TestLayOffAcrossAGap(t *testing.T) {
+	placement := func(o *module.ActionOffer, card string) *module.Placement {
+		for i, p := range o.Source.Placements {
+			if p.Card == card {
+				return &o.Source.Placements[i]
+			}
+		}
+		return nil
+	}
+	run := func(low *int, cards ...string) Meld {
+		return Meld{ID: "t0-seq1", TeamID: 0, Kind: meldRun, Suit: "H", Low: low, Cards: cards}
+	}
+	offerFor := func(t *testing.T, raw module.State) *module.ActionOffer {
+		t.Helper()
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := offerByID(offers, "lay_off:t0-seq1")
+		if o == nil || !o.Enabled {
+			t.Fatalf("offer %+v", o)
+		}
+		return o
+	}
+
+	t.Run("the nine with a joker for the eight", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{run(nil, "5H", "6H", "7H")}
+			s.Hands["p1"] = []string{"9H", "JOKER1", "KS", "QS"}
+		})
+		p := placement(offerFor(t, raw), "9H")
+		if p == nil || !slices.Equal(p.Requires, []string{"JOKER1"}) {
+			t.Fatalf("9H placement %+v", p)
+		}
+		raw, code := apply(t, raw, "p1", module.Action{Verb: VerbLayOff, Cards: []string{"9H", "JOKER1"}, Target: "t0-seq1"})
+		if code != "" {
+			t.Fatal(code)
+		}
+		if m := mustDecode(t, raw).Teams[0].Melds[0]; !slices.Equal(m.Cards, []string{"5H", "6H", "7H", "JOKER1", "9H"}) {
+			t.Fatalf("meld %+v", m)
+		}
+	})
+
+	t.Run("the nine with the eight or a joker", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{run(nil, "5H", "6H", "7H")}
+			s.Hands["p1"] = []string{"8H", "9H", "JOKER1", "KS", "QS"}
+		})
+		p := placement(offerFor(t, raw), "9H")
+		if p == nil || !slices.Equal(p.Requires, []string{"8H"}) ||
+			len(p.Alternatives) != 1 || !slices.Equal(p.Alternatives[0], []string{"JOKER1"}) {
+			t.Fatalf("9H placement %+v", p)
+		}
+	})
+
+	t.Run("a wild the ratio refuses alone goes on with a natural", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{run(lowAt(0), "4H", "5H", "2C", "7H")}
+			s.Hands["p1"] = []string{"8H", "JOKER1", "KS", "QS"}
+		})
+		p := placement(offerFor(t, raw), "JOKER1")
+		if p == nil || !slices.Equal(p.Requires, []string{"8H"}) {
+			t.Fatalf("joker placement %+v", p)
+		}
+	})
+
+	t.Run("a clean table's sequence is not bridged", func(t *testing.T) {
+		raw := twoHanded(func(s *GameState) {
+			r := variations["samba"]
+			s.Variation = "samba"
+			s.Rules = &r
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = []Meld{run(nil, "5H", "6H", "7H")}
+			s.Hands["p1"] = []string{"8H", "9H", "JOKER1", "KS", "QS"}
+		})
+		if p := placement(offerFor(t, raw), "9H"); p == nil || len(p.Alternatives) != 0 {
+			t.Fatalf("9H placement %+v", p)
+		}
+	})
+}
