@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -253,7 +254,7 @@ func (a *App) reconcileLocalSaves(ctx context.Context) {
 		return err == nil
 	}
 	a.localSaves.Reconcile(ctx, acked)
-	t := time.NewTicker(20 * time.Second)
+	t := time.NewTicker(cmp.Or(a.reconcileEvery, 20*time.Second))
 	defer t.Stop()
 	for {
 		select {

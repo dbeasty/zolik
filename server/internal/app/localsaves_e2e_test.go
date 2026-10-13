@@ -456,3 +456,52 @@ func TestASavedGameWaitsForThePlayersStillAnswering(t *testing.T) {
 		t.Fatalf("after the grace period the outbox holds %+v, want the game with Bea anonymous", pending)
 	}
 }
+
+// Closing a phone stops its reconcile loop before the store goes: a tick that
+// lands after the host closed would otherwise panic opening a namespace on it.
+func TestClosingAPhoneStopsReconcilingFirst(t *testing.T) {
+	ctx := context.Background()
+	nodeKeyForTest(t)
+	mobileSecretForTest(t)
+	const owner = "6ab5a0b3d71e872332ed588e"
+	phone := newNode(t, Config{
+		Env: EnvMobile,
+		Sync: SyncConfig{
+			Role: syncRoleSpoke, HubURL: "ws://127.0.0.1:1/kdb/sync", Token: "unused",
+			Namespaces: []string{db.NodeOutboxNS(auth.NodeID())},
+		},
+	})
+	phone.replicaUser = owner
+	phone.reconcileEvery = time.Millisecond
+	phone.Start(ctx)
+	saves := phone.LocalSaves()
+
+	// A saved game, so every tick asks the store whether the cloud has it.
+	host, guest := "user:"+owner, "4f1c0ffee4f1c0ffee4f1c0ffee4f1c0"
+	mgr := phone.matchManager()
+	created, err := mgr.Create(ctx, "prsi", module.MatchConfig{}, models.Player{ID: host, Name: "Ada", UserID: host})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	matchID := created.ID.Hex()
+	if _, err := mgr.Join(ctx, matchID, models.Player{ID: guest, Name: "Bea", GuestID: guest}); err != nil {
+		t.Fatalf("join: %v", err)
+	}
+	if _, err := mgr.Start(ctx, matchID); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	playSeatsToCompletion(t, phone, matchID, []string{host, guest})
+	waitFor(t, "the game to wait", func() bool {
+		_, err := saves.Get(matchID)
+		return err == nil
+	})
+	if _, err := saves.Save(ctx, matchID); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+
+	if err := phone.Close(ctx); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+	// Long enough for many ticks; a loop still running would panic here.
+	time.Sleep(100 * time.Millisecond)
+}
