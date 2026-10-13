@@ -62,8 +62,14 @@ type App struct {
 	// or the embedded KDB engine. Repositories below are the only other
 	// handles anything holds on it.
 	closeDB func(ctx context.Context) error
-	hub     *ws.Hub
-	auth    *auth.Handlers
+	// stopBackground cancels the work Start began that writes to the store,
+	// and background is how Close waits for it to finish: the caller's
+	// context is not cancelled before Close in tests, and an App that closes
+	// its store under a running loop panics there.
+	stopBackground context.CancelFunc
+	background     sync.WaitGroup
+	hub            *ws.Hub
+	auth           *auth.Handlers
 	// waitingRoom is the pool of human players waiting to be picked up into
 	// a match — see internal/lobby. Rides the same Hub as match rooms do, so
 	// it needs no database of its own and no separate scaling story.
@@ -449,7 +455,8 @@ func pushSenders(cfg PushConfig) (notify.Senders, error) {
 // Everything here is best-effort by design: none of it may stop the server
 // from serving.
 func (a *App) Start(ctx context.Context) {
-	a.recorder.Start(ctx)
+	ctx, a.stopBackground = context.WithCancel(ctx)
+	a.goBackground(func() { a.recorder.Run(ctx) })
 	version, _ := buildinfo.Resolved()
 	a.boots.Start(ctx, version)
 	// The sweeper that turns a table nobody came back to into an abandoned
@@ -484,7 +491,16 @@ func (a *App) Start(ctx context.Context) {
 	// Replication starts last: the match runtime has to exist before a peer
 	// can ask this node whether one of its matches may change hands.
 	a.startSync()
-	go a.reconcileLocalSaves(ctx)
+	a.goBackground(func() { a.reconcileLocalSaves(ctx) })
+}
+
+// goBackground runs fn as work Close waits for before it closes the store.
+func (a *App) goBackground(fn func()) {
+	a.background.Add(1)
+	go func() {
+		defer a.background.Done()
+		fn()
+	}()
 }
 
 // Stop closes this process's boot record, and flushes whatever counters have
@@ -598,6 +614,17 @@ func (a *App) Hub() *ws.Hub { return a.hub }
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
 func (a *App) Close(ctx context.Context) error {
+	if a.stopBackground != nil {
+		a.stopBackground()
+		a.stopBackground = nil
+		done := make(chan struct{})
+		go func() { a.background.Wait(); close(done) }()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			slog.Warn("app: closing the store before background work finished", "err", ctx.Err())
+		}
+	}
 	if a.importer != nil {
 		a.importer.Close()
 		a.importer = nil
