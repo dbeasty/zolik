@@ -9,6 +9,7 @@ import (
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
+	"zolik/server/internal/learn"
 )
 
 // A phone that plays a match with no internet writes it to its outbox and
@@ -22,6 +23,8 @@ func TestAPhoneReplicatesItsOwnOutbox(t *testing.T) {
 		seed[i] = byte(i + 1)
 	}
 	t.Cleanup(auth.SnapshotKeysForTest())
+	// NewMobile also switches on every shipped model, process-wide.
+	t.Cleanup(learn.SnapshotHardModelsForTest())
 	// NewMobile installs this install's keys process-wide, and a test that
 	// leaves the embedded secret behind makes the next one believe a
 	// production deployment has one.

@@ -26,7 +26,7 @@ func hardSwitch(game string) bool {
 // to — the boot here being a second store over the same KDB directory and a
 // switch reset to its default.
 func TestHardModelChangeSurvivesARestart(t *testing.T) {
-	t.Cleanup(func() { _, _ = learn.SetHardModel("zolik", false) })
+	t.Cleanup(learn.SnapshotHardModelsForTest())
 	ctx := context.Background()
 	dir := t.TempDir()
 
