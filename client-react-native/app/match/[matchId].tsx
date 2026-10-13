@@ -55,6 +55,7 @@ import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import { SoundToggle } from '@/src/sound/SoundToggle';
 import { useBoardSounds } from '@/src/sound/useBoardSounds';
+import { ReactionsContext } from '@/src/components/avatars/ReactionsContext';
 import {
   dropSpotsFor,
   groupElementId,
@@ -502,7 +503,8 @@ function MatchScreen() {
   // has to be able to tell apart from "no round has ended".
   const flash = useResultsFlash(state);
   // Card, pile, turn, round and match sounds, and the announcer.
-  useBoardSounds(state, viewerId, flash);
+  // …and the faces at the table acting the same events out.
+  const reactions = useBoardSounds(state, viewerId, flash);
 
   // The look the board is wearing, and the switcher's handle on the rest.
   // The style factory keys on the skin, so switching repaints everything at
@@ -2599,7 +2601,11 @@ function MatchScreen() {
     </View>
   );
   // Which pack the cards are drawn from — see src/lib/deck.ts.
-  return <DeckProvider deck={state.deck}>{screen}</DeckProvider>;
+  return (
+    <DeckProvider deck={state.deck}>
+      <ReactionsContext.Provider value={reactions}>{screen}</ReactionsContext.Provider>
+    </DeckProvider>
+  );
 }
 
 /** An offer's own control label, for a sentence about the move it sends. */

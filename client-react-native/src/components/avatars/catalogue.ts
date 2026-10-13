@@ -37,8 +37,10 @@ export type AvatarSpec = {
 };
 
 /**
- * The people. Six is enough that a full table rarely collides and few enough
- * that the picker fits a phone without scrolling.
+ * The people. Twelve, so a full table rarely collides; the picker wraps them
+ * into rows rather than scrolling. Growing this list changes the face
+ * `avatarFor` derives for a player who never picked (the hash is taken modulo
+ * its length) — once, for everybody alike, which is why it grows in batches.
  */
 const PEOPLE: readonly AvatarSpec[] = [
   { id: 'p-amber', kind: 'person', label: 'Amber', palette: { from: '#e8a33d', to: '#b8722f', ink: '#3a2410', face: '#f0c9a4' } },
@@ -47,6 +49,12 @@ const PEOPLE: readonly AvatarSpec[] = [
   { id: 'p-coral', kind: 'person', label: 'Coral', palette: { from: '#e88070', to: '#b84f5e', ink: '#3a1620', face: '#f2d3b6' } },
   { id: 'p-slate', kind: 'person', label: 'Slate', palette: { from: '#7d93a8', to: '#4a5f75', ink: '#16212e', face: '#c98d63' } },
   { id: 'p-moss', kind: 'person', label: 'Moss', palette: { from: '#8fae5a', to: '#5a7d3f', ink: '#1d2a12', face: '#6b4029' } },
+  { id: 'p-rose', kind: 'person', label: 'Rose', palette: { from: '#e07aa0', to: '#a84a72', ink: '#3a1428', face: '#f5d0b8' } },
+  { id: 'p-indigo', kind: 'person', label: 'Indigo', palette: { from: '#7f8de0', to: '#4652a8', ink: '#141a3a', face: '#a8714f' } },
+  { id: 'p-saffron', kind: 'person', label: 'Saffron', palette: { from: '#f0c040', to: '#c08a1e', ink: '#3a1a30', face: '#c08a62' } },
+  { id: 'p-plum', kind: 'person', label: 'Plum', palette: { from: '#b06aa8', to: '#7a3a74', ink: '#2a1028', face: '#e6b896' } },
+  { id: 'p-sky', kind: 'person', label: 'Sky', palette: { from: '#6ab8e0', to: '#3a80a8', ink: '#0f2433', face: '#f3d6c0' } },
+  { id: 'p-ochre', kind: 'person', label: 'Ochre', palette: { from: '#d09a50', to: '#9a6a2a', ink: '#2e1e0a', face: '#b97a52' } },
 ];
 
 /**
@@ -61,6 +69,12 @@ const MACHINES: readonly AvatarSpec[] = [
   { id: 'm-verdigris', kind: 'machine', label: 'Verdigris', palette: { from: '#7fc9b8', to: '#3f8a7a', ink: '#0e2b26' } },
   { id: 'm-gunmetal', kind: 'machine', label: 'Gunmetal', palette: { from: '#8b93a3', to: '#4b5462', ink: '#151a22' } },
   { id: 'm-oxide', kind: 'machine', label: 'Oxide', palette: { from: '#d1836f', to: '#8f4534', ink: '#2e130e' } },
+  { id: 'm-chrome', kind: 'machine', label: 'Chrome', palette: { from: '#e3e9f0', to: '#9aa6b4', ink: '#222a33' } },
+  { id: 'm-cobalt', kind: 'machine', label: 'Cobalt', palette: { from: '#7f9be6', to: '#34539e', ink: '#0f1a38' } },
+  { id: 'm-bronze', kind: 'machine', label: 'Bronze', palette: { from: '#c99a5a', to: '#8a6230', ink: '#2b1c0a' } },
+  { id: 'm-titanium', kind: 'machine', label: 'Titanium', palette: { from: '#a9b4bf', to: '#66727f', ink: '#1a2028' } },
+  { id: 'm-pewter', kind: 'machine', label: 'Pewter', palette: { from: '#a4a0b0', to: '#5e5a6c', ink: '#1b1a22' } },
+  { id: 'm-nickel', kind: 'machine', label: 'Nickel', palette: { from: '#cfcfb8', to: '#8a8a72', ink: '#23231a' } },
 ];
 
 /** The whole roster, people first — the order the picker lays them out in. */

@@ -117,6 +117,83 @@ export function PersonMoss({ ink, face }: Figure) {
   );
 }
 
+export function PersonRose({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      <Head face={face} />
+      {/* Pulled up into a bun — the one silhouette that rises above the head. */}
+      <Circle cx="50" cy="15" r="9" fill={ink} />
+      <Path d="M29 42c0-15 9-24 21-24s21 9 21 24c-4-10-11-14-21-14s-17 4-21 14z" fill={ink} />
+    </G>
+  );
+}
+
+export function PersonIndigo({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      <Head face={face} />
+      {/* Cropped flat, and glasses — the only portrait with anything drawn on
+          the face itself, so the frames are heavy enough to survive 26px. */}
+      <Path d="M29 38c0-12 9-19 21-19s21 7 21 19c-6-5-13-7-21-7s-15 2-21 7z" fill={ink} />
+      <Circle cx="41" cy="45" r="6.5" fill="none" stroke={ink} strokeWidth="3.5" />
+      <Circle cx="59" cy="45" r="6.5" fill="none" stroke={ink} strokeWidth="3.5" />
+      <Rect x="46" y="43.5" width="8" height="3" fill={ink} />
+    </G>
+  );
+}
+
+export function PersonSaffron({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      {/* A headscarf: the head is covered to the shoulders, so it is drawn
+          in place of the head rather than over it, and no ears show. */}
+      <Path d="M23 50c0-20 12-33 27-33s27 13 27 33v28H23z" fill={ink} />
+      <Ellipse cx="50" cy="47" rx="15" ry="18" fill={face} />
+    </G>
+  );
+}
+
+export function PersonPlum({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      <Head face={face} />
+      {/* A knitted cap with a bobble — rounder and taller than Moss's brim. */}
+      <Circle cx="50" cy="13" r="6" fill={ink} />
+      <Path d="M29 37c0-14 9-22 21-22s21 8 21 22z" fill={ink} />
+      <Rect x="27" y="33" width="46" height="8" rx="3" fill={ink} />
+    </G>
+  );
+}
+
+export function PersonSky({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      {/* A bob, square at the jaw — drawn behind the head so only its sides
+          show — with a fringe cut straight across the brow. */}
+      <Path d="M25 42c0-17 11-26 25-26s25 9 25 26v20H25z" fill={ink} />
+      <Head face={face} />
+      <Path d="M29 38c0-12 9-19 21-19s21 7 21 19z" fill={ink} />
+    </G>
+  );
+}
+
+export function PersonOchre({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      <Head face={face} />
+      {/* A side parting and a moustache. */}
+      <Path d="M29 40c0-14 9-22 21-22s21 8 21 22c-2-6-5-10-9-12-6 3-14 4-24 2-4 2-7 5-9 10z" fill={ink} />
+      <Path d="M37 55c4-4 9-4 13-1 4-3 9-3 13 1-3 4-9 4-13 1-4 3-10 3-13-1z" fill={ink} />
+    </G>
+  );
+}
+
 /* ── machines ───────────────────────────────────────────────────────────── */
 
 /** The casing every machine's head is cut from, and the neck under it. */
@@ -215,6 +292,90 @@ export function MachineOxide({ ink }: Figure) {
   );
 }
 
+export function MachineChrome({ ink }: Figure) {
+  return (
+    <G>
+      {/* A dish on top, tilted, and a domed head under it. */}
+      <Rect x="48" y="12" width="4" height="14" fill={ink} />
+      <Path d="M34 14c6 6 26 6 32 0z" fill={ink} />
+      <Casing ink={ink} rx={28} />
+      <Rect x="35" y="40" width="7" height="12" rx="3.5" fill="rgba(255,255,255,0.92)" />
+      <Rect x="58" y="40" width="7" height="12" rx="3.5" fill="rgba(255,255,255,0.92)" />
+      <Path d="M38 60c6 6 18 6 24 0" fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth="4" strokeLinecap="round" />
+    </G>
+  );
+}
+
+export function MachineCobalt({ ink }: Figure) {
+  return (
+    <G>
+      {/* Rabbit-ear aerials over a screen for a face. */}
+      <Path d="M40 24L30 6" stroke={ink} strokeWidth="4" strokeLinecap="round" />
+      <Path d="M60 24L70 6" stroke={ink} strokeWidth="4" strokeLinecap="round" />
+      <Casing ink={ink} rx={8} />
+      <Rect x="30" y="34" width="40" height="32" rx="5" fill="rgba(255,255,255,0.92)" />
+      <Circle cx="42" cy="46" r="3.5" fill={ink} />
+      <Circle cx="58" cy="46" r="3.5" fill={ink} />
+      <Path d="M42 55c4 4 12 4 16 0" fill="none" stroke={ink} strokeWidth="3" strokeLinecap="round" />
+    </G>
+  );
+}
+
+export function MachineBronze({ ink }: Figure) {
+  return (
+    <G>
+      <Casing ink={ink} rx={18} />
+      {/* Three eyes, two over one. */}
+      <Circle cx="38" cy="42" r="6" fill="rgba(255,255,255,0.92)" />
+      <Circle cx="62" cy="42" r="6" fill="rgba(255,255,255,0.92)" />
+      <Circle cx="50" cy="56" r="6" fill="rgba(255,255,255,0.92)" />
+      <Rect x="40" y="67" width="20" height="3" rx="1.5" fill="rgba(255,255,255,0.92)" />
+    </G>
+  );
+}
+
+export function MachineTitanium({ ink }: Figure) {
+  return (
+    <G>
+      {/* Bolts through the temples. */}
+      <Circle cx="18" cy="48" r="7" fill={ink} />
+      <Circle cx="82" cy="48" r="7" fill={ink} />
+      <Casing ink={ink} rx={6} />
+      <Rect x="32" y="38" width="12" height="12" fill="rgba(255,255,255,0.92)" />
+      <Rect x="56" y="38" width="12" height="12" fill="rgba(255,255,255,0.92)" />
+      {/* A zig-zag mouth. */}
+      <Path d="M34 64l5-5 5 5 6-5 6 5 5-5 5 5" fill="none" stroke="rgba(255,255,255,0.92)" strokeWidth="3.5" strokeLinejoin="round" />
+    </G>
+  );
+}
+
+export function MachinePewter({ ink }: Figure) {
+  return (
+    <G>
+      <Casing ink={ink} rx={22} />
+      {/* One visor, edge to edge, with the scanning light inside it. */}
+      <Rect x="26" y="40" width="48" height="12" rx="6" fill="rgba(255,255,255,0.92)" />
+      <Rect x="44" y="42" width="12" height="8" rx="4" fill={ink} />
+      <Rect x="44" y="62" width="12" height="4" rx="2" fill="rgba(255,255,255,0.92)" />
+    </G>
+  );
+}
+
+export function MachineNickel({ ink }: Figure) {
+  return (
+    <G>
+      {/* A fin along the crown. */}
+      <Path d="M40 26c2-12 6-18 10-20 4 2 8 8 10 20z" fill={ink} />
+      <Casing ink={ink} rx={12} />
+      {/* A monocle and a squint — the odd pair. */}
+      <Circle cx="38" cy="46" r="9" fill="rgba(255,255,255,0.92)" />
+      <Circle cx="38" cy="46" r="3.5" fill={ink} />
+      <Rect x="56" y="44" width="12" height="4" rx="2" fill="rgba(255,255,255,0.92)" />
+      <Rect x="38" y="63" width="24" height="4" rx="2" fill="rgba(255,255,255,0.92)" />
+    </G>
+  );
+}
+
 /** Every figure by slug — the one lookup `Avatar` needs. */
 export const FIGURES: Record<string, (p: Figure) => React.JSX.Element> = {
   'p-amber': PersonAmber,
@@ -223,10 +384,22 @@ export const FIGURES: Record<string, (p: Figure) => React.JSX.Element> = {
   'p-coral': PersonCoral,
   'p-slate': PersonSlate,
   'p-moss': PersonMoss,
+  'p-rose': PersonRose,
+  'p-indigo': PersonIndigo,
+  'p-saffron': PersonSaffron,
+  'p-plum': PersonPlum,
+  'p-sky': PersonSky,
+  'p-ochre': PersonOchre,
   'm-steel': MachineSteel,
   'm-brass': MachineBrass,
   'm-copper': MachineCopper,
   'm-verdigris': MachineVerdigris,
   'm-gunmetal': MachineGunmetal,
   'm-oxide': MachineOxide,
+  'm-chrome': MachineChrome,
+  'm-cobalt': MachineCobalt,
+  'm-bronze': MachineBronze,
+  'm-titanium': MachineTitanium,
+  'm-pewter': MachinePewter,
+  'm-nickel': MachineNickel,
 };
