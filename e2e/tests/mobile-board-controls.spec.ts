@@ -19,7 +19,7 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
-async function canastaTable(request: Ctx, moduleId = 'canasta') {
+async function canastaTable(request: Ctx, moduleId = 'canasta', seats = 4) {
   const res = await request.post(`${API_BASE}/auth/guest`, {
     data: { guestName: `mobctl-${Math.random().toString(36).slice(2, 10)}` },
   });
@@ -32,7 +32,7 @@ async function canastaTable(request: Ctx, moduleId = 'canasta') {
   });
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
-  for (let i = 1; i < 4; i++) await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: auth });
+  for (let i = 1; i < seats; i++) await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: auth });
   await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
   return { matchId, host };
 }
@@ -143,11 +143,26 @@ test('with no move above it, a long turn prompt stops short of the corner button
   // Mariáš words its opening prompt at length ("Say dobrá, or take it over with
   // a higher game"); when it is the box's first line it shares the row with the
   // hints, repeat and fold buttons and used to run under them.
-  const { matchId, host } = await canastaTable(request, 'marias');
+  //
+  // That needs the host to act first, before anyone has played: three seats
+  // (at four the dealer sits the deal out and holds nothing), and a fresh table
+  // until the deal opens on the host. Any other opening puts a bot's move above
+  // the prompt, or leaves no prompt at all, and the row under test is not there.
+  let table: { matchId: string; host: any } | undefined;
+  for (let attempt = 0; attempt < 15 && !table; attempt++) {
+    const t = await canastaTable(request, 'marias', 3);
+    const state = await (
+      await request.get(`${API_BASE}/matches/${t.matchId}`, { headers: { Authorization: `Bearer ${t.host.accessToken}` } })
+    ).json();
+    if ((state.legalActions ?? []).some((o: any) => o.enabled)) table = t;
+  }
+  expect(table, 'a deal that opens on the host').toBeTruthy();
+  const { matchId, host } = table!;
   await openMatch(page, host, matchId);
 
   const prompt = page.getByTestId('prompt-0');
   await expect(prompt).toBeVisible();
+  await expect(page.locator('[data-testid^="announce-"]'), 'no move above the prompt').toHaveCount(0);
   const clash = await page.evaluate(() => {
     const p = document.querySelector('[data-testid="prompt-0"]');
     const corner = document.querySelector('[data-testid="moves-repeat"]');

@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { carryLocatorOver, dragLocatorTo, handCards, release } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
+import { clearHandSelection, handCodes } from '../helpers/hand';
 
 /**
  * Playing a card by dragging it onto the board.
@@ -125,6 +126,24 @@ async function offerFor(request: Ctx, matchId: string, viewer: Viewer, verb: str
 const card = (page: Page, i: number) => page.locator('[data-testid^="card-hand:"]').nth(i);
 
 /**
+ * Where on screen the first card `accept` takes sits, and its code.
+ *
+ * Read off the screen, not the server: the hand on screen is not in the
+ * server's order (auto-arrange, a player's own rearranging), so the server's
+ * i-th card and `card(page, i)` are different cards (helpers/hand.ts). Picking
+ * by server index dragged whichever card sat there — in Canasta, sometimes a
+ * joker no meld would take, and the drop opened "Why not" instead of landing.
+ * Nothing is left selected first, since dragging a selected card carries the
+ * selection with it.
+ */
+async function onScreen(page: Page, accept: (code: string) => boolean) {
+  await clearHandSelection(page);
+  const codes = await handCodes(page);
+  const index = codes.findIndex(accept);
+  return { index, code: codes[index] };
+}
+
+/**
  * The hand with one copy of a card gone.
  *
  * One copy, not every match: two decks are in play in Žolíky, so a hand can
@@ -185,11 +204,10 @@ test.describe('dropping a card on the board', () => {
     const before = await serverHand(request, matchId, host);
     // A card that asks nothing when it lands, where there is one: a queen
     // names the suit that follows, and asks which before it goes.
-    const plain = before.findIndex((c) => playable.includes(c) && !c.startsWith('Q'));
-    const index = plain >= 0 ? plain : before.findIndex((c) => playable.includes(c));
+    const plain = await onScreen(page, (c) => playable.includes(c) && !c.startsWith('Q'));
+    const { index, code: dragged } = plain.index >= 0 ? plain : await onScreen(page, (c) => playable.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
 
-    const dragged = before[index];
     await dragLocatorTo(page, card(page, index), page.getByTestId('zone-discard'));
     if (dragged.startsWith('Q')) {
       await expect(page.getByTestId('choice-suit')).toBeVisible();
@@ -221,10 +239,9 @@ test.describe('dropping a card on the board', () => {
 
     const { cards: discardable } = await offerFor(request, matchId, host, 'discard');
     const before = await serverHand(request, matchId, host);
-    const index = before.findIndex((c) => discardable.includes(c));
+    const { index, code: dragged } = await onScreen(page, (c) => discardable.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
 
-    const dragged = before[index];
     await dragLocatorTo(page, card(page, index), page.getByTestId('zone-discard'));
 
     await expect
@@ -277,11 +294,9 @@ test.describe('dropping a card on the board', () => {
 
     const meldId = offer.target.meldId as string;
     const eligible = (offer.source?.cards ?? []) as string[];
-    const before = await serverHand(request, matchId, host);
     const meldsBefore = await meldGroups(request, matchId, host);
-    const index = before.findIndex((c) => eligible.includes(c));
+    const { index, code: dragged } = await onScreen(page, (c) => eligible.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
-    const dragged = before[index];
 
     // Dropped on the *group*, not on the zone that holds it. A partnership has
     // several melds in one spread, and which one the card joins is decided by
