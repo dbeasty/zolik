@@ -228,6 +228,16 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	for _, c := range candidates {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
+		if !ok && c.Dirty {
+			// The candidate spends the cheapest wilds, which can leave an
+			// opening meld short of the minimum: 9H-2C-JH is 40 where
+			// 9H-JOKER1-JH is 70. Try the dearest before giving up.
+			if dearer := dearestWilds(c, hand); dearer != nil {
+				if ok, _ = probe(m, raw, playerID, module.Action{Verb: VerbLayMeld, Cards: dearer}); ok {
+					c.Cards, c.Value = dearer, handValue(dearer)
+				}
+			}
+		}
 		if !ok {
 			continue
 		}
@@ -268,6 +278,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			},
 			Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 		})
+		if c.Kind == meldRun && c.Dirty {
+			o := &offers[len(offers)-1]
+			o.Source.Placements = dirtyRunPlacements(c, hand)
+		}
 		laid++
 	}
 	// Going out on a set of black threes is a real, if rare, move, and it has
@@ -827,4 +841,54 @@ func probe(m *Module, raw module.State, playerID string, a module.Action) (bool,
 		return false, module.CodeOf(err)
 	}
 	return true, ""
+}
+
+// dirtyRunPlacements lets a person stand any wild in the hand where a dirty
+// sequence's submission put one: 9H-2C-JH may be laid as 9H-JOKER1-JH.
+//
+// Placements rather than a pool. A pool of every wild in the hand made a
+// selection of wilds alone look like the start of this run (see
+// dirtyRunCandidates); a placement says each wild goes only with the run's
+// naturals, so three 2s picked for the meld of 2s still fit nothing else.
+func dirtyRunPlacements(c candidate, hand []string) []module.Placement {
+	var naturals []string
+	for _, card := range c.Cards {
+		if !isWild(card) {
+			naturals = append(naturals, card)
+		}
+	}
+	out := make([]module.Placement, 0, len(c.Cards))
+	for _, card := range naturals {
+		out = append(out, module.Placement{Card: card})
+	}
+	for _, w := range handWilds(hand) {
+		out = append(out, module.Placement{Card: w, Requires: naturals})
+	}
+	return out
+}
+
+// dearestWilds is a dirty sequence's submission with its wilds swapped for the
+// hand's most valuable ones, jokers before 2s, or nil when that changes nothing.
+func dearestWilds(c candidate, hand []string) []string {
+	wilds := handWilds(hand)
+	sort.SliceStable(wilds, func(i, j int) bool { return cardValue(wilds[i]) > cardValue(wilds[j]) })
+	out := append([]string(nil), c.Cards...)
+	n, changed := 0, false
+	for i, card := range out {
+		if !isWild(card) {
+			continue
+		}
+		if n >= len(wilds) {
+			return nil
+		}
+		if out[i] != wilds[n] {
+			changed = true
+		}
+		out[i] = wilds[n]
+		n++
+	}
+	if !changed {
+		return nil
+	}
+	return out
 }

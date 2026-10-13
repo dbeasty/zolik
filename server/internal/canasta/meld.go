@@ -183,15 +183,18 @@ func (c candidate) selectable() []string {
 func (c candidate) offerKey() string {
 	switch c.Kind {
 	case meldRun:
-		first := ""
+		first, last := "", ""
 		for _, x := range c.Cards {
 			if !isWild(x) {
-				first = x[:len(x)-1]
-				break
+				if first == "" {
+					first = x[:len(x)-1]
+				}
+				last = x[:len(x)-1]
 			}
 		}
 		if c.Dirty {
-			return "run:" + c.Suit + first + "*"
+			// Both ends: a hand may lay 9H-JOKER-JH or 9H-JOKER-JH-QH.
+			return "run:" + c.Suit + first + "*" + last
 		}
 		return "run:" + c.Suit + first
 	case meldWild:

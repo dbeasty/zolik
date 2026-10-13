@@ -643,3 +643,78 @@ func TestLayOffAcrossAGap(t *testing.T) {
 		}
 	})
 }
+
+// A dirty sequence may be laid with any wild in the hand standing in the gap:
+// 9H-JOKER1-JH as well as 9H-2C-JH. Before opening, the offer spends the joker
+// when the 2 would leave it short of the minimum; a wild goes only with the
+// run's naturals, so wilds alone never look like this run.
+func TestNewDirtyRunTakesAnyWild(t *testing.T) {
+	for _, opened := range []bool{false, true} {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].HasMelded = opened
+			s.Teams[1].HasMelded = opened
+			s.Hands["p1"] = []string{"9H", "2C", "JOKER1", "JH", "KS", "5D", "6C", "4C", "7S", "3D", "QC"}
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var o *module.ActionOffer
+		for i := range offers {
+			if f := offers[i].Facts; offers[i].Verb == VerbLayMeld && len(f) > 0 && f[0].Value == "9H-JH" {
+				o = &offers[i]
+			}
+		}
+		if o == nil {
+			t.Fatalf("opened=%v: no 9H-JH offer", opened)
+		}
+		if !opened && !slices.Equal(o.Source.Submit, []string{"9H", "JOKER1", "JH"}) {
+			t.Fatalf("opening submit %v", o.Source.Submit)
+		}
+		byCard := map[string]module.Placement{}
+		for _, p := range o.Source.Placements {
+			byCard[p.Card] = p
+		}
+		for _, w := range []string{"2C", "JOKER1"} {
+			if p, ok := byCard[w]; !ok || !slices.Equal(p.Requires, []string{"9H", "JH"}) {
+				t.Fatalf("opened=%v: %s placement %+v in %+v", opened, w, p, o.Source.Placements)
+			}
+		}
+		if _, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"9H", "JOKER1", "JH"}}); code != "" {
+			t.Fatalf("opened=%v: 9H JOKER1 JH: %s", opened, code)
+		}
+		_, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"9H", "2C", "JH"}})
+		if want := map[bool]string{false: ErrInitialMeldNotMet, true: ""}[opened]; code != want {
+			t.Fatalf("opened=%v: 9H 2C JH: %q, want %q", opened, code, want)
+		}
+	}
+}
+
+// A hand that could lay a longer dirty sequence may still lay a shorter one:
+// 9H-JOKER1-JH with the queen of hearts kept back.
+func TestNewDirtyRunShorterThanTheHandAllows(t *testing.T) {
+	raw := canastaXTable(func(s *GameState) {
+		s.Hands["p1"] = []string{"9H", "JOKER1", "JH", "QH", "KS", "5D", "6C"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var short, long *module.ActionOffer
+	for i := range offers {
+		if f := offers[i].Facts; offers[i].Verb == VerbLayMeld && len(f) > 0 {
+			switch f[0].Value {
+			case "9H-JH":
+				short = &offers[i]
+			case "9H-QH":
+				long = &offers[i]
+			}
+		}
+	}
+	if short == nil || long == nil || short.ID == long.ID {
+		t.Fatalf("short %+v long %+v", short, long)
+	}
+	if !slices.Equal(short.Source.Submit, []string{"9H", "JOKER1", "JH"}) {
+		t.Fatalf("short submit %v", short.Source.Submit)
+	}
+}
