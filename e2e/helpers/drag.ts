@@ -226,21 +226,43 @@ export async function touchCarry(
   to: { x: number; y: number },
   { holdMs = 600, steps = 20 }: { holdMs?: number; steps?: number } = {},
 ) {
+  const finger = await touchHold(page, from, { holdMs });
+  await finger.move(to, { steps });
+  return finger.lift;
+}
+
+/**
+ * `touchCarry` in pieces: a finger put down (and rested `holdMs`), which can
+ * then be moved as many times as a test needs before it is lifted — for
+ * asking what happens while it is held still partway through.
+ */
+export async function touchHold(
+  page: Page,
+  from: { x: number; y: number },
+  { holdMs = 600 }: { holdMs?: number } = {},
+) {
   const cdp = await page.context().newCDPSession(page);
   const at = (x: number, y: number) => [{ x: Math.round(x), y: Math.round(y), id: 1 }];
+  let here = from;
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(from.x, from.y) });
   if (holdMs) await page.waitForTimeout(holdMs);
-  for (let i = 1; i <= steps; i++) {
-    const x = from.x + ((to.x - from.x) * i) / steps;
-    const y = from.y + ((to.y - from.y) * i) / steps;
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(x, y) });
-    await page.waitForTimeout(16);
-  }
-  await page.waitForTimeout(150);
-  return async () => {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await page.waitForTimeout(400);
-    await cdp.detach();
+  return {
+    async move(to: { x: number; y: number }, { steps = 20 }: { steps?: number } = {}) {
+      const start = here;
+      for (let i = 1; i <= steps; i++) {
+        const x = start.x + ((to.x - start.x) * i) / steps;
+        const y = start.y + ((to.y - start.y) * i) / steps;
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(x, y) });
+        await page.waitForTimeout(16);
+      }
+      here = to;
+      await page.waitForTimeout(150);
+    },
+    async lift() {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(400);
+      await cdp.detach();
+    },
   };
 }
 

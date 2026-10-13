@@ -422,6 +422,13 @@ function MatchScreen() {
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
   const [explaining, setExplaining] = useState<Refusal | null>(null);
+  // A board that changes mid-drag — a bot's move landing, the moves box
+  // appearing above the hand for the first time in a deal — can move every
+  // target below the change, and targets are measured once, at pick-up. So a
+  // new state re-reads them while a card is in hand.
+  useEffect(() => {
+    if (dragRef.current) drops.measure();
+  }, [state, drops.measure]);
   // Whose score is being explained, and from which round's cell if any.
   const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
   // The host may change any bot's strength at any point: tapping its face
