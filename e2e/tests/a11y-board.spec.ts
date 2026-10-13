@@ -96,8 +96,11 @@ test.describe('screen-reader path', () => {
   test('Žolíky: hear the turn, draw with D, pick and play a card from the keyboard, hear the bot', async ({ page, request }) => {
     await sitDown(page, request, 'zolik');
 
-    // The board is named regions, in the order the eye meets them.
-    for (const region of ['Players', 'Table', 'Recent moves', 'Your hand', 'Actions']) {
+    // The board is named regions, in the order the eye meets them. Recent
+    // moves is not among them yet: a fresh deal that opens on this player has
+    // nothing in it to say, and is no box at all (MoveAnnouncements). It is
+    // checked once the draw below has put a move in it.
+    for (const region of ['Players', 'Table', 'Your hand', 'Actions']) {
       await expect(page.getByRole('region', { name: region })).toBeVisible();
     }
 
@@ -140,6 +143,8 @@ test.describe('screen-reader path', () => {
     const before = await handSize(page);
     await page.keyboard.press('d');
     await expect.poll(() => handSize(page), { timeout: 10_000 }).toBe(before + 1);
+    // A move has been made, so the moves have a region of their own now.
+    await expect(page.getByRole('region', { name: 'Recent moves' })).toBeVisible();
 
     // One Tab stop for the hand; arrows walk it; Space picks.
     // (The stop is the card just drawn — it arrives picked — so Home first.)

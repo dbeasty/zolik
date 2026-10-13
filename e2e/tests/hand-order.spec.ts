@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { dragLocatorTo, dragPointTo, grabPoint, handCards, visiblePart } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
+import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
  * Arranging the cards in your own hand.
@@ -416,6 +417,10 @@ test.describe('arranging your hand', () => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
+    // On this player's turn, so the bot's opening move cannot land mid-drag:
+    // the first move of a deal brings the moves box into being above the hand,
+    // the hand moves down by its height, and every offset below is out by that.
+    await waitForOfferEnabled(page, 'offer-draw:deck');
 
     await card(page, 0).scrollIntoViewIfNeeded();
     const first = await card(page, 0).boundingBox();
