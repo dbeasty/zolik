@@ -110,6 +110,9 @@ type App struct {
 	// localSaves holds, on a phone, the finished games waiting for their
 	// players to say whether they go to the cloud. Nil everywhere else.
 	localSaves *match.LocalSaves
+	// reconcileEvery is how often reconcileLocalSaves runs; zero means every
+	// 20 seconds. A field so a test can make a tick land at teardown.
+	reconcileEvery time.Duration
 	// nodes is the record of enrolled replicas: which installs exist and what
 	// each one signs with.
 	nodes auth.NodeRepository
