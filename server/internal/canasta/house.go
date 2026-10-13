@@ -780,7 +780,9 @@ func dirtyRunCandidates(r ruleset, hand []string, t *Team) []candidate {
 		}
 		slices.Sort(positions)
 		for a := range positions {
-			var best []string
+			// Every stretch from this natural, not only the longest: a hand
+			// holding 9H, JH, QH and a joker may want 9H-JOKER-JH down
+			// without the queen, and a run's offer demands all its cards.
 			for b := a + 1; b < len(positions); b++ {
 				lo, hi := positions[a], positions[b]
 				length := hi - lo + 1
@@ -799,28 +801,25 @@ func dirtyRunCandidates(r ruleset, hand []string, t *Team) []candidate {
 					continue
 				}
 				cards := append(append([]string(nil), naturals...), wilds[:need]...)
-				if _, _, err := arrangeRun(r, nil, 0, cards, noLow); err != nil {
+				arranged, low, err := arrangeRun(r, nil, 0, cards, noLow)
+				if err != nil {
 					continue
 				}
-				best = cards
+				key := s + runRanks[low] + strconv.Itoa(len(arranged))
+				if seen[key] || runOverlapsTable(t, s, cards) {
+					continue
+				}
+				seen[key] = true
+				// No pool wider than the submission: a pool holding every wild in
+				// the hand made a selection of wilds alone look like the start of
+				// this run, and three 2s picked for the meld of 2s became a
+				// question about which meld they were for. The offer lets the
+				// other wilds in through placements (dirtyRunPlacements).
+				out = append(out, candidate{
+					Kind: meldRun, Suit: s, Dirty: true,
+					Cards: arranged, Value: handValue(cards),
+				})
 			}
-			if best == nil {
-				continue
-			}
-			arranged, low, _ := arrangeRun(r, nil, 0, best, noLow)
-			key := s + runRanks[low] + strconv.Itoa(len(arranged))
-			if seen[key] || runOverlapsTable(t, s, best) {
-				continue
-			}
-			seen[key] = true
-			// No pool wider than the submission: a pool holding every wild in
-			// the hand made a selection of wilds alone look like the start of
-			// this run, and three 2s picked for the meld of 2s became a
-			// question about which meld they were for.
-			out = append(out, candidate{
-				Kind: meldRun, Suit: s, Dirty: true,
-				Cards: arranged, Value: handValue(best),
-			})
 		}
 	}
 	sortCandidates(out)
