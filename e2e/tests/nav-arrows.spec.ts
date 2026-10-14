@@ -54,3 +54,19 @@ test('following something new forgets what was ahead', async ({ page, request })
   await onPath(page, /^\/lobby\/games$/);
   await expect(arrow(page, 'nav-forward')).toHaveAttribute('aria-disabled', 'true');
 });
+
+test('a screen opened directly still has a way back, and forward returns to it', async ({ page, request }) => {
+  await loginAsFreshGuest(page, request, 'Arrow Tester');
+  // Nothing behind it on the stack: a reload, a link, a restored tab.
+  await page.goto(`${WEB_BASE}/lobby/games?moduleId=lastcard`);
+  await onPath(page, /^\/lobby\/games$/);
+
+  await expect(arrow(page, 'nav-back')).not.toHaveAttribute('aria-disabled', 'true');
+  await arrow(page, 'nav-back').click();
+  await onPath(page, /^\/$/);
+
+  await expect(arrow(page, 'nav-forward')).not.toHaveAttribute('aria-disabled', 'true');
+  await arrow(page, 'nav-forward').click();
+  await onPath(page, /^\/lobby\/games$/);
+  expect(new URL(page.url()).searchParams.get('moduleId')).toBe('lastcard');
+});
