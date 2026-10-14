@@ -1804,60 +1804,20 @@ function MatchScreen() {
       ? t('server.explainHost')
       : t('server.explainGuest', { name: serverName });
 
-  // The controls, built once and rendered in one of two places.
-  //
-  // Ordinarily they sit directly under the hand, because every one of them acts
-  // on the cards picked just above it. Between rounds none of that holds: the
-  // module offers exactly one control — go on to the next round — the hand is
-  // not actionable, and a single button left several screens below the
-  // settlement it belongs to is how a paused table comes to read as a stuck
-  // one. So while the table is paused they are rendered up with the results
-  // instead, and the two positions share one piece of JSX so they can never
-  // drift apart.
-  const controlsPanel = (
-    <Panel
-      {...zonePanelProps('controls')}
-      title={t('match.controls')}
-      region={t('a11y.board.region.actions')}
-      testID="controls-panel"
-      summary={
-        <OfferGlance
-          offers={handOffers}
-          selectedCards={selectedCards}
-          armedGroupId={armedMeldIdLive}
-          onSend={send}
-          onConsumeSelection={clearSelection}
-          params={offerParams}
-          onParamsChange={setOfferParams}
-          onAmbiguous={(groupKey) => {
-            setPendingGroupKey(groupKey);
-            drops.measure();
-          }}
-          onExplain={explain}
-          testID="controls-summary"
-        />
-      }
-    >
-      {/* What to do now, in one line, from the same offers the controls
-          below are drawn from — see `src/lib/turnStep.ts`. */}
-      {step && !paused ? (
-        <View style={styles.stepRow}>
-          <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
-            {step.obligation
-              ? factText(step.obligation, state.players)
-              : t('step.yourTurn', {
-                  moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
-                })}
-          </Text>
-          {hintsAllowed ? (
-            <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
-              <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton} hitSlop={8}>
-                <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
-              </Pressable>
-            </Tip>
-          ) : null}
-        </View>
-      ) : null}
+  // The hint and what it said, shared by the open panel and the minimized
+  // one. A player who put the controls away still makes moves from the
+  // summary, so the button that suggests one has to stay in reach too.
+  const controlsMinimized = zonePanelProps('controls').minimized;
+  const hintButton =
+    hintsAllowed && step && !paused ? (
+      <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
+        <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton} hitSlop={8}>
+          <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
+        </Pressable>
+      </Tip>
+    ) : null;
+  const hintText = (
+    <>
       {hint && hintOffer ? (
         <Text testID="hint-line" style={styles.hintLine}>
           {factText(
@@ -1874,6 +1834,62 @@ function MatchScreen() {
           {reasonText(hintRefusal, hintRefusal)}
         </Text>
       ) : null}
+    </>
+  );
+
+  // The controls, built once and rendered in one of two places.
+  //
+  // Ordinarily they sit directly under the hand, because every one of them acts
+  // on the cards picked just above it. Between rounds none of that holds: the
+  // module offers exactly one control — go on to the next round — the hand is
+  // not actionable, and a single button left several screens below the
+  // settlement it belongs to is how a paused table comes to read as a stuck
+  // one. So while the table is paused they are rendered up with the results
+  // instead, and the two positions share one piece of JSX so they can never
+  // drift apart.
+  const controlsPanel = (
+    <Panel
+      {...zonePanelProps('controls')}
+      title={t('match.controls')}
+      region={t('a11y.board.region.actions')}
+      testID="controls-panel"
+      accessory={controlsMinimized ? hintButton : undefined}
+      summary={
+        <>
+          <OfferGlance
+            offers={handOffers}
+            selectedCards={selectedCards}
+            armedGroupId={armedMeldIdLive}
+            onSend={send}
+            onConsumeSelection={clearSelection}
+            params={offerParams}
+            onParamsChange={setOfferParams}
+            onAmbiguous={(groupKey) => {
+              setPendingGroupKey(groupKey);
+              drops.measure();
+            }}
+            onExplain={explain}
+            testID="controls-summary"
+          />
+          {hintText}
+        </>
+      }
+    >
+      {/* What to do now, in one line, from the same offers the controls
+          below are drawn from — see `src/lib/turnStep.ts`. */}
+      {step && !paused ? (
+        <View style={styles.stepRow}>
+          <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
+            {step.obligation
+              ? factText(step.obligation, state.players)
+              : t('step.yourTurn', {
+                  moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
+                })}
+          </Text>
+          {hintButton}
+        </View>
+      ) : null}
+      {hintText}
       {/* The engine's own sentence stands in for a code this build has
           no translation for — it is at least a sentence, where the bare
           code reads as a crash. A code we do know still wins, so a
