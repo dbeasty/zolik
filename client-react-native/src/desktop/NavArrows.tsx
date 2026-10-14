@@ -24,11 +24,28 @@ function desktopNav(): DesktopNav | null {
  * to return.
  *
  * In the Mac app they walk the window's own history, the same one View ›
- * Back and Forward do. Elsewhere the stack goes back, and the screens it
- * left are kept for → (src/lib/navHistory.ts).
+ * Back and Forward do. Elsewhere the stack goes back — to the home screen
+ * when there is nothing behind — and the screens it left are kept for →
+ * (src/lib/navHistory.ts).
+ *
+ * Not in a browser tab, whose own toolbar already has both: two pairs of
+ * arrows doing the same thing is one too many. An installed web app has no
+ * toolbar, so it keeps them.
  */
 export function NavArrows() {
-  return desktopNav() ? <DesktopArrows /> : <StackArrows />;
+  if (desktopNav()) return <DesktopArrows />;
+  if (inBrowserTab()) return null;
+  return <StackArrows />;
+}
+
+/** The website in an ordinary browser tab, with the browser's own back and forward. */
+function inBrowserTab(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const installed =
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    // iOS Safari's home-screen apps, which predate display-mode.
+    (navigator as { standalone?: boolean }).standalone === true;
+  return !installed;
 }
 
 /** Where this screen is, as a route the forward arrow can return to. */
@@ -77,11 +94,16 @@ function StackArrows() {
       <Arrow
         glyph="←"
         label={t('desktop.menu.back')}
-        enabled={router.canGoBack() && !isHome(route)}
+        // Anywhere but home has a way back. A screen opened straight from a
+        // link, a reload or a restored tab has nothing behind it on the
+        // stack, so ← takes it to the home screen rather than sitting there
+        // disabled with the player stranded at a table.
+        enabled={!isHome(route)}
         testID="nav-back"
         onPress={() => {
           leavingBack(route);
-          router.back();
+          if (router.canGoBack()) router.back();
+          else router.replace('/');
         }}
       />
       <Arrow
