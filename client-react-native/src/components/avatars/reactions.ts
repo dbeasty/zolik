@@ -30,7 +30,7 @@ export type Reaction = { kind: ReactionKind; at: number };
 export function reactionsFor(fresh: readonly MoveLine[], sfx: Sfx | null): Record<string, ReactionKind> {
   const out: Record<string, ReactionKind> = {};
   const newest = fresh[fresh.length - 1];
-  if (sfx && newest) out[newest.playerId] = sfx === 'take' ? 'grab' : 'nod';
+  if (sfx && newest) out[newest.playerId] = sfx === 'take' || sfx === 'pick' ? 'grab' : 'nod';
   for (let i = fresh.length - 1; i >= 0; i--) {
     if (sayFor(fresh[i]!.fact)) {
       out[fresh[i]!.playerId] = 'call';

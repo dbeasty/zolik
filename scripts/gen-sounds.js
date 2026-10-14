@@ -69,6 +69,9 @@ const sounds = {
   card: [note(0, 0, 0.07, { type: 'noise', gain: 1.1 }), note(95, 0, 0.11, { slide: 55, gain: 0.7 })],
   // A pile gathered up: a rising rustle and two soft ticks.
   take: [note(0, 0, 0.22, { type: 'noise', gain: 0.8 }), note(165, 0.02, 0.12, { slide: 260, type: 'tri', gain: 0.45 }), note(260, 0.12, 0.14, { type: 'tri', gain: 0.4 })],
+  // One card lifted off the discards: a quick flick and a bright upward chirp,
+  // about half the length of a whole pile.
+  pick: [note(0, 0, 0.05, { type: 'noise', gain: 0.7 }), note(330, 0.01, 0.1, { slide: 620, type: 'tri', gain: 0.5 })],
   // Your turn: one soft bell.
   turn: [note(E5, 0, 0.35, { gain: 0.4 }), note(E5 * 2, 0, 0.2, { gain: 0.12 })],
   // A round settles: a falling-then-rising pair.

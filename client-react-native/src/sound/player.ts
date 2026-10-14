@@ -11,11 +11,12 @@ import { getSoundPrefs } from '@/src/sound/prefs';
  * game: a browser that refuses audio before the first tap, or a device with no
  * speech voice, simply stays quiet.
  */
-export type SoundName = 'card' | 'take' | 'turn' | 'round' | 'win' | 'lose';
+export type SoundName = 'card' | 'take' | 'pick' | 'turn' | 'round' | 'win' | 'lose';
 
 const FILES: Record<SoundName, number> = {
   card: require('@/assets/sounds/card.wav'),
   take: require('@/assets/sounds/take.wav'),
+  pick: require('@/assets/sounds/pick.wav'),
   turn: require('@/assets/sounds/turn.wav'),
   round: require('@/assets/sounds/round.wav'),
   win: require('@/assets/sounds/win.wav'),
