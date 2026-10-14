@@ -27,9 +27,25 @@ function desktopNav(): DesktopNav | null {
  * Back and Forward do. Elsewhere the stack goes back — to the home screen
  * when there is nothing behind — and the screens it left are kept for →
  * (src/lib/navHistory.ts).
+ *
+ * Not in a browser tab, whose own toolbar already has both: two pairs of
+ * arrows doing the same thing is one too many. An installed web app has no
+ * toolbar, so it keeps them.
  */
 export function NavArrows() {
-  return desktopNav() ? <DesktopArrows /> : <StackArrows />;
+  if (desktopNav()) return <DesktopArrows />;
+  if (inBrowserTab()) return null;
+  return <StackArrows />;
+}
+
+/** The website in an ordinary browser tab, with the browser's own back and forward. */
+function inBrowserTab(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const installed =
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    // iOS Safari's home-screen apps, which predate display-mode.
+    (navigator as { standalone?: boolean }).standalone === true;
+  return !installed;
 }
 
 /** Where this screen is, as a route the forward arrow can return to. */

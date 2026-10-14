@@ -7,7 +7,22 @@ import { loginAsFreshGuest } from '../helpers/login';
  * The header's back and forward arrows. Going back always has a way forward:
  * a player who goes back to the main screen has → right there to return to
  * where they were, and following anything new clears it, as a browser does.
+ *
+ * Only where there is no browser toolbar: an ordinary tab has its own arrows,
+ * so the header draws none; an installed web app has none, so it does. The
+ * arrow tests run as the installed app.
  */
+
+/** Answers `(display-mode: standalone)` as an installed web app does. */
+async function asInstalledApp(page: Page) {
+  await page.addInitScript(() => {
+    const real = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) =>
+      query.includes('display-mode: standalone')
+        ? ({ ...real(query), matches: true, media: query } as MediaQueryList)
+        : real(query);
+  });
+}
 
 const arrow = (page: Page, id: 'nav-back' | 'nav-forward') =>
   page.getByTestId(id).filter({ visible: true }).first();
@@ -17,6 +32,7 @@ async function onPath(page: Page, re: RegExp) {
 }
 
 test('back to the main screen, then forward to where the player was', async ({ page, request }) => {
+  await asInstalledApp(page);
   await loginAsFreshGuest(page, request, 'Arrow Tester');
   await page.goto(`${WEB_BASE}/`);
 
@@ -41,6 +57,7 @@ test('back to the main screen, then forward to where the player was', async ({ p
 });
 
 test('following something new forgets what was ahead', async ({ page, request }) => {
+  await asInstalledApp(page);
   await loginAsFreshGuest(page, request, 'Arrow Tester');
   await page.goto(`${WEB_BASE}/`);
 
@@ -56,6 +73,7 @@ test('following something new forgets what was ahead', async ({ page, request })
 });
 
 test('a screen opened directly still has a way back, and forward returns to it', async ({ page, request }) => {
+  await asInstalledApp(page);
   await loginAsFreshGuest(page, request, 'Arrow Tester');
   // Nothing behind it on the stack: a reload, a link, a restored tab.
   await page.goto(`${WEB_BASE}/lobby/games?moduleId=lastcard`);
@@ -69,4 +87,13 @@ test('a screen opened directly still has a way back, and forward returns to it',
   await arrow(page, 'nav-forward').click();
   await onPath(page, /^\/lobby\/games$/);
   expect(new URL(page.url()).searchParams.get('moduleId')).toBe('lastcard');
+});
+
+test('a browser tab leaves back and forward to the browser', async ({ page, request }) => {
+  await loginAsFreshGuest(page, request, 'Arrow Tester');
+  await page.goto(`${WEB_BASE}/lobby/games?moduleId=lastcard`);
+  await onPath(page, /^\/lobby\/games$/);
+  await expect(page.getByText('Last Card', { exact: true }).first()).toBeVisible();
+  await expect(page.getByTestId('nav-back')).toHaveCount(0);
+  await expect(page.getByTestId('nav-forward')).toHaveCount(0);
 });
