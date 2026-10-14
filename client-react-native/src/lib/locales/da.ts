@@ -115,6 +115,8 @@ export const da: Record<string, string> = {
   'zolik.rules.lead.rotate': 'Udspillet flytter én plads per giv, uanset hvem der vandt.',
   'zolik.rules.lead.winner': 'Den, der går ud, spiller ud i næste giv.',
   'zolik.rules.meldFloor.on': 'Din første udlægning skal give mindst {n} naturlige point, før du er lagt ud.',
+  'zolik.rules.meldFloor.values':
+    "Til det minimum tæller hvert kort det, det koster på hånden, undtagen et es: {aceHigh} i et sæt eller over en konge, {aceLow} under en 2'er. En joker tæller som det kort, den erstatter.",
   'zolik.rules.meldFloor.off': 'Der er ingen mindsteværdi i point på din første udlægning.',
   'zolik.rules.cleanRun.on': 'Mindst én af dine rækker skal være helt jokerfri, før du tæller som lagt ud.',
   'zolik.rules.cleanRun.off': 'Dine rækker må bruge jokere frit — ingen række behøver at være jokerfri.',
@@ -122,6 +124,8 @@ export const da: Record<string, string> = {
     'Matchen varer {n} giv, og hver giv kræver sin egen kombination af grupper og rækker.',
   'zolik.rules.contracts.static': 'Hver giv kræver den samme kombination: {sets} grupper og {runs} rækker.',
   'zolik.rules.end.afterDeals': 'Matchen slutter efter {n} giv.',
+  'zolik.rules.penalty.values':
+    "Et kort, du sidder tilbage med, koster: joker {joker}, 10, knægt, dame eller konge {face}, 2 til 9 sit tal, og et es {ace} — eller kun {aceLow}, hvis du også har en 2'er i samme kulør, eller dame og konge i samme kulør, på hånden, eller hvis det ville forlænge en række på bordet.",
   'zolik.rules.end.atScore': 'Der gives videre, indtil nogen når {n} point — så er det slut.',
 
   'prsi.rules.section.goal': 'Mål',
@@ -181,6 +185,8 @@ export const da: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Kastebunken er frosset hele givet: du kan kun tage den ved at lægge to naturlige kort fra hånden til det øverste kort.',
   'canasta.rules.pileOntoMeld': 'Har din side allerede en ufærdig kombination af det øverste korts værdi, kan du tage hele kastebunken og lægge det kort til den — du behøver ikke et par på hånden.',
   'canasta.rules.pileNoMeldCapture': 'En kombination, der allerede ligger på bordet, kan ikke tage kastebunken: for at tage den skal du lægge to kort fra din egen hånd til det øverste kort.',
+  'canasta.rules.cardValues':
+    "Kortværdier: joker {joker}, 2 {two}, es {ace}, konge til og med 8 {high}, 7 til og med 4 {low}, sort treer {black}. Røde treere er bonusser og tæller aldrig med i en melding.",
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} derover.',
   'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} op til {highUpTo} og {top} derover.',
@@ -648,6 +654,8 @@ export const da: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'En kombination er en gruppe på tre eller fire kort af én værdi, eller en række på tre eller flere i én farve.',
   'ginrummy.rules.aceLow': 'Esset er altid lavt — der findes ingen række fra dame til es.',
+  'ginrummy.rules.cardValues':
+    "I dødtræ tæller et es {ace}, 2 til 9 deres tal, og 10, knægt, dame og konge {face}.",
   'ginrummy.rules.knockLimit': 'Du må banke, så snart dit deadwood er {n} eller derunder.',
   'ginrummy.rules.oklahoma': 'Bankegrænsen i denne hånd sættes af værdien på det opvendte kort.',
   'ginrummy.rules.gin': 'Nul deadwood er gin — den bedst mulige bankning.',
@@ -733,6 +741,8 @@ export const da: Record<string, string> = {
   'rummytiles.rules.run': 'En række er tre eller flere tal i træk i samme farve.',
   'rummytiles.rules.noWrap': '13 fortsætter ikke rundt til 1.',
   'rummytiles.rules.joker': 'En joker står for en hvilken som helst brik.',
+  'rummytiles.rules.tileValues':
+    "En brik er sit tal værd. En joker i en kombination er den brik værd, den erstatter; en joker, du sidder tilbage med, koster {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Indtil du har lagt {n} point eller mere ud i én enkelt tur, alene fra din egen hånd, må du ikke røre noget af det, der allerede ligger på bordet.',
   'rummytiles.rules.turnDescription':
@@ -809,6 +819,8 @@ export const da: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Spillernes kort deles ud med billedsiden op; dealeren holder ét kort skjult, indtil alle har spillet.',
   'blackjack.rules.hitStand': 'Tag så mange kort, du vil, eller stå på det, du har.',
+  'blackjack.rules.cardValues':
+    "2 til 9 tæller deres tal; 10, knægt, dame og konge tæller {face}.",
   'blackjack.rules.aces': 'Et es tæller som elleve, så længe det kan lade sig gøre, og ellers som ét.',
   'blackjack.rules.blackjack': 'Et es med et tikort, på de to første kort, er en blackjack.',
   'blackjack.rules.pays3to2': 'En blackjack betaler 3:2.',

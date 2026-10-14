@@ -185,6 +185,15 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			bands[name+"UpTo"] = v.MeldFloors[i+1].Above
 		}
 	}
+	// What each card counts, stated right above the minimum it is counted
+	// against: without it "a minimum of 90" is a number nobody can check a hand
+	// against, and face value is the natural wrong guess (an 8 is worth 10).
+	// Read off cardValue so the sentence cannot drift from the engine — which
+	// matters most for the black three, priced here as a house rule.
+	melding = append(melding, module.Fact{LabelKey: "canasta.rules.cardValues", Params: map[string]any{
+		"joker": cardValue("JOKER1"), "two": cardValue("2C"), "ace": cardValue("AS"),
+		"high": cardValue("8S"), "low": cardValue("4S"), "black": cardValue("3S"),
+	}})
 	floorKey := "canasta.rules.meldFloorBands"
 	if len(v.MeldFloors) > 3 {
 		floorKey = "canasta.rules.meldFloorBandsFive"

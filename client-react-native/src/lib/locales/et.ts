@@ -117,6 +117,8 @@ export const et: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kes välja läheb, alustab järgmist jagamist.',
   'zolik.rules.meldFloor.on':
     'Sinu esimene väljapanek peab kokku andma vähemalt {n} loomulikku punkti, enne kui oled väljas.',
+  'zolik.rules.meldFloor.values':
+    "Selle miinimumi hulka loetakse iga kaart nii, nagu see käes maksab, välja arvatud äss: {aceHigh} komplektis või kuninga kohal, {aceLow} kahe all. Jokker loetakse kaardiks, mida ta asendab.",
   'zolik.rules.meldFloor.off': 'Esimesel väljapanekul pole punktide alammäära.',
   'zolik.rules.cleanRun.on':
     'Vähemalt üks sinu jadadest peab olema täiesti jokkerita, enne kui sind loetakse väljas olevaks.',
@@ -125,6 +127,8 @@ export const et: Record<string, string> = {
     'Matš kestab {n} jagamist ja iga jagamine nõuab oma gruppide ja jadade kombinatsiooni.',
   'zolik.rules.contracts.static': 'Iga jagamine nõuab sama kombinatsiooni: {sets} gruppi ja {runs} jada.',
   'zolik.rules.end.afterDeals': 'Matš lõpeb {n} jagamise järel.',
+  'zolik.rules.penalty.values':
+    "Kätte jäänud kaart maksab: jokker {joker}, 10, poiss, emand või kuningas {face}, 2–9 oma numbri, ja äss {ace} — või ainult {aceLow}, kui sul on käes ka sama masti kaks või sama masti emand ja kuningas, või kui see pikendaks laual olevat rida.",
   'zolik.rules.end.atScore': 'Jagatakse edasi, kuni keegi jõuab {n} punktini — siis on läbi.',
 
   'prsi.rules.section.goal': 'Eesmärk',
@@ -184,6 +188,8 @@ export const et: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Viskepakk on kogu jagamise vältel külmutatud: saad selle võtta ainult sobitades ülemise kaardi kahe loomuliku kaardiga oma käest.',
   'canasta.rules.pileOntoMeld': 'Kui sinu poolel on laual juba pooleli kombinatsioon ülemise kaardi väärtuses, võid võtta kogu viskepaki ja lisada selle kaardi sinna juurde — paari käes pole vaja.',
   'canasta.rules.pileNoMeldCapture': 'Laual olev kombinatsioon ei saa viskepakki võtta: selle võtmiseks pead sobitama ülemise kaardi kahe kaardiga oma käest.',
+  'canasta.rules.cardValues':
+    "Kaartide väärtused: jokker {joker}, 2 {two}, äss {ace}, kuningast kaheksani {high}, seitsmest neljani {low}, must kolm {black}. Punased kolmed on boonused ega lähe kunagi kombinatsiooni väärtusse.",
   'canasta.rules.meldFloorBands':
     'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} sellest üle.',
   'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} kuni {highUpTo} ja {top} üle selle.',
@@ -653,6 +659,8 @@ export const et: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinatsioon on kolme või nelja sama väärtusega kaardi grupp või kolme või enama sama masti kaardi jada.',
   'ginrummy.rules.aceLow': 'Äss on alati madal — emandast ässani jada ei ole.',
+  'ginrummy.rules.cardValues':
+    "Surnud kaartides on äss {ace}, 2–9 oma numbri väärtusega ning 10, poiss, emand ja kuningas {face}.",
   'ginrummy.rules.knockLimit': 'Sa võid koputada niipea, kui sinu deadwood on {n} või vähem.',
   'ginrummy.rules.oklahoma': 'Selle jagamise koputamispiiri määrab lahtise kaardi väärtus.',
   'ginrummy.rules.gin': 'Null deadwoodi on gin — parim võimalik koputus.',
@@ -739,6 +747,8 @@ export const et: Record<string, string> = {
   'rummytiles.rules.run': 'Jada on kolm või enam järjestikust numbrit ühes värvis.',
   'rummytiles.rules.noWrap': '13 järel ei alga uuesti 1.',
   'rummytiles.rules.joker': 'Jokker esindab ükskõik millist kivi.',
+  'rummytiles.rules.tileValues':
+    "Kivi väärtus on selle number. Kombinatsioonis olev jokker on väärt kivi, mida ta asendab; kätte jäänud jokker maksab {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Kuni sa pole ühe käiguga, ainuüksi oma käest, välja pannud {n} või enam punkti, ei tohi sa puutuda midagi, mis on juba laual.',
   'rummytiles.rules.turnDescription':
@@ -815,6 +825,8 @@ export const et: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Mängijate kaardid jagatakse kuvapoolega üles; jagaja hoiab ühte kaarti kinni, kuni kõik on mänginud.',
   'blackjack.rules.hitStand': 'Võta nii palju kaarte kui soovid või jää sellele, mis sul on.',
+  'blackjack.rules.cardValues':
+    "Kaardid 2–9 on oma numbri väärtusega; 10, poiss, emand ja kuningas on {face}.",
   'blackjack.rules.aces': 'Äss loeb üksteist seni, kuni see mahub, ja muidu üks.',
   'blackjack.rules.blackjack': 'Äss koos kümne väärtusega kaardiga kahel esimesel kaardil on blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack maksab 3:2.',

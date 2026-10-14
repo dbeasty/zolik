@@ -117,6 +117,8 @@ export const nl: Record<string, string> = {
   'zolik.rules.lead.winner': 'Wie uitgaat, begint de volgende ronde.',
   'zolik.rules.meldFloor.on':
     'Je eerste leg moet minstens {n} natuurlijke punten opleveren voordat je uitgelegd bent.',
+  'zolik.rules.meldFloor.values':
+    "Voor dat minimum telt elke kaart wat hij in de hand kost, behalve een aas: {aceHigh} in een set of boven een heer, {aceLow} onder een 2. Een joker telt als de kaart die hij vervangt.",
   'zolik.rules.meldFloor.off': 'Er geldt geen minimum aantal punten voor je eerste leg.',
   'zolik.rules.cleanRun.on':
     'Minstens één van je reeksen moet volledig jokervrij zijn voordat je als uitgelegd telt.',
@@ -125,6 +127,8 @@ export const nl: Record<string, string> = {
     'De partij duurt {n} rondes, en elke ronde vraagt haar eigen combinatie van groepen en reeksen.',
   'zolik.rules.contracts.static': 'Elke ronde vraagt dezelfde combinatie: {sets} groepen en {runs} reeksen.',
   'zolik.rules.end.afterDeals': 'De partij eindigt na {n} rondes.',
+  'zolik.rules.penalty.values':
+    "Een kaart die je overhoudt kost: joker {joker}, 10, boer, vrouw of heer {face}, 2 tot en met 9 zijn getal, en een aas {ace} — of maar {aceLow} als je ook een 2 van die kleur, of vrouw en heer van die kleur, in de hand hebt, of als hij een reeks op tafel zou verlengen.",
   'zolik.rules.end.atScore': 'Er wordt doorgedeeld tot iemand {n} punten haalt — dan is het voorbij.',
 
   'prsi.rules.section.goal': 'Doel',
@@ -185,6 +189,8 @@ export const nl: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'De aflegstapel is het hele spel bevroren: je kunt hem alleen nemen door de bovenste kaart te combineren met twee natuurlijke kaarten uit je hand.',
   'canasta.rules.pileOntoMeld': 'Heeft jouw partij al een onafgemaakte combinatie van de waarde van de bovenste kaart, dan mag je de hele aflegstapel nemen en die kaart eraan toevoegen — een paar in je hand is niet nodig.',
   'canasta.rules.pileNoMeldCapture': 'Een combinatie die al op tafel ligt kan de aflegstapel niet nemen: daarvoor moet je de bovenste kaart combineren met twee kaarten uit je eigen hand.',
+  'canasta.rules.cardValues':
+    "Kaartwaarden: joker {joker}, 2 {two}, aas {ace}, heer tot en met 8 {high}, 7 tot en met 4 {low}, zwarte drie {black}. Rode drieën zijn bonussen en tellen nooit mee voor een combinatie.",
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} daarboven.',
   'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} tot {highUpTo} en {top} daarboven.',
@@ -661,6 +667,8 @@ export const nl: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Een combinatie is een groep van drie of vier kaarten van één waarde, of een reeks van drie of meer kaarten in één kleur.',
   'ginrummy.rules.aceLow': 'De aas telt altijd laag — een reeks van vrouw tot en met aas bestaat niet.',
+  'ginrummy.rules.cardValues':
+    "Bij deadwood telt een aas {ace}, een 2 tot en met 9 zijn getal, en een 10, boer, vrouw of heer {face}.",
   'ginrummy.rules.knockLimit': 'Je mag kloppen zodra je deadwood {n} of minder is.',
   'ginrummy.rules.oklahoma': 'De klopgrens van deze hand wordt bepaald door de waarde van de open kaart.',
   'ginrummy.rules.gin': 'Nul deadwood is gin — de best mogelijke klop.',
@@ -748,6 +756,8 @@ export const nl: Record<string, string> = {
   'rummytiles.rules.run': 'Een reeks bestaat uit drie of meer opeenvolgende getallen in één kleur.',
   'rummytiles.rules.noWrap': 'Na de 13 begint het niet opnieuw bij de 1.',
   'rummytiles.rules.joker': 'Een joker staat voor elke willekeurige steen.',
+  'rummytiles.rules.tileValues':
+    "Een steen is zijn getal waard. Een joker in een combinatie is de steen waard die hij vervangt; een joker die je overhoudt kost {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Zolang je niet in één beurt {n} punten of meer hebt gelegd, uitsluitend uit je eigen hand, mag je niets aanraken van wat al op tafel ligt.',
   'rummytiles.rules.turnDescription':
@@ -825,6 +835,8 @@ export const nl: Record<string, string> = {
   'blackjack.rules.faceUp':
     'De kaarten van de spelers worden open gedeeld; de dealer houdt één kaart dicht tot iedereen gespeeld heeft.',
   'blackjack.rules.hitStand': 'Neem zoveel kaarten als je wilt, of blijf staan op wat je hebt.',
+  'blackjack.rules.cardValues':
+    "Een 2 tot en met 9 telt zijn getal; een 10, boer, vrouw of heer telt {face}.",
   'blackjack.rules.aces': 'Een aas telt voor elf zolang dat past, en anders voor één.',
   'blackjack.rules.blackjack':
     'Een aas met een tienwaardige kaart, op de eerste twee kaarten, is een blackjack.',

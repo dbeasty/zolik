@@ -118,6 +118,8 @@ export const pt: Record<string, string> = {
   'zolik.rules.lead.winner': 'Quem sai abre a ronda seguinte.',
   'zolik.rules.meldFloor.on':
     'A tua primeira baixa tem de somar pelo menos {n} pontos naturais para contares como baixado.',
+  'zolik.rules.meldFloor.values':
+    "Para esse mínimo cada carta conta o que custa na mão, exceto o ás: {aceHigh} num trio ou acima do rei, {aceLow} abaixo do 2. Um curinga conta como a carta que substitui.",
   'zolik.rules.meldFloor.off': 'Não há mínimo de pontos na tua primeira baixa.',
   'zolik.rules.cleanRun.on':
     'Pelo menos uma das tuas sequências tem de ser totalmente sem jokers para contares como baixado.',
@@ -127,6 +129,8 @@ export const pt: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Todas as rondas exigem a mesma combinação: {sets} grupos e {runs} sequências.',
   'zolik.rules.end.afterDeals': 'A partida acaba ao fim de {n} rondas.',
+  'zolik.rules.penalty.values':
+    "Uma carta que fique na mão custa: curinga {joker}, 10, valete, dama ou rei {face}, 2 a 9 o seu número, e um ás {ace} — ou só {aceLow} se também tiver na mão um 2 do seu naipe, ou a dama e o rei do seu naipe, ou se prolongasse uma sequência na mesa.",
   'zolik.rules.end.atScore': 'Continua a dar-se cartas até alguém chegar a {n} pontos — aí acaba.',
 
   'prsi.rules.section.goal': 'Objetivo',
@@ -186,6 +190,8 @@ export const pt: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'O monte de descartes está congelado durante toda a mão: para o levares tens de juntar a carta do topo a duas cartas naturais da tua mão.',
   'canasta.rules.pileOntoMeld': 'Se o teu lado já tiver uma combinação por terminar do valor da carta do topo, podes levar todo o monte de descartes e juntar-lhe essa carta — não precisas de um par na mão.',
   'canasta.rules.pileNoMeldCapture': 'Uma combinação que já está na mesa não pode levar o monte de descartes: para o levares tens de juntar a carta do topo a duas cartas da tua própria mão.',
+  'canasta.rules.cardValues':
+    "Valor das cartas: curinga {joker}, 2 {two}, ás {ace}, do rei ao 8 {high}, do 7 ao 4 {low}, três preto {black}. Os três vermelhos são bónus e nunca contam para uma combinação.",
   'canasta.rules.meldFloorBands':
     'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} acima disso.',
   'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} até {highUpTo} e {top} acima disso.',
@@ -655,6 +661,8 @@ export const pt: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Uma combinação é um grupo de três ou quatro cartas do mesmo valor, ou uma sequência de três ou mais no mesmo naipe.',
   'ginrummy.rules.aceLow': 'O ás é sempre baixo — não existe sequência de dama a ás.',
+  'ginrummy.rules.cardValues':
+    "No deadwood, um ás conta {ace}, um 2 a 9 o seu número, e um 10, valete, dama ou rei {face}.",
   'ginrummy.rules.knockLimit': 'Podes bater assim que o teu deadwood for {n} ou menos.',
   'ginrummy.rules.oklahoma': 'O limite para bater nesta mão é dado pelo valor da carta virada.',
   'ginrummy.rules.gin': 'Deadwood zero é gin — a melhor batida possível.',
@@ -742,6 +750,8 @@ export const pt: Record<string, string> = {
   'rummytiles.rules.run': 'Uma sequência são três ou mais números seguidos da mesma cor.',
   'rummytiles.rules.noWrap': 'O 13 não volta a ligar ao 1.',
   'rummytiles.rules.joker': 'Um joker representa qualquer peça.',
+  'rummytiles.rules.tileValues':
+    "Uma peça vale o seu número. Um curinga numa combinação vale a peça que substitui; um que fique na mão custa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Enquanto não tiveres baixado {n} pontos ou mais numa só jogada, apenas da tua própria mão, não podes mexer em nada do que já está na mesa.',
   'rummytiles.rules.turnDescription':
@@ -819,6 +829,8 @@ export const pt: Record<string, string> = {
   'blackjack.rules.faceUp':
     'As cartas dos jogadores são dadas viradas para cima; o dador mantém uma carta tapada até todos terem jogado.',
   'blackjack.rules.hitStand': 'Pede as cartas que quiseres, ou fica com o que tens.',
+  'blackjack.rules.cardValues':
+    "Um 2 a 9 conta o seu número; um 10, valete, dama ou rei conta {face}.",
   'blackjack.rules.aces': 'Um ás vale onze enquanto isso couber, e um quando não couber.',
   'blackjack.rules.blackjack': 'Um ás com uma carta de valor dez, nas duas primeiras cartas, é um blackjack.',
   'blackjack.rules.pays3to2': 'Um blackjack paga 3:2.',

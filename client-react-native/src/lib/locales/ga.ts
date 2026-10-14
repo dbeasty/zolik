@@ -118,6 +118,8 @@ export const ga: Record<string, string> = {
   'zolik.rules.lead.winner': 'Tosaíonn an té a théann amach an chéad dáileadh eile.',
   'zolik.rules.meldFloor.on':
     'Caithfidh do chéad leagan síos {n} phointe nádúrtha ar a laghad a bhaint amach sula mbeidh tú síos.',
+  'zolik.rules.meldFloor.values':
+    "I dtreo an íosmhéid sin, comhairtear gach cárta ar a gcosnaíonn sé i do lámh, seachas aon: {aceHigh} i dtacar nó os cionn rí, {aceLow} faoi bhun 2. Comhairtear fear grinn mar an cárta a sheasann sé dó.",
   'zolik.rules.meldFloor.off': 'Níl aon íosluach pointí ar do chéad leagan síos.',
   'zolik.rules.cleanRun.on':
     'Caithfidh ceann amháin ar a laghad de do shraitheanna a bheith go hiomlán gan áilteoir sula gcomhairtear síos thú.',
@@ -128,6 +130,8 @@ export const ga: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Éilíonn gach dáileadh an meascán céanna: {sets} thacar agus {runs} shraith.',
   'zolik.rules.end.afterDeals': 'Críochnaíonn an cluiche tar éis {n} dháileadh.',
+  'zolik.rules.penalty.values':
+    "Cosnaíonn cárta a fhanann i do lámh: fear grinn {joker}, 10, cuireata, banríon nó rí {face}, 2 go 9 a uimhir féin, agus aon {ace} — nó {aceLow} amháin má tá 2 dá chulaith, nó banríon agus rí dá chulaith, i do lámh freisin, nó dá gcuirfeadh sé le sraith ar an mbord.",
   'zolik.rules.end.atScore':
     'Leantar ag dáileadh go dtí go sroicheann duine éigin {n} bpointe — ansin tá deireadh leis.',
 
@@ -188,6 +192,8 @@ export const ga: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Tá an carn caite reoite ar feadh na dála ar fad: ní féidir leat é a thógáil ach an cárta barr a mheaitseáil le dhá chárta nádúrtha as do lámh.',
   'canasta.rules.pileOntoMeld': 'Má tá cumasc neamhchríochnaithe de luach an chárta uachtaraigh ag do thaobh cheana, is féidir leat an carn caite ar fad a thógáil agus an cárta sin a chur leis — ní gá péire a bheith i do lámh.',
   'canasta.rules.pileNoMeldCapture': 'Ní féidir le cumasc atá ar an mbord cheana an carn caite a thógáil: chun é a thógáil caithfidh tú an cárta barr a mheaitseáil le dhá chárta as do lámh féin.',
+  'canasta.rules.cardValues':
+    "Luach na gcártaí: fear grinn {joker}, 2 {two}, aon {ace}, rí go dtí 8 {high}, 7 go dtí 4 {low}, trí dubh {black}. Is bónais iad na tríonna dearga agus ní chomhairtear riamh i dtreo leagan iad.",
   'canasta.rules.meldFloorBands':
     'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} os a chionn sin.',
   'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} suas go {highUpTo} agus {top} os a chionn sin.',
@@ -668,6 +674,8 @@ export const ga: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Is é atá i gcumasc ná tacar de thrí nó ceithre chárta den luach céanna, nó sraith de thrí chárta nó níos mó den dath céanna.',
   'ginrummy.rules.aceLow': 'Bíonn an tAonach íseal i gcónaí — níl aon sraith ó Bhanríon go hAonach ann.',
+  'ginrummy.rules.cardValues':
+    "San adhmad marbh is fiú aon {ace}, 2 go 9 a n-uimhir féin, agus 10, cuireata, banríon nó rí {face}.",
   'ginrummy.rules.knockLimit': 'Is féidir leat cnagadh chomh luath is atá do deadwood {n} nó níos lú.',
   'ginrummy.rules.oklahoma': 'Socraítear teorainn chnagtha na láimhe seo de réir luach an chárta iompaithe.',
   'ginrummy.rules.gin': 'Is é gin é deadwood a náid — an cnagadh is fearr is féidir.',
@@ -758,6 +766,8 @@ export const ga: Record<string, string> = {
   'rummytiles.rules.run': 'Is é atá i sraith ná trí uimhir as a chéile nó níos mó den dath céanna.',
   'rummytiles.rules.noWrap': 'Ní fhilleann 13 timpeall go dtí 1.',
   'rummytiles.rules.joker': 'Seasann áilteoir do leacán ar bith.',
+  'rummytiles.rules.tileValues':
+    "Is fiú tíl a huimhir féin. Is fiú fear grinn i dtacar an tíl a sheasann sé di; cosnaíonn ceann a fhanann i do lámh {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Go dtí go leagann tú {n} bpointe nó níos mó in aon seal amháin, ó do lámh féin amháin, níl cead agat baint le haon rud atá ar an mbord cheana.',
   'rummytiles.rules.turnDescription':
@@ -836,6 +846,8 @@ export const ga: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Dáiltear cártaí na n-imreoirí aghaidh suas; coinníonn an dáileoir cárta amháin síos go dtí go mbíonn gach duine tar éis imirt.',
   'blackjack.rules.hitStand': 'Tarraing an oiread cártaí is mian leat, nó seas ar a bhfuil agat.',
+  'blackjack.rules.cardValues':
+    "Is fiú 2 go 9 a n-uimhir féin; is fiú 10, cuireata, banríon nó rí {face}.",
   'blackjack.rules.aces':
     'Comhairtear aonach mar aon déag fad is a oireann sé, agus mar a haon nuair nach n-oireann.',
   'blackjack.rules.blackjack': 'Is blackjack é aonach le cárta deich-luacha ar an gcéad dá chárta.',

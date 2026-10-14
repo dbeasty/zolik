@@ -117,6 +117,8 @@ export const ro: Record<string, string> = {
   'zolik.rules.lead.winner': 'Cine iese începe împărțirea următoare.',
   'zolik.rules.meldFloor.on':
     'Prima ta coborâre trebuie să totalizeze cel puțin {n} puncte naturale ca să fii coborât.',
+  'zolik.rules.meldFloor.values':
+    "Pentru acest minim fiecare carte contează cât costă în mână, cu excepția asului: {aceHigh} într-un set sau peste rege, {aceLow} sub 2. Un joker contează ca și cartea pe care o înlocuiește.",
   'zolik.rules.meldFloor.off': 'Nu există o valoare minimă de puncte la prima coborâre.',
   'zolik.rules.cleanRun.on':
     'Cel puțin una dintre scările tale trebuie să fie complet fără joker ca să fii considerat coborât.',
@@ -126,6 +128,8 @@ export const ro: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Fiecare împărțire cere aceeași combinație: {sets} grupuri și {runs} scări.',
   'zolik.rules.end.afterDeals': 'Meciul se încheie după {n} împărțiri.',
+  'zolik.rules.penalty.values':
+    "O carte rămasă în mână costă: joker {joker}, 10, valet, damă sau rege {face}, de la 2 la 9 numărul ei, iar un as {ace} — sau doar {aceLow} dacă ai în mână și un 2 de aceeași culoare, ori dama și regele de aceeași culoare, sau dacă ar prelungi o secvență de pe masă.",
   'zolik.rules.end.atScore':
     'Se împarte mai departe până când cineva ajunge la {n} puncte — atunci s-a terminat.',
 
@@ -186,6 +190,8 @@ export const ro: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Teancul de aruncate este înghețat toată mâna: îl poți lua doar potrivind cartea de deasupra cu două cărți naturale din mână.',
   'canasta.rules.pileOntoMeld': 'Dacă partea ta are deja o combinație neterminată de valoarea cărții de deasupra, poți lua tot teancul de aruncate ca să adaugi acea carte la ea — nu ai nevoie de o pereche în mână.',
   'canasta.rules.pileNoMeldCapture': 'O combinație aflată deja pe masă nu poate lua teancul de aruncate: ca să îl iei trebuie să potrivești cartea de deasupra cu două cărți din propria mână.',
+  'canasta.rules.cardValues':
+    "Valoarea cărților: joker {joker}, 2 {two}, as {ace}, de la rege la 8 {high}, de la 7 la 4 {low}, trei negru {black}. Treiurile roșii sunt bonusuri și nu se socotesc niciodată la o formație.",
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} peste.',
   'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} până la {highUpTo} și {top} peste.',
@@ -655,6 +661,8 @@ export const ro: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'O combinație este un grup de trei sau patru cărți de o valoare, sau o scară de trei sau mai multe de aceeași culoare.',
   'ginrummy.rules.aceLow': 'Asul este întotdeauna mic — nu există scară de la damă la as.',
+  'ginrummy.rules.cardValues':
+    "La deadwood, asul valorează {ace}, cărțile de la 2 la 9 numărul lor, iar 10, valetul, dama și regele {face}.",
   'ginrummy.rules.knockLimit': 'Poți bate de îndată ce deadwood-ul tău este {n} sau mai mic.',
   'ginrummy.rules.oklahoma': 'Limita de bătaie a acestei mâini este dată de valoarea cărții întoarse.',
   'ginrummy.rules.gin': 'Deadwood zero înseamnă gin — cea mai bună bătaie posibilă.',
@@ -741,6 +749,8 @@ export const ro: Record<string, string> = {
   'rummytiles.rules.run': 'O scară are trei sau mai multe numere consecutive de aceeași culoare.',
   'rummytiles.rules.noWrap': '13 nu se leagă înapoi la 1.',
   'rummytiles.rules.joker': 'Un joker reprezintă orice piesă.',
+  'rummytiles.rules.tileValues':
+    "O piesă valorează numărul ei. Un joker într-o formație valorează piesa pe care o înlocuiește; unul rămas în mână costă {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Până când nu ai coborât {n} sau mai multe puncte într-o singură tură, doar din mâna ta, nu ai voie să atingi nimic din ce este deja pe masă.',
   'rummytiles.rules.turnDescription':
@@ -818,6 +828,8 @@ export const ro: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Cărțile jucătorilor se împart cu fața în sus; crupierul ține o carte acoperită până joacă toată lumea.',
   'blackjack.rules.hitStand': 'Trage câte cărți vrei, sau rămâi la ce ai.',
+  'blackjack.rules.cardValues':
+    "Cărțile de la 2 la 9 valorează numărul lor; 10, valetul, dama și regele {face}.",
   'blackjack.rules.aces': 'Un as valorează unsprezece cât timp încape, și unu când nu încape.',
   'blackjack.rules.blackjack': 'Un as cu o carte de valoare zece, pe primele două cărți, este blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack-ul plătește 3:2.',
