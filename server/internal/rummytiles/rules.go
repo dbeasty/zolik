@@ -22,6 +22,12 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "rummytiles.rules.run"},
 			module.Fact{LabelKey: "rummytiles.rules.noWrap"},
 			module.Fact{LabelKey: "rummytiles.rules.joker"},
+			// The opening minimum and the end-of-round penalty are both counted
+			// in tile values, so the values are stated once, beside the joker
+			// whose two prices (in a set, in a hand) differ.
+			module.Fact{LabelKey: "rummytiles.rules.tileValues", Params: map[string]any{
+				"joker": tileValue("JOKER1"),
+			}},
 		),
 		module.Section("rummytiles.rules.initialMeld",
 			module.Fact{LabelKey: "rummytiles.rules.initialMeldDescription", Params: map[string]any{"n": initialMeldFloor}},

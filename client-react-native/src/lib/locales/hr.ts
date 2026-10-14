@@ -117,6 +117,8 @@ export const hr: Record<string, string> = {
   'zolik.rules.lead.winner': 'Tko izađe, otvara sljedeće dijeljenje.',
   'zolik.rules.meldFloor.on':
     'Tvoje prvo spuštanje mora dati najmanje {n} prirodnih bodova da bi bio spušten.',
+  'zolik.rules.meldFloor.values':
+    "Za taj minimum svaka karta vrijedi koliko stoji u ruci, osim asa: {aceHigh} u setu ili iznad kralja, {aceLow} ispod dvojke. Džoker vrijedi kao karta koju zamjenjuje.",
   'zolik.rules.meldFloor.off': 'Za prvo spuštanje nema najmanje bodovne vrijednosti.',
   'zolik.rules.cleanRun.on':
     'Barem jedan tvoj niz mora biti potpuno bez džokera da bi se računao kao spušten.',
@@ -126,6 +128,8 @@ export const hr: Record<string, string> = {
     'Meč traje {n} dijeljenja, a svako dijeljenje traži vlastitu kombinaciju grupa i nizova.',
   'zolik.rules.contracts.static': 'Svako dijeljenje traži istu kombinaciju: {sets} grupa i {runs} nizova.',
   'zolik.rules.end.afterDeals': 'Meč završava nakon {n} dijeljenja.',
+  'zolik.rules.penalty.values':
+    "Karta koja vam ostane u ruci stoji: džoker {joker}, 10, dečko, dama ili kralj {face}, od 2 do 9 svoj broj, a as {ace} — ili samo {aceLow} ako u ruci imate i dvojku njegove boje, ili damu i kralja njegove boje, ili bi produljio niz na stolu.",
   'zolik.rules.end.atScore': 'Dijeli se dalje dok netko ne dosegne {n} bodova — tada je gotovo.',
 
   'prsi.rules.section.goal': 'Cilj',
@@ -184,6 +188,8 @@ export const hr: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Hrpa odbačenih zamrznuta je cijelo dijeljenje: možeš je uzeti samo tako da gornjoj karti pridružiš dvije prirodne karte iz ruke.',
   'canasta.rules.pileOntoMeld': 'Ako tvoja strana već ima nedovršenu kombinaciju vrijednosti gornje karte, možeš uzeti cijelu hrpu odbačenih i toj kombinaciji pridružiti tu kartu — par u ruci nije potreban.',
   'canasta.rules.pileNoMeldCapture': 'Kombinacija koja je već na stolu ne može uzeti hrpu odbačenih: da bi je uzeo, gornjoj karti moraš pridružiti dvije karte iz vlastite ruke.',
+  'canasta.rules.cardValues':
+    "Vrijednosti karata: džoker {joker}, dvojka {two}, as {ace}, od kralja do osmice {high}, od sedmice do četvorke {low}, crna trojka {black}. Crvene trojke su bonus i nikad se ne broje u kombinaciju.",
   'canasta.rules.meldFloorBands':
     'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} iznad toga.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} i {top} iznad toga.',
@@ -651,6 +657,8 @@ export const hr: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinacija je grupa od tri ili četiri karte jedne vrijednosti, ili niz od tri ili više karata iste boje.',
   'ginrummy.rules.aceLow': 'As je uvijek nizak — nema niza od dame do asa.',
+  'ginrummy.rules.cardValues':
+    "U mrtvim kartama as vrijedi {ace}, karte od 2 do 9 svoj broj, a 10, dečko, dama i kralj {face}.",
   'ginrummy.rules.knockLimit': 'Smiješ kucnuti čim ti deadwood padne na {n} ili manje.',
   'ginrummy.rules.oklahoma': 'Granicu kucanja u ovom dijeljenju određuje vrijednost okrenute karte.',
   'ginrummy.rules.gin': 'Nulti deadwood je gin — najbolje moguće kucanje.',
@@ -737,6 +745,8 @@ export const hr: Record<string, string> = {
   'rummytiles.rules.run': 'Niz su tri ili više uzastopnih brojeva iste boje.',
   'rummytiles.rules.noWrap': 'Nakon 13 se ne kreće opet od 1.',
   'rummytiles.rules.joker': 'Džoker predstavlja bilo koju pločicu.',
+  'rummytiles.rules.tileValues':
+    "Pločica vrijedi svoj broj. Džoker u kombinaciji vrijedi kao pločica koju zamjenjuje; džoker koji vam ostane u ruci stoji {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Dok ne spustiš {n} ili više bodova u jednom potezu, isključivo iz vlastite ruke, ne smiješ dirati ništa što je već na stolu.',
   'rummytiles.rules.turnDescription':
@@ -813,6 +823,8 @@ export const hr: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Karte igrača dijele se licem gore; djelitelj drži jednu kartu pokrivenu dok svi ne odigraju.',
   'blackjack.rules.hitStand': 'Vuci koliko god karata želiš ili stani na onome što imaš.',
+  'blackjack.rules.cardValues':
+    "Karte od 2 do 9 vrijede svoj broj; 10, dečko, dama i kralj vrijede {face}.",
   'blackjack.rules.aces': 'As vrijedi jedanaest dok to stane, a inače jedan.',
   'blackjack.rules.blackjack': 'As s kartom vrijednosti deset, na prve dvije karte, je blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack plaća 3:2.',

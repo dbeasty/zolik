@@ -105,6 +105,15 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 		melding = append(melding, module.Rule("zolik.rules.contracts.static",
 			map[string]any{"sets": contract.Sets, "runs": contract.Runs}))
 	}
+	// What counts toward the floor, stated only where there is a floor: the
+	// same as a card costs in hand except the ace, whose worth depends on
+	// which end of the meld it plays (rules.runRankValue). Read off the rules
+	// package so the sentence cannot drift from the check it describes.
+	if cfg.InitialMeldMinimum > 0 {
+		melding = append(melding, module.Rule("zolik.rules.meldFloor.values", map[string]any{
+			"aceHigh": rules.AceMeldValue, "aceLow": rules.AceRunLowValue,
+		}))
+	}
 	melding = append(melding, module.Rule("zolik.rules.contracts.contribution", nil))
 
 	// Everything you may do to melds already on the table. Its own section
@@ -121,7 +130,14 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 		layOff = append(layOff, module.Rule("zolik.rules.jokers.reclaim.off", nil))
 	}
 
-	end := []module.RuleItem{}
+	// What a card left in hand costs — the unit the goal and the match end
+	// are both counted in. The ace's discount mirrors handCardPenalty.
+	end := []module.RuleItem{
+		module.Rule("zolik.rules.penalty.values", map[string]any{
+			"joker": rules.PenaltyPoints("JOKER1", false), "ace": rules.PenaltyPoints("AS", false),
+			"aceLow": rules.PenaltyPoints("AS", true), "face": rules.PenaltyPoints("KS", false),
+		}),
+	}
 	if cfg.MatchEndMode == rules.MatchEndAfterDeals {
 		end = append(end, module.Rule("zolik.rules.end.afterDeals",
 			map[string]any{"n": cfg.FixedDealCount}))

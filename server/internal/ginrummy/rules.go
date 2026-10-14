@@ -33,6 +33,12 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		module.Section("ginrummy.rules.melds",
 			module.Fact{LabelKey: "ginrummy.rules.setsAndRuns"},
 			module.Fact{LabelKey: "ginrummy.rules.aceLow"},
+			// Deadwood is the unit every knocking and scoring rule below is
+			// counted in, so what a card weighs is stated here, read off
+			// cardValue rather than written out a second time.
+			module.Fact{LabelKey: "ginrummy.rules.cardValues", Params: map[string]any{
+				"ace": cardValue("AS"), "face": cardValue("KS"),
+			}},
 		),
 	}
 

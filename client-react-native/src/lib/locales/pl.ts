@@ -118,6 +118,8 @@ export const pl: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kto wychodzi, ten zaczyna następne rozdanie.',
   'zolik.rules.meldFloor.on':
     'Twoje pierwsze wyłożenie musi dać łącznie co najmniej {n} punktów naturalnych, żebyś był wyłożony.',
+  'zolik.rules.meldFloor.values':
+    "Do tego minimum każda karta liczy się tak jak w ręce, z wyjątkiem asa: {aceHigh} w secie lub nad królem, {aceLow} pod dwójką. Joker liczy się jak karta, którą zastępuje.",
   'zolik.rules.meldFloor.off': 'Pierwsze wyłożenie nie ma minimalnej wartości punktowej.',
   'zolik.rules.cleanRun.on':
     'Co najmniej jeden z twoich sekwensów musi być całkowicie bez jokera, żebyś liczył się jako wyłożony.',
@@ -128,6 +130,8 @@ export const pl: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Każde rozdanie wymaga tego samego zestawu: {sets} grup i {runs} sekwensów.',
   'zolik.rules.end.afterDeals': 'Mecz kończy się po {n} rozdaniach.',
+  'zolik.rules.penalty.values':
+    "Karta, która zostanie ci w ręce, kosztuje: joker {joker}, 10, walet, dama lub król {face}, od 2 do 9 swoją liczbę, a as {ace} — lub tylko {aceLow}, jeśli masz też w ręce dwójkę w jego kolorze albo damę i króla w jego kolorze, lub gdyby przedłużył sekwens na stole.",
   'zolik.rules.end.atScore': 'Rozdaje się dalej, aż ktoś osiągnie {n} punktów — wtedy koniec.',
 
   'prsi.rules.section.goal': 'Cel',
@@ -187,6 +191,8 @@ export const pl: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Stos odrzuconych jest zamrożony przez całe rozdanie: aby go wziąć, musisz dołożyć do wierzchniej karty dwie naturalne karty z ręki.',
   'canasta.rules.pileOntoMeld': 'Jeśli twoja strona ma już na stole niedokończony układ o wartości wierzchniej karty, możesz wziąć cały stos odrzuconych i dołożyć do niego tę kartę — para w ręce nie jest potrzebna.',
   'canasta.rules.pileNoMeldCapture': 'Układ leżący już na stole nie może wziąć stosu odrzuconych: aby go wziąć, musisz dołożyć do wierzchniej karty dwie karty z własnej ręki.',
+  'canasta.rules.cardValues':
+    "Wartości kart: joker {joker}, dwójka {two}, as {ace}, od króla do ósemki {high}, od siódemki do czwórki {low}, czarna trójka {black}. Czerwone trójki są premią i nigdy nie liczą się do układu.",
   'canasta.rules.meldFloorBands':
     'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} powyżej.',
   'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo}, powyżej {top}.',
@@ -654,6 +660,8 @@ export const pl: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Układ to grupa trzech lub czterech kart tej samej wartości albo sekwens trzech lub więcej kart w jednym kolorze.',
   'ginrummy.rules.aceLow': 'As jest zawsze niski — nie ma sekwensu od damy do asa.',
+  'ginrummy.rules.cardValues':
+    "W deadwood as liczy się za {ace}, karty od 2 do 9 według liczby, a 10, walet, dama i król za {face}.",
   'ginrummy.rules.knockLimit': 'Możesz zapukać, gdy twój deadwood wynosi {n} lub mniej.',
   'ginrummy.rules.oklahoma': 'Limit pukania w tym rozdaniu wyznacza wartość odkrytej karty.',
   'ginrummy.rules.gin': 'Zerowy deadwood to gin — najlepsze możliwe zapukanie.',
@@ -740,6 +748,8 @@ export const pl: Record<string, string> = {
   'rummytiles.rules.run': 'Sekwens to trzy albo więcej kolejnych liczb w jednym kolorze.',
   'rummytiles.rules.noWrap': 'Po 13 nie wraca się do 1.',
   'rummytiles.rules.joker': 'Joker zastępuje dowolną kostkę.',
+  'rummytiles.rules.tileValues':
+    "Kostka jest warta swoją liczbę. Joker w układzie jest wart tyle, co kostka, którą zastępuje; joker, który zostanie ci w ręce, kosztuje {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Dopóki nie wyłożysz {n} lub więcej punktów w jednej kolejce, wyłącznie z własnej ręki, nie wolno ci ruszać niczego, co już leży na stole.',
   'rummytiles.rules.turnDescription':
@@ -817,6 +827,8 @@ export const pl: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Karty graczy rozdaje się odkryte; krupier trzyma jedną kartę zakrytą, dopóki wszyscy nie zagrają.',
   'blackjack.rules.hitStand': 'Dobierz tyle kart, ile chcesz, albo zostań przy tym, co masz.',
+  'blackjack.rules.cardValues':
+    "Karty od 2 do 9 liczą się według liczby; 10, walet, dama i król za {face}.",
   'blackjack.rules.aces': 'As liczy się jako jedenaście, dopóki to się mieści, a poza tym jako jeden.',
   'blackjack.rules.blackjack': 'As z kartą o wartości dziesięć, na dwóch pierwszych kartach, to blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack płaci 3:2.',

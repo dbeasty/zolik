@@ -117,6 +117,8 @@ export const cs: Record<string, string> = {
   'zolik.rules.lead.winner': 'Další kolo začíná ten, kdo se právě zbavil karet.',
   'zolik.rules.meldFloor.on':
     'Tvoje první kombinace (nebo kombinace) musí dohromady mít aspoň {n} přirozených bodů, než jsi dole.',
+  'zolik.rules.meldFloor.values':
+    "Do tohoto minima se každá karta počítá stejně jako v ruce, kromě esa: {aceHigh} v trojici nebo nad králem, {aceLow} pod dvojkou. Žolík se počítá jako karta, kterou zastupuje.",
   'zolik.rules.meldFloor.off': 'Na první kombinaci není žádná minimální bodová hranice.',
   'zolik.rules.cleanRun.on':
     'Než se počítáš jako dole, musíš mít na stole aspoň jednu postupku úplně bez žolíka.',
@@ -126,6 +128,8 @@ export const cs: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Každé rozdání vyžaduje stejnou kombinaci: {sets} skupin a {runs} postupek.',
   'zolik.rules.end.afterDeals': 'Zápas končí po {n} rozdáních.',
+  'zolik.rules.penalty.values':
+    "Karta, která vám zůstane v ruce, stojí: žolík {joker}, desítka, kluk, dáma či král {face}, dvojka až devítka podle čísla a eso {ace} — nebo jen {aceLow}, pokud máte v ruce i dvojku jeho barvy, nebo dámu i krále jeho barvy, anebo by prodloužilo postupku na stole.",
   'zolik.rules.end.atScore': 'Rozdává se dál, dokud někdo nedosáhne {n} bodů — pak zápas končí.',
 
   'prsi.rules.section.goal': 'Cíl',
@@ -184,6 +188,8 @@ export const cs: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Odhazovací balíček je zamrzlý po celé rozdání: vzít si ho můžete jen tak, že k vrchní kartě přiložíte dvě přirozené karty z ruky.',
   'canasta.rules.pileOntoMeld': 'Pokud vaše strana už má na stole nedokončenou kombinaci v hodnotě vrchní karty, můžete si vzít celý odhazovací balíček a tuto kartu k ní přiložit — dvojici v ruce k tomu nepotřebujete.',
   'canasta.rules.pileNoMeldCapture': 'Kombinace ležící na stole si odhazovací balíček vzít nemůže: abyste ho získali, musíte k jeho vrchní kartě přiložit dvě karty z vlastní ruky.',
+  'canasta.rules.cardValues':
+    "Hodnoty karet: žolík {joker}, dvojka {two}, eso {ace}, král až osma {high}, sedma až čtyřka {low}, černá trojka {black}. Červené trojky jsou bonus a do hodnoty kombinace se nepočítají.",
   'canasta.rules.meldFloorBands':
     'Minimální hodnota první kombinace roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tím.',
   'canasta.rules.meldFloorBandsFive': 'Vaše první kombinace musí dosáhnout bodového minima, které roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} a {top} nad tím.',
@@ -645,6 +651,8 @@ export const cs: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinace je trojice nebo čtveřice karet stejné hodnoty, nebo postupka tří a více karet stejné barvy.',
   'ginrummy.rules.aceLow': 'Eso je vždy nejnižší karta — postupka od Q přes K až po A neexistuje.',
+  'ginrummy.rules.cardValues':
+    "Do mrtvých karet se eso počítá za {ace}, dvojka až devítka podle čísla a desítka, kluk, dáma či král za {face}.",
   'ginrummy.rules.knockLimit': 'Klepnout můžeš, jakmile máš {n} nebo méně mrtvých bodů.',
   'ginrummy.rules.oklahoma': 'Limit pro klepnutí v tomto kole určuje hodnota otočené karty.',
   'ginrummy.rules.gin': 'Nula mrtvých bodů je gin — nejlepší možné klepnutí.',
@@ -731,6 +739,8 @@ export const cs: Record<string, string> = {
   'rummytiles.rules.run': 'Řada jsou tři a více po sobě jdoucích čísel jedné barvy.',
   'rummytiles.rules.noWrap': '13 nenavazuje zpátky na 1.',
   'rummytiles.rules.joker': 'Žolík zastupuje libovolný kámen.',
+  'rummytiles.rules.tileValues':
+    "Kostka má hodnotu svého čísla. Žolík v sestavě má hodnotu kostky, kterou zastupuje; žolík, který vám zůstane v ruce, stojí {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Dokud v jednom tahu nepoložíš {n} a více bodů výhradně z vlastní ruky, nesmíš sahat na nic, co už je na stole.',
   'rummytiles.rules.turnDescription':
@@ -807,6 +817,8 @@ export const cs: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Karty hráčů se rozdávají lícem nahoru; krupiér má jednu kartu skrytou, dokud všichni nedohrají.',
   'blackjack.rules.hitStand': 'Můžeš si brát další karty, nebo zůstat stát na tom, co máš.',
+  'blackjack.rules.cardValues':
+    "Dvojka až devítka se počítá podle čísla; desítka, kluk, dáma i král za {face}.",
   'blackjack.rules.aces': 'Eso platí jedenáct, dokud se vejde, jinak jedna.',
   'blackjack.rules.blackjack': 'Eso s desítkovou kartou na prvních dvou kartách je blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack se platí 3:2.',

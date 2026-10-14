@@ -118,6 +118,8 @@ export const mt: Record<string, string> = {
   'zolik.rules.lead.winner': 'Min joħroġ jibda t-tqassim li jmiss.',
   'zolik.rules.meldFloor.on':
     'L-ewwel tniżżil tiegħek irid jilħaq mill-inqas {n} punti naturali qabel ma tkun niżżilt.',
+  'zolik.rules.meldFloor.values':
+    "Għal dak il-minimu kull karta tgħodd kemm tiswa f'idejk, ħlief l-as: {aceHigh} f'sett jew fuq is-sultan, {aceLow} taħt it-2. Il-joker jgħodd daqs il-karta li qed jissostitwixxi.",
   'zolik.rules.meldFloor.off': "M'hemm ebda valur minimu ta' punti fl-ewwel tniżżil tiegħek.",
   'zolik.rules.cleanRun.on':
     'Mill-inqas waħda mis-sekwenzi tiegħek trid tkun kompletament mingħajr joker qabel ma titqies li niżżilt.',
@@ -127,6 +129,8 @@ export const mt: Record<string, string> = {
     "Il-partita ddum {n} tqassimiet, u kull tqassim jitlob it-taħlita tiegħu ta' gruppi u sekwenzi.",
   'zolik.rules.contracts.static': 'Kull tqassim jitlob l-istess taħlita: {sets} gruppi u {runs} sekwenzi.',
   'zolik.rules.end.afterDeals': 'Il-partita tispiċċa wara {n} tqassimiet.',
+  'zolik.rules.penalty.values':
+    "Karta li tibqa' f'idejk tiswa: joker {joker}, 10, fanti, reġina jew sultan {face}, minn 2 sa 9 in-numru tagħha, u as {ace} — jew {aceLow} biss jekk f'idejk għandek ukoll 2 tal-istess libsa, jew ir-reġina u s-sultan tal-istess libsa, jew jekk itawwal sekwenza fuq il-mejda.",
   'zolik.rules.end.atScore': "Jibqa' jitqassam sakemm xi ħadd jilħaq {n} punti — imbagħad tispiċċa.",
 
   'prsi.rules.section.goal': 'Għan',
@@ -185,6 +189,8 @@ export const mt: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': "Il-munzell tal-iskart huwa ffriżat għad-daqqa kollha: tista' teħdu biss billi tqabbel il-karta ta' fuq ma' żewġ karti naturali minn idejk.",
   'canasta.rules.pileOntoMeld': "Jekk in-naħa tiegħek diġà għandha kombinazzjoni mhux lesta tal-valur tal-karta ta' fuq, tista' tieħu l-munzell tal-iskart kollu u żżid dik il-karta magħha — m'għandekx bżonn par f'idejk.",
   'canasta.rules.pileNoMeldCapture': "Kombinazzjoni li diġà qiegħda fuq il-mejda ma tistax tieħu l-munzell tal-iskart: biex teħdu trid tqabbel il-karta ta' fuq ma' żewġ karti minn idejk stess.",
+  'canasta.rules.cardValues':
+    "Il-valur tal-karti: joker {joker}, 2 {two}, as {ace}, mis-sultan sat-8 {high}, mis-7 sal-4 {low}, tlieta sewda {black}. It-tlietiet ħomor huma bonus u qatt ma jgħoddu għal kombinazzjoni.",
   'canasta.rules.meldFloorBands':
     "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} 'il fuq minn hekk.",
   'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} sa {highUpTo} u {top} 'il fuq minn hekk.",
@@ -659,6 +665,8 @@ export const mt: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     "Kombinazzjoni hija grupp ta' tliet jew erba' karti ta' valur wieħed, jew sekwenza ta' tlieta jew aktar tal-istess kulur.",
   'ginrummy.rules.aceLow': "L-ass dejjem baxx — m'hemmx sekwenza minn Reġina sa Ass.",
+  'ginrummy.rules.cardValues':
+    "Fid-deadwood l-as jgħodd {ace}, minn 2 sa 9 in-numru tagħhom, u l-10, il-fanti, ir-reġina u s-sultan {face}.",
   'ginrummy.rules.knockLimit': "Tista' tħabbat malli d-deadwood tiegħek ikun {n} jew inqas.",
   'ginrummy.rules.oklahoma':
     "Il-limitu tat-tħabbit ta' din l-id jiġi stabbilit mill-valur tal-karta mikxufa.",
@@ -749,6 +757,8 @@ export const mt: Record<string, string> = {
   'rummytiles.rules.run': 'Sekwenza hija tliet numri jew aktar wara xulxin tal-istess kulur.',
   'rummytiles.rules.noWrap': 'It-13 ma jerġax jibda mill-1.',
   'rummytiles.rules.joker': 'Joker jirrappreżenta kwalunkwe plakka.',
+  'rummytiles.rules.tileValues':
+    "Madum jiswa n-numru tiegħu. Joker f'kombinazzjoni jiswa l-madum li qed jissostitwixxi; joker li jibqa' f'idejk jiswa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     "Sakemm ma tniżżilx {n} punti jew aktar f'dawra waħda, minn idek biss, ma tistax tmiss xejn minn dak li diġà jinsab fuq il-mejda.",
   'rummytiles.rules.turnDescription':
@@ -826,6 +836,8 @@ export const mt: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Il-karti tal-plejers jitqassmu mikxufa; id-dealer iżomm karta waħda mgħottija sakemm kulħadd ikun lagħab.',
   'blackjack.rules.hitStand': 'Iġbed kemm karti trid, jew ieqaf fuq dak li għandek.',
+  'blackjack.rules.cardValues':
+    "Minn 2 sa 9 jgħoddu n-numru tagħhom; l-10, il-fanti, ir-reġina u s-sultan jgħoddu {face}.",
   'blackjack.rules.aces': 'Ass jgħodd ħdax sakemm dak joqgħod, u wieħed meta ma joqgħodx.',
   'blackjack.rules.blackjack': "Ass ma' karta ta' valur għaxra, fl-ewwel żewġ karti, huwa blackjack.",
   'blackjack.rules.pays3to2': 'Blackjack iħallas 3:2.',

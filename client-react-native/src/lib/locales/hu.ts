@@ -118,6 +118,8 @@ export const hu: Record<string, string> = {
   'zolik.rules.lead.winner': 'Aki kiszáll, az kezdi a következő leosztást.',
   'zolik.rules.meldFloor.on':
     'Az első lerakásodnak legalább {n} természetes pontot kell adnia ahhoz, hogy leraktnak számíts.',
+  'zolik.rules.meldFloor.values':
+    "Ebbe a minimumba minden lap annyit számít, amennyibe a kézben kerül, kivéve az ászt: {aceHigh} egy drillben vagy a király fölött, {aceLow} a 2-es alatt. A joker annyit ér, mint a lap, amelyet helyettesít.",
   'zolik.rules.meldFloor.off': 'Az első lerakásodra nincs minimális pontérték.',
   'zolik.rules.cleanRun.on':
     'Legalább az egyik sorodnak teljesen joker nélkülinek kell lennie ahhoz, hogy leraktnak számíts.',
@@ -128,6 +130,8 @@ export const hu: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Minden leosztás ugyanazt a kombinációt kéri: {sets} csoport és {runs} sor.',
   'zolik.rules.end.afterDeals': 'A mérkőzés {n} leosztás után ér véget.',
+  'zolik.rules.penalty.values':
+    "A kezedben maradt lap ára: joker {joker}, 10, bubi, dáma vagy király {face}, 2–9 a számértéke, az ász pedig {ace} — vagy csak {aceLow}, ha a kezedben van az ő színéből egy 2-es is, vagy az ő színének dámája és királya, vagy ha meghosszabbítana egy sort az asztalon.",
   'zolik.rules.end.atScore': 'Addig osztanak újra, amíg valaki el nem éri a(z) {n} pontot — akkor vége.',
 
   'prsi.rules.section.goal': 'Cél',
@@ -189,6 +193,8 @@ export const hu: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'A dobópakli az egész osztás alatt be van fagyasztva: csak úgy viheted el, ha a felső lapját két természetes lappal párosítod a kezedből.',
   'canasta.rules.pileOntoMeld': 'Ha az oldaladnak már van befejezetlen kombinációja a felső lap értékéből, elviheted az egész dobópaklit, és hozzáteheted azt a lapot — nem kell hozzá pár a kezedben.',
   'canasta.rules.pileNoMeldCapture': 'Az asztalon fekvő kombináció nem viheti el a dobópaklit: az elvitelhez a felső lapját két saját kézből származó lappal kell párosítanod.',
+  'canasta.rules.cardValues':
+    "Kártyaértékek: joker {joker}, 2-es {two}, ász {ace}, királytól 8-asig {high}, 7-estől 4-esig {low}, fekete 3-as {black}. A piros 3-asok bónuszok, és sosem számítanak bele egy kirakásba.",
   'canasta.rules.meldFloorBands':
     'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} azon felül.',
   'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} {highUpTo}-ig, azon felül {top}.',
@@ -663,6 +669,8 @@ export const hu: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'A kombináció három vagy négy azonos értékű lapból álló csoport, vagy három vagy több azonos színű lapból álló sor.',
   'ginrummy.rules.aceLow': 'Az ász mindig alacsony — dámától ászig nincs sor.',
+  'ginrummy.rules.cardValues':
+    "A holtfában az ász {ace}, a 2–9 a számértéke, a 10, bubi, dáma és király pedig {face} pontot ér.",
   'ginrummy.rules.knockLimit': 'Kopoghatsz, amint a deadwoodod {n} vagy kevesebb.',
   'ginrummy.rules.oklahoma': 'Ebben a leosztásban a kopogási határt a felfordított lap értéke szabja meg.',
   'ginrummy.rules.gin': 'A nulla deadwood a gin — a lehető legjobb kopogás.',
@@ -749,6 +757,8 @@ export const hu: Record<string, string> = {
   'rummytiles.rules.run': 'A sor három vagy több egymást követő szám azonos színben.',
   'rummytiles.rules.noWrap': 'A 13 után nem kezdődik újra az 1.',
   'rummytiles.rules.joker': 'A joker bármelyik lapkát helyettesíti.',
+  'rummytiles.rules.tileValues':
+    "Egy kő a számát éri. Egy joker a kirakásban annyit ér, mint a kő, amelyet helyettesít; a kezedben maradt joker {joker} pontba kerül.",
   'rummytiles.rules.initialMeldDescription':
     'Amíg egyetlen körben, kizárólag a saját kezedből, nem raktál le {n} vagy több pontot, semmihez nem nyúlhatsz, ami már az asztalon van.',
   'rummytiles.rules.turnDescription':
@@ -826,6 +836,8 @@ export const hu: Record<string, string> = {
   'blackjack.rules.faceUp':
     'A játékosok lapjait nyíltan osztják; az osztó egy lapot lefordítva tart, amíg mindenki le nem játszott.',
   'blackjack.rules.hitStand': 'Húzz annyi lapot, amennyit akarsz, vagy maradj annál, amid van.',
+  'blackjack.rules.cardValues':
+    "A 2–9 a számértékét éri; a 10, bubi, dáma és király {face} pontot.",
   'blackjack.rules.aces': 'Az ász tizenegyet ér, amíg belefér, egyébként egyet.',
   'blackjack.rules.blackjack': 'Ász egy tízértékű lappal, az első két lapon: ez a blackjack.',
   'blackjack.rules.pays3to2': 'A blackjack 3:2-t fizet.',

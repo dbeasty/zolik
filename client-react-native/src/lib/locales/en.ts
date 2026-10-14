@@ -125,6 +125,8 @@ export const en: Record<string, string> = {
   'zolik.rules.lead.winner': 'Whoever goes out leads the next deal.',
   'zolik.rules.meldFloor.on':
     "Your first meld (or melds) must total at least {n} natural points before you're down.",
+  'zolik.rules.meldFloor.values':
+    "Toward that minimum each card counts what it costs in hand, except an ace: {aceHigh} in a set or above a king, {aceLow} below a 2. A joker counts as the card it stands for.",
   'zolik.rules.meldFloor.off': "There's no minimum point value on your first meld.",
   'zolik.rules.cleanRun.on':
     'At least one of your runs must be completely joker-free before you count as down.',
@@ -133,6 +135,8 @@ export const en: Record<string, string> = {
     'The match is {n} deals long, and each deal requires its own combination of sets and runs.',
   'zolik.rules.contracts.static': 'Every deal requires the same combination: {sets} sets and {runs} runs.',
   'zolik.rules.end.afterDeals': 'The match ends after {n} deals.',
+  'zolik.rules.penalty.values':
+    "A card left in your hand costs: a joker {joker}, a 10, jack, queen or king {face}, a 2 to 9 its number, and an ace {ace} — or only {aceLow} if a 2 of its suit, or both the queen and king of its suit, are also in your hand, or it would extend a run on the table.",
   'zolik.rules.end.atScore': "The match keeps redealing until someone reaches {n} points — then it's over.",
 
   'prsi.rules.section.goal': 'Goal',
@@ -193,6 +197,8 @@ export const en: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'The discard pile is frozen all deal: to take it you must match its top card with two natural cards from your hand.',
   'canasta.rules.pileOntoMeld': "If your side already has an unfinished meld of the top card's rank, you can take the whole discard pile to add that card to it — no matching pair in your hand is needed.",
   'canasta.rules.pileNoMeldCapture': 'A meld already on the table cannot take the discard pile: to take it you must match its top card with two cards from your own hand.',
+  'canasta.rules.cardValues':
+    "Each card counts: a joker {joker}, a 2 {two}, an ace {ace}, a king down to an 8 {high}, a 7 down to a 4 {low}, a black three {black}. Red threes are bonuses and never count toward a meld.",
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} beyond that.',
   'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} up to {highUpTo}, {top} beyond that.',
@@ -646,6 +652,8 @@ export const en: Record<string, string> = {
   'ginrummy.rules.drawDiscard': 'On your turn, draw one card — from the stock or the discard pile — then discard one.',
   'ginrummy.rules.setsAndRuns': 'A meld is a set of three or four cards of one rank, or a run of three or more in one suit.',
   'ginrummy.rules.aceLow': 'The ace is always low — there is no run from Queen through Ace.',
+  'ginrummy.rules.cardValues':
+    "Deadwood counts an ace as {ace}, a 2 to 9 as its number, and a 10, jack, queen or king as {face}.",
   'ginrummy.rules.knockLimit': 'You may knock once your deadwood is {n} or less.',
   'ginrummy.rules.oklahoma': "This hand's knock limit is set by the value of the upcard.",
   'ginrummy.rules.gin': 'Zero deadwood is gin — the best possible knock.',
@@ -730,6 +738,8 @@ export const en: Record<string, string> = {
   'rummytiles.rules.run': 'A run is three or more consecutive numbers in one colour.',
   'rummytiles.rules.noWrap': '13 does not run back around to 1.',
   'rummytiles.rules.joker': 'A joker stands for any tile.',
+  'rummytiles.rules.tileValues':
+    "A tile is worth its number. A joker in a set is worth the tile it stands for; one left in your hand costs {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Until you have laid {n} or more points in a single turn, from your own hand alone, you may not touch anything already on the table.',
   'rummytiles.rules.turnDescription':
@@ -805,6 +815,8 @@ export const en: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Player cards are dealt face up; the dealer keeps one card down until everyone has played.',
   'blackjack.rules.hitStand': 'Draw as many cards as you like, or stand on what you have.',
+  'blackjack.rules.cardValues':
+    "A 2 to 9 counts its number; a 10, jack, queen or king counts {face}.",
   'blackjack.rules.aces': 'An ace counts as eleven while that fits, and as one when it does not.',
   'blackjack.rules.blackjack':
     'An ace with a ten-value card, on the first two cards, is a blackjack.',

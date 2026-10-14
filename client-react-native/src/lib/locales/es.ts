@@ -118,6 +118,8 @@ export const es: Record<string, string> = {
   'zolik.rules.lead.winner': 'Quien se va sale primero en el siguiente reparto.',
   'zolik.rules.meldFloor.on':
     'Tu primera bajada debe sumar al menos {n} puntos naturales antes de que cuentes como bajado.',
+  'zolik.rules.meldFloor.values':
+    "Para ese mínimo cada carta cuenta lo que cuesta en la mano, salvo el as: {aceHigh} en un trío o por encima del rey, {aceLow} por debajo del 2. Un comodín cuenta como la carta que sustituye.",
   'zolik.rules.meldFloor.off': 'No hay un mínimo de puntos en tu primera bajada.',
   'zolik.rules.cleanRun.on':
     'Al menos una de tus escaleras debe ir completamente sin comodines para que cuentes como bajado.',
@@ -128,6 +130,8 @@ export const es: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Cada reparto exige la misma combinación: {sets} grupos y {runs} escaleras.',
   'zolik.rules.end.afterDeals': 'La partida termina tras {n} repartos.',
+  'zolik.rules.penalty.values':
+    "Una carta que te quede en la mano cuesta: comodín {joker}, 10, jota, reina o rey {face}, 2 a 9 su número, y un as {ace}, o solo {aceLow} si también tienes un 2 de su palo, o la reina y el rey de su palo, o si alargaría una escalera de la mesa.",
   'zolik.rules.end.atScore': 'Se sigue repartiendo hasta que alguien llega a {n} puntos — entonces se acaba.',
 
   'prsi.rules.section.goal': 'Objetivo',
@@ -187,6 +191,8 @@ export const es: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'El montón de descarte está congelado toda la mano: para llevártelo tienes que casar su carta superior con dos cartas naturales de tu mano.',
   'canasta.rules.pileOntoMeld': 'Si tu bando ya tiene una combinación sin terminar del valor de la carta superior, puedes llevarte todo el montón de descarte y añadirle esa carta: no necesitas una pareja en la mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinación que ya está en la mesa no puede llevarse el montón de descarte: para llevártelo tienes que casar su carta superior con dos cartas de tu propia mano.',
+  'canasta.rules.cardValues':
+    "Valor de las cartas: comodín {joker}, 2 {two}, as {ace}, del rey al 8 {high}, del 7 al 4 {low}, tres negro {black}. Los treses rojos son bonificaciones y nunca cuentan para una combinación.",
   'canasta.rules.meldFloorBands':
     'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} más allá.',
   'canasta.rules.meldFloorBandsFive': 'Tu primera combinación debe alcanzar un mínimo de puntos que sube con tu puntuación: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} hasta {highUpTo} y {top} por encima.',
@@ -657,6 +663,8 @@ export const es: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Una combinación es un grupo de tres o cuatro cartas de un mismo valor, o una escalera de tres o más del mismo palo.',
   'ginrummy.rules.aceLow': 'El as siempre va bajo — no existe la escalera de dama a as.',
+  'ginrummy.rules.cardValues':
+    "En el deadwood, un as cuenta {ace}, un 2 a 9 su número, y un 10, jota, reina o rey {face}.",
   'ginrummy.rules.knockLimit': 'Puedes llamar en cuanto tu deadwood sea {n} o menos.',
   'ginrummy.rules.oklahoma': 'El límite para llamar en esta mano lo fija el valor de la carta levantada.',
   'ginrummy.rules.gin': 'Deadwood cero es gin — la mejor llamada posible.',
@@ -745,6 +753,8 @@ export const es: Record<string, string> = {
   'rummytiles.rules.run': 'Una escalera son tres o más números consecutivos de un mismo color.',
   'rummytiles.rules.noWrap': 'El 13 no vuelve a enlazar con el 1.',
   'rummytiles.rules.joker': 'Un comodín sustituye a cualquier ficha.',
+  'rummytiles.rules.tileValues':
+    "Una ficha vale su número. Un comodín en una combinación vale la ficha que sustituye; uno que te quede en la mano cuesta {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Hasta que no hayas bajado {n} puntos o más en un solo turno, y solo desde tu propia mano, no puedes tocar nada de lo que ya está en la mesa.',
   'rummytiles.rules.turnDescription':
@@ -822,6 +832,8 @@ export const es: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Las cartas de los jugadores se reparten boca arriba; el crupier mantiene una carta tapada hasta que todos hayan jugado.',
   'blackjack.rules.hitStand': 'Pide tantas cartas como quieras, o plántate con lo que tengas.',
+  'blackjack.rules.cardValues':
+    "Un 2 a 9 cuenta su número; un 10, jota, reina o rey cuenta {face}.",
   'blackjack.rules.aces': 'Un as vale once mientras quepa, y uno cuando no.',
   'blackjack.rules.blackjack': 'Un as con una carta de valor diez, en las dos primeras cartas, es blackjack.',
   'blackjack.rules.pays3to2': 'El blackjack paga 3:2.',

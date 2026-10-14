@@ -27,6 +27,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		module.Rule("blackjack.rules.oneStakePerRound", nil),
 		module.Rule("blackjack.rules.stakeFromStack", nil),
 		module.Rule("blackjack.rules.hitStand", nil),
+		module.Rule("blackjack.rules.cardValues", map[string]any{"face": cardValue("KS")}),
 		module.Rule("blackjack.rules.aces", nil),
 		module.Rule("blackjack.rules.blackjack", nil),
 		payoutRule(t),
