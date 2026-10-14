@@ -73,7 +73,19 @@ test('a hint sets up a move without making it', async ({ page, request }) => {
   expect(await handSize(request, matchId, host)).toBe(14);
 });
 
-test('a table without hints shows no hint button', async ({ page, request }) => {
+test('a minimized controls panel still offers the hint', async ({ page, request }) => {
+  test.setTimeout(60_000);
+  const { matchId, host } = await zolikTable(request);
+  await openMatch(page, host, matchId);
+  await waitForOfferEnabled(page, 'offer-draw:deck');
+
+  await page.getByTestId('panel-toggle-zone:controls').click();
+  await expect(page.getByTestId('turn-step')).toHaveCount(0);
+  await page.getByTestId('hint-button').click();
+  await expect(page.getByTestId('controls-panel-summary').getByTestId('hint-line')).toContainText('Suggested');
+});
+
+test('a table without hints shows no hint button',async ({ page, request }) => {
   test.setTimeout(60_000);
   const { matchId, host } = await zolikTable(request, { hints: 0 });
   await openMatch(page, host, matchId);
