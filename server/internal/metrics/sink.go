@@ -124,22 +124,25 @@ func (r *Recorder) todayLocked() *dayDelta {
 // The final flush is why this owns the goroutine rather than the caller: a
 // graceful shutdown should not throw away the last half-minute, and the only
 // place that knows the loop has stopped is the loop.
-func (r *Recorder) Start(ctx context.Context) {
-	go func() {
-		t := time.NewTicker(FlushInterval)
-		defer t.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				// A cancelled context cannot be used to write, and this write
-				// is the point of the shutdown path.
-				r.Flush(context.WithoutCancel(ctx))
-				return
-			case <-t.C:
-				r.Flush(ctx)
-			}
+func (r *Recorder) Start(ctx context.Context) { go r.Run(ctx) }
+
+// Run is Start without the goroutine: it returns only once the final flush
+// has, for a caller that must know the store is no longer being written
+// before it closes it.
+func (r *Recorder) Run(ctx context.Context) {
+	t := time.NewTicker(FlushInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			// A cancelled context cannot be used to write, and this write
+			// is the point of the shutdown path.
+			r.Flush(context.WithoutCancel(ctx))
+			return
+		case <-t.C:
+			r.Flush(ctx)
 		}
-	}()
+	}
 }
 
 // Flush writes every pending day and clears what it wrote.
