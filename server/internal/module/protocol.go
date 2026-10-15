@@ -734,6 +734,54 @@ func StandingsFor(m GameModule, s State) []Standing {
 	return out
 }
 
+// Projector is implemented by a module that can decode a state once and then
+// answer for any number of viewers from the decoded copy.
+//
+// Optional, and purely a cost: a state is opaque bytes, so View, LegalActions
+// and Standings each decode it from scratch, and a broadcast asks all three of
+// every seat at the table on every move. Decoding is most of what answering
+// costs, and it is the same decode every time. A module that implements this
+// hands the runtime its decoded state to ask repeatedly; one that does not is
+// asked the long way, with the same answers.
+type Projector interface {
+	Project(s State) (Projection, error)
+}
+
+// Projection is one decoded state, read per viewer.
+//
+// Read-only, and that is what makes sharing it safe: hidden information is
+// filtered by View(viewerID) and nowhere else, so the one thing a Projection
+// must never do is let a call for one viewer change what a later call for
+// another returns. It answers exactly what the module's own View,
+// LegalActions and Standings would for the same bytes.
+type Projection interface {
+	View(viewerID string) (ViewModel, error)
+	LegalActions(viewerID string) ([]ActionOffer, error)
+	// Standings is the scoreboard, nil when the module keeps none.
+	Standings() []Standing
+	// Rounds and Finished answer what RoundsFor and the module's Finished
+	// would for the same state, so the runtime decodes a freshly played state
+	// once for the whole of a move rather than once for each of these
+	// questions.
+	Rounds() *RoundLog
+	Finished() (bool, []string)
+}
+
+// ProjectionFor decodes a state once for repeated per-viewer reads, or reports
+// that the module has no such shortcut or the state would not decode, in which
+// case the caller asks the module directly and gets the module's own error.
+func ProjectionFor(m GameModule, s State) (Projection, bool) {
+	p, ok := m.(Projector)
+	if !ok {
+		return nil, false
+	}
+	proj, err := p.Project(s)
+	if err != nil || proj == nil {
+		return nil, false
+	}
+	return proj, true
+}
+
 // OpenViewer is implemented by a module that can show a board with nothing
 // hidden: a finished game, where there is no longer anything to protect.
 //

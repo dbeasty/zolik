@@ -101,6 +101,10 @@ type App struct {
 	// it replicates with nobody — which is every deployment until
 	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
 	sync *zsync.Node
+	// stopMatchIdle stops the sweep that closes idle match namespaces; nil
+	// where there is none (a sync hub does it through its node, Mongo has no
+	// namespaces).
+	stopMatchIdle func()
 	// kdb is the embedded engine, held only so the sync node can be opened
 	// over the same database the repositories use. Nil under Mongo.
 	kdb *db.KDB
@@ -206,6 +210,7 @@ func kdbRepos(cfg Config) (repos, error) {
 	// What an acknowledged write means is the one storage decision an
 	// operator makes (KDB_DURABILITY / KDB_SYNC_MODE), so say it out loud.
 	log.Printf("kdb durability: %s, sync mode: %s", cmp.Or(sc.Durability, "sync"), cmp.Or(sc.SyncMode, "fast"))
+	log.Printf("kdb documents: read extjson+json, write %s (KDB_DOC_WRITE_FORMAT)", db.CurrentDocWriteFormat())
 	// What a namespace keeps is not otherwise visible from outside: it is
 	// recorded per namespace in meta.json inside the data volume, and reading
 	// it there means stopping to mount the volume. Say it at startup instead.
@@ -410,6 +415,11 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 	app.sync = node
+	// A sync hub closes idle namespaces through its node (sync.go). Everything
+	// else needs the same sweep for the matches nobody finished.
+	if app.kdb != nil && cfg.Sync.Role != syncRoleHub {
+		app.stopMatchIdle = app.kdb.StartMatchIdleClose()
+	}
 	return app, nil
 }
 
@@ -632,6 +642,10 @@ func (a *App) Close(ctx context.Context) error {
 		a.importer.Close()
 		a.importer = nil
 	}
+	if a.stopMatchIdle != nil {
+		a.stopMatchIdle()
+		a.stopMatchIdle = nil
+	}
 	if a.sync != nil {
 		_ = a.sync.Close()
 		a.sync = nil
@@ -715,6 +729,12 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// inside the manager, so the runtime never has to import stats.
 	statsRecorder := stats.NewRecorder(a.statsRepo)
 	statsRecorder.SetMetrics(a.metrics)
+	// A finished match's namespace is let go of shortly after its last move
+	// and reopens from disk if anyone reads it again (db.KDB.ReleaseMatch).
+	// Without this a server holds a namespace open per match it has ever dealt.
+	if a.kdb != nil {
+		matchMgr.SetOnCompleted(a.kdb.ReleaseMatch)
+	}
 	// Which is not necessarily what records this node's matches: see
 	// configureOfflineFlow.
 	matchMgr.SetRecorder(a.configureOfflineFlow(matchMgr, statsRecorder))

@@ -22,6 +22,10 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 	if err != nil {
 		return module.RoundLog{}, err
 	}
+	return m.roundsOf(s), nil
+}
+
+func (m *Module) roundsOf(s *matchState) module.RoundLog {
 	gs := s.Rules
 	cfg := gs.Rules
 
@@ -80,7 +84,7 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 		}
 		log.Rounds = append(log.Rounds, r)
 	}
-	return log, nil
+	return log
 }
 
 // dealLines is one seat's deal as an account: the cards it was left holding,

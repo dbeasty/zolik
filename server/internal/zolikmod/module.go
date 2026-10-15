@@ -302,6 +302,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if err != nil {
 		return nil, err
 	}
+	return m.legalActions(s, playerID)
+}
+
+func (m *Module) legalActions(s *matchState, playerID string) ([]module.ActionOffer, error) {
 	// Between deals the only thing anybody may do is agree to go on, and the
 	// control for it is an ordinary offer — which is what lets the runtime's
 	// bot loop ready a seat without knowing intermissions exist.
@@ -434,6 +438,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	if err != nil {
 		return module.ViewModel{}, err
 	}
+	return m.viewOf(s, viewerID, reveal)
+}
+
+func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.ViewModel, error) {
 	gs := s.Rules
 	vm := module.ViewModel{}
 
@@ -656,11 +664,16 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	if err != nil {
 		return false, nil, err
 	}
+	done, winners := finishedOf(s)
+	return done, winners, nil
+}
+
+func finishedOf(s *matchState) (bool, []string) {
 	done := s.Rules.Status == rules.StatusCompleted
 	if !done || s.Rules.WinnerID == "" {
-		return done, nil, nil
+		return done, nil
 	}
-	return true, []string{s.Rules.WinnerID}, nil
+	return true, []string{s.Rules.WinnerID}
 }
 
 // Standings ranks by match penalty total, lowest first — rummy is a game you
@@ -684,6 +697,10 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 	if err != nil {
 		return nil, err
 	}
+	return m.standingsOf(s)
+}
+
+func (m *Module) standingsOf(s *matchState) ([]module.Standing, error) {
 	gs := s.Rules
 	dealsWon := rules.DealsWonByPlayer(gs.TurnOrder, gs.GameScores)
 
