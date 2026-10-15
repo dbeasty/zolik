@@ -6,6 +6,8 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -18,14 +20,24 @@ import (
 // what makes UpsertPlayerStats and FindPlayerStats direct document
 // operations, exactly as unique-indexed lookups are in Mongo).
 //
-// Subject-history queries scan the match_results namespace and filter in Go.
-// That is not a shortcut taken behind the interface's back: Mongo's own
-// Leaderboard already reads-and-sorts in the application for the same reason
-// — at the scale a card game reaches, the simple plan is the right one, and
-// the perf benchmarks in internal/dbperf exist to say when that stops being
+// Subject-history queries for accounts and guests go through the subject
+// index (see repository_kdb_subjects.go), the counterpart of Mongo's
+// subjectKeys index: a sign-in asks how many matches a guest has, and that
+// must not cost a decode of every match ever recorded. Other subjects (bots,
+// which sit in a large share of all matches) and the Leaderboard still scan
+// and filter in Go, which at the scale a card game reaches is the simple plan
+// — the perf benchmarks in internal/dbperf exist to say when that stops being
 // true.
 type kdbRepository struct {
 	k *db.KDB
+
+	// idxMu orders the subject index's maintenance against its one-time
+	// build: mutations hold it shared, the build holds it exclusively, so a
+	// record cannot be recorded or re-attributed halfway through the scan the
+	// build is working from. idxBuilt remembers that the build has happened,
+	// so the steady state costs one atomic load.
+	idxMu    sync.RWMutex
+	idxBuilt atomic.Bool
 }
 
 func NewKDBRepository(k *db.KDB) Repository {
@@ -126,6 +138,7 @@ func (r *kdbRepository) InsertMatch(ctx context.Context, m MatchResult) (MatchRe
 		if indexErr := r.indexMatchForPlayers(m); indexErr != nil {
 			log.Printf("stats: indexing match %s for its players: %v", m.MatchID.Hex(), indexErr)
 		}
+		r.indexMatchForSubjects(m, nil)
 	}
 	if err != nil {
 		return MatchResult{}, err
@@ -175,6 +188,19 @@ func (r *kdbRepository) scanMatchByMatchID(matchID bson.ObjectID) (MatchResult, 
 // matchesForSubject loads every record naming the subject. Sorting happens
 // at the call sites, which need opposite orders.
 func (r *kdbRepository) matchesForSubject(key string) ([]MatchResult, error) {
+	entries, ok, err := r.subjectEntries(key)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return r.scanMatchesForSubject(key)
+	}
+	return r.loadSubjectRecords(entries, len(entries))
+}
+
+// scanMatchesForSubject is the whole-namespace scan, kept for the subjects
+// the index does not cover.
+func (r *kdbRepository) scanMatchesForSubject(key string) ([]MatchResult, error) {
 	var out []MatchResult
 	err := r.k.Scan(db.NSMatchResults, func(doc []byte) error {
 		var m MatchResult
@@ -196,7 +222,12 @@ func (r *kdbRepository) ListMatchesForSubject(ctx context.Context, key string, b
 	if limit <= 0 || limit > 100 {
 		limit = 25
 	}
-	rows, err := r.matchesForSubject(key)
+	if entries, ok, err := r.subjectEntries(key); err != nil {
+		return nil, err
+	} else if ok {
+		return r.listIndexed(entries, before, limit)
+	}
+	rows, err := r.scanMatchesForSubject(key)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +278,12 @@ func (r *kdbRepository) CountMatchesForSubject(ctx context.Context, key string) 
 	if key == "" {
 		return 0, nil
 	}
-	rows, err := r.matchesForSubject(key)
+	if entries, ok, err := r.subjectEntries(key); err != nil {
+		return 0, err
+	} else if ok {
+		return len(entries), nil
+	}
+	rows, err := r.scanMatchesForSubject(key)
 	if err != nil {
 		return 0, err
 	}
@@ -255,7 +291,9 @@ func (r *kdbRepository) CountMatchesForSubject(ctx context.Context, key string) 
 }
 
 func (r *kdbRepository) ReplaceMatchAttribution(ctx context.Context, m MatchResult) error {
-	return r.k.Update(db.NSMatchResults, func(tx *db.Tx) error {
+	var before []string
+	var recorded MatchResult
+	err := r.k.Update(db.NSMatchResults, func(tx *db.Tx) error {
 		key := resultKey(m.MatchID)
 		doc, err := tx.Get(key)
 		if db.IsNotFound(err) {
@@ -277,14 +315,20 @@ func (r *kdbRepository) ReplaceMatchAttribution(ctx context.Context, m MatchResu
 		}
 		// Only the two attribution fields move — the record stays otherwise
 		// immutable, same promise as the Mongo $set.
+		before = cur.SubjectKeys
 		cur.Participants = m.Participants
 		cur.SubjectKeys = m.SubjectKeys
+		recorded = cur
 		next, err := db.MarshalDoc(cur)
 		if err != nil {
 			return err
 		}
 		return tx.Put(key, next)
 	})
+	if err == nil && !recorded.MatchID.IsZero() {
+		r.indexMatchForSubjects(recorded, before)
+	}
+	return err
 }
 
 func (r *kdbRepository) EachMatch(ctx context.Context, fn func(MatchResult) error) error {

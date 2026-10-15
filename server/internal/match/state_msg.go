@@ -166,7 +166,7 @@ type StandInMsg struct {
 // itself a small demonstration that the runtime can describe a match before
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
-	msg := m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
+	msg := m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)), nil)
 	return m.withSatOut(match, msg)
 }
 
@@ -197,8 +197,8 @@ func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMs
 // takes no viewer, by construction. Rebuilding it per recipient meant decoding
 // the module's whole state an extra time for every seat at the table, on every
 // single action.
-func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog) MatchStateMsg {
-	msg := m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, withOffers: true})
+func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog, proj module.Projection) MatchStateMsg {
+	msg := m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, proj: proj, withOffers: true})
 	if e := m.live.peek(match.ID.Hex()); e != nil {
 		msg.RecentMoves = e.recentFor(viewerID)
 	}
@@ -209,6 +209,9 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 // for: a live board, and one frame of a replay.
 type stateMsgOpts struct {
 	rounds *module.RoundLog
+	// proj is the state already decoded, shared by every viewer of one
+	// broadcast; nil means ask the module, which decodes for itself.
+	proj module.Projection
 	// withOffers asks the module what this viewer may do. A replay frame says
 	// no: nobody is playing it, and offer enumeration is both the most
 	// expensive and by far the most verbose thing this function does.
@@ -275,21 +278,33 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	if mod == nil || len(match.State) == 0 {
 		return msg
 	}
+	// A shared projection answers for any viewer from one decode; without one
+	// the module is asked directly, and decodes the state for each question.
+	view := func() (module.ViewModel, error) { return mod.View(module.State(match.State), viewerID) }
+	offersFor := func() ([]module.ActionOffer, error) { return mod.LegalActions(module.State(match.State), viewerID) }
+	if o.proj != nil {
+		view = func() (module.ViewModel, error) { return o.proj.View(viewerID) }
+		offersFor = func() ([]module.ActionOffer, error) { return o.proj.LegalActions(viewerID) }
+	}
 	if o.openView {
 		if vm, ok := module.OpenViewFor(mod, module.State(match.State)); ok {
 			msg.View = vm
-		} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
+		} else if vm, err := view(); err == nil {
 			msg.View = vm
 		}
-	} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
+	} else if vm, err := view(); err == nil {
 		msg.View = vm
 	}
 	if o.withOffers {
-		if offers, err := mod.LegalActions(module.State(match.State), viewerID); err == nil && offers != nil {
+		if offers, err := offersFor(); err == nil && offers != nil {
 			msg.LegalActions = holdOffers(match.Status, offers)
 		}
 	}
-	msg.Standings = module.StandingsFor(mod, module.State(match.State))
+	if o.proj != nil {
+		msg.Standings = o.proj.Standings()
+	} else {
+		msg.Standings = module.StandingsFor(mod, module.State(match.State))
+	}
 	msg.Rounds = o.rounds
 	return msg
 }

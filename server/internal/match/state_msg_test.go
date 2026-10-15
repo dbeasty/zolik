@@ -227,3 +227,37 @@ func TestBuildStateMsgOmitsRoundsForAGameWithoutThem(t *testing.T) {
 		t.Error(`the wire carries a "rounds" key for a game with no rounds`)
 	}
 }
+
+// A broadcast decodes the state once and reads every seat's board from the
+// copy. That is only acceptable if each seat is sent exactly what asking the
+// module for that seat alone would have sent, whatever order the seats are
+// read in and whoever was read before them.
+func TestBroadcastProjectionMatchesPerViewerBuild(t *testing.T) {
+	m, match := dealt(t, "zolik", "p1", "p2", "p3")
+	mod := m.registry.Get("zolik")
+	rounds := module.RoundsFor(mod, module.State(match.State))
+
+	proj, ok := module.ProjectionFor(mod, module.State(match.State))
+	if !ok {
+		t.Fatal("zolik offers no projection")
+	}
+	viewers := []string{"p3", "p1", "", "p2", "p1"}
+	for _, viewer := range viewers {
+		shared, _ := json.Marshal(m.buildStateMsg(match, viewer, rounds, proj))
+		alone, _ := json.Marshal(m.buildStateMsg(match, viewer, rounds, nil))
+		if string(shared) != string(alone) {
+			t.Fatalf("viewer %q: shared projection differs from the module's own\nshared: %s\nalone:  %s", viewer, shared, alone)
+		}
+	}
+
+	// And the hidden-hand rule itself, on the shared copy: p2's cards are in
+	// p2's message and nobody else's.
+	for _, viewer := range []string{"p1", "p2", "p3"} {
+		msg := m.buildStateMsg(match, viewer, rounds, proj)
+		for _, z := range msg.View.Zones {
+			if z.Kind == module.ZoneHand && z.OwnerID != viewer && len(z.Cards) > 0 {
+				t.Errorf("%s was shown %s's hand through the shared projection", viewer, z.OwnerID)
+			}
+		}
+	}
+}

@@ -175,7 +175,20 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// human's click to do work that has nothing to do with them, and
 		// leaving a window where this loop unwinds just as that click lands and
 		// nothing restarts it.
-		actor, passive := m.drivenSeat(match, mod, module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)))
+		// One decoded state answers every question this step asks of it — who
+		// is awaited, what they may do, which round it is — where each used to
+		// decode the stored state again. A module without a Projector is asked
+		// directly, as before.
+		state := module.State(match.State)
+		awaited := func() []string { return module.AwaitedSeats(mod, state, viewerFor(match), refsOf(match)) }
+		offersFor := func(seat string) ([]module.ActionOffer, error) { return mod.LegalActions(state, seat) }
+		roundsOf := func() *module.RoundLog { return module.RoundsFor(mod, state) }
+		if proj, ok := module.ProjectionFor(mod, state); ok {
+			awaited = func() []string { return module.AwaitedSeatsIn(proj, viewerFor(match), refsOf(match)) }
+			offersFor = proj.LegalActions
+			roundsOf = proj.Rounds
+		}
+		actor, passive := m.drivenSeat(match, mod, awaited())
 		if actor == "" {
 			return // nobody awaited, or nobody awaited is a bot
 		}
@@ -194,7 +207,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 
 		time.Sleep(m.thinkFor(rnd))
 
-		offers, err := mod.LegalActions(module.State(match.State), actor)
+		offers, err := offersFor(actor)
 		if err != nil {
 			return
 		}
@@ -220,11 +233,11 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			} else {
 				// Chosen at the start of the seat's turn and held for the
 				// rest of it — see governor.go.
-				tb := m.seatBot(match, mod, actor)
+				tb := m.seatBot(match, mod, actor, roundsOf)
 				bot, seat, engine = tb.bot, tb.seat, tb.engine
 				label = skillLabel(seat.Skill)
 			}
-			botPick, botOK, timedOut = botAct(bot, module.State(match.State),
+			botPick, botOK, timedOut = botAct(bot, state,
 				seat, offers, m.actBudget(), m.botStats,
 				botstats.Key{Module: match.ModuleID, Skill: label, Source: botstats.SourceLoop, Engine: engine})
 			if timedOut {
@@ -233,7 +246,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 				turn.botHung = true
 				// The abandoned call still holds those offers. Take a fresh
 				// set so nothing below shares memory with it.
-				if offers, err = mod.LegalActions(module.State(match.State), actor); err != nil {
+				if offers, err = offersFor(actor); err != nil {
 					return
 				}
 			}

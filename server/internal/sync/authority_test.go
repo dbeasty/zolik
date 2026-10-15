@@ -153,6 +153,25 @@ func TestADeletionAgainstAnEditIsLeftQueued(t *testing.T) {
 	}
 }
 
+// During the move to plain JSON storage (internal/db/doccodec) two devices
+// can hold the same settings in different shapes: one written by a build that
+// stores Extended JSON, one by a build that stores plain JSON. The later write
+// still wins, whichever shape each side is in.
+func TestPlainAndExtendedJSONDatesCompare(t *testing.T) {
+	base := `{"_kind":"prefs","lang":"cs"}`
+	for _, c := range []struct{ local, incoming, want string }{
+		{`{"_kind":"prefs","lang":"en","updatedAt":"2026-09-01T11:00:00.000Z"}`,
+			`{"_kind":"prefs","lang":"de","updatedAt":{"$date":"2026-09-01T12:00:00Z"}}`, "de"},
+		{`{"_kind":"prefs","lang":"en","updatedAt":{"$date":{"$numberLong":"1788264000000"}}}`,
+			`{"_kind":"prefs","lang":"de","updatedAt":"2026-09-01T11:00:00Z"}`, "en"},
+	} {
+		got := settleBoth(t, base, c.local, c.incoming)
+		if lang := field(t, got, "lang"); lang != `"`+c.want+`"` {
+			t.Errorf("local %s vs incoming %s kept %q, want %q", c.local, c.incoming, lang, c.want)
+		}
+	}
+}
+
 func TestExtendedJSONDatesAreUnderstood(t *testing.T) {
 	// Documents are stored as the bson extended JSON the rest of the server
 	// speaks, so a time arrives as {"$date":...} rather than as a string.
