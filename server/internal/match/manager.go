@@ -788,18 +788,18 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	if mod == nil {
 		return models.Match{}, nil, nil, nil, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
-	next, events, err := mod.Apply(module.State(match.State), playerID, a)
+	// The new state is decoded once and used for everything this move needs
+	// to know about it: whether it closed a round, whether it ended the
+	// match, and - handed on to the broadcast - every seat's board. Asking the
+	// module each question separately would unmarshal the whole state again
+	// for each of them on every single move. A module that can hands over the
+	// state it applied the move to, so that decode is the one Apply made.
+	next, events, proj, shared, err := module.ApplyAndProject(mod, module.State(match.State), playerID, a)
 	if err != nil {
 		return models.Match{}, nil, nil, nil, err // a refusal: nothing is stored, nothing is broadcast
 	}
 
 	entry := logEntry(e.seq+1, playerID, a)
-	// The new state is decoded once here and used for everything this move
-	// needs to know about it: whether it closed a round, whether it ended the
-	// match, and - handed on to the broadcast - every seat's board. Asking the
-	// module each question separately would unmarshal the whole state again
-	// for each of them on every single move.
-	proj, shared := module.ProjectionFor(mod, next)
 	var rounds *module.RoundLog
 	if shared {
 		rounds = proj.Rounds()
@@ -859,6 +859,7 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	}
 	envelope.State = models.JSONDoc(next)
 	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
+	e.proj, e.projOf = proj, envelope.State
 	players := make([]string, 0, len(match.Players))
 	for _, p := range match.Players {
 		players = append(players, p.ID)
@@ -905,8 +906,16 @@ func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog, pro
 			}
 		}
 	}
+	// So is everything else that does not depend on who is looking: the
+	// descriptor and the seat facts.
+	o := stateMsgOpts{rounds: rounds, proj: proj, withOffers: true}
+	if mod := m.registry.Get(match.ModuleID); mod != nil {
+		d := mod.Descriptor()
+		o.desc = &d
+	}
+	facts := m.seatFacts(match)
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
-		return m.withSatOut(match, m.buildStateMsg(match, playerID, rounds, proj))
+		return withSeatFacts(m.buildStateMsgWith(match, playerID, o), facts)
 	})
 }
 

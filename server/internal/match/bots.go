@@ -153,7 +153,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		if m.botsStopping(matchID) {
 			return
 		}
-		match, err := m.current(ctx, matchID)
+		match, decoded, err := m.currentProjected(ctx, matchID)
 		if err != nil || match.Status != "active" {
 			if err == nil {
 				m.matchStopped(matchID)
@@ -177,13 +177,19 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// nothing restarts it.
 		// One decoded state answers every question this step asks of it — who
 		// is awaited, what they may do, which round it is — where each used to
-		// decode the stored state again. A module without a Projector is asked
-		// directly, as before.
+		// decode the stored state again. Usually it is the very projection the
+		// move that led here was broadcast from, offers and all, so the seat
+		// about to play has had its offers worked out once already. A module
+		// without a Projector is asked directly, as before.
 		state := module.State(match.State)
 		awaited := func() []string { return module.AwaitedSeats(mod, state, viewerFor(match), refsOf(match)) }
 		offersFor := func(seat string) ([]module.ActionOffer, error) { return mod.LegalActions(state, seat) }
 		roundsOf := func() *module.RoundLog { return module.RoundsFor(mod, state) }
-		if proj, ok := module.ProjectionFor(mod, state); ok {
+		proj, ok := decoded, decoded != nil
+		if !ok {
+			proj, ok = module.ProjectionFor(mod, state)
+		}
+		if ok {
 			awaited = func() []string { return module.AwaitedSeatsIn(proj, viewerFor(match), refsOf(match)) }
 			offersFor = proj.LegalActions
 			roundsOf = proj.Rounds
@@ -245,8 +251,10 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 					matchID, actor, m.actBudget())
 				turn.botHung = true
 				// The abandoned call still holds those offers. Take a fresh
-				// set so nothing below shares memory with it.
-				if offers, err = offersFor(actor); err != nil {
+				// set so nothing below shares memory with it — from the
+				// module itself, since a projection hands back the list it
+				// already gave out.
+				if offers, err = mod.LegalActions(state, actor); err != nil {
 					return
 				}
 			}
