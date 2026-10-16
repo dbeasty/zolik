@@ -1,6 +1,10 @@
 package zolikmod
 
-import "zolik/server/internal/module"
+import (
+	"sync"
+
+	"zolik/server/internal/module"
+)
 
 var _ module.Projector = (*Module)(nil)
 
@@ -22,6 +26,22 @@ func (m *Module) Project(raw module.State) (module.Projection, error) {
 type projection struct {
 	m *Module
 	s *matchState
+
+	// offers is each viewer's offer list, worked out the first time anyone
+	// asks. One state is asked for the same seat's offers more than once:
+	// the broadcast renders every seat's, and the bot loop then asks for
+	// the seat it is about to play, of the very same state (see
+	// Manager.currentProjected). Enumerating offers is the dearest thing a
+	// projection does, so the second answer is the first one again.
+	//
+	// The lists are shared by everybody who asks, so nobody may write to one.
+	offersMu sync.Mutex
+	offers   map[string]cachedOffers
+}
+
+type cachedOffers struct {
+	list []module.ActionOffer
+	err  error
 }
 
 func (p *projection) View(viewerID string) (module.ViewModel, error) {
@@ -29,7 +49,17 @@ func (p *projection) View(viewerID string) (module.ViewModel, error) {
 }
 
 func (p *projection) LegalActions(viewerID string) ([]module.ActionOffer, error) {
-	return p.m.legalActions(p.s, viewerID)
+	p.offersMu.Lock()
+	defer p.offersMu.Unlock()
+	if c, ok := p.offers[viewerID]; ok {
+		return c.list, c.err
+	}
+	list, err := p.m.legalActions(p.s, viewerID)
+	if p.offers == nil {
+		p.offers = make(map[string]cachedOffers, len(p.s.Rules.TurnOrder))
+	}
+	p.offers[viewerID] = cachedOffers{list: list, err: err}
+	return list, err
 }
 
 func (p *projection) Standings() []module.Standing {

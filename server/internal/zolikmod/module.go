@@ -178,35 +178,57 @@ func (m *Module) NewMatch(mc module.MatchConfig, players []module.PlayerRef, see
 // than a special case — a caller that constructs actions directly can still
 // name the source through Target.
 func (m *Module) Apply(raw module.State, playerID string, a module.Action) (module.State, []module.Event, error) {
+	_, next, events, err := m.apply(raw, playerID, a)
+	return next, events, err
+}
+
+// ApplyProjected is Apply that also hands back the new state decoded, for the
+// move's broadcast to read. Apply has just built that state in memory and
+// encoded it; decoding the bytes again, straight after, was the same work done
+// twice on every move. Nothing touches the state after it is encoded, and
+// TestApplyProjectedAnswersLikeAFreshDecode holds the two to the same answers.
+func (m *Module) ApplyProjected(raw module.State, playerID string, a module.Action) (module.State, []module.Event, module.Projection, error) {
+	s, next, events, err := m.apply(raw, playerID, a)
+	if err != nil {
+		return next, events, nil, err
+	}
+	return next, events, &projection{m: m, s: s}, nil
+}
+
+// apply is Apply, with the state it encoded. The state is nil on a refusal.
+func (m *Module) apply(raw module.State, playerID string, a module.Action) (*matchState, module.State, []module.Event, error) {
 	s, err := decode(raw)
 	if err != nil {
-		return raw, nil, err
+		return nil, raw, nil, err
 	}
 	// Between deals the engine has no turn to check an actor against, so the
 	// intermission does it: it refuses a stranger, and a second press, with
 	// codes of its own.
 	if s.Break.Open {
 		if a.Verb != module.VerbContinue {
-			return raw, nil, module.Error{Code: "GAME_NOT_ACTIVE", Message: a.Verb}
+			return nil, raw, nil, module.Error{Code: "GAME_NOT_ACTIVE", Message: a.Verb}
 		}
 		if err := s.Break.Mark(s.Rules.TurnOrder, playerID); err != nil {
-			return raw, nil, err
+			return nil, raw, nil, err
 		}
 		if s.Break.Settled(s.Rules.TurnOrder) {
 			s.Break.Close()
 			gs, err := rules.ResumeAfterIntermission(s.Rules)
 			if err != nil {
-				return raw, nil, err
+				return nil, raw, nil, err
 			}
 			s.Rules = gs
 		}
 		next, err := encode(s)
-		return next, nil, err
+		if err != nil {
+			return nil, next, nil, err
+		}
+		return s, next, nil, nil
 	}
 
 	act, err := toRulesAction(a)
 	if err != nil {
-		return raw, nil, err
+		return nil, raw, nil, err
 	}
 	// No clone: decode() unmarshalled a fresh matchState, so the engine's
 	// in-place mutation cannot reach the caller's bytes. Making state opaque
@@ -217,7 +239,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	before := ai.Before(s.Rules)
 	out, err := rules.ApplyAction(s.Rules, playerID, act)
 	if err != nil {
-		return raw, nil, module.Error{Code: string(codeOf(err)), Message: err.Error()}
+		return nil, raw, nil, module.Error{Code: string(codeOf(err)), Message: err.Error()}
 	}
 	s.Rules = out.State
 	s.Ledger.Observe(before, s.Rules, playerID, act)
@@ -227,13 +249,13 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	}
 	next, err := encode(s)
 	if err != nil {
-		return raw, nil, err
+		return nil, raw, nil, err
 	}
 	events := make([]module.Event, 0, len(out.Events))
 	for _, e := range out.Events {
 		events = append(events, module.Event{Type: e.Type, Data: e.Data})
 	}
-	return next, events, nil
+	return s, next, events, nil
 }
 
 func toRulesAction(a module.Action) (rules.Action, error) {
@@ -444,6 +466,15 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.ViewModel, error) {
 	gs := s.Rules
 	vm := module.ViewModel{}
+	// Room for every zone and seat drawn below — a hand and a spread per
+	// seat, and the two piles — rather than growing the lists as they fill:
+	// a broadcast draws this once per seat on every move. The piles are
+	// always drawn, so the zone list is never empty and never nil either way;
+	// the seats are left nil for a board with nobody at it, as before.
+	vm.Zones = make([]module.Zone, 0, 2*len(gs.TurnOrder)+3)
+	if len(gs.TurnOrder) > 0 {
+		vm.Seats = make([]module.Seat, 0, len(gs.TurnOrder))
+	}
 
 	cfg := rules.ResolveConfig(gs.Rules)
 	own := gs.Hands[viewerID]

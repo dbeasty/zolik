@@ -754,6 +754,11 @@ type Projector interface {
 // must never do is let a call for one viewer change what a later call for
 // another returns. It answers exactly what the module's own View,
 // LegalActions and Standings would for the same bytes.
+//
+// One projection may be read from more than one goroutine — a move's
+// broadcast and the bot loop playing the next seat share it — and it may hand
+// the same offer list to every caller who asks for one viewer's. What it
+// returns is therefore read-only to the caller too.
 type Projection interface {
 	View(viewerID string) (ViewModel, error)
 	LegalActions(viewerID string) ([]ActionOffer, error)
@@ -765,6 +770,32 @@ type Projection interface {
 	// questions.
 	Rounds() *RoundLog
 	Finished() (bool, []string)
+}
+
+// ApplyProjector is implemented by a Projector whose Apply ends holding the
+// new state decoded — it built it — and can hand that over as the projection
+// of the bytes it returns, rather than leave the caller to decode them again.
+//
+// Optional, and purely a cost, like Projector. The projection must answer
+// exactly as ProjectionFor would for the returned state.
+type ApplyProjector interface {
+	ApplyProjected(s State, playerID string, a Action) (State, []Event, Projection, error)
+}
+
+// ApplyAndProject applies a move and projects the state it leads to, from one
+// decode where the module allows it. The projection is nil, and shared false,
+// when the module has none; the error is Apply's.
+func ApplyAndProject(m GameModule, s State, playerID string, a Action) (next State, events []Event, proj Projection, shared bool, err error) {
+	if ap, ok := m.(ApplyProjector); ok {
+		next, events, proj, err = ap.ApplyProjected(s, playerID, a)
+		if err != nil || proj != nil {
+			return next, events, proj, proj != nil, err
+		}
+	} else if next, events, err = m.Apply(s, playerID, a); err != nil {
+		return next, events, nil, false, err
+	}
+	proj, shared = ProjectionFor(m, next)
+	return next, events, proj, shared, nil
 }
 
 // ProjectionFor decodes a state once for repeated per-viewer reads, or reports

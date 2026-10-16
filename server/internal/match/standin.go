@@ -97,8 +97,14 @@ func (m *Manager) markAway(matchID, playerID string, at time.Time) {
 // When the absence started is not known — the process restarted, or the seat
 // never connected — it starts now, which only ever errs towards waiting.
 func (m *Manager) standInDue(match models.Match, p models.Player) (time.Time, bool) {
+	// The seat is asked about before the table: standInAfter builds the
+	// module's whole descriptor to answer, and a state message asks this of
+	// every seat, most of which are bots.
+	if p.IsAI || p.StandIn != nil {
+		return time.Time{}, false
+	}
 	wait := m.standInAfter(match)
-	if wait == 0 || p.IsAI || p.StandIn != nil {
+	if wait == 0 {
 		return time.Time{}, false
 	}
 	if match.Status != "active" && match.Status != "suspended" {

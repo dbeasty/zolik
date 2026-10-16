@@ -214,12 +214,15 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 		state.Status == StatusActive &&
 		state.Phase != PhaseSuspended
 	hand := state.Hands[playerID]
+	// One scratch state for every probe below, put back before each.
+	pr := newProber(state)
+	defer pr.release()
 
 	offers := make([]ActionOffer, 0, 10+2*countMelds(state))
 
 	// --- draw -------------------------------------------------------------
 	deckOffer := ActionOffer{ID: OfferDrawDeck, Verb: VerbDraw, LabelKey: "verb.drawFromDeck"}
-	deckOffer.Enabled, deckOffer.WhyNot = probe(state, playerID, Action{
+	deckOffer.Enabled, deckOffer.WhyNot = pr.probe(playerID, Action{
 		Type: ActionDrawCard, DrawFrom: DrawFromDeck,
 	})
 	deckOffer.Source = &Selector{Zone: ZoneDeck}
@@ -231,10 +234,10 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	// lay-off control below: the two ends of an ordinary turn — take a card,
 	// get rid of one — belong next to each other on screen, not separated by
 	// a run of controls most turns never touch.
-	offers = append(offers, DiscardOffer(state, playerID))
+	offers = append(offers, discardOffer(pr, state, playerID))
 
 	discardDraw := ActionOffer{ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "verb.takeFromDiscard"}
-	discardDraw.Enabled, discardDraw.WhyNot = probe(state, playerID, Action{
+	discardDraw.Enabled, discardDraw.WhyNot = pr.probe(playerID, Action{
 		Type: ActionDrawCard, DrawFrom: DrawFromDiscard,
 	})
 	src := &Selector{Zone: ZoneDiscardPile}
@@ -252,7 +255,7 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	// and turn checks first — exactly the gating a client needs — and only
 	// reaches "no cards" once those pass.
 	layMeld := ActionOffer{ID: OfferLayMeld, Verb: VerbLayMeld}
-	layMeld.Enabled, layMeld.WhyNot = probeMeldPhase(state, playerID)
+	layMeld.Enabled, layMeld.WhyNot = probeMeldPhase(pr, state, playerID)
 	minMeld := cfg.MinSetSize
 	if cfg.MinRunSize < minMeld {
 		minMeld = cfg.MinRunSize
@@ -266,8 +269,8 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 
 	// --- lay_off / swap_joker, one offer per table meld --------------------
 	for _, m := range tableMelds(state) {
-		offers = append(offers, layOffOffer(state, cfg, playerID, m, active))
-		offers = append(offers, swapJokerOffer(state, playerID, m, active))
+		offers = append(offers, layOffOffer(pr, state, cfg, playerID, m, active))
+		offers = append(offers, swapJokerOffer(pr, state, playerID, m, active))
 	}
 
 	// --- undo -------------------------------------------------------------
@@ -286,7 +289,7 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 		{OfferUndoTurn, ActionUndoTurn, "verb.undoTurn"},
 	} {
 		o := ActionOffer{ID: u.id, Verb: VerbUndo, LabelKey: u.label}
-		o.Enabled, o.WhyNot = probe(state, playerID, Action{Type: u.at})
+		o.Enabled, o.WhyNot = pr.probe(playerID, Action{Type: u.at})
 		offers = append(offers, o)
 	}
 
@@ -296,18 +299,24 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 // DiscardOffer is the discard entry of LegalActions on its own, for a caller
 // that only needs to know whether and what the player may discard.
 func DiscardOffer(state GameState, playerID string) ActionOffer {
+	pr := newProber(state)
+	defer pr.release()
+	return discardOffer(pr, state, playerID)
+}
+
+func discardOffer(pr *prober, state GameState, playerID string) ActionOffer {
 	hand := state.Hands[playerID]
 	discard := ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
 	// Probed with a real card so the joker restriction and the
 	// incomplete-initial-meld/pending-pickup obligations are all exercised;
 	// falls back to a phase-only probe for an empty hand.
-	discard.Enabled, discard.WhyNot = probeDiscard(state, playerID, hand)
+	discard.Enabled, discard.WhyNot = probeDiscard(pr, state, playerID, hand)
 	dsrc := &Selector{Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: 1}
 	active := state.CurrentTurn == playerID &&
 		state.Status == StatusActive &&
 		state.Phase != PhaseSuspended
 	if active {
-		dsrc.Cards, dsrc.Refused = discardableCards(state, playerID, hand)
+		dsrc.Cards, dsrc.Refused = discardableCards(pr, state, playerID, hand)
 	}
 	// The last card in hand is not an ordinary discard: laying it closes the
 	// deal for everyone. Said on the control, because "Discard" over a press
@@ -333,8 +342,32 @@ func FindOffer(offers []ActionOffer, id string) *ActionOffer {
 // probe runs the action through the real engine against a throwaway clone
 // and reports whether it would be accepted, plus the engine's own reason if
 // not. This is the anti-drift mechanism: no rule is restated here.
+//
+// The copy is the one thing the probe pays for that the move itself does not
+// need, so it is made once, here, rather than once here and again inside
+// ApplyAction.
 func probe(state GameState, playerID string, action Action) (bool, RulesErrorCode) {
-	_, err := ApplyAction(cloneState(state), playerID, action)
+	return verdict(applyOwned(cloneState(state), playerID, action))
+}
+
+// prober is probe for a scan that asks many questions of one state: the copy
+// each probe needs is refilled from the same reusable scratch rather than
+// allocated afresh. See probeScratch.
+//
+// Not for a probe made from inside a validator — the scratch is already the
+// state that validator is reading. Those call probe.
+type prober struct{ scratch *probeScratch }
+
+func newProber(state GameState) *prober { return &prober{scratch: newProbeScratch(state)} }
+
+// release gives the scratch back; the prober is not used again.
+func (pr *prober) release() { pr.scratch.release() }
+
+func (pr *prober) probe(playerID string, action Action) (bool, RulesErrorCode) {
+	return verdict(applyOwned(pr.scratch.reset(), playerID, action))
+}
+
+func verdict(_ ApplyOutcome, err error) (bool, RulesErrorCode) {
 	if err == nil {
 		return true, ""
 	}
@@ -346,8 +379,8 @@ func probe(state GameState, playerID string, action Action) (bool, RulesErrorCod
 // size *after* the status/phase/turn checks, so any code other than the
 // generic INVALID_MELD is a real gate the client should surface; the
 // INVALID_MELD case means "you may meld, you just have not chosen cards".
-func probeMeldPhase(state GameState, playerID string) (bool, RulesErrorCode) {
-	ok, code := probe(state, playerID, Action{Type: ActionLayMeld})
+func probeMeldPhase(pr *prober, state GameState, playerID string) (bool, RulesErrorCode) {
+	ok, code := pr.probe(playerID, Action{Type: ActionLayMeld})
 	if ok {
 		// Cannot happen (an empty meld is never valid), but if the engine
 		// ever accepted it, believe the engine.
@@ -371,13 +404,13 @@ func probeMeldPhase(state GameState, playerID string) (bool, RulesErrorCode) {
 // instead, so treating that refusal as a verdict on the verb disabled the
 // discard exactly when a legal one existed — whenever the taken card happened
 // to be the first one probed.
-func probeDiscard(state GameState, playerID string, hand []string) (bool, RulesErrorCode) {
+func probeDiscard(pr *prober, state GameState, playerID string, hand []string) (bool, RulesErrorCode) {
 	if len(hand) == 0 {
-		return probe(state, playerID, Action{Type: ActionDiscard})
+		return pr.probe(playerID, Action{Type: ActionDiscard})
 	}
 	var cardSpecific RulesErrorCode
 	for _, c := range hand {
-		ok, code := probe(state, playerID, Action{Type: ActionDiscard, Card: c})
+		ok, code := pr.probe(playerID, Action{Type: ActionDiscard, Card: c})
 		if ok {
 			return true, ""
 		}
@@ -408,7 +441,7 @@ func isCardSpecific(code RulesErrorCode) bool {
 // cards turned down for a reason of their own. A refusal that is not about
 // the card (not down yet, a pickup still owed) refuses every card alike and
 // belongs to the offer, not to any one card, so it is not repeated here.
-func discardableCards(state GameState, playerID string, hand []string) ([]string, []CardRefusal) {
+func discardableCards(pr *prober, state GameState, playerID string, hand []string) ([]string, []CardRefusal) {
 	seen := map[string]bool{}
 	out := make([]string, 0, len(hand))
 	var refused []CardRefusal
@@ -417,7 +450,7 @@ func discardableCards(state GameState, playerID string, hand []string) ([]string
 			continue
 		}
 		seen[c] = true
-		ok, code := probe(state, playerID, Action{Type: ActionDiscard, Card: c})
+		ok, code := pr.probe(playerID, Action{Type: ActionDiscard, Card: c})
 		switch {
 		case ok:
 			out = append(out, c)
@@ -494,7 +527,7 @@ func countMelds(state GameState) int {
 	return n
 }
 
-func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld, active bool) ActionOffer {
+func layOffOffer(pr *prober, state GameState, cfg RulesConfig, playerID string, m tableMeld, active bool) ActionOffer {
 	o := ActionOffer{
 		ID: LayOffOfferID(m.MeldID), Verb: VerbLayOff,
 		Facts: []OfferFact{{LabelKey: "zolik.offer.meld", Value: strconv.Itoa(m.Index + 1)}},
@@ -508,9 +541,9 @@ func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld,
 	hand := state.Hands[playerID]
 	var code RulesErrorCode
 	if len(hand) == 0 {
-		_, code = probe(state, playerID, Action{Type: ActionLayOff, MeldID: m.MeldID})
+		_, code = pr.probe(playerID, Action{Type: ActionLayOff, MeldID: m.MeldID})
 	} else {
-		_, code = probe(state, playerID, Action{
+		_, code = pr.probe(playerID, Action{
 			Type: ActionLayOff, MeldID: m.MeldID, Card: hand[0],
 		})
 	}
@@ -972,7 +1005,7 @@ func slotsForEnds(sides []string, cards int) []int {
 	return out
 }
 
-func swapJokerOffer(state GameState, playerID string, m tableMeld, active bool) ActionOffer {
+func swapJokerOffer(pr *prober, state GameState, playerID string, m tableMeld, active bool) ActionOffer {
 	o := ActionOffer{
 		ID: SwapJokerOfferID(m.MeldID), Verb: VerbSwapJoker,
 		Facts: []OfferFact{{LabelKey: "zolik.offer.meld", Value: strconv.Itoa(m.Index + 1)}},
@@ -991,7 +1024,7 @@ func swapJokerOffer(state GameState, playerID string, m tableMeld, active bool) 
 			break
 		}
 	}
-	_, code := probe(state, playerID, Action{
+	_, code := pr.probe(playerID, Action{
 		Type: ActionSwapJoker, MeldID: m.MeldID, Card: probeCard,
 	})
 	switch code {
@@ -1013,7 +1046,7 @@ func swapJokerOffer(state GameState, playerID string, m tableMeld, active bool) 
 			continue
 		}
 		seen[c] = true
-		if ok, _ := probe(state, playerID, Action{
+		if ok, _ := pr.probe(playerID, Action{
 			Type: ActionSwapJoker, MeldID: m.MeldID, Card: c,
 		}); ok {
 			cards = append(cards, c)
