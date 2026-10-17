@@ -1,6 +1,8 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { loginAsFreshGuest } from '../helpers/login';
 
 /**
  * The guided lessons, as a player meets them.
@@ -77,16 +79,18 @@ test('a card waiting to be read holds the move, and says why', async ({ page, re
   const t = await lessonTable(request, who, 'prsi');
   await open(page, who, t!.matchId);
 
-  // The first card is a "say" step. Whatever the table offers, a move made
-  // over it is held back.
+  // The first card is a "say" step: a move the table would take is held back
+  // while it is up. Wait for the player's turn, so the move pressed is a live
+  // one — a dead one opens the table's own "why not" sheet instead, which says
+  // nothing about the guide.
   await expect(page.getByTestId('guide-next')).toBeVisible();
-  const offer = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"])').first();
-  if (await offer.count()) {
-    await offer.click({ force: true }).catch(() => undefined);
-    // Either the offer was not live (bot's turn) or the guide held it.
-    const held = page.getByTestId('guide-held');
-    if (await held.count()) await expect(held).not.toHaveText(/guide\./);
-  }
+  await expect(page.getByTestId('turn-step')).toBeVisible({ timeout: 30_000 });
+  // Draw, not Play: Play waits for a card to be picked and sends nothing.
+  await page.getByTestId('offer-draw').click();
+  const held = page.getByTestId('guide-held');
+  await expect(held).toBeVisible();
+  await expect(held).not.toHaveText(/guide\.|\{/);
+  await expect(page.getByTestId('why-sheet-backdrop')).toHaveCount(0);
   await page.getByTestId('guide-next').click();
   await expect(page.getByTestId('guide-text')).not.toHaveText(/guide\./);
 });
@@ -130,4 +134,62 @@ test('every game with a lesson opens it with real words on the card', async ({ p
   }
   // Every game ships a guide; a game that drops out of this list lost its.
   expect(seen.length).toBe(mods.length);
+});
+
+// Serious and critical axe violations, over the whole page. The felt's
+// contrast is left to the skin tests, as in a11y.spec.ts.
+async function axe(page: Page, what: string) {
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .disableRules(['region', 'color-contrast'])
+    .analyze();
+  const blocking = result.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  expect(
+    blocking.map((v) => `${v.id} (${v.nodes.length}): ${v.nodes.slice(0, 2).map((n) => n.html.slice(0, 120)).join(' || ')}`),
+    `${what}: serious/critical axe violations`,
+  ).toEqual([]);
+}
+
+test('the guide card and its exit sheet have no serious accessibility violations', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const who = await guest(request);
+  const t = await lessonTable(request, who, 'prsi');
+  await open(page, who, t!.matchId);
+  await expect(page.getByTestId('guide-card')).toBeVisible();
+  await axe(page, 'lesson table');
+
+  await page.getByTestId('guide-exit').click();
+  await expect(page.getByTestId('guide-exit-sheet')).toBeVisible();
+  await axe(page, 'guide exit sheet');
+});
+
+test('the tour walks every screen it names, in words, and can be left', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  await loginAsFreshGuest(page, request, `tour-${Math.random().toString(36).slice(2, 8)}`);
+  await page.goto('/');
+  // Screens stay mounted under a stack, so read only the one on show.
+  const shown = (id: string) => page.getByTestId(id).filter({ visible: true }).first();
+
+  await shown('tour-start').click();
+  const paths = [/\/$/, /\/lobby\/games/, /\/lobby\/setup/, /\/lobby\/games/, /\/more/, /\/settings/];
+  const said = new Set<string>();
+  for (const [i, path] of paths.entries()) {
+    await expect(page).toHaveURL(path, { timeout: 15_000 });
+    const text = shown('tour-text');
+    await expect(text).toBeVisible();
+    const words = await text.innerText();
+    expect(words, `tour step ${i + 1}`).not.toMatch(/tour\.|\{/);
+    said.add(words);
+    if (i === 0) await axe(page, 'tour banner');
+    if (i < paths.length - 1) await shown('tour-next').click();
+  }
+  // Six steps, six different things said: none repeats its neighbour's text.
+  expect(said.size).toBe(paths.length);
+
+  await shown('tour-exit').click();
+  await expect(page.getByTestId('tour-banner').filter({ visible: true })).toHaveCount(0);
+  // Left is left: a reload does not bring it back.
+  await page.reload();
+  await expect(page.locator('[data-testid^="skin-choice-"]').filter({ visible: true }).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('tour-banner').filter({ visible: true })).toHaveCount(0);
 });
