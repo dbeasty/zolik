@@ -45,7 +45,7 @@ export function GuideCard({ guide, onExit }: { guide: Guide; onExit: () => void 
           hitSlop={6}
         >
           <Text style={styles.kicker}>{t('guide.common.title')}</Text>
-          <Text style={styles.progress}>{progress}</Text>
+          <Text style={styles.progress} testID="guide-progress">{progress}</Text>
         </Pressable>
         <Pressable testID="guide-exit" accessibilityRole="button" onPress={onExit} style={styles.exit} hitSlop={6}>
           <Text style={styles.exitText}>{t('guide.common.exit')}</Text>
@@ -63,7 +63,7 @@ export function GuideCard({ guide, onExit }: { guide: Guide; onExit: () => void 
         <Text style={styles.kicker} {...heading(3)}>
           {t('guide.common.title')}
         </Text>
-        <Text style={styles.progress}>{progress}</Text>
+        <Text style={styles.progress} testID="guide-progress">{progress}</Text>
         <View style={{ flex: 1 }} />
         <Pressable
           testID="guide-fold"

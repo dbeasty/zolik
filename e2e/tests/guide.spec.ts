@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { selectOnly } from '../helpers/hand';
 import { loginAsFreshGuest } from '../helpers/login';
 
 /**
@@ -193,3 +194,84 @@ test('the tour walks every screen it names, in words, and can be left', async ({
   await expect(page.locator('[data-testid^="skin-choice-"]').filter({ visible: true }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('tour-banner').filter({ visible: true })).toHaveCount(0);
 });
+
+/**
+ * A lesson played start to finish through the screen, the way a player would:
+ * Next on every card that asks to be read, and on every card that asks for a
+ * move, a move it counts — picked from the table's own offers, its cards
+ * picked in the hand and its control pressed. The move counts only if the
+ * table accepts it, so reaching the last card proves the client's counting
+ * agrees with the engine for the whole lesson, not just its first card.
+ *
+ * Games whose lesson moves are one card or one button; a meld or a layout
+ * move needs a card-by-card driver of its own, and every lesson is already
+ * walked to its end through the engine by `internal/lessontest`.
+ */
+for (const moduleId of ['prsi', 'lastcard', 'blackjack', 'holdem']) {
+  test(`the ${moduleId} lesson can be played to its last card on screen`, async ({ page, request }) => {
+    test.setTimeout(300_000);
+    const who = await guest(request);
+    const t = await lessonTable(request, who, moduleId);
+    expect(t).not.toBeNull();
+    const steps: { kind: string; verbs?: string[]; strict?: boolean }[] = t!.lesson.steps;
+    await open(page, who, t!.matchId);
+    const auth = { Authorization: `Bearer ${who.accessToken}` };
+    const state = async () => (await request.get(`${API_BASE}/matches/${t!.matchId}`, { headers: auth })).json();
+
+    const counter = page.getByTestId('guide-progress');
+    const deadline = Date.now() + 270_000;
+    let moves = 0;
+    while (Date.now() < deadline) {
+      if (await page.getByTestId('guide-finish').isVisible()) break;
+      if (await page.getByTestId('guide-next').isVisible()) {
+        await page.getByTestId('guide-next').click();
+        continue;
+      }
+      // An act step. Which one, from the card's own "Step n of m".
+      const n = Number(((await counter.innerText()).match(/\d+/) ?? ['0'])[0]);
+      const step = steps[n - 1];
+      expect(step?.kind, `card ${n} has no Next, so it should be a move`).toBe('act');
+      const st = await state();
+      expect(st.status, `the match ended on card ${n} of ${steps.length}`).toBe('active');
+      // Leaving is always on offer and never what a lesson is after.
+      const live = (st.legalActions ?? []).filter((o: any) => o.enabled && o.verb !== 'leave');
+      if (!live.length) {
+        await page.waitForTimeout(300); // an opponent's turn
+        continue;
+      }
+      // In the order the step names them: its first verb is the move it is about.
+      const wanted = (step.verbs ?? []).flatMap((v) => live.filter((o: any) => o.verb === v));
+      expect(wanted.length || !step.strict, `card ${n} is strict and wants ${step.verbs}, offered ${live.map((o: any) => o.verb)}`).toBeTruthy();
+      const offer = wanted[0] ?? live[0];
+      const min = offer.source?.minCards ?? 0;
+      const cards: string[] = min > 0 ? offer.source.cards.slice(0, min) : [];
+      // Any change the table reports counts as "it took the move": a fold
+      // moves no card, it only changes the seat.
+      const snapshot = (x: any) => JSON.stringify([x.recentMoves, x.view, x.players, x.legalActions]);
+      const before = snapshot(st);
+
+      if (cards.length) await selectOnly(page, cards);
+      await page.getByTestId(`offer-${offer.id}`).click();
+      for (const p of offer.params ?? []) {
+        const sheet = page.getByTestId(`choice-${p.name}`);
+        if (await sheet.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await page.getByTestId(`choice-${p.name}-${p.defaultChoice ?? p.choices[0].value}`).click();
+        }
+      }
+      await expect(page.getByTestId('guide-held'), `card ${n}: ${offer.verb} was held back`).toHaveCount(0);
+      await expect
+        .poll(async () => {
+          return snapshot(await state());
+        }, { message: `card ${n}: the table never took ${offer.verb}`, timeout: 15_000 })
+        .not.toBe(before);
+      moves++;
+    }
+    await expect(page.getByTestId('guide-finish'), `still on: ${await counter.innerText().catch(() => '?')}`).toBeVisible();
+    await expect(page.getByTestId('guide-text')).not.toHaveText(/guide\.|\{/);
+    expect(moves).toBeGreaterThan(0);
+
+    // Finish is the exit: the same three ways out.
+    await page.getByTestId('guide-finish').click();
+    await expect(page.getByTestId('guide-exit-sheet')).toBeVisible();
+  });
+}
