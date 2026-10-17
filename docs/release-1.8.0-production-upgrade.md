@@ -1,14 +1,16 @@
 # Release 1.8.0: production upgrade plan
 
 Production today: `1.7.2.7+07f45ce` on kdb **v0.7.1** (`2d63fd9`), on all three
-domains. This release moves it to zolik **1.8.0** on kdb **v0.9.1**
-(`93a1996e`; server code identical to v0.9.0 `1aaf4eb4`).
+domains. This release moves it to zolik **1.8.0** on kdb **v0.9.2**
+(`6c97c2ae`). v0.9.2 adds faster opens for namespaces with unique constraints
+and SQL changes zolik does not use; no format change, and rolling back to
+v0.9.1 is safe for data.
 
 ## What changes
 
 | Since 1.7.2.7 | Effect in production |
 |---|---|
-| kdb v0.7.1 → v0.9.1 | New storage layout, migrated in place on first open (below). Rollback of kdb alone to v0.8.2 is tested safe, but see "Rollback": the JSON change is the one-way part. |
+| kdb v0.7.1 → v0.9.2 | New storage layout, migrated in place on first open (below). Rollback of kdb alone to v0.8.2 is tested safe, but see "Rollback": the JSON change is the one-way part. |
 | #346 plain-JSON documents | New and rewritten rows are stored as plain JSON. Old rows keep reading. **A build from before 1.8.0 cannot read plain-JSON rows.** |
 | #346 finished matches close their namespace | Heap no longer grows with every match dealt since boot. |
 | #346 sign-in index (`match_subjects`) | Guest sign-in stops scanning every match result. Built once, lazily, the first time it is needed. |
@@ -53,7 +55,7 @@ docker logs zolik-app-1 2>&1 | grep -iE "corrupt|merge failed|could not compact|
 - Free disk must be at least **3× the data size**: the `--snapshot` tarball,
   the new tree/graph caches, and room for v0.9's larger bulk-commit bodies.
 - A `could not compact … negative offset` line means a damaged SSTable like
-  the one found on dev. On v0.9.1 it is reported as `corrupt table` during
+  the one found on dev. On v0.9.x it is reported as `corrupt table` during
   background merge and skipped; reads and writes are unaffected. It is a
   reason to note, not to stop.
 
@@ -62,7 +64,7 @@ docker logs zolik-app-1 2>&1 | grep -iE "corrupt|merge failed|could not compact|
 1. Merge the 1.8.0 bump PR. Stage the pinned pair at the **merge** commit:
    ```bash
    git -C /Users/davidj/devel/zolik worktree add --detach /Users/davidj/devel/release-1.8.0/zolik <merge-sha>
-   git -C /Users/davidj/devel/kdb worktree add --detach /Users/davidj/devel/release-1.8.0/kdb v0.9.1
+   git -C /Users/davidj/devel/kdb worktree add --detach /Users/davidj/devel/release-1.8.0/kdb v0.9.2
    ```
 2. `go build ./... && go test -short ./...` from the pair; rebuild zolik-dev
    (:8191) from it and play a guest game there.
@@ -103,6 +105,13 @@ docker logs zolik-app-1 2>&1 | grep -iE "corrupt|merge failed|could not compact|
   ```
   Everything written after the snapshot is lost. The only way to avoid that is
   the `KDB_DOC_WRITE_FORMAT=extjson` hatch above, chosen before the deploy.
+
+## Verified on v0.9.2 (dev, `1.8.0.1+de9ed9e`)
+
+Full `go test` on the kdb engine 63/63; dev deployed and serving; Playwright
+412 passed (the failures are the two that fail on main plus flakes that passed
+3/3 on re-run); Mac e2e 32/32; iOS, Android and Mac cores rebuilt. Alternating
+800-table runs against v0.9.1: p95 6–7 ms on both, CPU 64–70% on both.
 
 ## Capacity on this release
 
