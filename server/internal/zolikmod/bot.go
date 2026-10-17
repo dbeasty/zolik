@@ -38,8 +38,11 @@ type heuristicBot struct{}
 // move that is not a take-back is never handed back empty.
 func (b heuristicBot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
 	m := New()
-	if a, ok := b.choose(raw, seat); ok {
-		if _, _, err := m.Apply(raw, seat.PlayerID, a); err == nil {
+	// One decode serves both the choice and the check of it. The check runs on
+	// that same copy, which the engine mutates in place; nothing reads it
+	// afterwards, so nothing needs a second, clean decode.
+	if s, err := decode(raw); err == nil {
+		if a, ok := b.chooseIn(s, seat); ok && acceptsOn(s, seat.PlayerID, a) {
 			return a, true
 		}
 	}
@@ -56,18 +59,40 @@ func (b heuristicBot) Act(raw module.State, seat module.BotSeat, offers []module
 	return module.Action{}, false
 }
 
-func (b heuristicBot) choose(raw module.State, seat module.BotSeat) (module.Action, bool) {
+func (b heuristicBot) chooseIn(s *matchState, seat module.BotSeat) (module.Action, bool) {
 	// The seat's own strength, not one hardcoded here. It used to be the
 	// literal "medium" — which meant the easy and hard settings the rest of
 	// the system already had names, statistics buckets and a discard heuristic
 	// for could not be reached at all.
-	return playAgent(raw, seat, ai.NewAgent(seat.Skill, seat.Seed))
+	return playAgentOn(s, seat, ai.NewAgent(seat.Skill, seat.Seed))
+}
+
+// acceptsOn reports whether the engine takes a from playerID in s — what a
+// successful Apply would say — mutating s as the engine does. Between deals
+// the only move is "continue", which the agent never offers.
+func acceptsOn(s *matchState, playerID string, a module.Action) bool {
+	if s.Break.Open {
+		return false
+	}
+	act, err := toRulesAction(a)
+	if err != nil {
+		return false
+	}
+	_, err = rules.ApplyAction(s.Rules, playerID, act)
+	return err == nil
 }
 
 // playAgent asks one heuristic agent for the seat's move.
 func playAgent(raw module.State, seat module.BotSeat, agent *ai.HeuristicAgent) (module.Action, bool) {
 	s, err := decode(raw)
-	if err != nil || s.Rules.CurrentTurn != seat.PlayerID {
+	if err != nil {
+		return module.Action{}, false
+	}
+	return playAgentOn(s, seat, agent)
+}
+
+func playAgentOn(s *matchState, seat module.BotSeat, agent *ai.HeuristicAgent) (module.Action, bool) {
+	if s.Rules.CurrentTurn != seat.PlayerID {
 		return module.Action{}, false
 	}
 	visible := ai.VisibleFor(s.Rules, s.Ledger, seat.PlayerID)

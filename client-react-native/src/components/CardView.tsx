@@ -11,12 +11,13 @@ import { GermanFace } from '@/src/components/cards/GermanFace';
 import { GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
 import { LastCardFace, lastCardSetFor } from '@/src/components/cards/LastCardFace';
 import { isLastCardCode } from '@/src/components/cards/lastCardArt';
+import { TileFace } from '@/src/components/cards/TileFace';
 import { Suit } from '@/src/components/cards/Suit';
 import { VectorFace } from '@/src/components/cards/VectorFace';
 import { PRINTED } from '@/src/cards/vector/faces';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useFourColour, useSkin } from '@/src/hooks/useSkin';
-import { parseCard } from '@/src/lib/cards';
+import { isTileCode, parseCard } from '@/src/lib/cards';
 import { germanIndex, useDeck } from '@/src/lib/deck';
 import { isCourt } from '@/src/lib/pips';
 import { CARD_BORDER, INDEX_PADDING, type CardMetrics } from '@/src/lib/layout';
@@ -404,8 +405,9 @@ export function CardView({
   // there is nowhere for a pip arrangement or a drawn court figure to go —
   // these two faces sit out a stacked card and it falls back to a corner.
   // The engraved deck is the exception, for the reason below it.
-  const deluxe = skin.card.face === 'deluxe' && !stacked;
-  const rich = skin.card.face === 'rich' && !stacked;
+  const tile = isTileCode(card);
+  const deluxe = skin.card.face === 'deluxe' && !stacked && !tile;
+  const rich = skin.card.face === 'rich' && !stacked && !tile;
   /**
    * The engraved deck draws a *stacked* card too, at every width.
    *
@@ -424,7 +426,7 @@ export function CardView({
    * the hand above it are drawn from the same deck rather than from a deck
    * and a font.
    */
-  const vector = skin.card.face === 'vector';
+  const vector = skin.card.face === 'vector' && !tile;
   // Everything else: one index, drawn against the card's own edge. A stacked
   // card keeps the old corner and the old padding, because what it has to fit
   // in is a strip of its *top* edge rather than of its left one.
@@ -439,13 +441,13 @@ export function CardView({
    * corner for a stacked card — so a skin still chooses *how much* of a card
    * is drawn, and the deck chooses *which* card that is.
    */
-  const german = deck === 'german' && !d.isJoker;
+  const german = deck === 'german' && !d.isJoker && !tile;
   /**
    * Last Card's own pack: codes no other deck has, so its faces are its own
    * too. The skin still chooses how much is drawn — the plain skin and a
    * stacked card get the frame-and-index face, every other skin the full one.
    */
-  const lastCard = deck === 'lastcard' && isLastCardCode(card);
+  const lastCard = deck === 'lastcard' && isLastCardCode(card) && !tile;
   /**
    * Which Last Card face. Each skin has its own set of the pack —
    * `lastCardSetFor`. A stacked card is the small face — frame and one big
@@ -473,7 +475,9 @@ export function CardView({
     ? (fourColour && germanFourColourInk(skin, d.suit)) || germanInk(d.suit, skin.card.red)
     : '';
 
-  const face = lastCard ? (
+  const face = tile ? (
+    <TileFace number={d.rank} colour={d.suit} stacked={!!stacked} indexFont={metrics.card.indexFont} suitFont={metrics.card.indexSuitFont} />
+  ) : lastCard ? (
     <LastCardFace
       card={card}
       as={as}

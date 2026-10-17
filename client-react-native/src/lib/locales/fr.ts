@@ -20,6 +20,12 @@ export const fr: Record<string, string> = {
   'err.DISPLACED': 'Ouverte dans un autre onglet — celle-ci ne se synchronise plus',
   'err.UNREACHABLE': 'Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.',
   'err.INVALID_CREDENTIALS': 'Ce nom d’utilisateur et ce mot de passe ne correspondent pas.',
+  'err.CREDENTIALS_REQUIRED': 'Saisissez un nom d’utilisateur et un mot de passe.',
+  'err.PASSWORD_TOO_LONG': 'Ce mot de passe est trop long.',
+  'err.USERNAME_TAKEN': 'Ce nom d’utilisateur ou cet e-mail est déjà pris.',
+  'err.INVALID_EMAIL': 'Cela ne ressemble pas à une adresse e-mail.',
+  'err.CODE_INVALID': 'Ce code n’est pas valide. Demandez-en un nouveau.',
+  'err.TOO_MANY_CODES': 'Trop de codes ont été demandés pour cette adresse. Réessayez dans un instant.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const fr: Record<string, string> = {
   'zolik.rules.lead.winner': 'Celui qui termine entame la donne suivante.',
   'zolik.rules.meldFloor.on':
     'Ta première pose doit totaliser au moins {n} points naturels pour que tu sois posé.',
+  'zolik.rules.meldFloor.values':
+    "Pour ce minimum, chaque carte compte ce qu'elle coûte en main, sauf l'as : {aceHigh} dans un brelan ou au-dessus du roi, {aceLow} sous le 2. Un joker compte comme la carte qu'il remplace.",
   'zolik.rules.meldFloor.off': "Aucun minimum de points n'est exigé sur ta première pose.",
   'zolik.rules.cleanRun.on':
     'Au moins une de tes suites doit être entièrement sans joker pour que tu comptes comme posé.',
@@ -120,6 +128,8 @@ export const fr: Record<string, string> = {
     'La partie dure {n} donnes, et chaque donne exige sa propre combinaison de groupes et de suites.',
   'zolik.rules.contracts.static': 'Chaque donne exige la même combinaison : {sets} groupes et {runs} suites.',
   'zolik.rules.end.afterDeals': "La partie s'achève après {n} donnes.",
+  'zolik.rules.penalty.values':
+    "Une carte restée en main coûte : joker {joker}, 10, valet, dame ou roi {face}, 2 à 9 sa valeur, et un as {ace} — ou seulement {aceLow} si un 2 de sa couleur, ou la dame et le roi de sa couleur, sont aussi dans votre main, ou s'il prolongerait une suite sur la table.",
   'zolik.rules.end.atScore':
     "On redonne jusqu'à ce que quelqu'un atteigne {n} points — la partie est alors terminée.",
 
@@ -180,6 +190,8 @@ export const fr: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'La défausse est gelée toute la donne : pour la prendre, tu dois associer sa carte du dessus à deux cartes naturelles de ta main.',
   'canasta.rules.pileOntoMeld': 'Si ton camp a déjà une combinaison inachevée du rang de la carte du dessus, tu peux prendre toute la défausse pour y ajouter cette carte : aucune paire en main n’est nécessaire.',
   'canasta.rules.pileNoMeldCapture': 'Une combinaison déjà posée sur la table ne peut pas prendre la défausse : pour la prendre, tu dois associer sa carte du dessus à deux cartes de ta propre main.',
+  'canasta.rules.cardValues':
+    "Valeur des cartes : joker {joker}, 2 {two}, as {ace}, du roi au 8 {high}, du 7 au 4 {low}, trois noir {black}. Les trois rouges sont des primes et ne comptent jamais dans une combinaison.",
   'canasta.rules.meldFloorBands':
     "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à {lowUpTo}, {mid} jusqu'à {midUpTo}, {high} au-delà.",
   'canasta.rules.meldFloorBandsFive': "Ta première combinaison doit atteindre un minimum de points qui monte avec ton score : {negative} sous zéro, {low} jusqu'à {lowUpTo}, {mid} jusqu'à {midUpTo}, {high} jusqu'à {highUpTo}, {top} au-delà.",
@@ -649,6 +661,8 @@ export const fr: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     "Une combinaison est un groupe de trois ou quatre cartes d'un même rang, ou une suite d'au moins trois cartes d'une même couleur.",
   'ginrummy.rules.aceLow': "L'as est toujours bas — il n'existe pas de suite allant de la dame à l'as.",
+  'ginrummy.rules.cardValues':
+    "Dans le bois mort, un as compte {ace}, un 2 à 9 sa valeur, et un 10, valet, dame ou roi {face}.",
   'ginrummy.rules.knockLimit': 'Tu peux frapper dès que ton deadwood tombe à {n} ou moins.',
   'ginrummy.rules.oklahoma':
     'La limite pour frapper dans cette main est fixée par la valeur de la carte retournée.',
@@ -738,6 +752,8 @@ export const fr: Record<string, string> = {
   'rummytiles.rules.run': "Une suite réunit au moins trois chiffres consécutifs d'une même couleur.",
   'rummytiles.rules.noWrap': 'Le 13 ne reboucle pas sur le 1.',
   'rummytiles.rules.joker': "Un joker représente n'importe quelle tuile.",
+  'rummytiles.rules.tileValues':
+    "Une tuile vaut son nombre. Un joker dans une combinaison vaut la tuile qu'il remplace ; un joker resté en main coûte {joker}.",
   'rummytiles.rules.initialMeldDescription':
     "Tant que tu n'as pas posé {n} points ou plus en un seul tour, depuis ta seule main, tu ne peux toucher à rien de ce qui est déjà sur la table.",
   'rummytiles.rules.turnDescription':
@@ -815,6 +831,8 @@ export const fr: Record<string, string> = {
   'blackjack.rules.faceUp':
     "Les cartes des joueurs sont données face visible ; le croupier garde une carte cachée jusqu'à ce que tout le monde ait joué.",
   'blackjack.rules.hitStand': 'Tire autant de cartes que tu veux, ou reste sur ce que tu as.',
+  'blackjack.rules.cardValues':
+    "Un 2 à 9 compte sa valeur ; un 10, valet, dame ou roi compte {face}.",
   'blackjack.rules.aces': 'Un as vaut onze tant que cela passe, et un quand cela ne passe plus.',
   'blackjack.rules.blackjack':
     "Un as accompagné d'une carte à dix points, sur les deux premières cartes, fait un blackjack.",

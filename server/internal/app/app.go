@@ -62,8 +62,14 @@ type App struct {
 	// or the embedded KDB engine. Repositories below are the only other
 	// handles anything holds on it.
 	closeDB func(ctx context.Context) error
-	hub     *ws.Hub
-	auth    *auth.Handlers
+	// stopBackground cancels the work Start began that writes to the store,
+	// and background is how Close waits for it to finish: the caller's
+	// context is not cancelled before Close in tests, and an App that closes
+	// its store under a running loop panics there.
+	stopBackground context.CancelFunc
+	background     sync.WaitGroup
+	hub            *ws.Hub
+	auth           *auth.Handlers
 	// waitingRoom is the pool of human players waiting to be picked up into
 	// a match — see internal/lobby. Rides the same Hub as match rooms do, so
 	// it needs no database of its own and no separate scaling story.
@@ -95,6 +101,10 @@ type App struct {
 	// it replicates with nobody — which is every deployment until
 	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
 	sync *zsync.Node
+	// stopMatchIdle stops the sweep that closes idle match namespaces; nil
+	// where there is none (a sync hub does it through its node, Mongo has no
+	// namespaces).
+	stopMatchIdle func()
 	// kdb is the embedded engine, held only so the sync node can be opened
 	// over the same database the repositories use. Nil under Mongo.
 	kdb *db.KDB
@@ -104,6 +114,9 @@ type App struct {
 	// localSaves holds, on a phone, the finished games waiting for their
 	// players to say whether they go to the cloud. Nil everywhere else.
 	localSaves *match.LocalSaves
+	// reconcileEvery is how often reconcileLocalSaves runs; zero means every
+	// 20 seconds. A field so a test can make a tick land at teardown.
+	reconcileEvery time.Duration
 	// nodes is the record of enrolled replicas: which installs exist and what
 	// each one signs with.
 	nodes auth.NodeRepository
@@ -197,6 +210,7 @@ func kdbRepos(cfg Config) (repos, error) {
 	// What an acknowledged write means is the one storage decision an
 	// operator makes (KDB_DURABILITY / KDB_SYNC_MODE), so say it out loud.
 	log.Printf("kdb durability: %s, sync mode: %s", cmp.Or(sc.Durability, "sync"), cmp.Or(sc.SyncMode, "fast"))
+	log.Printf("kdb documents: read extjson+json, write %s (KDB_DOC_WRITE_FORMAT)", db.CurrentDocWriteFormat())
 	// What a namespace keeps is not otherwise visible from outside: it is
 	// recorded per namespace in meta.json inside the data volume, and reading
 	// it there means stopping to mount the volume. Say it at startup instead.
@@ -401,6 +415,11 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 	app.sync = node
+	// A sync hub closes idle namespaces through its node (sync.go). Everything
+	// else needs the same sweep for the matches nobody finished.
+	if app.kdb != nil && cfg.Sync.Role != syncRoleHub {
+		app.stopMatchIdle = app.kdb.StartMatchIdleClose()
+	}
 	return app, nil
 }
 
@@ -449,7 +468,8 @@ func pushSenders(cfg PushConfig) (notify.Senders, error) {
 // Everything here is best-effort by design: none of it may stop the server
 // from serving.
 func (a *App) Start(ctx context.Context) {
-	a.recorder.Start(ctx)
+	ctx, a.stopBackground = context.WithCancel(ctx)
+	a.goBackground(func() { a.recorder.Run(ctx) })
 	version, _ := buildinfo.Resolved()
 	a.boots.Start(ctx, version)
 	// The sweeper that turns a table nobody came back to into an abandoned
@@ -484,7 +504,16 @@ func (a *App) Start(ctx context.Context) {
 	// Replication starts last: the match runtime has to exist before a peer
 	// can ask this node whether one of its matches may change hands.
 	a.startSync()
-	go a.reconcileLocalSaves(ctx)
+	a.goBackground(func() { a.reconcileLocalSaves(ctx) })
+}
+
+// goBackground runs fn as work Close waits for before it closes the store.
+func (a *App) goBackground(fn func()) {
+	a.background.Add(1)
+	go func() {
+		defer a.background.Done()
+		fn()
+	}()
 }
 
 // Stop closes this process's boot record, and flushes whatever counters have
@@ -598,9 +627,24 @@ func (a *App) Hub() *ws.Hub { return a.hub }
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
 func (a *App) Close(ctx context.Context) error {
+	if a.stopBackground != nil {
+		a.stopBackground()
+		a.stopBackground = nil
+		done := make(chan struct{})
+		go func() { a.background.Wait(); close(done) }()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			slog.Warn("app: closing the store before background work finished", "err", ctx.Err())
+		}
+	}
 	if a.importer != nil {
 		a.importer.Close()
 		a.importer = nil
+	}
+	if a.stopMatchIdle != nil {
+		a.stopMatchIdle()
+		a.stopMatchIdle = nil
 	}
 	if a.sync != nil {
 		_ = a.sync.Close()
@@ -685,6 +729,12 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// inside the manager, so the runtime never has to import stats.
 	statsRecorder := stats.NewRecorder(a.statsRepo)
 	statsRecorder.SetMetrics(a.metrics)
+	// A finished match's namespace is let go of shortly after its last move
+	// and reopens from disk if anyone reads it again (db.KDB.ReleaseMatch).
+	// Without this a server holds a namespace open per match it has ever dealt.
+	if a.kdb != nil {
+		matchMgr.SetOnCompleted(a.kdb.ReleaseMatch)
+	}
 	// Which is not necessarily what records this node's matches: see
 	// configureOfflineFlow.
 	matchMgr.SetRecorder(a.configureOfflineFlow(matchMgr, statsRecorder))
@@ -894,6 +944,14 @@ func (a *App) serveWebUI(status int) http.HandlerFunc {
 				return
 			}
 			if webui.WantsHTML(req) {
+				// A route with a parameter (/match/<id>) has a prerendered
+				// page of its own, match/[matchId].html. Starting from
+				// index.html instead hands React another screen's markup to
+				// adopt: hydration error #418 on every visit.
+				if name, ok := a.web.LookupDynamic(req.URL.Path); ok {
+					a.web.ServeFile(w, req, name)
+					return
+				}
 				a.web.ServeIndex(w, req)
 				return
 			}

@@ -20,6 +20,12 @@ export const sv: Record<string, string> = {
   'err.DISPLACED': 'Öppnad i en annan flik — den här har slutat synkronisera',
   'err.UNREACHABLE': 'Det går inte att nå servern. Kontrollera din anslutning och försök igen.',
   'err.INVALID_CREDENTIALS': 'Användarnamnet och lösenordet stämmer inte överens.',
+  'err.CREDENTIALS_REQUIRED': 'Ange ett användarnamn och ett lösenord.',
+  'err.PASSWORD_TOO_LONG': 'Lösenordet är för långt.',
+  'err.USERNAME_TAKEN': 'Det användarnamnet eller den e-postadressen är redan upptagen.',
+  'err.INVALID_EMAIL': 'Det ser inte ut som en e-postadress.',
+  'err.CODE_INVALID': 'Koden är inte giltig. Begär en ny.',
+  'err.TOO_MANY_CODES': 'För många koder har begärts för den adressen. Försök igen om en stund.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -108,6 +114,8 @@ export const sv: Record<string, string> = {
   'zolik.rules.lead.rotate': 'Förhanden flyttas ett säte per giv, oavsett vem som vann.',
   'zolik.rules.lead.winner': 'Den som går ut spelar ut i nästa giv.',
   'zolik.rules.meldFloor.on': 'Din första utläggning måste ge minst {n} naturliga poäng innan du är utlagd.',
+  'zolik.rules.meldFloor.values':
+    "Mot det minimumet räknas varje kort som det kostar på handen, utom ett ess: {aceHigh} i en grupp eller över en kung, {aceLow} under en tvåa. En joker räknas som kortet den ersätter.",
   'zolik.rules.meldFloor.off': 'Det finns inget lägsta poängvärde för din första utläggning.',
   'zolik.rules.cleanRun.on': 'Minst en av dina sviter måste vara helt jokerfri innan du räknas som utlagd.',
   'zolik.rules.cleanRun.off': 'Dina sviter får använda jokrar fritt — ingen svit behöver vara jokerfri.',
@@ -115,6 +123,8 @@ export const sv: Record<string, string> = {
     'Matchen är {n} givar lång, och varje giv kräver sin egen kombination av grupper och sviter.',
   'zolik.rules.contracts.static': 'Varje giv kräver samma kombination: {sets} grupper och {runs} sviter.',
   'zolik.rules.end.afterDeals': 'Matchen slutar efter {n} givar.',
+  'zolik.rules.penalty.values':
+    "Ett kort som blir kvar på handen kostar: joker {joker}, 10, knekt, dam eller kung {face}, 2 till 9 sitt tal, och ett ess {ace} — eller bara {aceLow} om du också har en tvåa i samma färg, eller dam och kung i samma färg, på handen, eller om det skulle förlänga en svit på bordet.",
   'zolik.rules.end.atScore': 'Man fortsätter ge tills någon når {n} poäng — då är det över.',
 
   'prsi.rules.section.goal': 'Mål',
@@ -173,6 +183,8 @@ export const sv: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Kasthögen är fryst hela given: du kan bara ta den genom att lägga två naturliga kort från handen till det översta kortet.',
   'canasta.rules.pileOntoMeld': 'Har din sida redan en oavslutad kombination av det översta kortets valör får du ta hela kasthögen och lägga det kortet till den — du behöver inget par på handen.',
   'canasta.rules.pileNoMeldCapture': 'En kombination som redan ligger på bordet kan inte ta kasthögen: för att ta den måste du lägga två kort från din egen hand till det översta kortet.',
+  'canasta.rules.cardValues':
+    "Kortvärden: joker {joker}, 2 {two}, ess {ace}, kung till och med 8 {high}, 7 till och med 4 {low}, svart trea {black}. Röda treor är bonusar och räknas aldrig in i en kombination.",
   'canasta.rules.meldFloorBands':
     'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till {lowUpTo}, {mid} upp till {midUpTo}, {high} däröver.',
   'canasta.rules.meldFloorBandsFive': 'Din första kombination måste nå ett poängminimum som stiger med ditt resultat: {negative} under noll, {low} upp till {lowUpTo}, {mid} upp till {midUpTo}, {high} upp till {highUpTo} och {top} däröver.',
@@ -639,6 +651,8 @@ export const sv: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'En kombination är en grupp om tre eller fyra kort av en valör, eller en svit om tre eller fler i en färg.',
   'ginrummy.rules.aceLow': 'Esset är alltid lågt — det finns ingen svit från dam till ess.',
+  'ginrummy.rules.cardValues':
+    "I dödved räknas ett ess som {ace}, 2 till 9 som sitt tal, och 10, knekt, dam och kung som {face}.",
   'ginrummy.rules.knockLimit': 'Du får knacka så snart ditt deadwood är {n} eller lägre.',
   'ginrummy.rules.oklahoma': 'Knackgränsen i den här given sätts av det uppvända kortets värde.',
   'ginrummy.rules.gin': 'Noll deadwood är gin — bästa möjliga knackning.',
@@ -725,6 +739,8 @@ export const sv: Record<string, string> = {
   'rummytiles.rules.run': 'En svit är tre eller fler siffror i följd i samma färg.',
   'rummytiles.rules.noWrap': '13 fortsätter inte runt till 1.',
   'rummytiles.rules.joker': 'En joker står för vilken bricka som helst.',
+  'rummytiles.rules.tileValues':
+    "En bricka är värd sitt tal. En joker i en kombination är värd brickan den ersätter; en joker som blir kvar på handen kostar {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Tills du lagt ut {n} poäng eller mer under en enda tur, enbart från din egen hand, får du inte röra något som redan ligger på bordet.',
   'rummytiles.rules.turnDescription':
@@ -801,6 +817,8 @@ export const sv: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Spelarnas kort delas ut öppet; givaren håller ett kort dolt tills alla har spelat.',
   'blackjack.rules.hitStand': 'Ta så många kort du vill, eller stanna på det du har.',
+  'blackjack.rules.cardValues':
+    "2 till 9 räknas som sitt tal; 10, knekt, dam och kung räknas som {face}.",
   'blackjack.rules.aces': 'Ett ess räknas som elva så länge det får plats, och som ett när det inte gör det.',
   'blackjack.rules.blackjack': 'Ett ess med ett tiokort, på de två första korten, är en blackjack.',
   'blackjack.rules.pays3to2': 'En blackjack betalar 3:2.',

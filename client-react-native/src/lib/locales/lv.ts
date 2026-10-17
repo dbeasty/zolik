@@ -20,6 +20,12 @@ export const lv: Record<string, string> = {
   'err.DISPLACED': 'Atvērts citā cilnē — šis pārtrauca sinhronizēties',
   'err.UNREACHABLE': 'Nevar sazināties ar serveri. Pārbaudiet savienojumu un mēģiniet vēlreiz.',
   'err.INVALID_CREDENTIALS': 'Lietotājvārds un parole nesakrīt.',
+  'err.CREDENTIALS_REQUIRED': 'Ievadiet lietotājvārdu un paroli.',
+  'err.PASSWORD_TOO_LONG': 'Šī parole ir pārāk gara.',
+  'err.USERNAME_TAKEN': 'Šis lietotājvārds vai e-pasts jau ir aizņemts.',
+  'err.INVALID_EMAIL': 'Tas neizskatās pēc e-pasta adreses.',
+  'err.CODE_INVALID': 'Šis kods nav derīgs. Pieprasiet jaunu.',
+  'err.TOO_MANY_CODES': 'Šai adresei pieprasīts pārāk daudz kodu. Mēģiniet vēlreiz pēc brīža.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const lv: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kurš iziet, tas sāk nākamo dalījumu.',
   'zolik.rules.meldFloor.on':
     'Tavai pirmajai izlikšanai kopā jādod vismaz {n} dabiskie punkti, lai tu būtu izlicies.',
+  'zolik.rules.meldFloor.values':
+    "Šajā minimumā katra kārts skaitās tik, cik tā maksā rokā, izņemot dūzi: {aceHigh} komplektā vai virs karaļa, {aceLow} zem divnieka. Džokers skaitās kā kārts, ko tas aizstāj.",
   'zolik.rules.meldFloor.off': 'Pirmajai izlikšanai nav minimālās punktu vērtības.',
   'zolik.rules.cleanRun.on':
     'Vismaz vienai no tavām secībām jābūt pilnīgi bez džokera, lai tevi uzskatītu par izlikušos.',
@@ -120,6 +128,8 @@ export const lv: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Katrs dalījums prasa vienu un to pašu kombināciju: {sets} grupas un {runs} secības.',
   'zolik.rules.end.afterDeals': 'Mačs beidzas pēc {n} dalījumiem.',
+  'zolik.rules.penalty.values':
+    "Rokā palikusi kārts maksā: džokers {joker}, 10, kalps, dāma vai karalis {face}, no 2 līdz 9 – savu skaitli, bet dūzis {ace} — vai tikai {aceLow}, ja rokā ir arī tā masta divnieks vai tā masta dāma un karalis, vai ja tas pagarinātu rindu uz galda.",
   'zolik.rules.end.atScore': 'Dala tālāk, līdz kāds sasniedz {n} punktus — tad ir beigas.',
 
   'prsi.rules.section.goal': 'Mērķis',
@@ -179,6 +189,8 @@ export const lv: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Izmešanas kaudze ir iesaldēta visu dalījumu: to vari paņemt tikai tad, ja augšējai kārtij pievieno divas dabiskās kārtis no rokas.',
   'canasta.rules.pileOntoMeld': 'Ja tavai pusei jau ir nepabeigta kombinācija augšējās kārts vērtībā, vari paņemt visu izmešanas kaudzi un pievienot tai šo kārti — pāris rokā nav vajadzīgs.',
   'canasta.rules.pileNoMeldCapture': 'Kombinācija, kas jau ir uz galda, izmešanas kaudzi paņemt nevar: lai to paņemtu, augšējai kārtij jāpievieno divas kārtis no paša rokas.',
+  'canasta.rules.cardValues':
+    "Kāršu vērtības: džokers {joker}, divnieks {two}, dūzis {ace}, no karaļa līdz astotniekam {high}, no septītnieka līdz četriniekam {low}, melnais trijnieks {black}. Sarkanie trijnieki ir bonuss un nekad netiek ieskaitīti kombinācijā.",
   'canasta.rules.meldFloorBands':
     'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} virs tā.',
   'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} līdz {highUpTo} un {top} virs tā.',
@@ -642,6 +654,8 @@ export const lv: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinācija ir trīs vai četru vienas vērtības kāršu grupa vai trīs un vairāk vienas krāsas kāršu secība.',
   'ginrummy.rules.aceLow': 'Dūzis vienmēr ir zems — secības no dāmas līdz dūzim nav.',
+  'ginrummy.rules.cardValues':
+    "Liekajās kārtīs dūzis ir {ace}, no 2 līdz 9 – savs skaitlis, bet 10, kalps, dāma un karalis – {face}.",
   'ginrummy.rules.knockLimit': 'Tu drīksti klauvēt, tiklīdz tavs deadwood ir {n} vai mazāk.',
   'ginrummy.rules.oklahoma': 'Šī dalījuma klauvēšanas robežu nosaka apgrieztās kārts vērtība.',
   'ginrummy.rules.gin': 'Nulles deadwood ir džins — labākā iespējamā klauvēšana.',
@@ -729,6 +743,8 @@ export const lv: Record<string, string> = {
   'rummytiles.rules.run': 'Secība ir trīs vai vairāk pēc kārtas ejoši skaitļi vienā krāsā.',
   'rummytiles.rules.noWrap': 'Pēc 13 atkal nesākas 1.',
   'rummytiles.rules.joker': 'Džokers aizstāj jebkuru kauliņu.',
+  'rummytiles.rules.tileValues':
+    "Kauliņš ir sava skaitļa vērts. Džokers kombinācijā ir tā kauliņa vērts, ko aizstāj; rokā palicis džokers maksā {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Kamēr vienā gājienā, tikai no savas rokas, neesi izlicis {n} vai vairāk punktus, tu nedrīksti aizskart neko, kas jau ir uz galda.',
   'rummytiles.rules.turnDescription':
@@ -805,6 +821,8 @@ export const lv: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Spēlētāju kārtis izdala ar attēlu uz augšu; dalītājs vienu kārti tur aizklātu, līdz visi ir izspēlējuši.',
   'blackjack.rules.hitStand': 'Velc tik kāršu, cik vēlies, vai paliec pie tā, kas tev ir.',
+  'blackjack.rules.cardValues':
+    "Kārtis no 2 līdz 9 ir sava skaitļa vērtībā; 10, kalps, dāma un karalis – {face}.",
   'blackjack.rules.aces': 'Dūzis skaitās vienpadsmit, kamēr tas ietilpst, un viens, kad neietilpst.',
   'blackjack.rules.blackjack': 'Dūzis ar desmit vērtības kārti pirmajās divās kārtīs ir blekdžeks.',
   'blackjack.rules.pays3to2': 'Blekdžeks maksā 3:2.',

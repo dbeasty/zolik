@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormError } from '@/src/a11y/Field';
@@ -7,6 +7,7 @@ import { heading } from '@/src/a11y/props';
 import { Sheet } from '@/src/a11y/Sheet';
 import { Tip } from '@/src/a11y/Tip';
 import { Avatar } from '@/src/components/avatars/Avatar';
+import { useDesktopChrome } from '@/src/hooks/useHydrated';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -16,6 +17,14 @@ import type { SkinColors } from '@/src/skins/types';
 import { colors } from '@/src/theme';
 import { useInvites } from '@/src/notify/InviteProvider';
 import { InviteRow, inviteAvatar, inviteDetail, inviteHeadline } from '@/src/notify/InviteRow';
+
+/**
+ * The navigation header's height, below the status bar: what react-navigation
+ * draws on iOS (44) and everywhere else (64). The banner and the pill hang
+ * under it. They used to sit at the very top and covered the title, the back
+ * arrows and the account button — the controls a player reaches for first.
+ */
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 64;
 
 /** How long the banner stays before it tucks itself away into the list. */
 export const BANNER_MS = 20_000;
@@ -45,6 +54,8 @@ export function InviteBanner() {
   const skin = useSkin();
   const palette: SkinColors = inMatch ? skin.colors : colors;
   const insets = useSafeAreaInsets();
+  // The Mac app draws no header of its own, so there is nothing to clear.
+  const top = insets.top + (useDesktopChrome() ? 0 : HEADER_HEIGHT) + 6;
   const stillness = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
@@ -127,7 +138,7 @@ export function InviteBanner() {
   if (inMatch) {
     if (invites.length === 0 && !listOpen) return null;
     return (
-      <View pointerEvents="box-none" style={[styles.layer, { top: insets.top + 6 }]}>
+      <View pointerEvents="box-none" style={[styles.layer, { top }]}>
         {invites.length > 0 ? (
           <Pressable
             testID="invite-pill"
@@ -148,7 +159,7 @@ export function InviteBanner() {
 
   if (!shown) {
     return error ? (
-      <View pointerEvents="box-none" style={[styles.layer, { top: insets.top + 6 }]}>
+      <View pointerEvents="box-none" style={[styles.layer, { top }]}>
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.danger }]}>
           <FormError style={[styles.error, { color: palette.danger }]} testID="invite-banner-error" message={error} />
         </View>
@@ -162,7 +173,7 @@ export function InviteBanner() {
   const muteable = !!shown.host.key;
 
   return (
-    <View pointerEvents="box-none" style={[styles.layer, { top: insets.top + 6 }]}>
+    <View pointerEvents="box-none" style={[styles.layer, { top }]}>
       <Animated.View
         testID="invite-banner"
         accessibilityRole="alert"

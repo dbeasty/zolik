@@ -288,6 +288,7 @@
     "blackjack.rules.aces",
     "blackjack.rules.blackjack",
     "blackjack.rules.bustedOut",
+    "blackjack.rules.cardValues",
     "blackjack.rules.dealerDraws",
     "blackjack.rules.dealerPeeks",
     "blackjack.rules.decks",
@@ -404,6 +405,7 @@
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
     "canasta.rules.canastaCloses",
+    "canasta.rules.cardValues",
     "canasta.rules.deal",
     "canasta.rules.deck",
     "canasta.rules.dirtySequences",
@@ -540,6 +542,7 @@
     "ginrummy.rules.bigGin",
     "ginrummy.rules.bigGinBonus",
     "ginrummy.rules.box",
+    "ginrummy.rules.cardValues",
     "ginrummy.rules.deadHand",
     "ginrummy.rules.deadHandDescription",
     "ginrummy.rules.deal",
@@ -1184,6 +1187,7 @@
     "rummytiles.rules.sets",
     "rummytiles.rules.setup",
     "rummytiles.rules.target",
+    "rummytiles.rules.tileValues",
     "rummytiles.rules.tiles",
     "rummytiles.rules.turn",
     "rummytiles.rules.turnDescription",
@@ -1370,7 +1374,9 @@
     "zolik.rules.lead.winner",
     "zolik.rules.meldFloor.off",
     "zolik.rules.meldFloor.on",
+    "zolik.rules.meldFloor.values",
     "zolik.rules.meldShapes",
+    "zolik.rules.penalty.values",
     "zolik.rules.pickup.anyFromPile",
     "zolik.rules.pickup.locked",
     "zolik.rules.pickup.noReturn",
@@ -1416,6 +1422,7 @@
     "blackjack.rules.aces",
     "blackjack.rules.blackjack",
     "blackjack.rules.bustedOut",
+    "blackjack.rules.cardValues",
     "blackjack.rules.dealerDraws",
     "blackjack.rules.dealerPeeks",
     "blackjack.rules.decks",
@@ -1475,6 +1482,7 @@
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
     "canasta.rules.canastaCloses",
+    "canasta.rules.cardValues",
     "canasta.rules.deal",
     "canasta.rules.deck",
     "canasta.rules.dirtySequences",
@@ -1551,6 +1559,7 @@
     "ginrummy.rules.bigGin",
     "ginrummy.rules.bigGinBonus",
     "ginrummy.rules.box",
+    "ginrummy.rules.cardValues",
     "ginrummy.rules.deadHand",
     "ginrummy.rules.deadHandDescription",
     "ginrummy.rules.deal",
@@ -1861,6 +1870,7 @@
     "rummytiles.rules.sets",
     "rummytiles.rules.setup",
     "rummytiles.rules.target",
+    "rummytiles.rules.tileValues",
     "rummytiles.rules.tiles",
     "rummytiles.rules.turn",
     "rummytiles.rules.turnDescription",
@@ -1942,7 +1952,9 @@
     "zolik.rules.lead.winner",
     "zolik.rules.meldFloor.off",
     "zolik.rules.meldFloor.on",
+    "zolik.rules.meldFloor.values",
     "zolik.rules.meldShapes",
+    "zolik.rules.penalty.values",
     "zolik.rules.pickup.anyFromPile",
     "zolik.rules.pickup.locked",
     "zolik.rules.pickup.noReturn",
@@ -2025,6 +2037,9 @@
     ],
     "blackjack.rules.bustedOut": [
       "n"
+    ],
+    "blackjack.rules.cardValues": [
+      "face"
     ],
     "blackjack.rules.decks": [
       "n"
@@ -2243,6 +2258,14 @@
     "canasta.rules.canastaCloses": [
       "n"
     ],
+    "canasta.rules.cardValues": [
+      "ace",
+      "black",
+      "high",
+      "joker",
+      "low",
+      "two"
+    ],
     "canasta.rules.deal": [
       "n"
     ],
@@ -2438,6 +2461,10 @@
     ],
     "ginrummy.rules.box": [
       "n"
+    ],
+    "ginrummy.rules.cardValues": [
+      "ace",
+      "face"
     ],
     "ginrummy.rules.deal": [
       "value"
@@ -3206,6 +3233,9 @@
     "rummytiles.rules.target": [
       "n"
     ],
+    "rummytiles.rules.tileValues": [
+      "joker"
+    ],
     "rummytiles.rules.tiles": [
       "value"
     ],
@@ -3411,9 +3441,19 @@
     "zolik.rules.meldFloor.on": [
       "n"
     ],
+    "zolik.rules.meldFloor.values": [
+      "aceHigh",
+      "aceLow"
+    ],
     "zolik.rules.meldShapes": [
       "run",
       "set"
+    ],
+    "zolik.rules.penalty.values": [
+      "ace",
+      "aceLow",
+      "face",
+      "joker"
     ],
     "zolik.rules.pickup.locked": [
       "n"
@@ -3450,6 +3490,7 @@
     "blackjack.round.dealerBust",
     "blackjack.round.dealerTotal",
     "blackjack.rules.bustedOut",
+    "blackjack.rules.cardValues",
     "blackjack.rules.decks",
     "blackjack.rules.leaveAway",
     "blackjack.rules.minBet",
@@ -3510,6 +3551,7 @@
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
     "canasta.rules.canastaCloses",
+    "canasta.rules.cardValues",
     "canasta.rules.deal",
     "canasta.rules.deck",
     "canasta.rules.dirtySequences",
@@ -3564,6 +3606,7 @@
     "ginrummy.round.kind",
     "ginrummy.rules.bigGinBonus",
     "ginrummy.rules.box",
+    "ginrummy.rules.cardValues",
     "ginrummy.rules.deal",
     "ginrummy.rules.deck",
     "ginrummy.rules.gameBonus",
@@ -3779,6 +3822,7 @@
     "rummytiles.rules.initialMeldDescription",
     "rummytiles.rules.roundLimit",
     "rummytiles.rules.target",
+    "rummytiles.rules.tileValues",
     "rummytiles.rules.tiles",
     "rummytiles.seat.score",
     "rummytiles.status.lastRound",
@@ -3837,7 +3881,9 @@
     "zolik.rules.end.afterDeals",
     "zolik.rules.end.atScore",
     "zolik.rules.meldFloor.on",
+    "zolik.rules.meldFloor.values",
     "zolik.rules.meldShapes",
+    "zolik.rules.penalty.values",
     "zolik.rules.pickup.locked",
     "zolik.rules.run.maxLength",
     "zolik.rules.set.maxSize",

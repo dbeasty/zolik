@@ -90,7 +90,8 @@ test.describe('a player whose connection drops', () => {
 
     // Then a bot plays their seat — the seat is still theirs, marked, not a
     // new bot sitting down.
-    await expect(stays.getByTestId(`standin-badge-${t.gone.userId}`)).toBeVisible({ timeout: 45_000 });
+    // The wait is the table's standInAfter (60 s) counted from the drop.
+    await expect(stays.getByTestId(`standin-badge-${t.gone.userId}`)).toBeVisible({ timeout: 75_000 });
     await expect(stays.getByTestId('table-banner-standin')).toContainText(t.goneName);
     await expect(stays.getByTestId(`seat-${t.gone.userId}`)).toContainText(t.goneName);
     // And it plays: the turn comes back round to the person who stayed.

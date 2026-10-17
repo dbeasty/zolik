@@ -131,7 +131,7 @@ test.describe('passwordless email sign-in', () => {
     // The exact server-side message for every kind of rejected code — wrong,
     // expired, or already used — see auth.ErrInvalidCode's own doc comment
     // for why they're deliberately indistinguishable.
-    await expect(page.getByText('that code is not valid')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('That code isn’t valid. Request a new one.')).toBeVisible({ timeout: 10_000 });
     // Still on the code screen — a rejected code must not bounce the person
     // back to re-enter their address.
     await expect(page.getByText('Enter the code', { exact: true })).toBeVisible();
@@ -230,7 +230,7 @@ test.describe('legacy username/password', () => {
     await page.getByPlaceholder('Password').fill('the-wrong-password');
     await page.getByText('Sign in', { exact: true }).click();
 
-    await expect(page.getByText('invalid credentials')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('That username and password do not match.')).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/\/auth\/username-login/);
   });
 });

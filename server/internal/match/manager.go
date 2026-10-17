@@ -34,6 +34,9 @@ type Manager struct {
 	// recorder is optional; nil simply means no statistics are kept, which is
 	// what the tests and any statistics-free deployment run with.
 	recorder Recorder
+	// onCompleted is told the id of each match as it finishes; see
+	// SetOnCompleted. Nil means nobody is listening.
+	onCompleted func(matchID string)
 
 	// metrics counts what the runtime did, for the operator's console. Never
 	// nil after New — it defaults to a sink that discards — so nothing on the
@@ -212,6 +215,11 @@ func (m *Manager) BotStats() *botstats.Recorder { return m.botStats }
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
+
+// SetOnCompleted registers what to tell when a match is played to its end, by
+// match id. The store uses it to let go of the match's namespace, which it
+// reopens on the next read. Optional.
+func (m *Manager) SetOnCompleted(f func(matchID string)) { m.onCompleted = f }
 
 // SetReplayEnabled turns stepping back through stopped games on.
 //
@@ -728,7 +736,7 @@ func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a
 			return errStandInEnded
 		}
 	}
-	match, rounds, events, err := m.applyLocked(ctx, e, playerID, a)
+	match, rounds, proj, events, err := m.applyLocked(ctx, e, playerID, a)
 	e.mu.Unlock()
 	if err != nil {
 		return err
@@ -739,7 +747,7 @@ func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a
 	}
 	mod := m.registry.Get(match.ModuleID)
 
-	m.broadcastWith(match, rounds)
+	m.broadcastWith(match, rounds, proj)
 	m.publishEvents(match, events)
 
 	// A finished match becomes a permanent record. Asynchronous and after the
@@ -748,6 +756,9 @@ func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a
 	// fail the move that won.
 	if match.Status == "completed" && m.recorder != nil && match.Tutorial == nil {
 		m.recorder.RecordMatchAsync(match, outcomeOf(mod, match, module.State(match.State)))
+	}
+	if match.Status == "completed" && m.onCompleted != nil {
+		m.onCompleted(match.ID.Hex())
 	}
 
 	// Whoever is on turn now might be a bot. The loop is a no-op when it is
@@ -789,28 +800,37 @@ const touchEvery = time.Minute
 // alone, most of the time, or the move with a snapshot and the envelope when
 // the match finished or a snapshot is due. e must be locked.
 func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string, a module.Action) (
-	models.Match, *module.RoundLog, []module.Event, error) {
+	models.Match, *module.RoundLog, module.Projection, []module.Event, error) {
 	match := e.match
 	if match.Status != "active" {
-		return models.Match{}, nil, nil, module.Error{Code: "MATCH_NOT_ACTIVE"}
+		return models.Match{}, nil, nil, nil, module.Error{Code: "MATCH_NOT_ACTIVE"}
 	}
 	if e.stateErr != nil {
-		return models.Match{}, nil, nil, e.stateErr
+		return models.Match{}, nil, nil, nil, e.stateErr
 	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
-		return models.Match{}, nil, nil, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
+		return models.Match{}, nil, nil, nil, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
-	next, events, err := mod.Apply(module.State(match.State), playerID, a)
+	// The new state is decoded once and used for everything this move needs
+	// to know about it: whether it closed a round, whether it ended the
+	// match, and - handed on to the broadcast - every seat's board. Asking the
+	// module each question separately would unmarshal the whole state again
+	// for each of them on every single move. A module that can hands over the
+	// state it applied the move to, so that decode is the one Apply made.
+	next, events, proj, shared, err := module.ApplyAndProject(mod, module.State(match.State), playerID, a)
 	if err != nil {
-		return models.Match{}, nil, nil, err // a refusal: nothing is stored, nothing is broadcast
+		return models.Match{}, nil, nil, nil, err // a refusal: nothing is stored, nothing is broadcast
 	}
 
 	entry := logEntry(e.seq+1, playerID, a)
-	// The round log is decoded once here and used twice: to notice that this
-	// move closed a round, and by the broadcast. Asking for it in both places
-	// would decode the module's whole state twice on every single move.
-	rounds := module.RoundsFor(mod, next)
+	var rounds *module.RoundLog
+	if shared {
+		rounds = proj.Rounds()
+	} else {
+		proj = nil
+		rounds = module.RoundsFor(mod, next)
+	}
 	closed := e.rounds
 	if rounds != nil && len(rounds.Rounds) > closed {
 		closed = len(rounds.Rounds)
@@ -819,7 +839,13 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 
 	envelope := match
 	finished := false
-	if done, winners, err := mod.Finished(next); err == nil && done {
+	done, winners, finErr := false, []string(nil), error(nil)
+	if shared {
+		done, winners = proj.Finished()
+	} else {
+		done, winners, finErr = mod.Finished(next)
+	}
+	if finErr == nil && done {
 		finished = true
 		now := time.Now().UTC()
 		envelope.Status = "completed"
@@ -847,7 +873,7 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 			e.loaded = false
 		}
 		log.Printf("match=%s player=%s action=%s persist failed: %v", match.ID.Hex(), playerID, a.Verb, err)
-		return models.Match{}, nil, nil, err
+		return models.Match{}, nil, nil, nil, err
 	}
 
 	now := time.Now().UTC()
@@ -857,6 +883,7 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	}
 	envelope.State = models.JSONDoc(next)
 	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
+	e.proj, e.projOf = proj, envelope.State
 	players := make([]string, 0, len(match.Players))
 	for _, p := range match.Players {
 		players = append(players, p.ID)
@@ -870,7 +897,7 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 			log.Printf("match=%s touch failed: %v", match.ID.Hex(), err)
 		}
 	}
-	return e.match, rounds, events, nil
+	return e.match, rounds, proj, events, nil
 }
 
 // Broadcast sends every connected player their own view of the match.
@@ -882,19 +909,37 @@ func (m *Manager) Broadcast(match models.Match) {
 	// Computed once for the whole broadcast rather than once per recipient: a
 	// round log takes no viewer, so every seat would otherwise pay to decode
 	// the same bytes into the same answer.
-	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
+	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)), nil)
 }
 
 // broadcastWith is Broadcast with the round log already in hand, for the one
 // caller that had to decode it anyway — see HandleAction.
-func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog) {
+func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog, proj module.Projection) {
 	recipients := make([]string, 0, len(match.Players))
 	for _, p := range match.Players {
 		recipients = append(recipients, p.ID)
 	}
 	id := match.ID.Hex()
+	// Decoded once for the whole broadcast, like the round log: each seat's
+	// board, offers and the scoreboard would otherwise unmarshal the same state
+	// again, per seat, on every move.
+	if proj == nil {
+		if mod := m.registry.Get(match.ModuleID); mod != nil && len(match.State) > 0 {
+			if p, ok := module.ProjectionFor(mod, module.State(match.State)); ok {
+				proj = p
+			}
+		}
+	}
+	// So is everything else that does not depend on who is looking: the
+	// descriptor and the seat facts.
+	o := stateMsgOpts{rounds: rounds, proj: proj, withOffers: true}
+	if mod := m.registry.Get(match.ModuleID); mod != nil {
+		d := mod.Descriptor()
+		o.desc = &d
+	}
+	facts := m.seatFacts(match)
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
-		return m.withSatOut(match, m.buildStateMsg(match, playerID, rounds))
+		return withSeatFacts(m.buildStateMsgWith(match, playerID, o), facts)
 	})
 }
 

@@ -734,6 +734,85 @@ func StandingsFor(m GameModule, s State) []Standing {
 	return out
 }
 
+// Projector is implemented by a module that can decode a state once and then
+// answer for any number of viewers from the decoded copy.
+//
+// Optional, and purely a cost: a state is opaque bytes, so View, LegalActions
+// and Standings each decode it from scratch, and a broadcast asks all three of
+// every seat at the table on every move. Decoding is most of what answering
+// costs, and it is the same decode every time. A module that implements this
+// hands the runtime its decoded state to ask repeatedly; one that does not is
+// asked the long way, with the same answers.
+type Projector interface {
+	Project(s State) (Projection, error)
+}
+
+// Projection is one decoded state, read per viewer.
+//
+// Read-only, and that is what makes sharing it safe: hidden information is
+// filtered by View(viewerID) and nowhere else, so the one thing a Projection
+// must never do is let a call for one viewer change what a later call for
+// another returns. It answers exactly what the module's own View,
+// LegalActions and Standings would for the same bytes.
+//
+// One projection may be read from more than one goroutine — a move's
+// broadcast and the bot loop playing the next seat share it — and it may hand
+// the same offer list to every caller who asks for one viewer's. What it
+// returns is therefore read-only to the caller too.
+type Projection interface {
+	View(viewerID string) (ViewModel, error)
+	LegalActions(viewerID string) ([]ActionOffer, error)
+	// Standings is the scoreboard, nil when the module keeps none.
+	Standings() []Standing
+	// Rounds and Finished answer what RoundsFor and the module's Finished
+	// would for the same state, so the runtime decodes a freshly played state
+	// once for the whole of a move rather than once for each of these
+	// questions.
+	Rounds() *RoundLog
+	Finished() (bool, []string)
+}
+
+// ApplyProjector is implemented by a Projector whose Apply ends holding the
+// new state decoded — it built it — and can hand that over as the projection
+// of the bytes it returns, rather than leave the caller to decode them again.
+//
+// Optional, and purely a cost, like Projector. The projection must answer
+// exactly as ProjectionFor would for the returned state.
+type ApplyProjector interface {
+	ApplyProjected(s State, playerID string, a Action) (State, []Event, Projection, error)
+}
+
+// ApplyAndProject applies a move and projects the state it leads to, from one
+// decode where the module allows it. The projection is nil, and shared false,
+// when the module has none; the error is Apply's.
+func ApplyAndProject(m GameModule, s State, playerID string, a Action) (next State, events []Event, proj Projection, shared bool, err error) {
+	if ap, ok := m.(ApplyProjector); ok {
+		next, events, proj, err = ap.ApplyProjected(s, playerID, a)
+		if err != nil || proj != nil {
+			return next, events, proj, proj != nil, err
+		}
+	} else if next, events, err = m.Apply(s, playerID, a); err != nil {
+		return next, events, nil, false, err
+	}
+	proj, shared = ProjectionFor(m, next)
+	return next, events, proj, shared, nil
+}
+
+// ProjectionFor decodes a state once for repeated per-viewer reads, or reports
+// that the module has no such shortcut or the state would not decode, in which
+// case the caller asks the module directly and gets the module's own error.
+func ProjectionFor(m GameModule, s State) (Projection, bool) {
+	p, ok := m.(Projector)
+	if !ok {
+		return nil, false
+	}
+	proj, err := p.Project(s)
+	if err != nil || proj == nil {
+		return nil, false
+	}
+	return proj, true
+}
+
 // OpenViewer is implemented by a module that can show a board with nothing
 // hidden: a finished game, where there is no longer anything to protect.
 //

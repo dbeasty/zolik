@@ -52,6 +52,9 @@ var ErrTooManyCodes = errors.New("too many sign-in codes requested for this addr
 // code, which is the right advice in all four cases anyway.
 var ErrInvalidCode = errors.New("that code is not valid — request a new one")
 
+// ErrInvalidEmail is returned when the address cannot be mailed to.
+var ErrInvalidEmail = errors.New("that does not look like an email address")
+
 // EmailAuth issues and redeems one-time sign-in codes.
 type EmailAuth struct {
 	store  Store
@@ -76,7 +79,7 @@ func NewEmailAuth(store Store, mailer Mailer, appName string) *EmailAuth {
 func (e *EmailAuth) StartSignIn(ctx context.Context, email, requestIP string) error {
 	email = NormalizeEmail(email)
 	if !ValidEmail(email) {
-		return errors.New("that does not look like an email address")
+		return ErrInvalidEmail
 	}
 
 	recent, err := e.store.CountRecentLoginCodes(ctx, email, time.Now().UTC().Add(-codeRateWindow))

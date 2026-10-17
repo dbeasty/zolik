@@ -20,6 +20,12 @@ export const bg: Record<string, string> = {
   'err.DISPLACED': 'Отворено в друг раздел — този спря да се синхронизира',
   'err.UNREACHABLE': 'Няма връзка със сървъра. Проверете връзката си и опитайте отново.',
   'err.INVALID_CREDENTIALS': 'Потребителското име и паролата не съвпадат.',
+  'err.CREDENTIALS_REQUIRED': 'Въведете потребителско име и парола.',
+  'err.PASSWORD_TOO_LONG': 'Паролата е твърде дълга.',
+  'err.USERNAME_TAKEN': 'Това потребителско име или имейл вече е заето.',
+  'err.INVALID_EMAIL': 'Това не прилича на имейл адрес.',
+  'err.CODE_INVALID': 'Този код не е валиден. Поискайте нов.',
+  'err.TOO_MANY_CODES': 'Поискани са твърде много кодове за този адрес. Опитайте отново след малко.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const bg: Record<string, string> = {
   'zolik.rules.lead.winner': 'Който излезе, започва следващото раздаване.',
   'zolik.rules.meldFloor.on':
     'Първото ти сваляне трябва да е поне {n} естествени точки, за да се смяташ за свалил.',
+  'zolik.rules.meldFloor.values':
+    "За този минимум всяка карта се брои колкото струва в ръката, освен асото: {aceHigh} в сет или над поп, {aceLow} под двойка. Жокерът се брои като картата, която замества.",
   'zolik.rules.meldFloor.off': 'Няма минимална стойност в точки за първото ти сваляне.',
   'zolik.rules.cleanRun.on':
     'Поне една от поредиците ти трябва да е напълно без жокер, за да се броиш за свалил.',
@@ -121,6 +129,8 @@ export const bg: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Всяко раздаване изисква една и съща комбинация: {sets} групи и {runs} поредици.',
   'zolik.rules.end.afterDeals': 'Мачът свършва след {n} раздавания.',
+  'zolik.rules.penalty.values':
+    "Карта, останала в ръката ви, струва: жокер {joker}, 10, вале, дама или поп {face}, от 2 до 9 – колкото е числото, а асо {ace} — или само {aceLow}, ако в ръката си имате и двойка от неговата боя, или дама и поп от неговата боя, или ако би удължило редица на масата.",
   'zolik.rules.end.atScore': 'Раздава се, докато някой стигне {n} точки — тогава свършва.',
 
   'prsi.rules.section.goal': 'Цел',
@@ -179,6 +189,8 @@ export const bg: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Купчината с изхвърлени е замразена през цялото раздаване: можеш да я вземеш само като допълниш горната карта с две естествени карти от ръката си.',
   'canasta.rules.pileOntoMeld': 'Ако страната ти вече има незавършена комбинация със стойността на горната карта, можеш да вземеш цялата купчина с изхвърлени и да добавиш тази карта към нея — двойка от ръката не ти трябва.',
   'canasta.rules.pileNoMeldCapture': 'Комбинация, която вече е на масата, не може да вземе купчината с изхвърлени: за да я вземеш, трябва да допълниш горната ѝ карта с две карти от собствената си ръка.',
+  'canasta.rules.cardValues':
+    "Стойност на картите: жокер {joker}, двойка {two}, асо {ace}, от поп до осмица {high}, от седмица до четворка {low}, черна тройка {black}. Червените тройки са бонус и никога не се броят към комбинация.",
   'canasta.rules.meldFloorBands':
     'Първото ти сваляне трябва да достигне минимум точки, който расте с резултата ти: {negative} под нулата, {low} до {lowUpTo}, {mid} до {midUpTo}, {high} над това.',
   'canasta.rules.meldFloorBandsFive': 'Първата ти комбинация трябва да достигне точков минимум, който расте с резултата ти: {negative} под нулата, {low} до {lowUpTo}, {mid} до {midUpTo}, {high} до {highUpTo} и {top} над това.',
@@ -652,6 +664,8 @@ export const bg: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Комбинацията е група от три или четири карти с една стойност, или поредица от три и повече карти в една боя.',
   'ginrummy.rules.aceLow': 'Асото винаги е ниско — няма поредица от дама до асо.',
+  'ginrummy.rules.cardValues':
+    "В мъртвите карти асото се брои {ace}, от 2 до 9 – колкото е числото, а 10, вале, дама и поп – {face}.",
   'ginrummy.rules.knockLimit': 'Можеш да чукнеш, щом дедудът ти е {n} или по-малко.',
   'ginrummy.rules.oklahoma':
     'Границата за чукане в това раздаване се определя от стойността на обърнатата карта.',
@@ -739,6 +753,8 @@ export const bg: Record<string, string> = {
   'rummytiles.rules.run': 'Поредицата е три или повече последователни числа в един цвят.',
   'rummytiles.rules.noWrap': '13 не се връща обратно към 1.',
   'rummytiles.rules.joker': 'Жокерът замества всяка плочка.',
+  'rummytiles.rules.tileValues':
+    "Плочката струва колкото е числото ѝ. Жокер в комбинация струва колкото плочката, която замества; жокер, останал в ръката ви, струва {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Докато не свалиш {n} или повече точки в един-единствен ход, само от собствената си ръка, не можеш да пипаш нищо, което вече е на масата.',
   'rummytiles.rules.turnDescription':
@@ -816,6 +832,8 @@ export const bg: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Картите на играчите се раздават с лице нагоре; крупието държи една карта покрита, докато всички изиграят.',
   'blackjack.rules.hitStand': 'Тегли колкото карти искаш или остани с това, което имаш.',
+  'blackjack.rules.cardValues':
+    "Картите от 2 до 9 се броят колкото е числото; 10, вале, дама и поп – {face}.",
   'blackjack.rules.aces':
     'Асото се брои за единайсет, докато това се побира, и за едно, когато не се побира.',
   'blackjack.rules.blackjack': 'Асо с карта със стойност десет, на първите две карти, е блекджек.',

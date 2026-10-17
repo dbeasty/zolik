@@ -469,6 +469,21 @@ async function main() {
     await a.screenshot('online-match');
   }, [a]);
 
+  await step('the game window opens at the game’s default size and its page raised no hydration error', async () => {
+    const wins = await windowsOf(a);
+    const [mainW] = wins[0].frame.slice(2);
+    const [gameW, gameH] = wins[1].frame.slice(2);
+    // The game default (1100 wide) is not the main window's (1280) nor
+    // whatever the window opened before it was stretched to.
+    expect(gameW === 1100 && gameW !== mainW, `the game window is ${gameW}x${gameH} beside a main window ${mainW} wide`);
+    // What the user sees: the console of every page so far holds no React
+    // hydration error (#418 and its relatives), because a page the app draws
+    // is never hydrated from a prerendered one.
+    const log = a.console();
+    const bad = log.split('\n').filter((l) => /#41[8-9]|#42[0-5]|[Hh]ydrat/.test(l));
+    expect(bad.length === 0, `the pages reported hydration errors: ${bad.slice(0, 3).join(' | ')}`);
+  }, [a]);
+
   let prsi = '';
   await step('a second game opens a second game window; both play', async () => {
     await on(a, 1);
@@ -867,6 +882,36 @@ async function main() {
       expect(!/Server:/.test(w.subtitle), `the online game window is titled as an offline table's: ${JSON.stringify(w)}`);
       await on(a, 1);
     }
+  }, [a]);
+
+  await step('an online match opened in a new window while the app holds an offline seat stays online', async () => {
+    await on(a, 1);
+    const seat = await a.native('seat');
+    expect(!!seat.instanceId, `the app holds no offline seat: ${JSON.stringify(seat)}`);
+    // Close the online game's window (the match goes on), then open the same
+    // match again from the main window, as the app is asked to by a link or
+    // an invitation to an online table.
+    const idx = (await windowsOf(a)).findIndex((w) => w.key === lastCard) + 1;
+    if (idx > 0) {
+      await a.native(`window close ${idx}`);
+      await waitWindows(a, (w) => !w.some((x) => x.key === lastCard), 'the online game window to close');
+    }
+    const id = lastCard.split(':')[1];
+    await on(a, 1);
+    await a.js(`window.webkit.messageHandlers.zolik.postMessage({ op: 'openGame', kind: 'match', matchId: ${JSON.stringify(id)}, path: '/match/${id}' }); return 1`);
+    const wins = await waitWindows(a, (w) => w.some((x) => x.key === lastCard), 'the online game window to open again');
+    const n = wins.findIndex((w) => w.key === lastCard) + 1;
+    await on(a, n);
+    const v = await a.js(`
+      await e2e.waitFor(() => document.querySelectorAll('[data-card]').length >= 5 || /no longer exists/.test(e2e.text()), 'the match or its absence', 30000);
+      return { cards: document.querySelectorAll('[data-card]').length, gone: /no longer exists/.test(e2e.text()) };
+    `);
+    expect(v.cards >= 5 && !v.gone, `the reopened online game window: ${JSON.stringify(v)}`);
+    const w = (await windowsOf(a))[n - 1];
+    expect(!/Server:/.test(w.subtitle), `the online game window sits at the offline table: ${JSON.stringify(w)}`);
+    const after = await a.native('seat');
+    expect(after.instanceId === seat.instanceId, `opening an online game moved the app's seat: ${JSON.stringify(after)}`);
+    await on(a, 1);
   }, [a]);
 
   let guestPage;

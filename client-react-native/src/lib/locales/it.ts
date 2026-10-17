@@ -20,6 +20,12 @@ export const it: Record<string, string> = {
   'err.DISPLACED': 'Aperta in un\'altra scheda — questa ha smesso di sincronizzarsi',
   'err.UNREACHABLE': 'Impossibile raggiungere il server. Controlla la connessione e riprova.',
   'err.INVALID_CREDENTIALS': 'Nome utente e password non corrispondono.',
+  'err.CREDENTIALS_REQUIRED': 'Inserisci un nome utente e una password.',
+  'err.PASSWORD_TOO_LONG': 'Quella password è troppo lunga.',
+  'err.USERNAME_TAKEN': 'Quel nome utente o indirizzo e-mail è già in uso.',
+  'err.INVALID_EMAIL': 'Non sembra un indirizzo e-mail.',
+  'err.CODE_INVALID': 'Quel codice non è valido. Richiedine uno nuovo.',
+  'err.TOO_MANY_CODES': 'Sono stati richiesti troppi codici per quell’indirizzo. Riprova tra poco.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const it: Record<string, string> = {
   'zolik.rules.lead.winner': 'Chi chiude apre la smazzata successiva.',
   'zolik.rules.meldFloor.on':
     'La tua prima calata deve totalizzare almeno {n} punti naturali perché tu risulti calato.',
+  'zolik.rules.meldFloor.values':
+    "Per quel minimo ogni carta conta quanto costa in mano, tranne l'asso: {aceHigh} in un tris o sopra il re, {aceLow} sotto il 2. Un jolly conta come la carta che sostituisce.",
   'zolik.rules.meldFloor.off': "Non c'è un minimo di punti sulla tua prima calata.",
   'zolik.rules.cleanRun.on':
     'Almeno una delle tue scale deve essere del tutto priva di jolly perché tu risulti calato.',
@@ -120,6 +128,8 @@ export const it: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Ogni smazzata richiede la stessa combinazione: {sets} gruppi e {runs} scale.',
   'zolik.rules.end.afterDeals': 'La partita finisce dopo {n} smazzate.',
+  'zolik.rules.penalty.values':
+    "Una carta rimasta in mano costa: jolly {joker}, 10, fante, donna o re {face}, 2-9 il suo numero, e un asso {ace} — o solo {aceLow} se in mano hai anche un 2 del suo seme, o la donna e il re del suo seme, o se allungherebbe una scala sul tavolo.",
   'zolik.rules.end.atScore': 'Si continua a smazzare finché qualcuno raggiunge {n} punti — poi è finita.',
 
   'prsi.rules.section.goal': 'Obiettivo',
@@ -179,6 +189,8 @@ export const it: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'La pila degli scarti resta congelata per tutta la mano: per prenderla devi abbinare la carta in cima a due carte naturali della tua mano.',
   'canasta.rules.pileOntoMeld': 'Se la tua parte ha già una combinazione incompleta del valore della carta in cima, puoi prendere tutta la pila degli scarti e aggiungerle quella carta: non ti serve una coppia in mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinazione già in tavola non può prendere la pila degli scarti: per prenderla devi abbinare la carta in cima a due carte della tua stessa mano.',
+  'canasta.rules.cardValues':
+    "Valore delle carte: jolly {joker}, 2 {two}, asso {ace}, dal re all'8 {high}, dal 7 al 4 {low}, tre nero {black}. I tre rossi sono bonus e non contano mai per una combinazione.",
   'canasta.rules.meldFloorBands':
     'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} oltre.',
   'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} fino a {highUpTo}, {top} oltre.',
@@ -647,6 +659,8 @@ export const it: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Una combinazione è un gruppo di tre o quattro carte dello stesso valore, oppure una scala di tre o più carte dello stesso seme.',
   'ginrummy.rules.aceLow': "L'asso è sempre basso — non esiste la scala da donna ad asso.",
+  'ginrummy.rules.cardValues':
+    "Nel deadwood un asso conta {ace}, un 2-9 il suo numero, e un 10, fante, donna o re {face}.",
   'ginrummy.rules.knockLimit': 'Puoi bussare non appena il tuo deadwood scende a {n} o meno.',
   'ginrummy.rules.oklahoma': 'Il limite per bussare in questa mano è dato dal valore della carta scoperta.',
   'ginrummy.rules.gin': 'Deadwood zero è gin — la migliore bussata possibile.',
@@ -735,6 +749,8 @@ export const it: Record<string, string> = {
   'rummytiles.rules.run': 'Una scala è formata da tre o più numeri consecutivi dello stesso colore.',
   'rummytiles.rules.noWrap': "Il 13 non riprende dall'1.",
   'rummytiles.rules.joker': 'Un jolly sostituisce qualsiasi tessera.',
+  'rummytiles.rules.tileValues':
+    "Una tessera vale il suo numero. Un jolly in una combinazione vale la tessera che sostituisce; uno rimasto in mano costa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Finché non hai calato {n} punti o più in un solo turno, dalla tua sola mano, non puoi toccare nulla di ciò che è già sul tavolo.',
   'rummytiles.rules.turnDescription':
@@ -812,6 +828,8 @@ export const it: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Le carte dei giocatori si danno scoperte; il banco tiene una carta coperta finché non hanno giocato tutti.',
   'blackjack.rules.hitStand': 'Chiedi tutte le carte che vuoi, oppure stai su ciò che hai.',
+  'blackjack.rules.cardValues':
+    "Un 2-9 conta il suo numero; un 10, fante, donna o re conta {face}.",
   'blackjack.rules.aces': 'Un asso vale undici finché ci sta, e uno quando non ci sta più.',
   'blackjack.rules.blackjack': 'Un asso con una carta da dieci, nelle prime due carte, è blackjack.',
   'blackjack.rules.pays3to2': 'Il blackjack paga 3:2.',

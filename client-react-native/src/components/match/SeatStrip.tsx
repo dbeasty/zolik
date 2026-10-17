@@ -11,6 +11,7 @@ import { seatElementId } from '@/src/lib/flights';
 import { ms } from '@/src/lib/motion';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { useReactions } from '@/src/components/avatars/ReactionsContext';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
 import { scoreText, seatSpokenLabel } from '@/src/lib/boardSpeech';
@@ -133,6 +134,8 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   // and simply does not rise — the fact is still on screen, in the two cues
   // that were never movement.
   const stillness = useReducedMotion();
+  // What each face is acting out — the same events the board sounds for.
+  const reactions = useReactions();
   const styles = useMemo(() => seatStyles(metrics, skin), [metrics, skin]);
   const [stripWidth, setStripWidth] = useState(0);
 
@@ -168,6 +171,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         spec={avatarFor(seat.playerId, !!(player?.isAI || player?.isAgent), player?.avatar)}
         size={metrics.seat.avatar}
         ringColor={seat.active ? skin.colors.gold : undefined}
+        reaction={reactions[seat.playerId] ?? null}
       />
     ) : null;
     const pickBot =
@@ -461,6 +465,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                   <Avatar
                     spec={avatarFor(seat.playerId, !!(player?.isAI || player?.isAgent), player?.avatar)}
                     size={metrics.seat.avatarCompact}
+                    reaction={reactions[seat.playerId] ?? null}
                   />
                 ) : null}
                 {/* The one mark worth the width on a collapsed rail: whose

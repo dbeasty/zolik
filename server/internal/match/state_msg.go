@@ -170,7 +170,7 @@ type StandInMsg struct {
 // itself a small demonstration that the runtime can describe a match before
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
-	msg := m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
+	msg := m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)), nil)
 	return m.withSatOut(match, msg)
 }
 
@@ -178,17 +178,53 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 // now, so only a live state carries it — a replay frame is a past position and
 // must not ask.
 func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMsg {
+	return withSeatFacts(msg, m.seatFacts(match))
+}
+
+// seatFact is what withSatOut adds to one seat. None of it depends on who is
+// looking, so a broadcast works it out once for every recipient rather than
+// once per recipient per seat — which, through standInDue, used to mean
+// building the module's descriptor twice for each.
+type seatFact struct {
+	satOut, simplified bool
+	standIn            *StandInMsg
+	standInAt          *time.Time
+}
+
+func (m *Manager) seatFacts(match models.Match) []seatFact {
+	out := make([]seatFact, len(match.Players))
 	for i, p := range match.Players {
-		if i < len(msg.Players) {
-			msg.Players[i].SatOut = m.satOut(match, p)
-			if p.StandIn != nil {
-				msg.Players[i].StandIn = &StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
-			} else if due, ok := m.standInDue(match, p); ok {
-				msg.Players[i].StandInAt = &due
-			}
-			if p.IsAI {
-				msg.Players[i].Simplified = m.governor.Reduced(match.ID.Hex(), p.ID)
-			}
+		out[i].satOut = m.satOut(match, p)
+		if p.StandIn != nil {
+			out[i].standIn = &StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
+		} else if due, ok := m.standInDue(match, p); ok {
+			out[i].standInAt = &due
+		}
+		if p.IsAI {
+			out[i].simplified = m.governor.Reduced(match.ID.Hex(), p.ID)
+		}
+	}
+	return out
+}
+
+// withSeatFacts writes the facts into one recipient's message. Each message
+// gets its own copies of the pointed-to values, so no two recipients' frames
+// share memory.
+func withSeatFacts(msg MatchStateMsg, facts []seatFact) MatchStateMsg {
+	for i, f := range facts {
+		if i >= len(msg.Players) {
+			break
+		}
+		msg.Players[i].SatOut = f.satOut
+		if f.standIn != nil {
+			in := *f.standIn
+			msg.Players[i].StandIn = &in
+		} else if f.standInAt != nil {
+			at := *f.standInAt
+			msg.Players[i].StandInAt = &at
+		}
+		if f.simplified {
+			msg.Players[i].Simplified = true
 		}
 	}
 	return msg
@@ -201,8 +237,13 @@ func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMs
 // takes no viewer, by construction. Rebuilding it per recipient meant decoding
 // the module's whole state an extra time for every seat at the table, on every
 // single action.
-func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog) MatchStateMsg {
-	msg := m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, withOffers: true})
+func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog, proj module.Projection) MatchStateMsg {
+	return m.buildStateMsgWith(match, viewerID, stateMsgOpts{rounds: rounds, proj: proj, withOffers: true})
+}
+
+// buildStateMsgWith is buildStateMsg with every shared part in hand.
+func (m *Manager) buildStateMsgWith(match models.Match, viewerID string, o stateMsgOpts) MatchStateMsg {
+	msg := m.projectStateMsg(match, viewerID, o)
 	if e := m.live.peek(match.ID.Hex()); e != nil {
 		msg.RecentMoves = e.recentFor(viewerID)
 	}
@@ -213,10 +254,17 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 // for: a live board, and one frame of a replay.
 type stateMsgOpts struct {
 	rounds *module.RoundLog
+	// proj is the state already decoded, shared by every viewer of one
+	// broadcast; nil means ask the module, which decodes for itself.
+	proj module.Projection
 	// withOffers asks the module what this viewer may do. A replay frame says
 	// no: nobody is playing it, and offer enumeration is both the most
 	// expensive and by far the most verbose thing this function does.
 	withOffers bool
+	// desc is the module's descriptor, when the caller already has it: a
+	// broadcast builds it once for every recipient, where each message used
+	// to build the whole thing again for one field of it.
+	desc *module.ModuleDescriptor
 	// openView asks for the board with every hand face up, for replaying a
 	// finished game. Whether that is allowed is decided long before here, by
 	// BuildReplay; a module that cannot do it is projected per viewer as usual.
@@ -266,7 +314,9 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	}
 
 	mod := m.registry.Get(match.ModuleID)
-	if mod != nil {
+	if o.desc != nil {
+		msg.Deck = o.desc.Deck
+	} else if mod != nil {
 		msg.Deck = mod.Descriptor().Deck
 	}
 	// Sides are a lobby fact. Once the match is dealt the board carries the
@@ -280,21 +330,33 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	if mod == nil || len(match.State) == 0 {
 		return msg
 	}
+	// A shared projection answers for any viewer from one decode; without one
+	// the module is asked directly, and decodes the state for each question.
+	view := func() (module.ViewModel, error) { return mod.View(module.State(match.State), viewerID) }
+	offersFor := func() ([]module.ActionOffer, error) { return mod.LegalActions(module.State(match.State), viewerID) }
+	if o.proj != nil {
+		view = func() (module.ViewModel, error) { return o.proj.View(viewerID) }
+		offersFor = func() ([]module.ActionOffer, error) { return o.proj.LegalActions(viewerID) }
+	}
 	if o.openView {
 		if vm, ok := module.OpenViewFor(mod, module.State(match.State)); ok {
 			msg.View = vm
-		} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
+		} else if vm, err := view(); err == nil {
 			msg.View = vm
 		}
-	} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
+	} else if vm, err := view(); err == nil {
 		msg.View = vm
 	}
 	if o.withOffers {
-		if offers, err := mod.LegalActions(module.State(match.State), viewerID); err == nil && offers != nil {
+		if offers, err := offersFor(); err == nil && offers != nil {
 			msg.LegalActions = holdOffers(match.Status, offers)
 		}
 	}
-	msg.Standings = module.StandingsFor(mod, module.State(match.State))
+	if o.proj != nil {
+		msg.Standings = o.proj.Standings()
+	} else {
+		msg.Standings = module.StandingsFor(mod, module.State(match.State))
+	}
 	msg.Rounds = o.rounds
 	return msg
 }

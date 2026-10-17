@@ -49,11 +49,16 @@ const (
 	NSScoring      = "scoring_sessions"
 	NSMatchResults = "match_results"
 	NSPlayerStats  = "player_stats"
-	NSIdentities   = "identities"
-	NSLoginCodes   = "login_codes"
-	NSOAuthFlows   = "oauth_flows"
-	NSDailyMetrics = "daily_metrics"
-	NSBoots        = "boots"
+	// NSMatchSubjects holds one document per account or guest, listing the
+	// match results that name them, so a subject's history is a read of one
+	// document instead of a scan of every result ever recorded. It is derived
+	// data, rebuilt from match_results whenever it is missing.
+	NSMatchSubjects = "match_subjects"
+	NSIdentities    = "identities"
+	NSLoginCodes    = "login_codes"
+	NSOAuthFlows    = "oauth_flows"
+	NSDailyMetrics  = "daily_metrics"
+	NSBoots         = "boots"
 	// NSMatchLog holds each match's moves and board snapshots, kept out of
 	// NSMatches so the scans over matches never read them.
 	NSMatchLog = "match_log"
@@ -87,7 +92,7 @@ const (
 )
 
 var kdbNamespaceNames = []string{
-	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults,
+	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults, NSMatchSubjects,
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
 	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations, NSNodes, NSGuestClaims,
 	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
@@ -397,6 +402,14 @@ func KDBStorageFromEnv() (KDBStorage, error) {
 	if _, err := sc.engineOptions(); err != nil {
 		return KDBStorage{}, err
 	}
+	// Refused here rather than read lazily, for the reason KDB_DURABILITY is:
+	// a typo that silently kept writing the old shape would leave a rollout
+	// half done with nothing in the log that says so.
+	format, err := ParseDocWriteFormat(os.Getenv("KDB_DOC_WRITE_FORMAT"))
+	if err != nil {
+		return KDBStorage{}, err
+	}
+	SetDocWriteFormat(format)
 	return sc, nil
 }
 

@@ -20,6 +20,12 @@ export const lt: Record<string, string> = {
   'err.DISPLACED': 'Atidaryta kitame skirtuke — šis nustojo sinchronizuotis',
   'err.UNREACHABLE': 'Nepavyksta pasiekti serverio. Patikrinkite ryšį ir bandykite dar kartą.',
   'err.INVALID_CREDENTIALS': 'Vartotojo vardas ir slaptažodis nesutampa.',
+  'err.CREDENTIALS_REQUIRED': 'Įveskite naudotojo vardą ir slaptažodį.',
+  'err.PASSWORD_TOO_LONG': 'Šis slaptažodis per ilgas.',
+  'err.USERNAME_TAKEN': 'Šis naudotojo vardas ar el. paštas jau užimtas.',
+  'err.INVALID_EMAIL': 'Tai neatrodo kaip el. pašto adresas.',
+  'err.CODE_INVALID': 'Šis kodas negalioja. Paprašykite naujo.',
+  'err.TOO_MANY_CODES': 'Šiam adresui paprašyta per daug kodų. Pabandykite po akimirkos.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -110,6 +116,8 @@ export const lt: Record<string, string> = {
     'Pirmas ėjimas kiekvieną dalijimą pasislenka per vieną vietą, nesvarbu, kas laimėjo.',
   'zolik.rules.lead.winner': 'Kas išeina, pradeda kitą dalijimą.',
   'zolik.rules.meldFloor.on': 'Tavo pirmas išdėjimas turi duoti bent {n} natūralių taškų, kad būtum išdėjęs.',
+  'zolik.rules.meldFloor.values':
+    "Į šį minimumą kiekviena korta skaičiuojama tiek, kiek kainuoja rankoje, išskyrus tūzą: {aceHigh} rinkinyje arba virš karaliaus, {aceLow} žemiau dvejeto. Džokeris skaičiuojamas kaip korta, kurią pakeičia.",
   'zolik.rules.meldFloor.off': 'Pirmam išdėjimui minimalios taškų vertės nėra.',
   'zolik.rules.cleanRun.on':
     'Bent viena tavo seka turi būti visiškai be džokerio, kad būtum laikomas išdėjusiu.',
@@ -119,6 +127,8 @@ export const lt: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Kiekvienas dalijimas reikalauja to paties derinio: {sets} grupių ir {runs} sekų.',
   'zolik.rules.end.afterDeals': 'Rungtynės baigiasi po {n} dalijimų.',
+  'zolik.rules.penalty.values':
+    "Rankoje likusi korta kainuoja: džokeris {joker}, 10, valetas, dama ar karalius {face}, nuo 2 iki 9 – savo skaičių, o tūzas {ace} — arba tik {aceLow}, jei rankoje turite ir tos pačios rūšies dvejetą, arba tos pačios rūšies damą ir karalių, arba jei jis pratęstų eilę ant stalo.",
   'zolik.rules.end.atScore': 'Dalijama toliau, kol kas nors pasiekia {n} taškų — tada baigta.',
 
   'prsi.rules.section.goal': 'Tikslas',
@@ -177,6 +187,8 @@ export const lt: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Atmetimo krūvelė užšaldyta visą dalijimą: paimti ją gali tik pridėjęs prie viršutinės kortos dvi natūralias kortas iš rankos.',
   'canasta.rules.pileOntoMeld': 'Jei tavo pusė jau turi nebaigtą viršutinės kortos vertės derinį, gali paimti visą atmetimo krūvelę ir pridėti tą kortą prie derinio — poros rankoje nereikia.',
   'canasta.rules.pileNoMeldCapture': 'Ant stalo gulintis derinys atmetimo krūvelės paimti negali: kad ją paimtum, prie viršutinės kortos turi pridėti dvi kortas iš savo rankos.',
+  'canasta.rules.cardValues':
+    "Kortų vertės: džokeris {joker}, dvejetas {two}, tūzas {ace}, nuo karaliaus iki aštuntuko {high}, nuo septintuko iki ketverto {low}, juodas trejetas {black}. Raudoni trejetai yra premija ir niekada neįskaičiuojami į derinį.",
   'canasta.rules.meldFloorBands':
     'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} virš to.',
   'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} iki {highUpTo} ir {top} virš to.',
@@ -642,6 +654,8 @@ export const lt: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Derinys — tai trijų ar keturių vienos vertės kortų grupė arba trijų ar daugiau vienos rūšies kortų seka.',
   'ginrummy.rules.aceLow': 'Tūzas visada žemas — sekos nuo damos iki tūzo nėra.',
+  'ginrummy.rules.cardValues':
+    "Negyvose kortose tūzas vertas {ace}, nuo 2 iki 9 – savo skaičiaus, o 10, valetas, dama ir karalius – {face}.",
   'ginrummy.rules.knockLimit': 'Belsti gali, kai tik tavo deadwood yra {n} arba mažiau.',
   'ginrummy.rules.oklahoma': 'Šio dalijimo beldimo ribą nustato atverstos kortos vertė.',
   'ginrummy.rules.gin': 'Nulinis deadwood — tai ginas, geriausias įmanomas beldimas.',
@@ -730,6 +744,8 @@ export const lt: Record<string, string> = {
   'rummytiles.rules.run': 'Seka — tai trys ar daugiau iš eilės einančių skaičių vienos spalvos.',
   'rummytiles.rules.noWrap': 'Po 13 vėl neprasideda 1.',
   'rummytiles.rules.joker': 'Džokeris atstoja bet kurią plytelę.',
+  'rummytiles.rules.tileValues':
+    "Kauliukas vertas savo skaičiaus. Džokeris derinyje vertas kauliuko, kurį pakeičia; rankoje likęs džokeris kainuoja {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Kol vienu ėjimu, vien iš savo rankos, neišdėjai {n} ar daugiau taškų, negali liesti nieko, kas jau yra ant stalo.',
   'rummytiles.rules.turnDescription':
@@ -806,6 +822,8 @@ export const lt: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Žaidėjų kortos dalijamos atverstos; dalytojas vieną kortą laiko uždengtą, kol visi sužais.',
   'blackjack.rules.hitStand': 'Traukk tiek kortų, kiek nori, arba likk prie to, ką turi.',
+  'blackjack.rules.cardValues':
+    "Kortos nuo 2 iki 9 vertos savo skaičiaus; 10, valetas, dama ir karalius – {face}.",
   'blackjack.rules.aces': 'Tūzas skaičiuojamas kaip vienuolika, kol tai telpa, ir kaip vienas, kai netelpa.',
   'blackjack.rules.blackjack': 'Tūzas su dešimties vertės korta pirmose dviejose kortose yra blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack moka 3:2.',

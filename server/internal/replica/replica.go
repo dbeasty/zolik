@@ -121,11 +121,12 @@ func completedAt(row json.RawMessage) string {
 // asClientJSON turns a stored document into the JSON the rest of the API
 // speaks.
 //
-// Documents are stored as the extended JSON the bson encoding writes, where an
-// id is {"$oid":"..."} and a time is {"$date":...}. That is right for storage
-// and wrong for a client: every other endpoint this app talks to answers with
-// plain JSON, and a screen that had to understand both depending on whether
-// the device was online would be a screen with two bugs in it.
+// A stored row may be the Extended JSON older builds wrote, where an id is
+// {"$oid":"..."} and a time is {"$date":...}, or the plain JSON newer ones
+// write (internal/db/doccodec). A client gets plain JSON either way: every
+// other endpoint this app talks to answers with it, and a screen that had to
+// understand both depending on which build wrote a row would be a screen with
+// two bugs in it.
 func asClientJSON(doc []byte) (json.RawMessage, error) {
 	var fields bson.M
 	if err := db.UnmarshalDoc(doc, &fields); err != nil {

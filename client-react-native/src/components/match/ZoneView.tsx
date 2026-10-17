@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 
 import { cardSpokenName } from '@/src/a11y/cardNames';
 import { Tip } from '@/src/a11y/Tip';
@@ -13,6 +12,7 @@ import { CardIndex } from '@/src/components/cards/CardIndex';
 import { CardView } from '@/src/components/CardView';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
+import { useCardPan } from '@/src/hooks/useCardPan';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { concealedCount, isWideSpread } from '@/src/lib/board';
@@ -951,20 +951,9 @@ function LiftableCard({
     onEnd(at.current.x, at.current.y);
   };
 
-  const pan = Gesture.Pan()
-    .minDistance(8)
-    .onStart(() => {
-      runOnJS(start)();
-    })
-    .onUpdate((e) => {
-      runOnJS(update)(e.absoluteX, e.absoluteY, e.translationX, e.translationY);
-    })
-    .onFinalize(() => {
-      runOnJS(finish)();
-    });
-  // Same hand-off as a card in hand: a vertical swipe on a phone still
-  // scrolls the board, and a press is the way to play from there.
-  pan.config.touchAction = 'pan-y';
+  // A mouse drags at once; a finger holds first, so a swipe still scrolls the
+  // board and a hold lifts the card off it (see `useCardPan`).
+  const pan = useCardPan({ minDistance: 8, onStart: start, onUpdate: update, onFinalize: finish });
 
   return (
     <GestureDetector gesture={pan}>

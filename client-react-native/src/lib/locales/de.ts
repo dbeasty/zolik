@@ -20,6 +20,12 @@ export const de: Record<string, string> = {
   'err.DISPLACED': 'In einem anderen Tab geöffnet — dieser synchronisiert nicht mehr',
   'err.UNREACHABLE': 'Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.',
   'err.INVALID_CREDENTIALS': 'Benutzername und Passwort passen nicht zusammen.',
+  'err.CREDENTIALS_REQUIRED': 'Gib einen Benutzernamen und ein Passwort ein.',
+  'err.PASSWORD_TOO_LONG': 'Das Passwort ist zu lang.',
+  'err.USERNAME_TAKEN': 'Dieser Benutzername oder diese E-Mail-Adresse ist schon vergeben.',
+  'err.INVALID_EMAIL': 'Das sieht nicht nach einer E-Mail-Adresse aus.',
+  'err.CODE_INVALID': 'Dieser Code ist ungültig. Fordere einen neuen an.',
+  'err.TOO_MANY_CODES': 'Für diese Adresse wurden zu viele Codes angefordert. Versuche es gleich noch einmal.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -113,6 +119,8 @@ export const de: Record<string, string> = {
   'zolik.rules.lead.winner': 'Wer hinausgeht, hat in der nächsten Gabe die Vorhand.',
   'zolik.rules.meldFloor.on':
     'Deine erste Auslage (oder Auslagen) muss mindestens {n} natürliche Punkte ergeben, bevor du ausgelegt bist.',
+  'zolik.rules.meldFloor.values':
+    "Für dieses Minimum zählt jede Karte so viel, wie sie auf der Hand kostet, außer dem Ass: {aceHigh} in einem Satz oder über dem König, {aceLow} unter der 2. Ein Joker zählt wie die Karte, die er ersetzt.",
   'zolik.rules.meldFloor.off': 'Für die erste Auslage gibt es keinen Mindestwert.',
   'zolik.rules.cleanRun.on':
     'Mindestens eine deiner Folgen muss völlig jokerfrei sein, bevor du als ausgelegt giltst.',
@@ -121,6 +129,8 @@ export const de: Record<string, string> = {
     'Die Partie geht über {n} Gaben, und jede Gabe verlangt ihre eigene Kombination aus Sätzen und Folgen.',
   'zolik.rules.contracts.static': 'Jede Gabe verlangt dieselbe Kombination: {sets} Sätze und {runs} Folgen.',
   'zolik.rules.end.afterDeals': 'Die Partie endet nach {n} Gaben.',
+  'zolik.rules.penalty.values':
+    "Eine Karte, die dir auf der Hand bleibt, kostet: Joker {joker}, 10, Bube, Dame oder König {face}, 2 bis 9 ihren Zahlenwert und ein Ass {ace} — oder nur {aceLow}, wenn auch eine 2 seiner Farbe oder Dame und König seiner Farbe auf deiner Hand sind oder es eine Reihe auf dem Tisch verlängern würde.",
   'zolik.rules.end.atScore': 'Es wird weiter gegeben, bis jemand {n} Punkte erreicht — dann ist Schluss.',
 
   'prsi.rules.section.goal': 'Ziel',
@@ -181,6 +191,8 @@ export const de: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Der Ablagestapel ist die ganze Runde eingefroren: Um ihn zu nehmen, musst du seine oberste Karte mit zwei natürlichen Karten aus deiner Hand belegen.',
   'canasta.rules.pileOntoMeld': 'Hat deine Partei bereits eine unvollständige Auslage im Wert der obersten Karte, darfst du den ganzen Ablagestapel nehmen und diese Karte anlegen — ein passendes Paar auf der Hand brauchst du dafür nicht.',
   'canasta.rules.pileNoMeldCapture': 'Eine Auslage, die schon auf dem Tisch liegt, kann den Ablagestapel nicht nehmen: Dafür musst du seine oberste Karte mit zwei Karten aus deiner eigenen Hand belegen.',
+  'canasta.rules.cardValues':
+    "Kartenwerte: Joker {joker}, Zwei {two}, Ass {ace}, König bis Acht {high}, Sieben bis Vier {low}, schwarze Drei {black}. Rote Dreien sind Boni und zählen nie für eine Meldung.",
   'canasta.rules.meldFloorBands':
     'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis {lowUpTo}, {mid} bis {midUpTo}, {high} darüber.',
   'canasta.rules.meldFloorBandsFive': 'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis {lowUpTo}, {mid} bis {midUpTo}, {high} bis {highUpTo}, darüber {top}.',
@@ -659,6 +671,8 @@ export const de: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Eine Auslage ist ein Satz aus drei oder vier Karten eines Werts oder eine Folge aus drei oder mehr Karten einer Farbe.',
   'ginrummy.rules.aceLow': 'Das Ass zählt immer niedrig — es gibt keine Folge von Dame bis Ass.',
+  'ginrummy.rules.cardValues':
+    "Im Deadwood zählt ein Ass {ace}, eine 2 bis 9 ihren Zahlenwert und eine 10, ein Bube, eine Dame oder ein König {face}.",
   'ginrummy.rules.knockLimit': 'Klopfen darfst du, sobald dein Deadwood {n} oder weniger beträgt.',
   'ginrummy.rules.oklahoma': 'Die Klopfgrenze dieses Blatts ergibt sich aus dem Wert der aufgedeckten Karte.',
   'ginrummy.rules.gin': 'Null Deadwood ist Gin — das bestmögliche Klopfen.',
@@ -748,6 +762,8 @@ export const de: Record<string, string> = {
   'rummytiles.rules.run': 'Eine Folge besteht aus drei oder mehr aufeinanderfolgenden Zahlen in einer Farbe.',
   'rummytiles.rules.noWrap': 'Auf die 13 folgt nicht wieder die 1.',
   'rummytiles.rules.joker': 'Ein Joker steht für jeden beliebigen Stein.',
+  'rummytiles.rules.tileValues':
+    "Ein Stein ist seine Zahl wert. Ein Joker in einer Reihe oder Gruppe ist den Stein wert, den er ersetzt; einer, der dir auf der Hand bleibt, kostet {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Solange du nicht in einem einzigen Zug {n} oder mehr Punkte allein aus deiner Hand ausgelegt hast, darfst du nichts anrühren, was bereits auf dem Tisch liegt.',
   'rummytiles.rules.turnDescription':
@@ -827,6 +843,8 @@ export const de: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Die Spielerkarten werden offen gegeben; der Geber hält eine Karte verdeckt, bis alle gespielt haben.',
   'blackjack.rules.hitStand': 'Zieh so viele Karten, wie du möchtest, oder bleib bei dem, was du hast.',
+  'blackjack.rules.cardValues':
+    "Eine 2 bis 9 zählt ihren Zahlenwert; eine 10, ein Bube, eine Dame oder ein König zählt {face}.",
   'blackjack.rules.aces': 'Ein Ass zählt elf, solange das passt, und sonst eins.',
   'blackjack.rules.blackjack':
     'Ein Ass mit einer Zehnerkarte auf den ersten beiden Karten ist ein Blackjack.',

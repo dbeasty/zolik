@@ -188,7 +188,7 @@ func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 		}
 	}
 
-	var naturals []string
+	naturals := make([]string, 0, len(cards)) // sized once; see validateRun's fixed
 	wildCount := 0
 	for _, c := range cards {
 		// Only jokers are wild in a set. An ace is a real rank ("A"), not a
@@ -293,7 +293,10 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 	// Separate jokers, aces (flex), and fixed naturals.
 	var jokers []string
 	var aces []string
-	var fixed []string // non-ace, non-joker
+	// Sized for the whole meld up front: this runs for every candidate meld
+	// the bots weigh and every lay-off an offer list checks, and growing it a
+	// card at a time was the largest allocation on a loaded server.
+	fixed := make([]string, 0, len(cards)) // non-ace, non-joker
 
 	for _, c := range cards {
 		switch {
@@ -358,17 +361,12 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 		}
 	}
 
-	// Candidate start ranks in 1..(14-L+1). 14 represents Ace-high endpoint.
-	var starts []int
-	for s := 1; s <= 14-L+1; s++ {
-		starts = append(starts, s)
-	}
-
 	aceAsNatural := map[string]int{}
 	var best *MeldValidation
 
+	// Candidate start ranks in 1..(14-L+1). 14 represents Ace-high endpoint.
 tryStart:
-	for _, start := range starts {
+	for start := 1; start <= 14-L+1; start++ {
 		end := start + L - 1
 		if end > 14 {
 			continue

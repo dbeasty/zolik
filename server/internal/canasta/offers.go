@@ -228,6 +228,16 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	for _, c := range candidates {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
+		if !ok && c.Dirty {
+			// The candidate spends the cheapest wilds, which can leave an
+			// opening meld short of the minimum: 9H-2C-JH is 40 where
+			// 9H-JOKER1-JH is 70. Try the dearest before giving up.
+			if dearer := dearestWilds(c, hand); dearer != nil {
+				if ok, _ = probe(m, raw, playerID, module.Action{Verb: VerbLayMeld, Cards: dearer}); ok {
+					c.Cards, c.Value = dearer, handValue(dearer)
+				}
+			}
+		}
 		if !ok {
 			continue
 		}
@@ -268,6 +278,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			},
 			Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 		})
+		if c.Kind == meldRun && c.Dirty {
+			o := &offers[len(offers)-1]
+			o.Source.Placements = dirtyRunPlacements(c, hand)
+		}
 		laid++
 	}
 	// Going out on a set of black threes is a real, if rare, move, and it has
@@ -314,7 +328,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// them, which is the fact that made Canasta a module rather than a profile.
 	for i := range t.Melds {
 		mm := t.Melds[i]
-		eligible := layOffCards(r, hand, &mm)
+		direct := layOffCards(r, hand, &mm)
+		eligible := direct
+		if bridges := runBridges(r, hand, &mm); len(bridges) > 0 {
+			eligible = sortedCards(append(append([]string(nil), direct...), bridges...))
+		}
 		// One per meld the partnership has down, told apart by the rank each
 		// one is built on.
 		o := module.ActionOffer{
@@ -379,9 +397,15 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		case len(accepted) > 0:
 			o.Enabled = true
 		case len(eligible) > 0:
-			// Say why, using whichever card the player would most plausibly try.
+			// Say why, using whichever card the player would most plausibly try
+			// — one that fits on its own terms, not a bridge, whose refusal
+			// alone is only that it needs company.
+			try := eligible[:1]
+			if len(direct) > 0 {
+				try = direct[:1]
+			}
 			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-				Verb: VerbLayOff, Cards: eligible[:1], Target: mm.ID,
+				Verb: VerbLayOff, Cards: try, Target: mm.ID,
 			})
 		default:
 			// Nothing in the hand goes on this meld, so there is no card to
@@ -675,28 +699,26 @@ func blackThreeCandidate(r ruleset, hand []string) []string {
 // company, one entry per copy as Cards has them.
 func layOffPlacements(m *Module, raw module.State, playerID string, mm Meld, eligible, accepted []string, verdict map[string]bool) []module.Placement {
 	var needy []module.Placement
-	needs := map[string][]string{}
+	needs := map[string]*module.Placement{}
 	for _, c := range eligible {
 		if verdict[c] {
 			continue
 		}
-		if with, asked := needs[c]; asked {
+		if p, asked := needs[c]; asked {
 			// Another copy of a card already answered: the engine cannot
 			// tell the two apart, so it takes the same company.
-			if with != nil {
-				needy = append(needy, module.Placement{Card: c, Requires: append([]string(nil), with...)})
+			if p != nil {
+				needy = append(needy, *p)
 			}
 			continue
 		}
 		needs[c] = nil
 		var company [][]string
-		if mm.kind() == meldRun {
-			if chain := runCompany(eligible, mm, c); len(chain) > 0 {
-				company = [][]string{chain}
-			}
-		} else if isWild(c) {
+		if isWild(c) {
 			// The fewest naturals first: requiring more than the rule asks
-			// would refuse a selection the engine takes.
+			// would refuse a selection the engine takes. A dirty sequence
+			// asks this too — Samba's ratio refuses a wild on its own there
+			// as it does on a group.
 			var naturals []string
 			for _, a := range accepted {
 				if !isWild(a) {
@@ -706,18 +728,33 @@ func layOffPlacements(m *Module, raw module.State, playerID string, mm Meld, eli
 			for n := 1; n <= len(naturals); n++ {
 				company = append(company, naturals[:n])
 			}
+		} else if mm.kind() == meldRun {
+			company = runCompany(eligible, mm, c)
 		}
+		// A group's wild takes the first company that works: the larger ones
+		// only add naturals to it. A sequence's ways are genuinely different
+		// cards for the same gap, the natural or a wild standing in for it,
+		// and any one of them held is enough (Placement.Alternatives).
+		var p *module.Placement
 		for _, with := range company {
 			cards := append(append([]string(nil), with...), c)
 			if ok, _ := probe(m, raw, playerID, module.Action{
 				Verb: VerbLayOff, Cards: cards, Target: mm.ID,
-			}); ok {
-				needs[c] = with
-				needy = append(needy, module.Placement{
-					Card: c, Requires: append([]string(nil), with...),
-				})
-				break
+			}); !ok {
+				continue
 			}
+			if p == nil {
+				p = &module.Placement{Card: c, Requires: append([]string(nil), with...)}
+				if mm.kind() != meldRun || isWild(c) {
+					break
+				}
+				continue
+			}
+			p.Alternatives = append(p.Alternatives, append([]string(nil), with...))
+		}
+		if p != nil {
+			needs[c] = p
+			needy = append(needy, *p)
 		}
 	}
 	if len(needy) == 0 {
@@ -730,17 +767,26 @@ func layOffPlacements(m *Module, raw module.State, playerID string, mm Meld, eli
 	return append(out, needy...)
 }
 
-// runCompany is the cards that must go on with c for it to continue the run:
-// every position between the run's nearer end and c's own, taken from the
-// eligible list. Nil when c is next to the run already, or the gap cannot be
-// filled from what is eligible.
-func runCompany(eligible []string, mm Meld, c string) []string {
+// runCompany is the ways c could be joined to the run: each way the cards
+// that must go on with it, one for every position between the run's nearer end
+// and c's own, taken from the eligible list. The first way uses the natural for
+// a position wherever there is one and a wild only where there is not; the
+// others spend one wild more, on a position a natural could have filled — a
+// player holding the eight and a joker may lay the nine with either. Wilds are
+// in the list only for a dirty sequence. Nil when c is next to the run already,
+// or the gap cannot be filled from what is eligible.
+func runCompany(eligible []string, mm Meld, c string) [][]string {
 	i, ok := runIndexOf(c)
 	if !ok {
 		return nil
 	}
 	byIndex := map[int]string{}
+	var wilds []string
 	for _, e := range eligible {
+		if isWild(e) {
+			wilds = append(wilds, e)
+			continue
+		}
 		if j, ok := runIndexOf(e); ok && suitOf(e) == suitOf(c) {
 			byIndex[j] = e
 		}
@@ -750,15 +796,39 @@ func runCompany(eligible []string, mm Meld, c string) []string {
 	if i < low {
 		from, to = i+1, low-1
 	}
-	var out []string
-	for j := from; j <= to; j++ {
-		e, ok := byIndex[j]
-		if !ok {
-			return nil
-		}
-		out = append(out, e)
+	if from > to {
+		return nil
 	}
-	return out
+	// fill builds one way, with a wild at extra (a position that has a
+	// natural) as well as wherever the natural is missing.
+	fill := func(extra int) []string {
+		spare := wilds
+		var out []string
+		for j := from; j <= to; j++ {
+			e, ok := byIndex[j]
+			if !ok || j == extra {
+				if len(spare) == 0 {
+					return nil
+				}
+				e, spare = spare[0], spare[1:]
+			}
+			out = append(out, e)
+		}
+		return out
+	}
+	first := fill(-1)
+	if first == nil {
+		return nil
+	}
+	ways := [][]string{first}
+	for j := from; j <= to; j++ {
+		if _, ok := byIndex[j]; ok {
+			if way := fill(j); way != nil {
+				ways = append(ways, way)
+			}
+		}
+	}
+	return ways
 }
 
 // probe runs an action through the real engine and reports whether it would be
@@ -771,4 +841,54 @@ func probe(m *Module, raw module.State, playerID string, a module.Action) (bool,
 		return false, module.CodeOf(err)
 	}
 	return true, ""
+}
+
+// dirtyRunPlacements lets a person stand any wild in the hand where a dirty
+// sequence's submission put one: 9H-2C-JH may be laid as 9H-JOKER1-JH.
+//
+// Placements rather than a pool. A pool of every wild in the hand made a
+// selection of wilds alone look like the start of this run (see
+// dirtyRunCandidates); a placement says each wild goes only with the run's
+// naturals, so three 2s picked for the meld of 2s still fit nothing else.
+func dirtyRunPlacements(c candidate, hand []string) []module.Placement {
+	var naturals []string
+	for _, card := range c.Cards {
+		if !isWild(card) {
+			naturals = append(naturals, card)
+		}
+	}
+	out := make([]module.Placement, 0, len(c.Cards))
+	for _, card := range naturals {
+		out = append(out, module.Placement{Card: card})
+	}
+	for _, w := range handWilds(hand) {
+		out = append(out, module.Placement{Card: w, Requires: naturals})
+	}
+	return out
+}
+
+// dearestWilds is a dirty sequence's submission with its wilds swapped for the
+// hand's most valuable ones, jokers before 2s, or nil when that changes nothing.
+func dearestWilds(c candidate, hand []string) []string {
+	wilds := handWilds(hand)
+	sort.SliceStable(wilds, func(i, j int) bool { return cardValue(wilds[i]) > cardValue(wilds[j]) })
+	out := append([]string(nil), c.Cards...)
+	n, changed := 0, false
+	for i, card := range out {
+		if !isWild(card) {
+			continue
+		}
+		if n >= len(wilds) {
+			return nil
+		}
+		if out[i] != wilds[n] {
+			changed = true
+		}
+		out[i] = wilds[n]
+		n++
+	}
+	if !changed {
+		return nil
+	}
+	return out
 }

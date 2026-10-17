@@ -1,6 +1,10 @@
 package zolikmod
 
-import "zolik/server/internal/module"
+import (
+	"encoding/json"
+
+	"zolik/server/internal/module"
+)
 
 // ProjectEvent keeps the card drawn blind from the deck with the player who
 // drew it. Everyone else learns that a card was drawn from the player_drew
@@ -79,12 +83,20 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 
 // meldOwner is whose spread a meld is in, or "" if it is no longer on the
 // table.
+//
+// Only the meld ids are decoded. A lay-off is narrated once for every seat at
+// the table, and decoding the whole state for each — hands, piles, scores and
+// all — to read one map out of it was a measurable share of a loaded server.
 func meldOwner(raw module.State, meldID string) string {
 	if meldID == "" {
 		return ""
 	}
-	s, err := decode(raw)
-	if err != nil {
+	var s struct {
+		Rules struct {
+			MeldMeta map[string][]struct{ MeldID string }
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(raw, &s); err != nil {
 		return ""
 	}
 	for owner, metas := range s.Rules.MeldMeta {

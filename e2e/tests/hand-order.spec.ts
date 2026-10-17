@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { dragLocatorTo, dragPointTo, grabPoint, handCards, visiblePart } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
+import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
  * Arranging the cards in your own hand.
@@ -177,6 +178,21 @@ async function settledBoxes(page: Page): Promise<string[]> {
       })
       .sort();
   });
+}
+
+/**
+ * Waits for the viewer's own turn, so the table stops changing under a drag.
+ *
+ * Every test here that measures the hand and then drags across it needs this.
+ * Until the bot's opening move, the moves box above the hand does not exist;
+ * when that move lands it appears, and the whole hand moves down by its height
+ * (20px) mid-drag, so every position measured before pick-up is out by that.
+ * The row kept its shape and only its offset changed, but "the row keeps its
+ * shape" still failed about a third of the time. Once it is the viewer's turn
+ * nobody else moves, because nobody here ever plays the viewer's turn.
+ */
+async function settleOnMyTurn(page: Page) {
+  await waitForOfferEnabled(page, 'offer-draw:deck');
 }
 
 /**
@@ -365,6 +381,7 @@ test.describe('arranging your hand', () => {
   test('the card being dragged goes where the pointer goes', async ({ page, request }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    await settleOnMyTurn(page);
     await handCards(page);
 
     await card(page, 0).scrollIntoViewIfNeeded();
@@ -416,6 +433,7 @@ test.describe('arranging your hand', () => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
+    await settleOnMyTurn(page);
 
     await card(page, 0).scrollIntoViewIfNeeded();
     const first = await card(page, 0).boundingBox();
@@ -564,6 +582,7 @@ test.describe('arranging your hand', () => {
     // directly over it, because that is where your finger is.
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    await settleOnMyTurn(page);
     const before = await handCards(page);
 
     await card(page, 0).scrollIntoViewIfNeeded();
@@ -674,6 +693,7 @@ test.describe('arranging your hand', () => {
     // is what was actually being reported.
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    await settleOnMyTurn(page);
     await handCards(page);
 
     await card(page, 0).scrollIntoViewIfNeeded();
@@ -725,6 +745,7 @@ test.describe('arranging your hand', () => {
   test('the row keeps its shape while a card is being dragged', async ({ page, request }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    await settleOnMyTurn(page);
     await handCards(page);
 
     const settledBefore = await settledBoxes(page);
@@ -773,6 +794,7 @@ test.describe('arranging your hand', () => {
   }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    await settleOnMyTurn(page);
     const shown = await handCards(page);
 
     // The positions the row's boxes occupy, before anything is picked up.
@@ -828,6 +850,7 @@ test.describe('arranging your hand', () => {
   }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    await settleOnMyTurn(page);
     await handCards(page);
 
     const source = await card(page, 0).boundingBox();

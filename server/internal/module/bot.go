@@ -112,7 +112,21 @@ func ActiveSeat(m GameModule, s State, viewer string, players []PlayerRef) strin
 // The fallback for a module that emits no seats is the offer scan, exactly as
 // before: a module that has never heard of any of this is unaffected.
 func AwaitedSeats(m GameModule, s State, viewer string, players []PlayerRef) []string {
-	if vm, err := m.View(s, viewer); err == nil && len(vm.Seats) > 0 {
+	return awaitedSeats(
+		func(id string) (ViewModel, error) { return m.View(s, id) },
+		func(id string) ([]ActionOffer, error) { return m.LegalActions(s, id) },
+		viewer, players)
+}
+
+// AwaitedSeatsIn is AwaitedSeats read from a state already decoded once, for a
+// caller that is about to ask the same state other questions too (the bot
+// loop: who is awaited, what they may do, which round it is).
+func AwaitedSeatsIn(p Projection, viewer string, players []PlayerRef) []string {
+	return awaitedSeats(p.View, p.LegalActions, viewer, players)
+}
+
+func awaitedSeats(view func(string) (ViewModel, error), legal func(string) ([]ActionOffer, error), viewer string, players []PlayerRef) []string {
+	if vm, err := view(viewer); err == nil && len(vm.Seats) > 0 {
 		var out []string
 		for _, seat := range vm.Seats {
 			if seat.Active {
@@ -125,7 +139,7 @@ func AwaitedSeats(m GameModule, s State, viewer string, players []PlayerRef) []s
 	}
 	var out []string
 	for _, p := range players {
-		offers, err := m.LegalActions(s, p.ID)
+		offers, err := legal(p.ID)
 		if err != nil {
 			continue
 		}

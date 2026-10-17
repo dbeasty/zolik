@@ -9,8 +9,9 @@ import { t } from '@/src/lib/i18n';
 /**
  * Choosing a face.
  *
- * Every face is on screen at once rather than behind a carousel: there are six,
- * and a choice you can see all of is made in a glance instead of browsed.
+ * Every face is on screen at once rather than behind a carousel: there are a
+ * dozen, wrapped into rows, and a choice you can see all of is made in a
+ * glance instead of browsed.
  *
  * Selection is shown by the ring, never by size. That is the same discipline
  * the cards and panels keep — a swatch that grew when picked would reflow the

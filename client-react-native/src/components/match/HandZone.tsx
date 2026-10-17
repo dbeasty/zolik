@@ -1,6 +1,6 @@
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, PointerType } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
 import { Tip } from '@/src/a11y/Tip';
@@ -9,6 +9,7 @@ import { CardGlance } from '@/src/components/match/CardGlance';
 import { CardView } from '@/src/components/CardView';
 import { Panel } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
+import { useCardPan } from '@/src/hooks/useCardPan';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { zoneElementId } from '@/src/lib/drops';
@@ -45,6 +46,21 @@ import { t } from '@/src/lib/i18n';
  *
  * That is what makes it safe to hit-test against positions measured once, at
  * pick-up, and never re-read: the positions genuinely have not changed.
+ *
+ * ## …but the board around it can
+ *
+ * The row keeps its shape; it does not necessarily keep its place. Anything
+ * above the hand that changes height mid-drag moves the whole row — the moves
+ * box, which does not exist on a fresh deal, appears when the first move
+ * lands and pushes the hand down by its own height. The carried card is drawn
+ * inside the row, so it went down with it, a finger's width clear of the
+ * pointer it was supposed to be under.
+ *
+ * So the row's place on screen is checked on every render while a card is
+ * held, and if it has moved, every position measured at pick-up moves by the
+ * same amount — see `reanchor`. One number for the whole row, because the
+ * row moved as one: re-measuring the cards themselves mid-drag would read the
+ * shape the drag has given them, which is exactly what must not be read.
  *
  * ## The card is moved by React state, not by an animated style
  *
@@ -146,6 +162,24 @@ type Offset = Grip & {
   /** How far above the finger the card is drawn — see `carryLiftAt`. */
   lift: number;
 };
+
+/**
+ * Where a node is on screen now — only ever compared with an earlier answer
+ * from here, to tell whether it has moved.
+ *
+ * Read on the spot on the web, where `measureInWindow` answers on a timer:
+ * the check runs before the browser paints, and an answer that arrives after
+ * it leaves a frame of the carried card riding the hand somewhere else.
+ */
+function windowOrigin(node: Measurable, cb: (x: number, y: number) => void) {
+  const el = node as unknown as { getBoundingClientRect?: () => { left: number; top: number } };
+  if (Platform.OS === 'web' && typeof el.getBoundingClientRect === 'function') {
+    const r = el.getBoundingClientRect();
+    cb(r.left, r.top);
+    return;
+  }
+  node.measureInWindow((x, y) => cb(x, y));
+}
 
 /**
  * Where a card has to sit for the pointer to be in the middle of it.
@@ -280,6 +314,9 @@ export function HandZone({
   const rects = useRef<Rect[]>([]);
   const rowRect = useRef<Rect | null>(null);
   const measured = useRef(false);
+  // Where the row was, by `windowOrigin`, when the rects above were last
+  // brought up to date — what `reanchor` compares against.
+  const origin = useRef<{ x: number; y: number } | null>(null);
 
   const heldRef = useRef<number | null>(null);
   const insertRef = useRef<number | null>(null);
@@ -355,8 +392,13 @@ export function HandZone({
    */
   const measure = useCallback(() => {
     if (heldRef.current !== null) return;
-    rowRef.current?.measureInWindow((x, y, width, height) => {
+    const row = rowRef.current;
+    row?.measureInWindow((x, y, width, height) => {
       rowRect.current = { x, y, width, height };
+      origin.current = null;
+      windowOrigin(row, (ox, oy) => {
+        origin.current = { x: ox, y: oy };
+      });
     });
     cardRefs.current.slice(0, slots.length).forEach((ref, i) => {
       ref?.measureInWindow((x, y, width, height) => {
@@ -369,6 +411,7 @@ export function HandZone({
   const touchDown = useCallback(
     (x: number, y: number) => {
       startPoint.current = { x, y };
+      lastPoint.current = { x, y };
       measure();
     },
     [measure],
@@ -446,6 +489,42 @@ export function HandZone({
     },
     [slots.length],
   );
+
+  /**
+   * The row has moved on screen since it was measured: bring everything
+   * measured with it along, then carry the card to where the pointer is
+   * against the row's new place.
+   *
+   * Moved, not re-measured — see "but the board around it can" above. The
+   * card's pin (`floatingAt`) is relative to the row and needs nothing; its
+   * offset, the open hole and the lift all come from these rects and are
+   * worked out again by `hover`, from the last point the pointer was seen at.
+   */
+  const reanchor = useCallback(() => {
+    const row = rowRef.current;
+    const from = origin.current;
+    if (heldRef.current === null || !row || !from) return;
+    windowOrigin(row, (x, y) => {
+      // An answer that arrives late (off the web) about a drag that has
+      // ended, or after a newer answer, is about nothing.
+      if (heldRef.current === null || origin.current !== from) return;
+      const dx = x - from.x;
+      const dy = y - from.y;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      origin.current = { x, y };
+      const by = (r: Rect) => ({ ...r, x: r.x + dx, y: r.y + dy });
+      if (rowRect.current) rowRect.current = by(rowRect.current);
+      rects.current = rects.current.map((r) => r && by(r));
+      hover(lastPoint.current.x, lastPoint.current.y);
+    });
+  }, [hover]);
+
+  // Every render while a card is held: the parent re-renders with each board
+  // update, so whatever moved the row re-rendered this in the same commit,
+  // and a layout effect sees it before it is painted.
+  useLayoutEffect(() => {
+    if (heldRef.current !== null) reanchor();
+  });
 
   /**
    * Whether a point counts as "in the hand".
@@ -1000,6 +1079,10 @@ type CardKeyEvent = {
  * card being dragged, and the other twelve have not changed. Everything it is
  * given is either a primitive or held stable by the hand above.
  */
+// Plain values, so the long-press worklet below can capture them.
+const holdIsDrag = Platform.OS === 'web';
+const TOUCH = PointerType.TOUCH;
+
 const DraggableCard = memo(function DraggableCard({
   index,
   slot,
@@ -1041,65 +1124,50 @@ const DraggableCard = memo(function DraggableCard({
     onPressBadge(slot.card, badgeKeys);
   }, [badgeKeys, onPressBadge, slot.card]);
 
-  const pan = Gesture.Pan()
-    // Any direction, once the pointer has genuinely moved. The threshold is
-    // only there so that a tap with a shaky finger stays a tap.
-    //
-    // An earlier version activated on sideways movement and handed vertical
-    // movement to the scroll view this sits inside, on the reasoning that the
-    // fan is horizontal so a sideways drag must have meant the fan. That was
-    // true while the only thing a drag could do was rearrange the hand. It
-    // stopped being true the moment a card could be dropped on the board,
-    // because the board is *above* the hand: reserving vertical movement for
-    // scrolling silently cancelled every drag aimed at the table.
-    //
-    // Deliberately *not* `activateAfterLongPress`. It reads like it would add
-    // a press-and-hold way in alongside a movement threshold, and it does the
-    // opposite — it gates activation on the hold, so the movement threshold
-    // stops working and a normal quick drag does nothing at all, silently.
-    .minDistance(10)
+  // Any direction, once the pointer has genuinely moved — or, under a
+  // finger, once it has rested on the card (see `useCardPan`). The threshold
+  // is only there so that a tap with a shaky hand stays a tap.
+  //
+  // An earlier version activated on sideways movement and handed vertical
+  // movement to the scroll view this sits inside, on the reasoning that the
+  // fan is horizontal so a sideways drag must have meant the fan. That was
+  // true while the only thing a drag could do was rearrange the hand. It
+  // stopped being true the moment a card could be dropped on the board,
+  // because the board is *above* the hand: reserving vertical movement for
+  // scrolling silently cancelled every drag aimed at the table.
+  const pan = useCardPan({
+    minDistance: 10,
     // Fires on touch-down whether or not this ever becomes a drag, which is
     // what gets the row and its cards measured in time to be useful, and what
     // records where the finger actually went down.
-    .onBegin((e) => {
-      runOnJS(onTouch)(e.absoluteX, e.absoluteY);
-    })
-    .onStart(() => {
-      runOnJS(onPickUp)(index);
-    })
-    .onUpdate((e) => {
-      runOnJS(onHover)(e.absoluteX, e.absoluteY);
-    })
-    // onFinalize rather than onEnd: onEnd does not fire when a gesture is
-    // cancelled, and a drag abandoned mid-flight must still put the card down
-    // rather than leave it stuck to the pointer.
-    .onFinalize(() => {
-      runOnJS(onRelease)();
-    });
+    onBegin: onTouch,
+    onStart: () => onPickUp(index),
+    onUpdate: (x, y) => onHover(x, y),
+    // Called on cancel too: a drag abandoned mid-flight must still put the
+    // card down rather than leave it stuck to the pointer.
+    onFinalize: onRelease,
+    // A phone's press-and-hold now picks the card up, so holding still and
+    // letting go is what asks after its mark.
+    onHeldInPlace: explainBadge,
+  });
 
-  // Web only, and the reason a phone couldn't be scrolled past the hand.
-  // Attaching *any* Pan gesture makes this library set the card's own
-  // `touch-action` to `none` — every touch starting on a card is claimed for
-  // the gesture before the browser gets a say, vertical swipe included, so
-  // the scroll view underneath never saw one. `pan-y` hands vertical panning
-  // back to the browser's own touch scrolling, which is safe now in a way it
-  // was not when the comment above was written: reaching a meld above the
-  // hand no longer depends on a drag at all, tap-to-play does it (see
-  // `app/match/[matchId].tsx`), so a phone's vertical swipe is free to mean
-  // "scroll" without taking anything away. A horizontal drag is untouched —
-  // `touch-action` only ever hands off the axis the browser is told about,
-  // and rearranging the fan stays a sideways gesture. There is no chained
-  // setter for this on `Gesture.Pan()`; `config` is the same public,
-  // typed field every chained setter writes into.
-  pan.config.touchAction = 'pan-y';
-
+  // Always composed, and switched on and off, rather than added only to a
+  // marked card: a gesture that changes *shape* is torn down and attached
+  // again, which drops a touch in progress — and a card gains or loses a
+  // mark whenever the turn changes, which can be in the middle of a hold.
   const longPress = Gesture.LongPress()
+    .enabled(Boolean(badgeKeys?.length && onPressBadge))
     .minDuration(400)
+    // Under a finger on web the hold belongs to the drag (see `onHeldInPlace`).
+    // In the chain, not added after it: a callback outside the chain is not
+    // made a worklet, and gesture-handler refuses a gesture that mixes them.
+    .onTouchesDown((e, manager) => {
+      if (holdIsDrag && e.pointerType === TOUCH) manager.fail();
+    })
     .onStart(() => {
       runOnJS(explainBadge)();
     });
-  const gesture =
-    badgeKeys?.length && onPressBadge ? Gesture.Simultaneous(pan, longPress) : pan;
+  const gesture = Gesture.Simultaneous(pan, longPress);
 
   // The grip and the lift, in one transform, for the same reason `placed`
   // merges its two: a style array does not merge `transform` keys, the last

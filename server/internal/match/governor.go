@@ -131,7 +131,7 @@ func (m *Manager) matchStopped(matchID string) {
 }
 
 // seatBot is the bot, seat and engine that play this seat's next move.
-func (m *Manager) seatBot(match models.Match, mod module.GameModule, actor string) turnBot {
+func (m *Manager) seatBot(match models.Match, mod module.GameModule, actor string, rounds func() *module.RoundLog) turnBot {
 	id := match.ID.Hex()
 	now := time.Now()
 	if b, ok := m.turns.midTurn(id, actor); ok {
@@ -139,7 +139,7 @@ func (m *Manager) seatBot(match models.Match, mod module.GameModule, actor strin
 		m.turns.remember(id, actor, b)
 		// The governor is still told, so its seat stays seen; mid-turn it
 		// changes nothing.
-		m.decide(match, mod, actor, b.want, now)
+		m.decide(match, actor, b.want, rounds, now)
 		return b
 	}
 
@@ -147,7 +147,7 @@ func (m *Manager) seatBot(match models.Match, mod module.GameModule, actor strin
 	seat := playableSeat(bot, botSeatFor(match, actor))
 	engine := engineOf(bot, seat)
 	want := botgov.Class{Module: match.ModuleID, Skill: string(seat.Skill), Engine: engine}
-	if d, ok := m.decide(match, mod, actor, want, now); ok && d.Reduced {
+	if d, ok := m.decide(match, actor, want, rounds, now); ok && d.Reduced {
 		if d.Class.Engine == botgov.EngineRule {
 			if layered, ok := bot.(interface{ Heuristic() module.Bot }); ok {
 				bot = layered.Heuristic()
@@ -161,13 +161,16 @@ func (m *Manager) seatBot(match models.Match, mod module.GameModule, actor strin
 	return b
 }
 
-// decide asks the governor, when there is one doing anything.
-func (m *Manager) decide(match models.Match, mod module.GameModule, actor string, want botgov.Class, now time.Time) (botgov.Decision, bool) {
+// decide asks the governor, when there is one doing anything. rounds is the
+// caller's reading of the match's round log, asked only when the governor is
+// on: the bot loop answers it from the state it has already decoded for this
+// step rather than decoding it again here.
+func (m *Manager) decide(match models.Match, actor string, want botgov.Class, rounds func() *module.RoundLog, now time.Time) (botgov.Decision, bool) {
 	if m.governor.Mode() == botgov.Off || want.Skill == "" {
 		return botgov.Decision{}, false
 	}
 	round := 0
-	if r := module.RoundsFor(mod, module.State(match.State)); r != nil {
+	if r := rounds(); r != nil {
 		round = len(r.Rounds)
 	}
 	return m.governor.Decide(match.ID.Hex(), actor, want, round, hasHuman(match), now), true

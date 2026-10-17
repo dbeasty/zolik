@@ -83,8 +83,13 @@ export const RoundResults = memo(function RoundResults({
         // another read as noise rather than emphasis.
         style={log.paused ? styles.paused : undefined}
       >
-        <ScrollView horizontal showsHorizontalScrollIndicator style={styles.scroller}>
-          <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator
+          style={styles.scroller}
+          contentContainerStyle={styles.scrollerContent}
+        >
+          <View style={styles.table}>
             <View style={[styles.row, styles.headRow]}>
               <Text style={[styles.cell, styles.labelCell, styles.head]}>
                 {label(log.labelKey)}
@@ -253,6 +258,11 @@ function roundStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   return StyleSheet.create({
     scroller: { marginTop: 4 },
+    // The table fills the panel when the panel is wider than its columns, and
+    // scrolls sideways when it is narrower. Without this it was as wide as its
+    // columns' fixed widths and left a third of a desktop panel empty.
+    scrollerContent: { flexGrow: 1 },
+    table: { flexGrow: 1 },
     // The same tint the end-of-match banner uses, for the same reason: the
     // thing it has to beat is being mistaken for nothing having happened.
     paused: { backgroundColor: 'rgba(61, 139, 253, 0.10)', borderColor: colors.accent },
@@ -260,20 +270,30 @@ function roundStyles(m: Metrics, s: Skin) {
     row: { flexDirection: 'row', alignItems: 'flex-start' },
     headRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4 },
     totalRow: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 4, paddingTop: 6 },
-    // Fixed, not minimum. A column that grows to its widest content grows by
-    // a different amount in the head row (a name) than in the rows below it
-    // (a number), and every column after the widest name is then a few pixels
-    // out of line with its own heading — which is the one thing a table has
-    // to get right. Content too wide for the width truncates instead.
+    // Equal shares, not content-sized. A column that grows to its widest
+    // content grows by a different amount in the head row (a name) than in the
+    // rows below it (a number), and every column after the widest name is then
+    // a few pixels out of line with its own heading — which is the one thing a
+    // table has to get right. A zero basis makes every column's width depend
+    // only on the room, never on what is in it, and the minimum keeps the old
+    // width as the floor. Content too wide for the width truncates instead.
     cell: {
-      width: m.narrow ? 72 : 92,
+      flexGrow: 1,
+      flexBasis: 0,
+      minWidth: m.narrow ? 72 : 92,
       paddingVertical: 4,
       paddingHorizontal: 6,
       alignItems: 'flex-end',
     },
     // The left-hand column is wider: it carries the round's own number and
     // whatever the module said was true of it.
-    labelCell: { width: m.narrow ? 92 : 132, alignItems: 'flex-start' },
+    labelCell: {
+      flexGrow: 0,
+      flexBasis: 'auto',
+      minWidth: 0,
+      width: m.narrow ? 92 : 132,
+      alignItems: 'flex-start',
+    },
     // Numbers read down the column, so they end on the same edge; names sit
     // over the numbers they belong to and end on it too.
     name: { alignSelf: 'stretch', textAlign: 'right' },

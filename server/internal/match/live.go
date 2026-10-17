@@ -59,6 +59,14 @@ type liveMatch struct {
 	// lock because the state message reads it from outside the entry's.
 	recentMu sync.Mutex
 	recent   map[string][]module.Move
+
+	// proj is the last move's state decoded, as the move left it for its
+	// broadcast, and projOf the bytes it was decoded from. It is handed to
+	// the bot loop's next step (see currentProjected), which would otherwise
+	// decode the same bytes again and ask again for the offers the broadcast
+	// has just worked out for the seat it is about to play.
+	proj   module.Projection
+	projOf []byte
 }
 
 // recentMoves is how many moves each seat's strip remembers: about a round of
@@ -237,6 +245,32 @@ func (m *Manager) current(ctx context.Context, idOrCode string) (models.Match, e
 	}
 	defer e.mu.Unlock()
 	return e.match, nil
+}
+
+// currentProjected is current with the board already decoded, when the last
+// move here left it decoded and nothing has replaced the state since; nil
+// otherwise. The projection is handed over rather than kept: the bot loop is
+// its one reader after the broadcast, and a table waiting on a person should
+// not hold a second copy of its board until they move.
+func (m *Manager) currentProjected(ctx context.Context, idOrCode string) (models.Match, module.Projection, error) {
+	e, err := m.lockMatch(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, nil, err
+	}
+	defer e.mu.Unlock()
+	proj := e.proj
+	if proj != nil && !sameBytes(e.projOf, e.match.State) {
+		proj = nil
+	}
+	e.proj, e.projOf = nil, nil
+	return e.match, proj, nil
+}
+
+// sameBytes is whether two slices are the same memory, not merely equal: a
+// state is never written to in place, so the same backing array is the same
+// state, and comparing contents would cost as much as it saves.
+func sameBytes(a, b []byte) bool {
+	return len(a) == len(b) && len(a) > 0 && &a[0] == &b[0]
 }
 
 // Current is the match with its state, for handlers that show a board.
