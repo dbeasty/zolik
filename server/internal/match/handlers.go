@@ -75,6 +75,8 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// client renders its whole game-picker and new-match form from this.
 	r.Get("/modules", h.listModules)
 	r.Get("/modules/{id}/rules", h.moduleRules)
+	// The guided lessons a module ships, for the table a lobby is configuring.
+	r.Get("/modules/{id}/lessons", h.moduleLessons)
 	// Optional auth: the token decides whose hand the answer shows, and
 	// without one it is the spectator view.
 	r.With(optionalMatchAuth).Get("/matches/{id}", h.getMatch)
@@ -237,26 +239,23 @@ func withoutIdleAI(ds []module.ModuleDescriptor) []module.ModuleDescriptor {
 	return ds
 }
 
-// moduleRules writes out one module's rules, resolved against the variation
-// and option overrides a lobby has actually chosen — so a "see the rules"
-// screen can reflect the table a player is looking at, not just the module's
-// defaults.
-//
-// Unauthenticated, like /modules: this is descriptive metadata, the same
-// trust level as the descriptor it is resolved against.
-func (h *Handlers) moduleRules(w http.ResponseWriter, req *http.Request) {
+// moduleConfigFromQuery resolves the module and table configuration a read
+// endpoint was asked about (?variation=&opt.<name>=<int>), refusing what the
+// descriptor does not declare. It has already written the refusal when ok is
+// false.
+func (h *Handlers) moduleConfigFromQuery(w http.ResponseWriter, req *http.Request) (module.GameModule, module.MatchConfig, bool) {
 	id := chi.URLParam(req, "id")
 	mod := h.manager.Registry().Get(id)
 	if mod == nil {
 		writeModuleError(w, module.Error{Code: "UNKNOWN_MODULE", Message: id})
-		return
+		return nil, module.MatchConfig{}, false
 	}
 	d := mod.Descriptor()
 
 	variation := req.URL.Query().Get("variation")
 	if variation != "" && d.Variation(variation) == nil {
 		writeModuleError(w, module.Error{Code: "UNKNOWN_VARIATION", Message: variation})
-		return
+		return nil, module.MatchConfig{}, false
 	}
 
 	// Same discipline as Manager.Create: the descriptor is authoritative, so a
@@ -271,22 +270,61 @@ func (h *Handlers) moduleRules(w http.ResponseWriter, req *http.Request) {
 		v, err := strconv.Atoi(vals[0])
 		if err != nil {
 			writeModuleError(w, module.Error{Code: "BAD_OPTION", Message: name})
-			return
+			return nil, module.MatchConfig{}, false
 		}
 		opts[name] = v
 		validated[name] = &v
 	}
 	if err := d.ValidateOptions(validated); err != nil {
 		writeModuleError(w, err)
+		return nil, module.MatchConfig{}, false
+	}
+	return mod, module.MatchConfig{Variation: variation, Options: opts}, true
+}
+
+// moduleLessons lists the guided lessons a module ships for the table being
+// configured. A module with none answers an empty list, not an error: "no
+// guide for this game yet" is a normal state the client renders.
+func (h *Handlers) moduleLessons(w http.ResponseWriter, req *http.Request) {
+	mod, cfg, ok := h.moduleConfigFromQuery(w, req)
+	if !ok {
 		return
 	}
+	lessons, _, err := module.LessonsFor(mod, cfg)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	if lessons == nil {
+		lessons = []module.Lesson{}
+	}
+	writeJSON(w, map[string]any{
+		"moduleId":  mod.Descriptor().ID,
+		"variation": cfg.Variation,
+		"options":   cfg.Options,
+		"lessons":   lessons,
+	})
+}
+
+// moduleRules writes out one module's rules, resolved against the variation
+// and option overrides a lobby has actually chosen — so a "see the rules"
+// screen can reflect the table a player is looking at, not just the module's
+// defaults.
+//
+// Unauthenticated, like /modules: this is descriptive metadata, the same
+// trust level as the descriptor it is resolved against.
+func (h *Handlers) moduleRules(w http.ResponseWriter, req *http.Request) {
+	mod, cfg, ok := h.moduleConfigFromQuery(w, req)
+	if !ok {
+		return
+	}
+	id, variation, opts := mod.Descriptor().ID, cfg.Variation, cfg.Options
 
 	rp, ok := mod.(module.RulesProvider)
 	if !ok {
 		writeModuleError(w, module.Error{Code: "NO_RULES", Message: id})
 		return
 	}
-	cfg := module.MatchConfig{Variation: variation, Options: opts}
 	sections, err := rp.Rules(cfg)
 	if err != nil {
 		writeModuleError(w, err)
@@ -316,6 +354,10 @@ type createMatchReq struct {
 	// and the client always knows its own current choice — including the one
 	// made a second ago, which a token's claims would not yet carry.
 	Avatar string `json:"avatar,omitempty"`
+	// LessonID deals the table for one of the module's guided lessons: its
+	// seed, and a mark that keeps the table out of statistics and out of the
+	// host's games. See module.LessonProvider.
+	LessonID string `json:"lessonId,omitempty"`
 }
 
 // joinMatchReq is everything a player brings to a seat they are taking. Only
@@ -354,8 +396,14 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 		UserID:  uc.PlayerUserID(),
 		GuestID: uc.PlayerGuestID(),
 	}
-	m, err := h.manager.Create(req.Context(), body.ModuleID,
-		module.MatchConfig{Variation: body.Variation, Options: body.Options}, host)
+	cfg := module.MatchConfig{Variation: body.Variation, Options: body.Options}
+	var m models.Match
+	var err error
+	if body.LessonID != "" {
+		m, err = h.manager.CreateLesson(req.Context(), body.ModuleID, cfg, host, body.LessonID)
+	} else {
+		m, err = h.manager.Create(req.Context(), body.ModuleID, cfg, host)
+	}
 	if err != nil {
 		writeModuleError(w, err)
 		return
@@ -1176,6 +1224,10 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 	turns := req.URL.Query().Get("turns") == "1"
 	out := make([]storedTable, 0, len(rows))
 	for _, m := range rows {
+		// A lesson's table is practice, not a game to come back to.
+		if m.Tutorial != nil {
+			continue
+		}
 		row := h.storedTableOf(m, uc.UserID, replayable)
 		if turns {
 			// Only a dealt, unfinished game has a turn to be waiting on.

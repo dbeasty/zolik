@@ -11,6 +11,7 @@ import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
 import { WaitingCard } from '@/src/components/WaitingCard';
 import { useSession } from '@/src/context/SessionContext';
+import { LearnButton } from '@/src/guide/LearnButton';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useMyTables } from '@/src/hooks/useMyTables';
 import { useWide } from '@/src/hooks/useWide';
@@ -142,6 +143,10 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
           </SettleIn>
         </View>
       )}
+      {/* A guided walk-through of this game, at its default settings; the
+          setup screen offers the same for whatever is selected there. Shows
+          nothing for a game that has no guide yet. */}
+      <LearnButton moduleId={mod.id} />
       {session ? (
         <View style={[styles.buttons, { marginTop: 8 }]}>
           {/* Every stored game of this one, not just the latest: the menu

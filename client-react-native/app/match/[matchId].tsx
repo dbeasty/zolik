@@ -48,6 +48,10 @@ import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useStandIn } from '@/src/components/StandInSheet';
 import { TableBanner } from '@/src/components/match/TableBanner';
+import { GuideCard } from '@/src/guide/GuideCard';
+import { GuideExitSheet } from '@/src/guide/GuideExitSheet';
+import { GuideTarget } from '@/src/guide/GuideTarget';
+import { useGuide } from '@/src/guide/useGuide';
 import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
@@ -220,7 +224,24 @@ function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, notice, send: sendNow, clearError, clearNotice } = useMatchSocket(url, client);
+  const { state, error, connected, notice, send: sendRaw, clearError, clearNotice } = useMatchSocket(url, client);
+
+  // The guided lesson this table was dealt for, if it was one. Every move
+  // that actually leaves for the table is reported to it (so it counts the
+  // ones the table accepts), and every move a player is about to make is
+  // checked with it first (so a strict step can hold back the ones that would
+  // derail the walk-through). Null at an ordinary table.
+  const guide = useGuide(client, state, error);
+  const guideRef = useRef(guide);
+  guideRef.current = guide;
+  const [guideExitOpen, setGuideExitOpen] = useState(false);
+  const sendNow = useCallback(
+    (action: MatchAction) => {
+      guideRef.current?.sent(action);
+      sendRaw(action);
+    },
+    [sendRaw],
+  );
 
   // Every move leaves through here. A move that plays a card the offer says
   // a question is for — the colour a wild names — waits for the answer
@@ -253,6 +274,7 @@ function MatchScreen() {
   const [confirming, setConfirming] = useState<MatchAction | null>(null);
   const send = useCallback(
     (action: MatchAction) => {
+      if (guide && !guide.allow(action)) return;
       if (a11yPrefs.confirmFinal && state) {
         const me = session?.userId ?? '';
         const hands = (state.view?.zones ?? []).filter((z) => z.kind === 'hand' && z.ownerId === me);
@@ -265,7 +287,7 @@ function MatchScreen() {
       }
       proceed(action);
     },
-    [a11yPrefs.confirmFinal, state, session?.userId, proceed],
+    [a11yPrefs.confirmFinal, state, session?.userId, proceed, guide],
   );
   const answer = useCallback(
     (name: string, value: string) => {
@@ -1812,6 +1834,7 @@ function MatchScreen() {
     hintsAllowed && step && !paused ? (
       <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
         <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton} hitSlop={8}>
+          <Attention active={!!guide?.anchored('hint')} radius={8} />
           <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
         </Pressable>
       </Tip>
@@ -2132,6 +2155,9 @@ function MatchScreen() {
         onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
         onKeepWaiting={standIn.act ? (id) => void standIn.act?.(id, false) : undefined}
       />
+      {/* The guide speaks from here, outside the board, for the same reason
+          the banner above does — and exit is always one press away. */}
+      {guide ? <GuideCard guide={guide} onExit={() => setGuideExitOpen(true)} /> : null}
       <ScrollView
         ref={scrollRef}
         // Wide enough for the table and no wider. On a large monitor the felt
@@ -2455,10 +2481,19 @@ function MatchScreen() {
           styles={styles}
           zonePanelProps={zonePanelProps}
           dropProps={dropProps}
-          hand={handPanel}
-          controls={
-            paused ? null : <View {...opening.anchor('controls')}>{controlsPanel}</View>
+          hand={
+            <GuideTarget guide={guide} anchor="hand">
+              {handPanel}
+            </GuideTarget>
           }
+          controls={
+            paused ? null : (
+              <GuideTarget guide={guide} anchor="actionBar">
+                <View {...opening.anchor('controls')}>{controlsPanel}</View>
+              </GuideTarget>
+            )
+          }
+          tableRing={!!guide?.tableRing}
           tableAnchor={opening.anchor('table')}
           // Only where the game keeps rounds: a score with no account behind
           // it — Prší's, which is a card count — has nothing to open.
@@ -2475,6 +2510,15 @@ function MatchScreen() {
           for all three, because they are one question. */}
       {botStrength.sheet}
       {standIn.sheet}
+      {guide ? (
+        <GuideExitSheet
+          guide={guide}
+          client={client}
+          matchId={String(matchId)}
+          visible={guideExitOpen}
+          onClose={() => setGuideExitOpen(false)}
+        />
+      ) : null}
       <LeaveSheet
         visible={!!leaving}
         onCancel={() => setLeaving(null)}

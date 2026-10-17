@@ -63,6 +63,10 @@ func (h *HandUp) RecordMatchAsync(m models.Match, out module.Outcome) {
 
 // Hand builds the bundle for a finished match and puts it in the outbox.
 func (h *HandUp) Hand(ctx context.Context, m models.Match) error {
+	// A lesson's table is practice: nothing about it is worth crediting.
+	if m.Tutorial != nil {
+		return nil
+	}
 	b, err := BundleOf(ctx, h.repo, m)
 	if err != nil {
 		return err

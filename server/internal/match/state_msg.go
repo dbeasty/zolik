@@ -110,6 +110,10 @@ type MatchStateMsg struct {
 	// the finished banner can say a score was not a first attempt. A flag and
 	// not the match it came from: see models.Match.DealFrom.
 	RepeatDeal bool `json:"repeatDeal,omitempty"`
+	// Tutorial is the guided lesson this table was dealt for, if it was. It
+	// is how a client that arrives at the table cold — a reload, a resume —
+	// knows to put the guide back.
+	Tutorial *models.TutorialRef `json:"tutorial,omitempty"`
 	// Reserved is who a rematch lobby is still holding seats for.
 	Reserved []models.Reservation `json:"reserved,omitempty"`
 	// RecentMoves is what the last few moves at the table were, as this viewer
@@ -289,6 +293,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		Rematch:         match.Rematch,
 		CanDealAgain:    match.Status == "completed" && m.savedGame(match),
 		RepeatDeal:      match.DealRepeat,
+		Tutorial:        match.Tutorial,
 		Reserved:        match.Reserved,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
