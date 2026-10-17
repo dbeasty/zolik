@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 
 import type { WaitingPlayer } from '@/src/api/types';
 import { useSession } from '@/src/context/SessionContext';
@@ -33,9 +33,36 @@ type Availability = {
 
 const AvailabilityContext = createContext<Availability | null>(null);
 
+/**
+ * The choice itself lives here, outside React, because this provider does not
+ * always outlive a browser's Back button: on the web, expo-router answers
+ * Back by resetting the root to a recorded state whose keys are stale, which
+ * remounts the root layout and every provider in it. Held in component state,
+ * a player who pressed Back on a game's page stopped waiting without being
+ * told. It is tied to the player who chose it, so signing in as somebody
+ * else does not inherit it.
+ */
+let chosen: { userId: string; moduleId: string } | null = null;
+const listeners = new Set<() => void>();
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+const snapshot = () => chosen;
+function choose(next: typeof chosen) {
+  chosen = next;
+  listeners.forEach((cb) => cb());
+}
+
 export function AvailabilityProvider({ children }: { children: ReactNode }) {
   const { session, offline } = useSession();
-  const [availableFor, setAvailableFor] = useState<string | null>(null);
+  const userId = session?.userId;
+  const stored = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const availableFor = stored && stored.userId === userId ? stored.moduleId : null;
+  const setAvailableFor = useCallback(
+    (moduleId: string | null) => choose(moduleId && userId ? { userId, moduleId } : null),
+    [userId],
+  );
 
   // The seat is already taken by the time this arrives, so the invite queue
   // walks the player to it — the same thing it does with the copy of this
@@ -44,7 +71,7 @@ export function AvailabilityProvider({ children }: { children: ReactNode }) {
   const onInvited = useCallback(
     (matchId: string, joinCode: string) => {
       // Picked up: the server has already taken them out of the pool.
-      setAvailableFor(null);
+      choose(null);
       receiveSeated(matchId, joinCode);
     },
     [receiveSeated],
@@ -68,7 +95,7 @@ export function AvailabilityProvider({ children }: { children: ReactNode }) {
       attempts,
       retryNow,
     }),
-    [live, availableFor, players, status, attempts, retryNow],
+    [live, availableFor, setAvailableFor, players, status, attempts, retryNow],
   );
 
   return <AvailabilityContext.Provider value={value}>{children}</AvailabilityContext.Provider>;
