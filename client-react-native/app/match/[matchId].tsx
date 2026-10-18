@@ -61,6 +61,7 @@ import { SoundToggle } from '@/src/sound/SoundToggle';
 import { useBoardSounds } from '@/src/sound/useBoardSounds';
 import { ReactionsContext } from '@/src/components/avatars/ReactionsContext';
 import {
+  companyFor,
   dropSpotsFor,
   groupElementId,
   liftKey,
@@ -1206,13 +1207,31 @@ function MatchScreen() {
     drops.measure();
   };
 
+  // One card of a meld, and whatever the module says it cannot leave without
+  // (`companyFor`) — each companion found at its own index in the group.
+  const withCompany = (meldId: string, index: number, card: string) => {
+    const pick = { meldId, indices: [index], cards: [card] };
+    const company = companyFor(
+      state.legalActions.filter((o) => fromMeld(o) && o.source?.meldId === meldId),
+      card,
+    );
+    const group = (state.view?.zones ?? []).flatMap((z) => z.groups ?? []).find((g) => g.id === meldId);
+    for (const c of company) {
+      const at = group?.cards.findIndex((x, i) => x === c && !pick.indices.includes(i)) ?? -1;
+      if (at < 0) return { meldId, indices: [index], cards: [card] };
+      pick.indices.push(at);
+      pick.cards.push(c);
+    }
+    return pick;
+  };
+
   // Cards of an open meld carried by hand: the ones already picked in that
-  // meld if this is one of them, else just this one. Mirrors a press (see
+  // meld if this is one of them, else this one with any company it needs. Mirrors a press (see
   // `onPickGroupCard`) so a drag and a tap-then-target are the same move.
-  const beginMeldDrag = (meldId: string, index: number, card: string) => {
-    if (!pickableGroups.has(meldId)) return;
+  const beginMeldDrag = (meldId: string, index: number, card: string): number[] | undefined => {
+    if (!pickableGroups.has(meldId)) return undefined;
     const live = meldPickLive && meldPickLive.meldId === meldId && meldPickLive.indices.includes(index);
-    const pick = live ? meldPickLive : { meldId, indices: [index], cards: [card] };
+    const pick = live ? meldPickLive : withCompany(meldId, index, card);
     setSelected(new Set());
     setSelectionIsAuto(false);
     setPendingGroupKey(null);
@@ -1222,6 +1241,7 @@ function MatchScreen() {
     dragRef.current = { slotIds: [], cards: pick.cards, fromMeld: meldId };
     setDrag({ cards: pick.cards, fromMeld: meldId });
     drops.measure();
+    return pick.indices;
   };
 
   const beginDrag = (zoneId: string, index: number) => {

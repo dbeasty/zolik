@@ -410,6 +410,23 @@ export function someOfferReady(offers: ActionOffer[], cards: string[]): boolean 
 }
 
 /**
+ * The cards that must travel with `card` for any of these offers to take it,
+ * or none when one takes it alone. A player who drags one king off a group of
+ * three, to join it to another group of kings, means all three: the module
+ * has said no king leaves that group by itself (`Placement.requires`), so the
+ * drag carries the company instead of arriving somewhere it will be refused.
+ */
+export function companyFor(offers: ActionOffer[], card: string): string[] {
+  if (offers.some((o) => o.enabled && o.source?.cards?.includes(card))) return [];
+  for (const o of offers) {
+    if (!o.enabled) continue;
+    const p = o.source?.placements?.find((x) => x.card === card && x.requires?.length);
+    if (p?.requires) return p.requires;
+  }
+  return [];
+}
+
+/**
  * The piles a press acts *from* — the other half of "a card in hand is a card
  * looking for somewhere to go".
  *

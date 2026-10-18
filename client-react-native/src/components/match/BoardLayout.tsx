@@ -53,7 +53,7 @@ type DropProps = {
   pickableGroups?: ReadonlySet<string>;
   pickedInGroup?: { groupId: string; indices: number[] } | null;
   onPickGroupCard?: (groupId: string, index: number, card: string) => void;
-  onMeldDragStart?: (groupId: string, index: number, card: string) => void;
+  onMeldDragStart?: (groupId: string, index: number, card: string) => number[] | void;
   entranceDelays?: ReadonlyMap<string, number>;
   /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
   changedGroups?: ChangeMarks;
@@ -311,7 +311,7 @@ export function Section({
   pickableGroups?: ReadonlySet<string>;
   pickedInGroup?: { groupId: string; indices: number[] } | null;
   onPickGroupCard?: (groupId: string, index: number, card: string) => void;
-  onMeldDragStart?: (groupId: string, index: number, card: string) => void;
+  onMeldDragStart?: (groupId: string, index: number, card: string) => number[] | void;
 }) {
   if (!zones.length) return null;
 
