@@ -55,6 +55,9 @@ async function seedTwoKingGroups(request: Ctx, matchId: string, auth: Record<str
           meld('t0-K-2', 'set', ['KH', 'KD', 'KS'], { rank: 'K' }),
           meld('t0-seq1', 'run', ['5H', '6H', '7H', '8H'], { suit: 'H' }),
           meld('t0-seq2', 'run', ['9H', 'TH', 'JH'], { suit: 'H' }),
+          // The reported board: two groups of fours, duplicates in both.
+          meld('t0-4', 'set', ['4D', '4D', '4H'], { rank: '4' }),
+          meld('t0-4-2', 'set', ['4H', '4H', 'JOKER1', '4C'], { rank: '4' }),
         ],
       },
       { id: 1, players: [bot], score: 0, hasMelded: true, melds: [meld('t1-9', 'set', ['9C', '9D', '9S'], { rank: '9' })] },
@@ -108,5 +111,20 @@ test.describe('CanastaX combines two melds', () => {
     await expect(page.getByTestId('group-t0-seq2')).toHaveCount(0);
     await page.getByTestId('group-toggle-t0-seq1').click();
     await expect(page.locator('[data-testid^="card-t0-seq1-"]')).toHaveCount(7);
+  });
+
+  test('a group with duplicate cards, every card picked, drags onto the other', async ({ page, request }) => {
+    const { matchId, host, auth, me, bot } = await tableWithBot(request);
+    await seedTwoKingGroups(request, matchId, auth, me, bot);
+    await openMatch(page, host, matchId);
+
+    // What the player did: open the group, tap all three, drag them over.
+    await page.getByTestId('group-toggle-t0-4').click();
+    for (const i of [0, 1, 2]) await page.getByTestId(`pick-t0-4-${i}`).click();
+    await dragLocatorTo(page, page.getByTestId('pick-t0-4-0'), page.getByTestId('group-t0-4-2'));
+
+    await expect(page.getByTestId('group-t0-4')).toHaveCount(0);
+    await page.getByTestId('group-toggle-t0-4-2').click();
+    await expect(page.locator('[data-testid^="card-t0-4-2-"]')).toHaveCount(7);
   });
 });
