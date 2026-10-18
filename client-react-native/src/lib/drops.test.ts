@@ -1,6 +1,7 @@
 import { isOneTap, submissionFor, type ActionOffer, type Zone } from '@/src/api/matchTypes';
 
 import {
+  companyFor,
   dropSpotsFor,
   fits,
   readyWith,
@@ -825,5 +826,34 @@ describe('positionAtShare', () => {
   it('falls back to the first position when the share cannot be told', () => {
     expect(positionAtShare(ends, Number.NaN)).toBe('front');
     expect(positionAtShare(undefined, 0.5)).toBeUndefined();
+  });
+});
+
+describe('companyFor', () => {
+  const kings: ActionOffer = {
+    id: 'move:t0-K-2:t0-K',
+    verb: 'move_cards',
+    enabled: true,
+    source: {
+      zone: 'from_meld',
+      meldId: 't0-K-2',
+      cards: [],
+      placements: [
+        { card: 'KH', requires: ['KD', 'KS'] },
+        { card: 'KD', requires: ['KH', 'KS'] },
+      ],
+      minCards: 1,
+      maxCards: 3,
+    },
+    target: { zone: 'meld', meldId: 't0-K' },
+  };
+
+  it('names the cards a meld card cannot leave without', () => {
+    expect(companyFor([kings], 'KH')).toEqual(['KD', 'KS']);
+  });
+
+  it('is empty when some offer takes the card alone', () => {
+    const alone: ActionOffer = { ...kings, id: 'other', source: { ...kings.source!, cards: ['KH'] } };
+    expect(companyFor([kings, alone], 'KH')).toEqual([]);
   });
 });

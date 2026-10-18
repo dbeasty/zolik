@@ -142,7 +142,7 @@ type Props = {
    * ones already picked in its group if it is one of them, and otherwise it
    * alone — the screen applies the same rule to what it sends.
    */
-  onMeldDragStart?: (groupId: string, index: number, card: string) => void;
+  onMeldDragStart?: (groupId: string, index: number, card: string) => number[] | void;
   /**
    * How long this zone's newest card should hold its entrance, keyed by the
    * zone's own element id — set while a flight is landing here, so the card
@@ -275,8 +275,10 @@ export function ZoneView({
       picked={picks.includes(index)}
       onLift={() => onPickGroupCard?.(where, index, card)}
       onStart={() => {
-        setCarry({ where, from: index, only: picks.includes(index) ? picks : [index], dx: 0, dy: 0 });
-        onMeldDragStart?.(where, index, card);
+        // The parent says which cards went up with it — a card that cannot
+        // leave the meld alone carries its company.
+        const carried = onMeldDragStart?.(where, index, card);
+        setCarry({ where, from: index, only: carried ?? (picks.includes(index) ? picks : [index]), dx: 0, dy: 0 });
       }}
       onMove={(x, y, dx, dy) => {
         setCarry((was) => (was ? { ...was, dx, dy } : was));

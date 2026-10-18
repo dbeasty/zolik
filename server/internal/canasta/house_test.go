@@ -294,6 +294,52 @@ func TestMoveCards(t *testing.T) {
 		}
 	})
 
+	t.Run("two melds combine though no one card could move alone", func(t *testing.T) {
+		raw := table(func(s *GameState) {
+			s.Teams[0].Melds = append(s.Teams[0].Melds,
+				Meld{ID: "t0-K-2", TeamID: 0, Kind: meldSet, Rank: "K", Cards: []string{"KH", "KD", "KS"}},
+				Meld{ID: "t0-seq2", TeamID: 0, Kind: meldRun, Suit: "H", Cards: []string{"9H", "TH", "JH"}},
+			)
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		requires := func(o *module.ActionOffer, card string) []string {
+			for _, p := range o.Source.Placements {
+				if p.Card == card {
+					return p.Requires
+				}
+			}
+			t.Fatalf("%s not placed by %+v", card, o.Source)
+			return nil
+		}
+		kings := offerByID(offers, "move:t0-K-2:t0-K")
+		if kings == nil || len(kings.Source.Cards) != 0 {
+			t.Fatalf("kings offer %+v", kings)
+		}
+		if got := requires(kings, "KH"); !slices.Equal(got, []string{"KD", "KS"}) {
+			t.Fatalf("KH requires %v", got)
+		}
+		run := offerByID(offers, "move:t0-seq2:t0-seq1")
+		if run == nil {
+			t.Fatal("no offer to join the runs")
+		}
+		if got := requires(run, "JH"); len(got) != 2 {
+			t.Fatalf("JH requires %v", got)
+		}
+		// And what was offered goes through.
+		raw, code := apply(t, raw, "p1", module.Action{
+			OfferID: run.ID, Verb: VerbMoveCards, Cards: []string{"9H", "TH", "JH"}, Target: "t0-seq1",
+		})
+		if code != "" {
+			t.Fatal(code)
+		}
+		if s := mustDecode(t, raw); len(s.Teams[0].meldByID("t0-seq1").Cards) != 7 || s.Teams[0].meldByID("t0-seq2") != nil {
+			t.Fatalf("melds %+v", s.Teams[0].Melds)
+		}
+	})
+
 	t.Run("offered per pair of melds", func(t *testing.T) {
 		offers, err := New().LegalActions(table(nil), "p1")
 		if err != nil {

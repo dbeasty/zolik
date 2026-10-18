@@ -433,6 +433,48 @@ func runEndPlacements(r ruleset, target Meld, cards []string, try func(card, pos
 	return out
 }
 
+// moveCompanyPlacements are the cards of from that can reach to only in
+// company, each with the fewest companions the engine took: a second group of
+// kings joins the first only all three together, since a group left with two
+// is no meld, and a run of 7-8-9 joins 4-5-6 only whole.
+//
+// A run gives up cards from an end, so a card's company is the cards between
+// it and either end, or the whole meld; a group's is the whole meld, since one
+// card fewer would already have gone alone. alone are the cards already
+// listed on their own; try is the engine's answer for a whole submission.
+func moveCompanyPlacements(r ruleset, from, to Meld, alone []string, try func(cards []string) bool) []module.Placement {
+	var out []module.Placement
+	for i, c := range from.Cards {
+		if slices.Contains(alone, c) || slices.ContainsFunc(out, func(p module.Placement) bool { return p.Card == c }) {
+			continue
+		}
+		var ways [][]string
+		if from.kind() == meldRun {
+			ways = append(ways, from.Cards[:i], from.Cards[i+1:])
+			slices.SortStableFunc(ways, func(a, b []string) int { return len(a) - len(b) })
+		}
+		rest := append(append([]string(nil), from.Cards[:i]...), from.Cards[i+1:]...)
+		ways = append(ways, rest)
+		for _, with := range ways {
+			if len(with) == 0 {
+				continue
+			}
+			cards := append(append([]string(nil), with...), c)
+			if _, _, err := shrunkMeld(r, from, cards); err != nil {
+				continue
+			}
+			if _, err := grownMeld(r, to, cards, noLow); err != nil {
+				continue
+			}
+			if try(cards) {
+				out = append(out, module.Placement{Card: c, Requires: append([]string(nil), with...)})
+				break
+			}
+		}
+	}
+	return out
+}
+
 // --- reshapes: their bookkeeping ------------------------------------------------
 
 // nextSeq numbers the turn's next undoable entry: one past the newest still
@@ -915,7 +957,14 @@ func houseOffers(m *Module, raw module.State, s *GameState, playerID string) []m
 						movable = append(movable, c)
 					}
 				}
-				if len(movable) == 0 {
+				needy := moveCompanyPlacements(r, from, to, movable, func(cards []string) bool {
+					ok, _ := probe(m, raw, playerID, module.Action{
+						Verb: VerbMoveCards, Cards: cards, Target: to.ID,
+						Params: map[string]string{"from": from.ID},
+					})
+					return ok
+				})
+				if len(movable) == 0 && len(needy) == 0 {
 					continue
 				}
 				placements := runEndPlacements(r, to, sortedCards(movable), func(c, pos string) bool {
@@ -925,6 +974,16 @@ func houseOffers(m *Module, raw module.State, s *GameState, playerID string) []m
 					})
 					return ok
 				})
+				if len(needy) > 0 {
+					// Placements, once present, are the whole list a client
+					// reads: the cards that go alone must be in it too.
+					if placements == nil {
+						for _, c := range sortedCards(movable) {
+							placements = append(placements, module.Placement{Card: c})
+						}
+					}
+					placements = append(placements, needy...)
+				}
 				out = append(out, module.ActionOffer{
 					ID: "move:" + from.ID + ":" + to.ID, Verb: VerbMoveCards, Enabled: true,
 					LabelKey: "verb.moveCards",
