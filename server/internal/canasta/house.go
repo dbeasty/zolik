@@ -433,6 +433,22 @@ func runEndPlacements(r ruleset, target Meld, cards []string, try func(card, pos
 	return out
 }
 
+// moveAlone is whether c can travel from one meld to the other by itself: the
+// pure checks first, so that only a card with a chance is put to Apply.
+func moveAlone(m *Module, raw module.State, playerID string, r ruleset, from, to Meld, c string) bool {
+	if _, _, err := shrunkMeld(r, from, []string{c}); err != nil {
+		return false
+	}
+	if _, err := grownMeld(r, to, []string{c}, noLow); err != nil {
+		return false
+	}
+	ok, _ := probe(m, raw, playerID, module.Action{
+		Verb: VerbMoveCards, Cards: []string{c}, Target: to.ID,
+		Params: map[string]string{"from": from.ID},
+	})
+	return ok
+}
+
 // moveCompanyPlacements are the cards of from that can reach to only in
 // company, each with the fewest companions the engine took: a second group of
 // kings joins the first only all three together, since a group left with two
@@ -445,7 +461,14 @@ func runEndPlacements(r ruleset, target Meld, cards []string, try func(card, pos
 func moveCompanyPlacements(r ruleset, from, to Meld, alone []string, try func(cards []string) bool) []module.Placement {
 	var out []module.Placement
 	for i, c := range from.Cards {
-		if slices.Contains(alone, c) || slices.ContainsFunc(out, func(p module.Placement) bool { return p.Card == c }) {
+		if slices.Contains(alone, c) {
+			continue
+		}
+		// Another copy already answered: the engine cannot tell the two apart,
+		// so this one takes the same company. Listed again all the same — one
+		// entry per copy, or the client counts one 4D where the meld has two.
+		if at := slices.IndexFunc(out, func(p module.Placement) bool { return p.Card == c }); at >= 0 {
+			out = append(out, out[at])
 			continue
 		}
 		var ways [][]string
@@ -937,23 +960,18 @@ func houseOffers(m *Module, raw module.State, s *GameState, playerID string) []m
 				if from.ID == to.ID {
 					continue
 				}
+				// One entry per copy, as the meld holds them: a client checks a
+				// selection against this list as a multiset, and a group of
+				// 4D 4D 4H picked whole was refused against a list with one 4D.
 				var movable []string
 				asked := map[string]bool{}
 				for _, c := range from.Cards {
-					if asked[c] {
-						continue
+					ok, seen := asked[c]
+					if !seen {
+						ok = moveAlone(m, raw, playerID, r, from, to, c)
+						asked[c] = ok
 					}
-					asked[c] = true
-					if _, _, err := shrunkMeld(r, from, []string{c}); err != nil {
-						continue
-					}
-					if _, err := grownMeld(r, to, []string{c}, noLow); err != nil {
-						continue
-					}
-					if ok, _ := probe(m, raw, playerID, module.Action{
-						Verb: VerbMoveCards, Cards: []string{c}, Target: to.ID,
-						Params: map[string]string{"from": from.ID},
-					}); ok {
+					if ok {
 						movable = append(movable, c)
 					}
 				}

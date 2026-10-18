@@ -340,6 +340,50 @@ func TestMoveCards(t *testing.T) {
 		}
 	})
 
+	t.Run("a meld with duplicate cards moves whole, every copy listed", func(t *testing.T) {
+		// The reported board: 4D 4D 4H and 4H 4H JOKER 4C, which together are
+		// six natural fours and a joker. A client checks a selection against
+		// the offer's cards as a multiset, so each copy must be listed.
+		raw := table(func(s *GameState) {
+			s.Teams[0].Melds = append(s.Teams[0].Melds,
+				Meld{ID: "t0-4", TeamID: 0, Kind: meldSet, Rank: "4", Cards: []string{"4D", "4D", "4H"}},
+				Meld{ID: "t0-4-2", TeamID: 0, Kind: meldSet, Rank: "4", Cards: []string{"4H", "4H", "JOKER1", "4C"}},
+			)
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		listed := func(o *module.ActionOffer) []string {
+			var out []string
+			if len(o.Source.Placements) > 0 {
+				for _, p := range o.Source.Placements {
+					out = append(out, p.Card)
+				}
+			} else {
+				out = append(out, o.Source.Cards...)
+			}
+			return sortedCards(out)
+		}
+		for _, tc := range []struct{ from, to string }{{"t0-4", "t0-4-2"}, {"t0-4-2", "t0-4"}} {
+			o := offerByID(offers, "move:"+tc.from+":"+tc.to)
+			if o == nil {
+				t.Fatalf("no offer %s -> %s", tc.from, tc.to)
+			}
+			whole := sortedCards(mustDecode(t, raw).Teams[0].meldByID(tc.from).Cards)
+			if got := listed(o); !slices.Equal(got, whole) {
+				t.Fatalf("%s -> %s lists %v, the meld holds %v", tc.from, tc.to, got, whole)
+			}
+			after, code := apply(t, raw, "p1", module.Action{OfferID: o.ID, Verb: VerbMoveCards, Cards: whole, Target: tc.to})
+			if code != "" {
+				t.Fatalf("%s -> %s: %s", tc.from, tc.to, code)
+			}
+			if s := mustDecode(t, after); s.Teams[0].meldByID(tc.from) != nil || len(s.Teams[0].meldByID(tc.to).Cards) != 7 {
+				t.Fatalf("melds %+v", s.Teams[0].Melds)
+			}
+		}
+	})
+
 	t.Run("offered per pair of melds", func(t *testing.T) {
 		offers, err := New().LegalActions(table(nil), "p1")
 		if err != nil {
