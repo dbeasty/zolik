@@ -319,6 +319,8 @@ export const sk: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Začať ďalšie kolo',
+  'round.autoContinue': 'Začínať ďalšie kolo automaticky',
+  'round.autoContinueIn': 'Ďalšie kolo o {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1757,6 +1759,10 @@ export const sk: Record<string, string> = {
   'canasta.unit.points': 'bodov',
   'ginrummy.unit.points': 'bodov',
   'holdem.seat.dealer': 'Rozdávajúci',
+  'holdem.seat.smallBlind': 'Malý blind',
+  'holdem.seat.bigBlind': 'Veľký blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Zložil',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Vyradený',

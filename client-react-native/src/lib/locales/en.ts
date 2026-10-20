@@ -332,6 +332,10 @@ export const en: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Start the next round',
+  // A switch under that control: press it for me after a few seconds, every
+  // round of this game. `{seconds}` counts down to the press.
+  'round.autoContinue': 'Start the next round automatically',
+  'round.autoContinueIn': 'Next round in {seconds}s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1782,6 +1786,15 @@ export const en: Record<string, string> = {
   'canasta.unit.points': 'points',
   'ginrummy.unit.points': 'points',
   'holdem.seat.dealer': 'Dealer',
+  // Whose blind it was this hand. Spelled out beside the seat; the amounts
+  // are in the table header.
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  // The short form a seat mark is drawn with, as a badge beside the seat —
+  // any `<mark>.short` key turns its mark into one. Two or three letters; the
+  // poker abbreviations are widely used untranslated.
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Folded',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Out',

@@ -320,6 +320,8 @@ export const lv: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Sākt nākamo raundu',
+  'round.autoContinue': 'Sākt nākamo raundu automātiski',
+  'round.autoContinueIn': 'Nākamais raunds pēc {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1757,6 +1759,10 @@ export const lv: Record<string, string> = {
   'canasta.unit.points': 'punkti',
   'ginrummy.unit.points': 'punkti',
   'holdem.seat.dealer': 'Dalītājs',
+  'holdem.seat.smallBlind': 'Mazais blinds',
+  'holdem.seat.bigBlind': 'Lielais blinds',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Pameta',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Ārā',

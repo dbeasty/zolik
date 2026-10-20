@@ -318,6 +318,8 @@ export const lt: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Pradėti kitą raundą',
+  'round.autoContinue': 'Pradėti kitą raundą automatiškai',
+  'round.autoContinueIn': 'Kitas raundas po {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1758,6 +1760,10 @@ export const lt: Record<string, string> = {
   'canasta.unit.points': 'taškų',
   'ginrummy.unit.points': 'taškų',
   'holdem.seat.dealer': 'Dalytojas',
+  'holdem.seat.smallBlind': 'Mažasis blindas',
+  'holdem.seat.bigBlind': 'Didysis blindas',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Pasitraukė',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Iškritęs',

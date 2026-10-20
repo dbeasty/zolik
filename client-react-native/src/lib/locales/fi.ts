@@ -320,6 +320,8 @@ export const fi: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Aloita seuraava kierros',
+  'round.autoContinue': 'Aloita seuraava kierros automaattisesti',
+  'round.autoContinueIn': 'Seuraava kierros {seconds} s kuluttua',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1767,6 +1769,10 @@ export const fi: Record<string, string> = {
   'canasta.unit.points': 'pistettä',
   'ginrummy.unit.points': 'pistettä',
   'holdem.seat.dealer': 'Jakaja',
+  'holdem.seat.smallBlind': 'Pieni blindi',
+  'holdem.seat.bigBlind': 'Iso blindi',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Luovutti',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Ulkona',

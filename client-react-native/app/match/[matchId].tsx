@@ -34,6 +34,8 @@ import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RulesButton } from '@/src/components/match/RulesButton';
 import { RoundResults } from '@/src/components/match/RoundResults';
+import { AutoContinue } from '@/src/components/match/AutoContinue';
+import { useAutoContinue } from '@/src/lib/autoContinuePref';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { InviteBackSheet } from '@/src/components/match/InviteBackSheet';
 import { TableCode } from '@/src/components/match/TableCode';
@@ -651,7 +653,11 @@ function MatchScreen() {
     },
     [stillness],
   );
-  const ending = useEndingScroll(state, goTo);
+  // A player who has the next round dealt for them is not stopping to read
+  // the settlement, so the board does not jump down to it after every hand.
+  // The end of the match still scrolls: that one is worth being taken to.
+  const [autoContinue] = useAutoContinue(state?.moduleId);
+  const ending = useEndingScroll(state, goTo, { rounds: !autoContinue });
   // And where the player is when one begins, which is the top of a board whose
   // game is halfway down it. The other half of the same idea as `ending`, and
   // the two can never both want the scroller: a deal is on or the table has
@@ -1760,9 +1766,13 @@ function MatchScreen() {
   // A results panel is worth putting up at the end of a round as well as at the
   // end of a match, and there is nothing to put in one before the first round
   // has finished.
-  const showResults =
-    !!state.rounds?.rounds.length &&
-    (state.status === 'completed' || state.status === 'abandoned' || !!state.rounds.paused);
+  //
+  // Held open at those moments, and kept the rest of the time too — folded
+  // away like any other panel, so the score is a tap away mid-round rather
+  // than gone until the next settlement.
+  const showResults = !!state.rounds?.rounds.length;
+  const resultsHeld =
+    state.status === 'completed' || state.status === 'abandoned' || !!state.rounds?.paused;
 
   // The table is sitting between rounds. The module's own answer, never worked
   // out here from the controls that happen to be live.
@@ -1990,6 +2000,14 @@ function MatchScreen() {
           drops.measure();
         }}
       />
+      {paused ? (
+        <AutoContinue
+          moduleId={state.moduleId}
+          offers={handOffers}
+          round={state.rounds?.rounds[state.rounds.rounds.length - 1]?.number ?? 0}
+          onSend={send}
+        />
+      ) : null}
       {!canAct && state.status === 'active' ? (
         <Text testID="match-waiting" style={styles.muted}>
           {turnHolderName ? t('match.waitingForName', { name: turnHolderName }) : t('match.waitingForPlayer')}
@@ -2485,6 +2503,10 @@ function MatchScreen() {
               standings={state.standings}
               viewerId={viewerId}
               onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
+              // Folded by default while play is on, so it is stored the other
+              // way round from the board's panels: present means opened out.
+              minimized={resultsHeld ? undefined : !panels.isMinimized('results:open')}
+              onToggleMinimized={resultsHeld ? undefined : () => panels.toggle('results:open')}
             />
             {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
           </View>

@@ -324,6 +324,8 @@ export const mt: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Ibda r-rawnd li jmiss',
+  'round.autoContinue': 'Ibda r-rawnd li jmiss awtomatikament',
+  'round.autoContinueIn': 'Rawnd li jmiss f’{seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1780,6 +1782,10 @@ export const mt: Record<string, string> = {
   'canasta.unit.points': 'punti',
   'ginrummy.unit.points': 'punti',
   'holdem.seat.dealer': 'Dealer',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': "Waqa'",
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Barra',
