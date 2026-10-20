@@ -335,8 +335,8 @@ function roundStyles(m: Metrics, s: Skin) {
     // over the numbers they belong to and end on it too.
     name: { alignSelf: 'stretch', textAlign: 'right' },
     head: { color: colors.muted, fontSize: m.panel.bodyFont, fontWeight: '600' },
-    mine: { color: colors.text },
-    youTag: { color: colors.accent, fontSize: Math.max(10, m.panel.bodyFont - 3), fontWeight: '600' },
+    mine: { color: colors.gold, fontWeight: '700' },
+    youTag: { color: colors.gold, fontSize: Math.max(10, m.panel.bodyFont - 3), fontWeight: '700' },
     roundNumber: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '600' },
     roundFact: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 3) },
     delta: { color: colors.text, fontSize: m.panel.bodyFont },
@@ -346,7 +346,12 @@ function roundStyles(m: Metrics, s: Skin) {
     grand: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
     // The viewer's column: one tinted band from name to total, so "which of
     // these numbers are mine" is answered before anything is read.
-    mineCol: { backgroundColor: 'rgba(212, 175, 55, 0.14)' },
+    mineCol: {
+      backgroundColor: 'rgba(212, 175, 55, 0.22)',
+      borderLeftWidth: 2,
+      borderRightWidth: 2,
+      borderColor: colors.gold,
+    },
     mineDelta: { fontWeight: '700' },
     mineTotal: { color: colors.text, fontWeight: '600' },
     mineGrand: { color: colors.gold },
