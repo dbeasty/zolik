@@ -34,6 +34,13 @@ type Props = {
   viewerId: string;
   /** Open the account behind one cell: that player, that round. */
   onOpenScore?: (playerId: string, round: number) => void;
+  /**
+   * Folded away while a round is being played, like any other panel. Absent
+   * between rounds and at the end, when the results are the news and are held
+   * open.
+   */
+  minimized?: boolean;
+  onToggleMinimized?: () => void;
 };
 
 export const RoundResults = memo(function RoundResults({
@@ -42,6 +49,8 @@ export const RoundResults = memo(function RoundResults({
   standings,
   viewerId,
   onOpenScore,
+  minimized,
+  onToggleMinimized,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -70,13 +79,30 @@ export const RoundResults = memo(function RoundResults({
 
   const byId = new Map(standings?.map((s) => [s.playerId, s]));
   const unit = standings?.[0]?.labelKey;
+  const foldable = !!onToggleMinimized;
+
+  // What a folded panel still says: the viewer's own standing, since that is
+  // the number a player keeps glancing up for mid-round.
+  const mine = byId.get(viewerId);
+  const lastMine = log.rounds[log.rounds.length - 1]?.scores.find((x) => x.playerId === viewerId);
+  const summary = mine || lastMine ? (
+    <Text style={styles.summary} testID="round-results-summary">
+      {label('results.you')}{' '}
+      <Text style={styles.summaryScore}>{mine ? shownScore(mine) : runningTotal(lastMine!)}</Text>
+      {unit ? ` ${label(unit)}` : ''}
+    </Text>
+  ) : undefined;
 
   return (
     <Animated.View style={arrival}>
       <Panel
         title={t('match.results')}
         subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
-        forceOpen
+        panelId={foldable ? 'results' : undefined}
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        forceOpen={!foldable}
+        summary={summary}
         testID="round-results"
         // Tinted only between rounds. At the end of a match the banner above
         // is already doing the announcing, and two tinted boxes stacked on one
@@ -95,7 +121,7 @@ export const RoundResults = memo(function RoundResults({
                 {label(log.labelKey)}
               </Text>
               {columns.map((id) => (
-                <View key={id} style={styles.cell} testID={`round-head-${id}`}>
+                <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
                   <Text
                     numberOfLines={1}
                     style={[styles.name, styles.head, id === viewerId && styles.mine]}
@@ -139,21 +165,32 @@ export const RoundResults = memo(function RoundResults({
                   </View>
                   {columns.map((id) => {
                     const s = scores.get(id);
+                    const isMine = id === viewerId;
+                    const moved = s ? (s.shown ?? s.delta) : 0;
                     const content = (
                       <>
                         <Text
                           testID={`round-${r.number}-${id}`}
-                          style={[styles.delta, took.has(id) && styles.tookIt]}
+                          style={[
+                            styles.delta,
+                            // The viewer's own column reads as theirs at a
+                            // glance: bold, and coloured by which way it went.
+                            isMine && styles.mineDelta,
+                            isMine && moved > 0 && styles.up,
+                            isMine && moved < 0 && styles.down,
+                            took.has(id) && styles.tookIt,
+                          ]}
                         >
                           {s ? formatDelta(s) : '—'}
                         </Text>
-                        {s ? <Text style={styles.total}>{runningTotal(s)}</Text> : null}
+                        {s ? <Text style={[styles.total, isMine && styles.mineTotal]}>{runningTotal(s)}</Text> : null}
                       </>
                     );
+                    const cellStyle = [styles.cell, isMine && styles.mineCol];
                     return s && onOpenScore ? (
                       <Pressable
                         key={id}
-                        style={styles.cell}
+                        style={cellStyle}
                         onPress={() => onOpenScore(id, r.number)}
                         accessibilityRole="button"
                         accessibilityHint={t('score.open')}
@@ -162,7 +199,7 @@ export const RoundResults = memo(function RoundResults({
                         {content}
                       </Pressable>
                     ) : (
-                      <View key={id} style={styles.cell}>
+                      <View key={id} style={cellStyle}>
                         {content}
                       </View>
                     );
@@ -179,8 +216,8 @@ export const RoundResults = memo(function RoundResults({
                 {columns.map((id) => {
                   const s = byId.get(id);
                   return (
-                    <View key={id} style={styles.cell}>
-                      <Text testID={`round-total-${id}`} style={styles.grand}>
+                    <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]}>
+                      <Text testID={`round-total-${id}`} style={[styles.grand, id === viewerId && styles.mineGrand]}>
                         {s ? shownScore(s) : '—'}
                       </Text>
                     </View>
@@ -307,5 +344,15 @@ function roundStyles(m: Metrics, s: Skin) {
     tookIt: { color: colors.gold, fontWeight: '700' },
     total: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 3) },
     grand: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
+    // The viewer's column: one tinted band from name to total, so "which of
+    // these numbers are mine" is answered before anything is read.
+    mineCol: { backgroundColor: 'rgba(212, 175, 55, 0.14)' },
+    mineDelta: { fontWeight: '700' },
+    mineTotal: { color: colors.text, fontWeight: '600' },
+    mineGrand: { color: colors.gold },
+    up: { color: colors.success },
+    down: { color: colors.danger },
+    summary: { color: colors.muted, fontSize: m.panel.bodyFont },
+    summaryScore: { color: colors.gold, fontWeight: '700' },
   });
 }

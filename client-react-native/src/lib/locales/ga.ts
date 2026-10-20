@@ -332,6 +332,8 @@ export const ga: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Tosaigh an chéad bhabhta eile',
+  'round.autoContinue': 'Tosaigh an chéad bhabhta eile go huathoibríoch',
+  'round.autoContinueIn': 'An chéad bhabhta eile i {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1792,6 +1794,10 @@ export const ga: Record<string, string> = {
   'canasta.unit.points': 'pointe',
   'ginrummy.unit.points': 'pointe',
   'holdem.seat.dealer': 'Dáileoir',
+  'holdem.seat.smallBlind': 'Dall beag',
+  'holdem.seat.bigBlind': 'Dall mór',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Fillte',
   'holdem.seat.allIn': 'Gach rud isteach',
   'holdem.seat.out': 'Amuigh',

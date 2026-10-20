@@ -324,6 +324,8 @@ export const nl: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Start de volgende ronde',
+  'round.autoContinue': 'Start de volgende ronde automatisch',
+  'round.autoContinueIn': 'Volgende ronde over {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1783,6 +1785,10 @@ export const nl: Record<string, string> = {
   'canasta.unit.points': 'punten',
   'ginrummy.unit.points': 'punten',
   'holdem.seat.dealer': 'Deler',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Gepast',
   'holdem.seat.allIn': 'All-in',
   'holdem.seat.out': 'Uit',

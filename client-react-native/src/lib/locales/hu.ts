@@ -327,6 +327,8 @@ export const hu: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Következő kör indítása',
+  'round.autoContinue': 'Következő kör automatikus indítása',
+  'round.autoContinueIn': 'Következő kör {seconds} mp múlva',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1774,6 +1776,10 @@ export const hu: Record<string, string> = {
   'canasta.unit.points': 'pont',
   'ginrummy.unit.points': 'pont',
   'holdem.seat.dealer': 'Osztó',
+  'holdem.seat.smallBlind': 'Kis vak',
+  'holdem.seat.bigBlind': 'Nagy vak',
+  'holdem.seat.smallBlind.short': 'KV',
+  'holdem.seat.bigBlind.short': 'NV',
   'holdem.seat.folded': 'Bedobta',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Kiesett',

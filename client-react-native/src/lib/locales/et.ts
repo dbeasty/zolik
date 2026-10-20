@@ -319,6 +319,8 @@ export const et: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Alusta järgmist vooru',
+  'round.autoContinue': 'Alusta järgmist vooru automaatselt',
+  'round.autoContinueIn': 'Järgmine voor {seconds} s pärast',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1761,6 +1763,10 @@ export const et: Record<string, string> = {
   'canasta.unit.points': 'punkti',
   'ginrummy.unit.points': 'punkti',
   'holdem.seat.dealer': 'Jagaja',
+  'holdem.seat.smallBlind': 'Väike pime',
+  'holdem.seat.bigBlind': 'Suur pime',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Loobus',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Väljas',

@@ -320,6 +320,8 @@ export const hr: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Pokreni sljedeću rundu',
+  'round.autoContinue': 'Automatski pokreni sljedeću rundu',
+  'round.autoContinueIn': 'Sljedeća runda za {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1756,6 +1758,10 @@ export const hr: Record<string, string> = {
   'canasta.unit.points': 'bodova',
   'ginrummy.unit.points': 'bodova',
   'holdem.seat.dealer': 'Djelitelj',
+  'holdem.seat.smallBlind': 'Mali blind',
+  'holdem.seat.bigBlind': 'Veliki blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Odustao',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Ispao',

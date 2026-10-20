@@ -51,6 +51,17 @@ export function isDealerLabel(key: string): boolean {
   return key.split(".").pop() === "dealer";
 }
 
+/**
+ * The badge a seat mark is drawn as, if its game gave it one: the wording at
+ * `<key>.short`, when the locale bundle has it. A mark worth a glance round
+ * the table gets a two-letter badge from its own game's bundle, and this
+ * client never learns what the mark means.
+ */
+export function badgeOf(key: string): string | undefined {
+  const short = `${key}.short`;
+  return messageTemplate(short) !== undefined ? t(short) : undefined;
+}
+
 /** A message key rendered for display, falling back to its own shape. */
 export function label(
   key: string | undefined,

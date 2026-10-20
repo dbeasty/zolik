@@ -265,6 +265,12 @@ type GameState struct {
 
 	SmallBlind    int `json:"smallBlind"`
 	BigBlind      int `json:"bigBlind"`
+	// BlindSeats is who posted this hand's small and big blind, as seat
+	// indices, kept from the deal. Recomputed later from the button it can
+	// name somebody else: a seat that busts in the hand is skipped, and the
+	// showdown would then credit their blind to the next player round. Empty
+	// on a state stored before it existed, which simply marks nobody.
+	BlindSeats []int `json:"blindSeats,omitempty"`
 	StartingStack int `json:"startingStack"`
 	// HandLimit is how many hands the match runs for; zero means play until
 	// one player holds every chip.

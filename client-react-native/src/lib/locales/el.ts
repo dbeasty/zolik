@@ -329,6 +329,8 @@ export const el: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Ξεκίνα τον επόμενο γύρο',
+  'round.autoContinue': 'Αυτόματη έναρξη επόμενου γύρου',
+  'round.autoContinueIn': 'Επόμενος γύρος σε {seconds} δ',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -1799,6 +1801,10 @@ export const el: Record<string, string> = {
   'canasta.unit.points': 'πόντοι',
   'ginrummy.unit.points': 'πόντοι',
   'holdem.seat.dealer': 'Μοιράζει',
+  'holdem.seat.smallBlind': 'Μικρό blind',
+  'holdem.seat.bigBlind': 'Μεγάλο blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Πάσο',
   'holdem.seat.allIn': 'Όλα μέσα',
   'holdem.seat.out': 'Εκτός',
