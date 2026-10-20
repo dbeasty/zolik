@@ -810,6 +810,12 @@ func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Even
 	if isWild(top) {
 		return nil, errCode(ErrTopCardUnusable)
 	}
+	// The card is optional — the move can only ever be the top one — but one
+	// that is named must be it: a client acting on a pile that has since
+	// changed is refused rather than handed a card it never pointed at.
+	if len(a.Cards) > 1 || (len(a.Cards) == 1 && a.Cards[0] != top) {
+		return nil, errCode(ErrTopCardUnusable)
+	}
 	grown, err := grownMeld(r, *m, []string{top}, noLow)
 	if err != nil {
 		return nil, err

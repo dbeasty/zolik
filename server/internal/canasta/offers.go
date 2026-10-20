@@ -176,8 +176,15 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	//
 	// Samba's other way into the pile, and its own verb because it is its own
 	// move: one card, and the pile stays standing (engine.go's applyTakeTop).
+	//
+	// The offer names the top card as what it lifts, the way Klondike names the
+	// waste's: that is what lets a player press the card itself, or carry it
+	// onto the run, rather than hunt for the move among the controls. Without
+	// it the card on the pile was inert, and the move looked as if it was not
+	// there at all.
 	for _, meldID := range topCardRuns(s, playerID) {
-		a := module.Action{Verb: VerbTakeTop, Target: meldID}
+		top := []string{s.top()}
+		a := module.Action{Verb: VerbTakeTop, Target: meldID, Cards: top}
 		ok, why := probe(m, raw, playerID, a)
 		if !ok {
 			continue
@@ -185,8 +192,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		offers = append(offers, module.ActionOffer{
 			ID: OfferTakeTop + ":" + meldID, Verb: VerbTakeTop, Enabled: ok, WhyNot: why,
 			LabelKey: "verb.takeTopForSequence",
-			Source:   &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID},
-			Target:   &module.Selector{Zone: module.ToMeld, MeldID: meldID, ZoneID: meldsZoneID(t.ID)},
+			Source: &module.Selector{
+				Zone: module.FromDiscardPile, ZoneID: discardZoneID,
+				Cards: top, Submit: top, MinCards: 1, MaxCards: 1,
+			},
+			Target: &module.Selector{Zone: module.ToMeld, MeldID: meldID, ZoneID: meldsZoneID(t.ID)},
 		})
 	}
 

@@ -998,13 +998,14 @@ function MatchScreen() {
   // the offers and nothing else — which card heads a movable run is a rule,
   // and the module has already answered it by offering the move.
   const handIds = new Set(myHands.map((z) => z.id));
-  const liftOffers = state.legalActions.filter(
-    (o) =>
-      o.enabled &&
-      (isTrayLift(o) ||
-        (!!o.source?.submit?.length &&
-          (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))))),
-  );
+  const isTableLift = (o: ActionOffer) =>
+    isTrayLift(o) ||
+    (!!o.source?.submit?.length && (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))));
+  const liftOffers = state.legalActions.filter((o) => o.enabled && isTableLift(o));
+  // What cards picked from the hand may be for. A lift names a card that is
+  // not in it — Samba's top of the pile — and a hand holding another copy of
+  // that card would otherwise light the lift up as if it were the one picked.
+  const handDropOffers = handOffers.filter((o) => !isTableLift(o));
   /** The cards an offer lifts when `card` is the one pressed. */
   const liftedBy = (o: ActionOffer, card: string) => (isTrayLift(o) ? [card] : o.source!.submit!);
   const liftable = new Set(
@@ -1074,7 +1075,7 @@ function MatchScreen() {
         ? state.legalActions.filter((o) => o.enabled && fromMeld(o) && o.source?.meldId === fromMeldId)
         : fromTable
           ? liftsOf(cards[0] ?? '')
-          : handOffers,
+          : handDropOffers,
       cards,
     );
   const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable, drag.fromMeld) : [];
@@ -1128,7 +1129,10 @@ function MatchScreen() {
     : meldPickLive
       ? dropSpotsFor(moveCandidates, meldPickLive.cards)
     : selectedCards.length > 0
-      ? dropSpotsFor(pendingCandidates, selectedCards)
+      ? dropSpotsFor(
+          pendingCandidates.filter((o) => !isTableLift(o)),
+          selectedCards,
+        )
       : pendingGroupKey
         ? pendingCandidates.flatMap((o) =>
             o.target?.meldId ? [{ offerId: o.id, elementId: groupElementId(o.target.meldId), ready: true }] : [],
