@@ -261,7 +261,7 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 	if r.OfflinePass != "" {
 		out["offlinePass"] = r.OfflinePass
 	}
-	writeJSON(w, out)
+	writeTokens(w, req, out)
 }
 
 type oauthTokenReq struct {
@@ -358,7 +358,7 @@ func (h *Handlers) completeSignIn(w http.ResponseWriter, req *http.Request, clai
 	if tokens.OfflinePass != "" {
 		out["offlinePass"] = tokens.OfflinePass
 	}
-	writeJSON(w, out)
+	writeTokens(w, req, out)
 }
 
 // failFlow abandons a flow and returns the browser to the app with a reason.

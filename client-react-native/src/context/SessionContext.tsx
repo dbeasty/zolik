@@ -235,8 +235,12 @@ type SessionContextValue = {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 // expo-secure-store has no web implementation; fall back to localStorage
-// there (it's not encrypted, but this only ever holds JWTs, same as any
-// other browser-based session token).
+// there. It is not encrypted and every script on the page can read it, so in
+// a browser the refresh token does not live in it: the server keeps that, and
+// a copy of the guest key, in HttpOnly cookies (WEB_COOKIE_SESSION), and the
+// session stored here carries COOKIE_HELD_REFRESH in the token's place. Safari
+// also erases this storage after a week without a visit; the cookies outlive
+// that, so a returning guest is still recognised.
 export const storage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
