@@ -356,6 +356,44 @@ func TestSambaTakeTop(t *testing.T) {
 		}
 	})
 
+	// The card on the pile is what a player points at, so the offer has to
+	// name it — a take_top offer with no card left the pile inert on screen.
+	t.Run("the offer names the top card as what it lifts", func(t *testing.T) {
+		offers, err := New().LegalActions(table(nil), "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got *module.ActionOffer
+		for i := range offers {
+			if offers[i].Verb == VerbTakeTop {
+				got = &offers[i]
+			}
+		}
+		if got == nil || !got.Enabled {
+			t.Fatalf("no live take_top offer in %v", offers)
+		}
+		src := got.Source
+		if src == nil || src.Zone != module.FromDiscardPile || len(src.Submit) != 1 || src.Submit[0] != "8H" ||
+			len(src.Cards) != 1 || src.Cards[0] != "8H" || src.MinCards != 1 || src.MaxCards != 1 {
+			t.Errorf("take_top source is %+v, want the eight of hearts off the discard pile", src)
+		}
+		a, ok := module.SubmissionFor(*got)
+		if !ok {
+			t.Fatal("take_top offer has no submission")
+		}
+		if _, code := apply(t, table(nil), "p1", a); code != "" {
+			t.Errorf("the offer's own submission was refused: %s", code)
+		}
+	})
+
+	t.Run("naming a card that is not on top is refused", func(t *testing.T) {
+		if _, code := apply(t, table(nil), "p1", module.Action{
+			Verb: VerbTakeTop, Target: "t0-seq1", Cards: []string{"KC"},
+		}); code != ErrTopCardUnusable {
+			t.Errorf("take_top naming the king under the eight was %q, want %s", code, ErrTopCardUnusable)
+		}
+	})
+
 	t.Run("a card that does not continue the run is refused", func(t *testing.T) {
 		raw := table(func(s *GameState) { s.DiscardPile = []string{"KC", "TH"} })
 		if _, code := apply(t, raw, "p1", module.Action{
