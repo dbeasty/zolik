@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	tuissH "zolik/client-tui/ssh"
 	tuiui "zolik/client-tui/ui"
 	"zolik/server/internal/app"
+	"zolik/server/internal/auth"
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/obs"
 	"zolik/server/internal/tuiauth"
@@ -40,18 +42,41 @@ func main() {
 	defer a.Close(context.Background())
 
 	r := chi.NewRouter()
-	// Bearer-token auth (no cookies), so a wide-open CORS policy carries no
-	// CSRF risk here and keeps every client origin (web, LAN devices, etc.)
-	// working without per-deployment configuration.
-	r.Use(cors.Handler(cors.Options{
+	// Bearer-token auth, so a wide-open CORS policy carries no CSRF risk here
+	// and keeps every client origin (web, LAN devices, etc.) working without
+	// per-deployment configuration.
+	allowedHeaders := []string{"Content-Type", "Authorization", "Accept", "Mcp-Protocol-Version", "Mcp-Session-Id", auth.SessionCookieHeader}
+	public := cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type", "Authorization", "Accept", "Mcp-Protocol-Version", "Mcp-Session-Id"},
+		AllowedHeaders: allowedHeaders,
 		// A browser-based MCP client reads the discovery pointer off the 401.
 		ExposedHeaders:   []string{"WWW-Authenticate"},
 		AllowCredentials: false,
 		MaxAge:           300,
-	}))
+	})
+	// The one exception: the web app keeps its session in cookies on /auth
+	// (see internal/auth/cookies.go), and a browser sends them across origins
+	// only to a server that allows credentials for that exact origin. Granted
+	// only to the server's own host - Metro on another port in development -
+	// and harmless even there, since the cookies are SameSite=Strict.
+	credentialed := cors.Handler(cors.Options{
+		AllowOriginFunc:  auth.SameHostOrigin,
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowedHeaders:   allowedHeaders,
+		AllowCredentials: true,
+		MaxAge:           300,
+	})
+	r.Use(func(next http.Handler) http.Handler {
+		publicNext, credNext := public(next), credentialed(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if strings.HasPrefix(req.URL.Path, "/auth/") && auth.SameHostOrigin(req, req.Header.Get("Origin")) {
+				credNext.ServeHTTP(w, req)
+				return
+			}
+			publicNext.ServeHTTP(w, req)
+		})
+	})
 	r.Use(app.LimitRequestBody(app.MaxRequestBody))
 	a.RegisterRoutes(r)
 

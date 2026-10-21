@@ -82,6 +82,24 @@ export const ZOLIK_BASE_URL = (
 );
 
 /**
+ * Whether this page keeps its session in cookies (see apiClient's
+ * cookieSession). Only a browser page whose API is on the page's own host:
+ * the server grants credentialed CORS to nothing else, and the cookies are
+ * SameSite=Strict, so a page on localhost calling 127.0.0.1 would have its
+ * sign-in refused rather than merely forgotten. Never the desktop app, whose
+ * requests go through Go rather than the web view's own fetch.
+ */
+export const WEB_COOKIE_SESSION = ((): boolean => {
+  if (Platform.OS !== 'web' || IS_DESKTOP) return false;
+  if (typeof window === 'undefined' || !window.location?.hostname) return false;
+  try {
+    return new URL(ZOLIK_BASE_URL).hostname === window.location.hostname;
+  } catch {
+    return false;
+  }
+})();
+
+/**
  * Where the cloud is, for the few things that must go there even from a page
  * that is not served by it: a page a phone serves to the room has the phone
  * as its API, and the link a guest takes away to keep a game has to name the

@@ -20,6 +20,8 @@ export type TransportRequest = {
   method: string;
   headers?: Record<string, string>;
   body?: string;
+  /** Sent on to fetch; a transport with no cookies ignores it. */
+  credentials?: 'include';
 };
 
 /** The part of a WebSocket the match and lobby sockets use. */

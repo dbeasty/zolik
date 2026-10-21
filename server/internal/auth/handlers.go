@@ -332,7 +332,8 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 	var body guestReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	guestID := h.guestIDProvenBy(ctx, body.GuestKey, body.GuestRefreshToken)
+	guestKey, guestRefresh := guestProofOf(req, body.GuestKey, body.GuestRefreshToken)
+	guestID := h.guestIDProvenBy(ctx, guestKey, guestRefresh)
 	tokens, err := h.GuestSessionWithID(ctx, body.GuestName, guestID)
 	if err != nil {
 		internalError(w, "guest", err)
@@ -358,7 +359,7 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 	if tokens.SeatReceipt != "" {
 		out["seatReceipt"] = tokens.SeatReceipt
 	}
-	writeJSON(w, out)
+	writeTokens(w, req, out)
 }
 
 type offlinePassReq struct {
@@ -436,7 +437,7 @@ func (h *Handlers) offlinePass(w http.ResponseWriter, req *http.Request) {
 	if h.passSeated != nil {
 		h.passSeated(subject, strings.TrimSpace(body.OfflinePass))
 	}
-	writeJSON(w, map[string]any{
+	writeTokens(w, req, map[string]any{
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 		"userId":       subject,
@@ -583,11 +584,13 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var body claimGuestReq
-	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || (body.GuestRefreshToken == "" && body.GuestKey == "") {
+	_ = json.NewDecoder(req.Body).Decode(&body)
+	guestKey, guestRefresh := guestProofOf(req, body.GuestKey, body.GuestRefreshToken)
+	if guestKey == "" && guestRefresh == "" {
 		http.Error(w, "guestKey or guestRefreshToken required", http.StatusBadRequest)
 		return
 	}
-	guestID := h.guestIDProvenBy(ctx, body.GuestKey, body.GuestRefreshToken)
+	guestID := h.guestIDProvenBy(ctx, guestKey, guestRefresh)
 	if guestID == "" {
 		http.Error(w, "that guest session is not valid", http.StatusUnauthorized)
 		return
@@ -608,6 +611,9 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 	// results land nowhere.
 	if body.GuestRefreshToken != "" {
 		_ = h.sessionRepo.DeleteByToken(ctx, body.GuestRefreshToken)
+	}
+	if wantsSessionCookies(req) {
+		clearAuthCookie(w, req, guestCookie)
 	}
 
 	writeJSON(w, map[string]any{"claimedMatches": claimed})
@@ -680,7 +686,7 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		internalError(w, "register", err)
 		return
 	}
-	writeSessionJSON(w, tokens)
+	writeSessionJSON(w, req, tokens)
 }
 
 type loginReq struct {
@@ -710,7 +716,7 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 		internalError(w, "login", err)
 		return
 	}
-	writeSessionJSON(w, tokens)
+	writeSessionJSON(w, req, tokens)
 }
 
 // --- session lifecycle ---
@@ -765,6 +771,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	body.RefreshToken = refreshTokenOf(req, body.RefreshToken)
 	if body.RefreshToken == "" {
 		http.Error(w, "refreshToken required", http.StatusBadRequest)
 		return
@@ -772,7 +779,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 
 	s, err := h.sessionRepo.FindByToken(ctx, body.RefreshToken)
 	if err != nil {
-		http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+		h.refuseRefresh(w, req)
 		return
 	}
 	now := time.Now().UTC()
@@ -787,7 +794,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		// expiry is checked here rather than trusted to have happened.
 		next, err := h.sessionRepo.FindByToken(ctx, s.ReplacedBy)
 		if now.After(s.ExpiresAt) || err != nil || next.ReplacedBy != "" {
-			http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+			h.refuseRefresh(w, req)
 			return
 		}
 		s, newRefresh = next, next.Token
@@ -804,7 +811,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		expiresAt := now.Add(refreshTokenTTL)
 		if strings.HasPrefix(s.UserID, OfflineSeatPrefix) {
 			if now.After(s.ExpiresAt) {
-				http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+				h.refuseRefresh(w, req)
 				return
 			}
 			if s.ExpiresAt.Before(expiresAt) {
@@ -866,13 +873,23 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 			out["offlinePass"] = pass
 		}
 	}
-	writeJSON(w, out)
+	writeTokens(w, req, out)
+}
+
+// refuseRefresh turns away a refresh token the server will not take. A
+// browser's cookie that has been refused is cleared with it, so the client's
+// next sign-in is not shadowed by a dead token.
+func (h *Handlers) refuseRefresh(w http.ResponseWriter, req *http.Request) {
+	if wantsSessionCookies(req) {
+		clearAuthCookie(w, req, refreshCookie)
+	}
+	http.Error(w, "invalid refresh token", http.StatusUnauthorized)
 }
 
 // writeSessionJSON is the answer to every sign-in that mints a session. It is
 // one function so that a pass cannot be handed out by one path and quietly
 // forgotten by another.
-func writeSessionJSON(w http.ResponseWriter, tokens SessionTokens) {
+func writeSessionJSON(w http.ResponseWriter, req *http.Request, tokens SessionTokens) {
 	out := map[string]any{
 		"accessToken":  tokens.AccessToken,
 		"refreshToken": tokens.RefreshToken,
@@ -883,7 +900,7 @@ func writeSessionJSON(w http.ResponseWriter, tokens SessionTokens) {
 	if tokens.OfflinePass != "" {
 		out["offlinePass"] = tokens.OfflinePass
 	}
-	writeJSON(w, out)
+	writeTokens(w, req, out)
 }
 
 type logoutReq struct {
@@ -894,8 +911,13 @@ func (h *Handlers) logout(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	var body logoutReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
-	if body.RefreshToken != "" {
-		_ = h.sessionRepo.DeleteByToken(ctx, body.RefreshToken)
+	if token := refreshTokenOf(req, body.RefreshToken); token != "" {
+		_ = h.sessionRepo.DeleteByToken(ctx, token)
+	}
+	// Only the session's cookie. The guest identity outlives a sign-out by
+	// design; see the guest key.
+	if wantsSessionCookies(req) {
+		clearAuthCookie(w, req, refreshCookie)
 	}
 	writeJSON(w, map[string]any{"loggedOut": true})
 }
