@@ -71,6 +71,7 @@
     "LASTCARD_NO_MATCH",
     "LASTCARD_ONLY_DRAWN_CARD",
     "LASTCARD_STACK_OR_TAKE",
+    "LASTCARD_SWAP_WITH_WHOM",
     "LASTCARD_UNKNOWN_COLOUR",
     "LEAVE_TOURNAMENT",
     "LORA_CANNOT_LAY",
@@ -757,6 +758,7 @@
     "lastcard.move.drew",
     "lastcard.move.drewMany",
     "lastcard.move.kept",
+    "lastcard.move.mayhem",
     "lastcard.move.nothingToDraw",
     "lastcard.move.passedHands",
     "lastcard.move.played",
@@ -785,7 +787,9 @@
     "lastcard.prompt.drawFour",
     "lastcard.prompt.noBluff",
     "lastcard.prompt.playDrawnOrKeep",
+    "lastcard.prompt.player",
     "lastcard.prompt.stack",
+    "lastcard.prompt.swapWith",
     "lastcard.remedy.answerDrawFour",
     "lastcard.remedy.followColourFirst",
     "lastcard.remedy.matchOrDraw",
@@ -830,6 +834,8 @@
     "lastcard.rules.wild",
     "lastcard.rules.wildDrawFour",
     "lastcard.rules.wildDrawFourBluff",
+    "lastcard.rules.wildMayhem",
+    "lastcard.rules.wildSwap",
     "lastcard.rules.zeros",
     "lastcard.score.actions",
     "lastcard.score.numbers",
@@ -1710,6 +1716,8 @@
     "lastcard.rules.wild",
     "lastcard.rules.wildDrawFour",
     "lastcard.rules.wildDrawFourBluff",
+    "lastcard.rules.wildMayhem",
+    "lastcard.rules.wildSwap",
     "lastcard.rules.zeros",
     "lora.rules.deal",
     "lora.rules.deck",
@@ -2733,6 +2741,9 @@
     "lastcard.move.kept": [
       "player"
     ],
+    "lastcard.move.mayhem": [
+      "player"
+    ],
     "lastcard.move.nothingToDraw": [
       "player"
     ],
@@ -2825,6 +2836,9 @@
     "lastcard.prompt.playDrawnOrKeep": [
       "card"
     ],
+    "lastcard.prompt.player": [
+      "value"
+    ],
     "lastcard.prompt.stack": [
       "n"
     ],
@@ -2867,6 +2881,12 @@
     ],
     "lastcard.rules.scoring.lowest": [
       "target"
+    ],
+    "lastcard.rules.wildMayhem": [
+      "n"
+    ],
+    "lastcard.rules.wildSwap": [
+      "n"
     ],
     "lastcard.seat.penalty": [
       "n",
@@ -3683,6 +3703,7 @@
     "lastcard.move.drew",
     "lastcard.move.drewMany",
     "lastcard.move.kept",
+    "lastcard.move.mayhem",
     "lastcard.move.nothingToDraw",
     "lastcard.move.passedHands",
     "lastcard.move.played",
@@ -3704,6 +3725,7 @@
     "lastcard.prompt.drawFour",
     "lastcard.prompt.noBluff",
     "lastcard.prompt.playDrawnOrKeep",
+    "lastcard.prompt.player",
     "lastcard.prompt.stack",
     "lastcard.remedy.answerDrawFour",
     "lastcard.remedy.followColourFirst",
@@ -3718,6 +3740,8 @@
     "lastcard.rules.goal.points",
     "lastcard.rules.scoring",
     "lastcard.rules.scoring.lowest",
+    "lastcard.rules.wildMayhem",
+    "lastcard.rules.wildSwap",
     "lastcard.seat.penalty",
     "lastcard.seat.points",
     "lora.header.game",

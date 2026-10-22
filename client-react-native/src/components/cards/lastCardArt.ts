@@ -64,18 +64,25 @@ export type Piece = {
 export type LastCard =
   | { kind: 'number'; colour: Colour; face: string }
   | { kind: 'skip' | 'reverse' | 'drawTwo'; colour: Colour; face: string }
-  | { kind: 'wild' | 'wildDrawFour'; colour: null; face: string };
+  | { kind: 'wild' | 'wildDrawFour' | 'wildSwap' | 'wildMayhem'; colour: null; face: string };
 
 const CODE = /^([CTVA])-([0-9]|S|R|D)$/;
 
-/** Whether a string is one of this pack's codes: "C-7", "T-S", "W", "W4". */
+/** The wilds, by code. The Swap and the Mayhem are house-rule cards. */
+const WILDS: Record<string, LastCard> = {
+  W: { kind: 'wild', colour: null, face: 'W' },
+  W4: { kind: 'wildDrawFour', colour: null, face: '+4' },
+  WS: { kind: 'wildSwap', colour: null, face: '⇄' },
+  WM: { kind: 'wildMayhem', colour: null, face: '✱' },
+};
+
+/** Whether a string is one of this pack's codes: "C-7", "T-S", "W", "W4", "WS", "WM". */
 export function isLastCardCode(value: string): boolean {
-  return CODE.test(value) || value === 'W' || value === 'W4';
+  return CODE.test(value) || value in WILDS;
 }
 
 export function parseLastCard(code: string): LastCard | null {
-  if (code === 'W') return { kind: 'wild', colour: null, face: 'W' };
-  if (code === 'W4') return { kind: 'wildDrawFour', colour: null, face: '+4' };
+  if (code in WILDS) return WILDS[code];
   const m = CODE.exec(code);
   if (!m) return null;
   const colour = m[1] as Colour;

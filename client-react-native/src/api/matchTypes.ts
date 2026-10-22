@@ -177,9 +177,14 @@ export type ViewModel = {
   prompts?: Fact[];
 };
 
-export type ParamKind = 'choice' | 'int';
+/**
+ * `player` is a choice of one of the players at the table — whom a card that
+ * swaps hands trades with: each choice's value is a player id, shown as that
+ * player's name.
+ */
+export type ParamKind = 'choice' | 'int' | 'player';
 
-/** A non-card input an offer needs: a named choice, or a number in a range. */
+/** A non-card input an offer needs: a named choice, a player, or a number in a range. */
 export type ParamSpec = {
   name: string;
   kind?: ParamKind;

@@ -606,6 +606,8 @@ function arrangeByColour(slots: Slot[]): Slot[] {
   const key = (card: string): number => {
     if (card === 'W') return 1000;
     if (card === 'W4') return 1001;
+    if (card === 'WS') return 1002;
+    if (card === 'WM') return 1003;
     const [colour, face] = card.split('-');
     return COLOUR_ORDER.indexOf(colour) * 100 + FACE_ORDER.indexOf(face);
   };

@@ -13,14 +13,16 @@
     "guide.lastcard.challenge": "Hit by a Wild Draw Four? You may challenge it. A bluff makes its player draw the four instead; an honest card makes you draw six and miss your turn.",
     "guide.lastcard.stackingTwos": "House rule: answer a Draw Two with a Draw Two of your own and pass the whole stack on. Whoever can’t takes it all and misses their turn.",
     "guide.lastcard.stackingAny": "House rule: answer a draw card with one of your own, a Draw Two on a Draw Two or a Wild Draw Four on either, and pass the stack on. Whoever can’t takes it all.",
-    "guide.lastcard.sevenZero": "House rule: playing a 7 swaps your hand with whoever holds the fewest cards, and playing a 0 passes every hand to the next player.",
+    "guide.lastcard.sevenZero": "House rule: playing a 7 swaps your hand with a player you choose, and playing a 0 passes every hand to the next player.",
     "guide.lastcard.call": "Holding two cards, say “Last card!” before you play the second-to-last one. Forget, and the next player may catch you: you draw two cards.",
     "guide.lastcard.scoring": "Whoever goes out scores the cards left in everyone else’s hands. First to {target} points wins the match.",
     "guide.lastcard.scoringLowest": "Whoever goes out makes every other player pay for the cards left in their hand. When someone reaches {target} points, the lowest total wins.",
     "guide.lastcard.single": "This match is a single deal: it ends the moment someone’s hand is empty.",
     "guide.lastcard.freeplay": "Now play a few turns on your own. The glowing ring shows where to act.",
     "guide.lastcard.hint": "Stuck? Tap Hint to see what a strong player would do. A hint never plays for you.",
-    "guide.lastcard.done": "That’s it! Finish this hand for practice, or exit the guide and play a real game."
+    "guide.lastcard.done": "That’s it! Finish this hand for practice, or exit the guide and play a real game.",
+    "guide.lastcard.wildSwap": "House rule: a Wild Swap names the colour like any wild, then you trade hands with any player you choose. Save it for when someone is nearly out.",
+    "guide.lastcard.wildMayhem": "House rule: a Wild Mayhem names the colour, then every hand is shuffled together and dealt out again evenly. It helps most when you hold far more cards than everyone else."
   },
   "bg": {
     "guide.lastcard.basics.title": "Основи на Last Card",
@@ -36,14 +38,16 @@
     "guide.lastcard.challenge": "Улучен от Уайлд Тегли четири? Можеш да го оспориш. Блъфът кара играча му да изтегли четирите вместо теб; честна карта те кара да изтеглиш шест и да пропуснеш хода си.",
     "guide.lastcard.stackingTwos": "Домашно правило: отговори на Тегли две със своя Тегли две и предай цялата купчина нататък. Който не може, взема всичко и пропуска хода си.",
     "guide.lastcard.stackingAny": "Домашно правило: отговори на карта за теглене със своя, Тегли две върху Тегли две или Уайлд Тегли четири върху двете, и предай купчината нататък. Който не може, взема всичко.",
-    "guide.lastcard.sevenZero": "Домашно правило: играта на 7 разменя ръката ти с играча с най-малко карти, а играта на 0 предава всички ръце на следващия играч.",
+    "guide.lastcard.sevenZero": "Домашно правило: играта на 7 разменя ръката ти с играч по твой избор, а играта на 0 предава всички ръце на следващия играч.",
     "guide.lastcard.call": "Когато държиш две карти, кажи „Last card!“, преди да изиграеш предпоследната. Забравиш ли, следващият играч може да те хване: теглиш две карти.",
     "guide.lastcard.scoring": "Който излезе, получава картите, останали в ръцете на всички останали. Първият до {target} точки печели мача.",
     "guide.lastcard.scoringLowest": "Който излезе, кара всеки друг играч да плати за картите в ръката си. Когато някой стигне {target} точки, най-ниската сума печели.",
     "guide.lastcard.single": "Този мач е едно раздаване: свършва в мига, в който ръката на някого остане празна.",
     "guide.lastcard.freeplay": "Сега изиграй няколко хода сам. Светещият кръг показва къде да действаш.",
     "guide.lastcard.hint": "Затруднен ли си? Докосни Подсказка, за да видиш какво би направил опитен играч. Подсказката никога не играе вместо теб.",
-    "guide.lastcard.done": "Това е всичко! Доиграй тази ръка за упражнение или излез от упътването и започни истинска игра."
+    "guide.lastcard.done": "Това е всичко! Доиграй тази ръка за упражнение или излез от упътването и започни истинска игра.",
+    "guide.lastcard.wildSwap": "Домашно правило: „Дива + размяна“ назовава боята като всяка дива карта, после сменяш ръката си с играч по твой избор. Пази я за момента, когато някой почти е излязъл.",
+    "guide.lastcard.wildMayhem": "Домашно правило: „Дива + хаос“ назовава боята, после всички ръце се разбъркват заедно и се раздават отново поравно. Помага най-много, когато държиш много повече карти от всички останали."
   },
   "cs": {
     "guide.lastcard.basics.title": "Základy Last Card",
@@ -59,14 +63,16 @@
     "guide.lastcard.challenge": "Zasáhla tě Divoká lízni čtyři? Můžeš ji zpochybnit. Blaf donutí jejího hráče líznout čtyři místo tebe; poctivá karta tě donutí líznout šest a vynechat tah.",
     "guide.lastcard.stackingTwos": "Domácí pravidlo: na Lízni dvě odpověz vlastní Lízni dvě a předej celou hromadu dál. Kdo nemůže, vezme všechno a vynechá tah.",
     "guide.lastcard.stackingAny": "Domácí pravidlo: na lízací kartu odpověz vlastní, Lízni dvě na Lízni dvě nebo Divokou lízni čtyři na obě, a předej hromadu dál. Kdo nemůže, vezme všechno.",
-    "guide.lastcard.sevenZero": "Domácí pravidlo: zahrání sedmičky vymění tvou ruku s hráčem, který má nejméně karet, a zahrání nuly předá všechny ruce dalšímu hráči.",
+    "guide.lastcard.sevenZero": "Domácí pravidlo: zahrání sedmičky vymění tvou ruku s hráčem, kterého si vybereš, a zahrání nuly předá všechny ruce dalšímu hráči.",
     "guide.lastcard.call": "Když držíš dvě karty, řekni „Last card!“ dřív, než zahraješ předposlední. Zapomeneš-li, může tě další hráč přistihnout: líznuješ dvě karty.",
     "guide.lastcard.scoring": "Kdo odejde, získá karty, které zbyly v rukou všech ostatních. První na {target} bodech vyhrává zápas.",
     "guide.lastcard.scoringLowest": "Kdo odejde, nechá všechny ostatní zaplatit za karty v jejich ruce. Když někdo dosáhne {target} bodů, vyhrává nejnižší součet.",
     "guide.lastcard.single": "Tento zápas je jediné rozdání: končí ve chvíli, kdy je něčí ruka prázdná.",
     "guide.lastcard.freeplay": "Teď si zahraj pár tahů sám. Svítící kroužek ukazuje, kde máš jednat.",
     "guide.lastcard.hint": "Nevíš si rady? Klepni na Nápovědu a uvidíš, co by udělal silný hráč. Nápověda za tebe nikdy nehraje.",
-    "guide.lastcard.done": "To je vše! Dohraj toto rozdání na zkoušku, nebo ukonči průvodce a začni opravdovou hru."
+    "guide.lastcard.done": "To je vše! Dohraj toto rozdání na zkoušku, nebo ukonči průvodce a začni opravdovou hru.",
+    "guide.lastcard.wildSwap": "Domácí pravidlo: Divoká + výměna určí barvu jako každá divoká karta a pak si vyměníš ruku s libovolným hráčem. Schovej si ji na chvíli, kdy je někdo skoro venku.",
+    "guide.lastcard.wildMayhem": "Domácí pravidlo: Divoká + chaos určí barvu a pak se všechny ruce zamíchají dohromady a znovu rozdají rovným dílem. Nejvíc pomůže, když máš mnohem víc karet než ostatní."
   },
   "da": {
     "guide.lastcard.basics.title": "Last Card-grundregler",
@@ -82,14 +88,16 @@
     "guide.lastcard.challenge": "Ramt af en Wild Træk fire? Du kan udfordre den. En bluff får dens spiller til at trække de fire i stedet; et ærligt kort får dig til at trække seks og miste din tur.",
     "guide.lastcard.stackingTwos": "Husregel: svar på et Træk to med dit eget Træk to og giv hele bunken videre. Den, der ikke kan, tager det hele og mister sin tur.",
     "guide.lastcard.stackingAny": "Husregel: svar på et trækkort med dit eget, et Træk to på et Træk to eller en Wild Træk fire på begge, og giv bunken videre. Den, der ikke kan, tager det hele.",
-    "guide.lastcard.sevenZero": "Husregel: at spille en 7 bytter din hånd med den, der har færrest kort, og at spille et 0 sender alle hænder videre til næste spiller.",
+    "guide.lastcard.sevenZero": "Husregel: at spille en 7 bytter din hånd med en spiller, du vælger, og at spille et 0 sender alle hænder videre til næste spiller.",
     "guide.lastcard.call": "Har du to kort, så sig „Last card!“, før du spiller det næstsidste. Glemmer du det, kan næste spiller fange dig: du trækker to kort.",
     "guide.lastcard.scoring": "Den, der går ud, scorer de kort, der er tilbage i alle de andres hænder. Den første til {target} point vinder kampen.",
     "guide.lastcard.scoringLowest": "Den, der går ud, lader alle andre spillere betale for kortene i deres hånd. Når nogen når {target} point, vinder den laveste sum.",
     "guide.lastcard.single": "Denne kamp er en enkelt deling: den slutter i det øjeblik, nogens hånd er tom.",
     "guide.lastcard.freeplay": "Spil nu et par ture på egen hånd. Den lysende ring viser, hvor du skal handle.",
     "guide.lastcard.hint": "Er du i tvivl? Tryk på Hint for at se, hvad en stærk spiller ville gøre. Et hint spiller aldrig for dig.",
-    "guide.lastcard.done": "Det var det! Spil denne hånd færdig for at øve, eller afslut guiden og spil et rigtigt spil."
+    "guide.lastcard.done": "Det var det! Spil denne hånd færdig for at øve, eller afslut guiden og spil et rigtigt spil.",
+    "guide.lastcard.wildSwap": "Husregel: en Joker byt vælger farve som enhver joker, og så bytter du hånd med en spiller, du vælger. Gem den, til nogen næsten er ude.",
+    "guide.lastcard.wildMayhem": "Husregel: en Joker kaos vælger farve, og så blandes alle hænder sammen og deles ud igen ligeligt. Den hjælper mest, når du har langt flere kort end alle andre."
   },
   "de": {
     "guide.lastcard.basics.title": "Last-Card-Grundlagen",
@@ -105,14 +113,16 @@
     "guide.lastcard.challenge": "Von einem Wild Vier ziehen getroffen? Du kannst es anfechten. Bei einem Bluff muss dessen Spieler stattdessen die vier ziehen; bei einer ehrlichen Karte ziehst du sechs und setzt aus.",
     "guide.lastcard.stackingTwos": "Hausregel: Antworte auf ein Zwei ziehen mit einem eigenen Zwei ziehen und gib den ganzen Stapel weiter. Wer das nicht kann, nimmt alles auf und setzt aus.",
     "guide.lastcard.stackingAny": "Hausregel: Antworte auf eine Ziehkarte mit einer eigenen, ein Zwei ziehen auf ein Zwei ziehen oder ein Wild Vier ziehen auf beide, und gib den Stapel weiter. Wer das nicht kann, nimmt alles auf.",
-    "guide.lastcard.sevenZero": "Hausregel: Eine 7 zu spielen tauscht deine Hand mit dem Spieler, der die wenigsten Karten hat, und eine 0 gibt alle Hände an den nächsten Spieler weiter.",
+    "guide.lastcard.sevenZero": "Hausregel: Eine 7 zu spielen tauscht deine Hand mit einem Spieler deiner Wahl, und eine 0 gibt alle Hände an den nächsten Spieler weiter.",
     "guide.lastcard.call": "Hältst du zwei Karten, sage „Last Card!“, bevor du die vorletzte spielst. Vergisst du es, kann der nächste Spieler dich erwischen: Du ziehst zwei Karten.",
     "guide.lastcard.scoring": "Wer ausspielt, erhält die Karten, die in den Händen aller anderen übrig sind, als Punkte. Wer zuerst {target} Punkte erreicht, gewinnt das Match.",
     "guide.lastcard.scoringLowest": "Wer ausspielt, lässt alle anderen Spieler für die Karten in ihrer Hand zahlen. Erreicht jemand {target} Punkte, gewinnt die niedrigste Summe.",
     "guide.lastcard.single": "Dieses Match ist ein einzelnes Spiel: Es endet, sobald jemandes Hand leer ist.",
     "guide.lastcard.freeplay": "Spiele jetzt ein paar Züge selbst. Der leuchtende Ring zeigt, wo du handeln kannst.",
     "guide.lastcard.hint": "Unsicher? Tippe auf Tipp, um zu sehen, was ein starker Spieler tun würde. Ein Tipp spielt nie für dich.",
-    "guide.lastcard.done": "Das war’s! Spiele diese Hand zum Üben zu Ende oder beende die Anleitung und starte ein echtes Spiel."
+    "guide.lastcard.done": "Das war’s! Spiele diese Hand zum Üben zu Ende oder beende die Anleitung und starte ein echtes Spiel.",
+    "guide.lastcard.wildSwap": "Hausregel: Eine Farbwahl + Tausch bestimmt die Farbe wie jede Farbwahl, dann tauschst du die Hand mit einem Spieler deiner Wahl. Heb sie dir auf, bis jemand fast fertig ist.",
+    "guide.lastcard.wildMayhem": "Hausregel: Eine Farbwahl + Chaos bestimmt die Farbe, dann werden alle Hände zusammengemischt und gleichmäßig neu verteilt. Am meisten hilft sie, wenn du weit mehr Karten hast als alle anderen."
   },
   "el": {
     "guide.lastcard.basics.title": "Τα βασικά του Last Card",
@@ -128,14 +138,16 @@
     "guide.lastcard.challenge": "Σου έπεσε Wild Draw Four; Μπορείς να τον αμφισβητήσεις. Αν ήταν μπλόφα, τραβά τα τέσσερα ο παίκτης που τον έπαιξε· αν ήταν έντιμος, τραβάς εσύ έξι και χάνεις τη σειρά σου.",
     "guide.lastcard.stackingTwos": "Κανόνας του σπιτιού: απάντησε σε ένα Draw Two με δικό σου Draw Two και πέρασε όλη τη στοίβα παρακάτω. Όποιος δεν μπορεί τα παίρνει όλα και χάνει τη σειρά του.",
     "guide.lastcard.stackingAny": "Κανόνας του σπιτιού: απάντησε σε ένα φύλλο τραβήγματος με δικό σου, Draw Two πάνω σε Draw Two ή Wild Draw Four πάνω σε οποιοδήποτε από τα δύο, και πέρασε τη στοίβα παρακάτω. Όποιος δεν μπορεί τα παίρνει όλα.",
-    "guide.lastcard.sevenZero": "Κανόνας του σπιτιού: αν παίξεις 7, ανταλλάσσεις το χέρι σου με αυτόν που έχει τα λιγότερα φύλλα, και αν παίξεις 0, όλα τα χέρια περνούν στον επόμενο παίκτη.",
+    "guide.lastcard.sevenZero": "Κανόνας του σπιτιού: αν παίξεις 7, ανταλλάσσεις το χέρι σου με όποιον παίκτη διαλέξεις, και αν παίξεις 0, όλα τα χέρια περνούν στον επόμενο παίκτη.",
     "guide.lastcard.call": "Όταν έχεις δύο φύλλα, πες «Last card!» πριν παίξεις το προτελευταίο. Αν ξεχάσεις, ο επόμενος παίκτης μπορεί να σε πιάσει: τραβάς δύο φύλλα.",
     "guide.lastcard.scoring": "Όποιος τελειώσει πρώτος σκοράρει τα φύλλα που έμειναν στα χέρια των άλλων. Ο πρώτος που θα φτάσει {target} πόντους κερδίζει τον αγώνα.",
     "guide.lastcard.scoringLowest": "Όποιος τελειώσει πρώτος κάνει όλους τους άλλους να πληρώσουν για τα φύλλα που έμειναν στο χέρι τους. Όταν κάποιος φτάσει {target} πόντους, κερδίζει το χαμηλότερο σύνολο.",
     "guide.lastcard.single": "Αυτός ο αγώνας είναι ένα μοίρασμα: τελειώνει μόλις αδειάσει το χέρι κάποιου.",
     "guide.lastcard.freeplay": "Τώρα παίξε μερικές σειρές μόνος σου. Ο λαμπερός κύκλος δείχνει πού να ενεργήσεις.",
     "guide.lastcard.hint": "Κόλλησες; Πάτα Υπόδειξη για να δεις τι θα έκανε ένας δυνατός παίκτης. Η υπόδειξη δεν παίζει ποτέ για σένα.",
-    "guide.lastcard.done": "Αυτό ήταν! Τελείωσε αυτό το χέρι για εξάσκηση ή βγες από τον οδηγό και παίξε πραγματικό παιχνίδι."
+    "guide.lastcard.done": "Αυτό ήταν! Τελείωσε αυτό το χέρι για εξάσκηση ή βγες από τον οδηγό και παίξε πραγματικό παιχνίδι.",
+    "guide.lastcard.wildSwap": "Κανόνας του σπιτιού: ο Μπαλαντέρ ανταλλαγή δηλώνει χρώμα όπως κάθε μπαλαντέρ και μετά ανταλλάσσεις χέρι με όποιον παίκτη διαλέξεις. Κράτα τον για όταν κάποιος έχει σχεδόν τελειώσει.",
+    "guide.lastcard.wildMayhem": "Κανόνας του σπιτιού: ο Μπαλαντέρ χάος δηλώνει χρώμα και μετά όλα τα χέρια ανακατεύονται μαζί και μοιράζονται ξανά εξίσου. Βοηθά περισσότερο όταν έχεις πολύ περισσότερα φύλλα από όλους τους άλλους."
   },
   "es": {
     "guide.lastcard.basics.title": "Fundamentos de Last Card",
@@ -151,14 +163,16 @@
     "guide.lastcard.challenge": "¿Te han lanzado un Comodín Roba Cuatro? Puedes desafiarlo. Si era un farol, quien lo jugó roba las cuatro; si era honesto, robas seis y pierdes tu turno.",
     "guide.lastcard.stackingTwos": "Regla de la casa: responde a un Roba Dos con otro Roba Dos tuyo y pasa toda la pila. Quien no pueda se la lleva entera y pierde su turno.",
     "guide.lastcard.stackingAny": "Regla de la casa: responde a una carta de robar con otra tuya, un Roba Dos sobre un Roba Dos o un Comodín Roba Cuatro sobre cualquiera de los dos, y pasa la pila. Quien no pueda se la lleva entera.",
-    "guide.lastcard.sevenZero": "Regla de la casa: jugar un 7 intercambia tu mano con la de quien tenga menos cartas, y jugar un 0 pasa todas las manos al siguiente jugador.",
+    "guide.lastcard.sevenZero": "Regla de la casa: jugar un 7 intercambia tu mano con la del jugador que elijas, y jugar un 0 pasa todas las manos al siguiente jugador.",
     "guide.lastcard.call": "Cuando tengas dos cartas, di «¡Última carta!» antes de jugar la penúltima. Si te olvidas, el siguiente jugador puede pillarte: robas dos cartas.",
     "guide.lastcard.scoring": "Quien se queda sin cartas anota las cartas que quedan en las manos de los demás. El primero en llegar a {target} puntos gana la partida.",
     "guide.lastcard.scoringLowest": "Quien se queda sin cartas hace que todos los demás paguen por las cartas que les quedan en la mano. Cuando alguien llega a {target} puntos, gana el total más bajo.",
     "guide.lastcard.single": "Esta partida es de un solo reparto: termina en cuanto la mano de alguien queda vacía.",
     "guide.lastcard.freeplay": "Ahora juega unos turnos por tu cuenta. El aro brillante te indica dónde actuar.",
     "guide.lastcard.hint": "¿Atascado? Toca Pista para ver qué haría un jugador experto. Una pista nunca juega por ti.",
-    "guide.lastcard.done": "¡Eso es todo! Termina esta mano para practicar o sal de la guía y juega una partida de verdad."
+    "guide.lastcard.done": "¡Eso es todo! Termina esta mano para practicar o sal de la guía y juega una partida de verdad.",
+    "guide.lastcard.wildSwap": "Regla de la casa: un Comodín intercambio elige el color como cualquier comodín y luego cambias tu mano con el jugador que elijas. Guárdalo para cuando alguien esté a punto de terminar.",
+    "guide.lastcard.wildMayhem": "Regla de la casa: un Comodín caos elige el color y luego todas las manos se barajan juntas y se reparten de nuevo a partes iguales. Ayuda sobre todo cuando tienes muchas más cartas que los demás."
   },
   "et": {
     "guide.lastcard.basics.title": "Last Cardi alused",
@@ -174,14 +188,16 @@
     "guide.lastcard.challenge": "Said Wild Draw Fouri? Võid selle vaidlustada. Blufi korral tõmbab neli selle mängija; ausa kaardi korral tõmbad sina kuus ja jätad käigu vahele.",
     "guide.lastcard.stackingTwos": "Majareegel: vasta Draw Twole oma Draw Twoga ja anna kogu virn edasi. Kes ei saa, võtab kõik ja jätab käigu vahele.",
     "guide.lastcard.stackingAny": "Majareegel: vasta tõmbekaardile oma tõmbekaardiga, Draw Two Draw Two peale või Wild Draw Four kummalegi, ja anna virn edasi. Kes ei saa, võtab kõik.",
-    "guide.lastcard.sevenZero": "Majareegel: 7 mängimine vahetab sinu käe sellega, kellel on kõige vähem kaarte, ja 0 mängimine annab kõik käed järgmisele mängijale edasi.",
+    "guide.lastcard.sevenZero": "Majareegel: 7 mängimine vahetab sinu käe sinu valitud mängijaga ja 0 mängimine annab kõik käed järgmisele mängijale edasi.",
     "guide.lastcard.call": "Kui sul on kaks kaarti, ütle „Last card!” enne eelviimase kaardi mängimist. Kui unustad, võib järgmine mängija sind tabada: tõmbad kaks kaarti.",
     "guide.lastcard.scoring": "Kes välja läheb, saab punkte kõigi teiste kätte jäänud kaartide eest. Esimene, kes jõuab {target} punktini, võidab matši.",
     "guide.lastcard.scoringLowest": "Kes välja läheb, paneb kõik teised maksma oma kätte jäänud kaartide eest. Kui keegi jõuab {target} punktini, võidab kõige väiksem summa.",
     "guide.lastcard.single": "See matš on üks jagamine: see lõpeb hetkel, kui kellegi käsi tühjaks saab.",
     "guide.lastcard.freeplay": "Mängi nüüd mõned käigud ise. Helendav ring näitab, kus tegutseda.",
     "guide.lastcard.hint": "Jäid kinni? Puuduta Vihje, et näha, mida tugev mängija teeks. Vihje ei mängi kunagi sinu eest.",
-    "guide.lastcard.done": "See ongi kõik! Mängi see käsi harjutamiseks lõpuni või välju juhendist ja mängi päris mäng."
+    "guide.lastcard.done": "See ongi kõik! Mängi see käsi harjutamiseks lõpuni või välju juhendist ja mängi päris mäng.",
+    "guide.lastcard.wildSwap": "Majareegel: Jokker vahetus nimetab värvi nagu iga jokker, seejärel vahetad käe enda valitud mängijaga. Hoia seda hetkeks, kui keegi on peaaegu väljas.",
+    "guide.lastcard.wildMayhem": "Majareegel: Jokker kaos nimetab värvi, seejärel segatakse kõik käed kokku ja jagatakse uuesti võrdselt välja. Sellest on kõige rohkem abi, kui sul on palju rohkem kaarte kui kõigil teistel."
   },
   "fi": {
     "guide.lastcard.basics.title": "Last Cardin perusteet",
@@ -197,14 +213,16 @@
     "guide.lastcard.challenge": "Osuiko kohdallesi Wild Draw Four? Voit haastaa sen. Bluffi saa sen pelaajan nostamaan neljä itse; rehellinen kortti saa sinut nostamaan kuusi ja jättämään vuorosi väliin.",
     "guide.lastcard.stackingTwos": "Talosääntö: vastaa Draw Twoon omalla Draw Twollasi ja anna koko pino eteenpäin. Se, joka ei voi, ottaa kaiken ja jättää vuoronsa väliin.",
     "guide.lastcard.stackingAny": "Talosääntö: vastaa nostokorttiin omalla nostokortillasi, Draw Two Draw Twon päälle tai Wild Draw Four kummalle tahansa, ja anna pino eteenpäin. Se, joka ei voi, ottaa kaiken.",
-    "guide.lastcard.sevenZero": "Talosääntö: seiskan pelaaminen vaihtaa kätesi sen kanssa, jolla on vähiten kortteja, ja nollan pelaaminen siirtää kaikki kädet seuraavalle pelaajalle.",
+    "guide.lastcard.sevenZero": "Talosääntö: seiskan pelaaminen vaihtaa kätesi valitsemasi pelaajan kanssa, ja nollan pelaaminen siirtää kaikki kädet seuraavalle pelaajalle.",
     "guide.lastcard.call": "Kun sinulla on kaksi korttia, sano ”Last card!” ennen kuin pelaat toiseksi viimeisen. Jos unohdat, seuraava pelaaja voi napata sinut: nostat kaksi korttia.",
     "guide.lastcard.scoring": "Pelin lopettanut saa pisteitä muiden käteen jääneistä korteista. Ensimmäinen, joka saavuttaa {target} pistettä, voittaa ottelun.",
     "guide.lastcard.scoringLowest": "Pelin lopettanut saa jokaisen muun maksamaan käteen jääneistä korteistaan. Kun joku saavuttaa {target} pistettä, pienin summa voittaa.",
     "guide.lastcard.single": "Tämä ottelu on yksi jako: se päättyy heti, kun jonkun käsi tyhjenee.",
     "guide.lastcard.freeplay": "Pelaa nyt muutama vuoro itse. Hohtava rengas näyttää, missä sinun pitää toimia.",
     "guide.lastcard.hint": "Jumissa? Napauta Vihje nähdäksesi, mitä vahva pelaaja tekisi. Vihje ei koskaan pelaa puolestasi.",
-    "guide.lastcard.done": "Siinä se! Pelaa tämä käsi loppuun harjoitellaksesi tai poistu oppaasta ja pelaa oikea peli."
+    "guide.lastcard.done": "Siinä se! Pelaa tämä käsi loppuun harjoitellaksesi tai poistu oppaasta ja pelaa oikea peli.",
+    "guide.lastcard.wildSwap": "Talosääntö: Vaihtojokeri nimeää värin kuten mikä tahansa jokeri, ja sitten vaihdat kättä valitsemasi pelaajan kanssa. Säästä se hetkeen, jolloin joku on melkein päässyt korteistaan eroon.",
+    "guide.lastcard.wildMayhem": "Talosääntö: Kaaosjokeri nimeää värin, ja sitten kaikki kädet sekoitetaan yhteen ja jaetaan uudelleen tasan. Siitä on eniten apua, kun sinulla on paljon enemmän kortteja kuin muilla."
   },
   "fr": {
     "guide.lastcard.basics.title": "Les bases de Last Card",
@@ -220,14 +238,16 @@
     "guide.lastcard.challenge": "Visé par un Joker Plus Quatre ? Vous pouvez le contester. Si c’était un bluff, son joueur pioche les quatre cartes à votre place ; si la carte était honnête, vous piochez six cartes et passez votre tour.",
     "guide.lastcard.stackingTwos": "Règle maison : répondez à un Plus Deux par un Plus Deux et renvoyez toute la pile. Celui qui ne peut pas la prend en entier et passe son tour.",
     "guide.lastcard.stackingAny": "Règle maison : répondez à une carte de pioche par une des vôtres, un Plus Deux sur un Plus Deux ou un Joker Plus Quatre sur l’un ou l’autre, et renvoyez la pile. Celui qui ne peut pas la prend en entier.",
-    "guide.lastcard.sevenZero": "Règle maison : jouer un 7 échange votre main avec celui qui a le moins de cartes, et jouer un 0 fait passer toutes les mains au joueur suivant.",
+    "guide.lastcard.sevenZero": "Règle maison : jouer un 7 échange votre main avec celle du joueur de votre choix, et jouer un 0 fait passer toutes les mains au joueur suivant.",
     "guide.lastcard.call": "Quand il vous reste deux cartes, dites “Last card !” avant de jouer l’avant-dernière. Si vous oubliez, le joueur suivant peut vous prendre sur le fait : vous piochez deux cartes.",
     "guide.lastcard.scoring": "Celui qui sort marque les cartes restant dans la main des autres. Le premier à {target} points gagne la partie.",
     "guide.lastcard.scoringLowest": "Celui qui sort fait payer aux autres joueurs les cartes restant dans leur main. Quand quelqu’un atteint {target} points, le total le plus bas l’emporte.",
     "guide.lastcard.single": "Cette partie se joue en une seule donne : elle se termine dès que la main de quelqu’un est vide.",
     "guide.lastcard.freeplay": "Jouez maintenant quelques tours par vous-même. L’anneau lumineux indique où agir.",
     "guide.lastcard.hint": "Bloqué ? Touchez Indice pour voir ce que ferait un bon joueur. Un indice ne joue jamais à votre place.",
-    "guide.lastcard.done": "Voilà ! Terminez cette main pour vous entraîner, ou quittez le guide et lancez une vraie partie."
+    "guide.lastcard.done": "Voilà ! Terminez cette main pour vous entraîner, ou quittez le guide et lancez une vraie partie.",
+    "guide.lastcard.wildSwap": "Règle maison : un Joker échange annonce la couleur comme tout joker, puis vous échangez votre main avec le joueur de votre choix. Gardez-le pour le moment où quelqu’un a presque fini.",
+    "guide.lastcard.wildMayhem": "Règle maison : un Joker chaos annonce la couleur, puis toutes les mains sont mélangées ensemble et redistribuées à parts égales. Il est surtout utile quand vous avez bien plus de cartes que tous les autres."
   },
   "ga": {
     "guide.lastcard.basics.title": "Bunghnéithe Last Card",
@@ -243,14 +263,16 @@
     "guide.lastcard.challenge": "Buailte ag Cárta Fiáin Tarraing a Ceathair? Féadfaidh tú agóid a dhéanamh. Cuireann bluff ar a imreoir na ceithre chárta a tharraingt ina áit; cuireann cárta macánta ort sé cinn a tharraingt agus do sheal a chailleadh.",
     "guide.lastcard.stackingTwos": "Riail tí: freagair Tarraing a Dó le Tarraing a Dó leat féin agus pasáil an cruach iomlán ar aghaidh. Tógann an té nach féidir leis é ar fad agus caillfidh sé a sheal.",
     "guide.lastcard.stackingAny": "Riail tí: freagair cárta tarraingthe le ceann de do chuid féin, Tarraing a Dó ar Tharraing a Dó nó Cárta Fiáin Tarraing a Ceathair ar cheachtar acu, agus pasáil an cruach ar aghaidh. Tógann an té nach féidir leis é ar fad.",
-    "guide.lastcard.sevenZero": "Riail tí: nuair a imríonn tú 7, malartaíonn do lámh leis an té a bhfuil na cártaí is lú aige, agus nuair a imríonn tú 0, pasálann gach lámh chuig an gcéad imreoir eile.",
+    "guide.lastcard.sevenZero": "Riail tí: nuair a imríonn tú 7, malartaíonn do lámh le himreoir de do rogha féin, agus nuair a imríonn tú 0, pasálann gach lámh chuig an gcéad imreoir eile.",
     "guide.lastcard.call": "Agus dhá chárta agat, abair “Last card!” sula n-imríonn tú an dara cárta ón deireadh. Má dhéanann tú dearmad, féadfaidh an chéad imreoir eile breith ort: tarraingíonn tú dhá chárta.",
     "guide.lastcard.scoring": "Scórálann an té a théann amach na cártaí atá fágtha i lámha gach duine eile. Buann an chéad duine a shroicheann {target} pointe an cluiche.",
     "guide.lastcard.scoringLowest": "Cuireann an té a théann amach ar gach imreoir eile íoc as na cártaí atá fágtha ina lámh. Nuair a shroicheann duine éigin {target} pointe, buann an t-iomlán is ísle.",
     "guide.lastcard.single": "Is déileáil amháin é an cluiche seo: críochnaíonn sé an nóiméad a bhíonn lámh duine éigin folamh.",
     "guide.lastcard.freeplay": "Imir cúpla seal leat féin anois. Taispeánann an fáinne lonrach cá bhfuil tú le gníomhú.",
     "guide.lastcard.hint": "Greamaithe? Tapáil Leid chun a fheiceáil cad a dhéanfadh imreoir maith. Ní imríonn leid duit riamh.",
-    "guide.lastcard.done": "Sin é! Críochnaigh an lámh seo le haghaidh cleachtaidh, nó fág an treoir agus imir cluiche ceart."
+    "guide.lastcard.done": "Sin é! Críochnaigh an lámh seo le haghaidh cleachtaidh, nó fág an treoir agus imir cluiche ceart.",
+    "guide.lastcard.wildSwap": "Riail tí: ainmníonn Fiáin Malartú an dath mar a dhéanann aon chárta fiáin, ansin malartaíonn tú lámha le himreoir ar bith de do rogha féin. Coinnigh é go dtí go mbeidh duine éigin beagnach amach.",
+    "guide.lastcard.wildMayhem": "Riail tí: ainmníonn Fiáin Anord an dath, ansin suaitear gach lámh le chéile agus roinntear arís go cothrom iad. Is mó a chabhraíonn sé nuair atá i bhfad níos mó cártaí agat ná ag gach duine eile."
   },
   "hr": {
     "guide.lastcard.basics.title": "Osnove Last Carda",
@@ -266,14 +288,16 @@
     "guide.lastcard.challenge": "Pogodio vas je Džoker Vuci četiri? Možete ga osporiti. Blef tjera njegovog igrača da povuče četiri karte umjesto vas; poštena karta tjera vas da povučete šest i propustite potez.",
     "guide.lastcard.stackingTwos": "Kućno pravilo: na Vuci dvije odgovorite svojom Vuci dvije i proslijedite cijeli niz dalje. Tko ne može, uzima sve i propušta potez.",
     "guide.lastcard.stackingAny": "Kućno pravilo: na kartu za vučenje odgovorite svojom, Vuci dvije na Vuci dvije ili Džoker Vuci četiri na bilo koju, i proslijedite niz dalje. Tko ne može, uzima sve.",
-    "guide.lastcard.sevenZero": "Kućno pravilo: odigravanjem sedmice mijenjate ruku s onim tko ima najmanje karata, a odigravanjem nule svaka se ruka predaje sljedećem igraču.",
+    "guide.lastcard.sevenZero": "Kućno pravilo: odigravanjem sedmice mijenjate ruku s igračem po svom izboru, a odigravanjem nule svaka se ruka predaje sljedećem igraču.",
     "guide.lastcard.call": "Kad imate dvije karte, recite „Last card!” prije nego odigrate predzadnju. Ako zaboravite, sljedeći vas igrač može uhvatiti: vučete dvije karte.",
     "guide.lastcard.scoring": "Tko izađe, osvaja karte koje su ostale u rukama svih ostalih. Prvi do {target} bodova pobjeđuje u igri.",
     "guide.lastcard.scoringLowest": "Tko izađe, svakom drugom igraču naplaćuje karte koje su mu ostale u ruci. Kad netko dosegne {target} bodova, pobjeđuje najniži zbroj.",
     "guide.lastcard.single": "Ova igra je jedno dijeljenje: završava čim je nečija ruka prazna.",
     "guide.lastcard.freeplay": "Sada sami odigrajte nekoliko poteza. Svijetleći prsten pokazuje gdje djelovati.",
     "guide.lastcard.hint": "Zapeli ste? Dodirnite Savjet da vidite što bi učinio jak igrač. Savjet nikad ne igra umjesto vas.",
-    "guide.lastcard.done": "To je to! Završite ovu ruku za vježbu ili izađite iz vodiča i odigrajte pravu igru."
+    "guide.lastcard.done": "To je to! Završite ovu ruku za vježbu ili izađite iz vodiča i odigrajte pravu igru.",
+    "guide.lastcard.wildSwap": "Kućno pravilo: Divlja + zamjena određuje boju kao svaka divlja karta, a zatim mijenjate ruku s bilo kojim igračem po svom izboru. Sačuvajte je za trenutak kad je netko gotovo izašao.",
+    "guide.lastcard.wildMayhem": "Kućno pravilo: Divlja + kaos određuje boju, a zatim se sve ruke zajedno promiješaju i ponovno ravnomjerno podijele. Najviše pomaže kad imate mnogo više karata od svih ostalih."
   },
   "hu": {
     "guide.lastcard.basics.title": "A Last Card alapjai",
@@ -289,14 +313,16 @@
     "guide.lastcard.challenge": "Joker Húzz négyet kapott? Megtámadhatja. Blöff esetén a kijátszója húzza a négy lapot helyette; korrekt lap esetén Ön húz hatot és kimarad.",
     "guide.lastcard.stackingTwos": "Házi szabály: a Húzz kettőre válaszoljon a saját Húzz kettőjével, és adja tovább az egész halmot. Aki nem tud, az mindet felveszi, és kimarad.",
     "guide.lastcard.stackingAny": "Házi szabály: a húzólapra válaszoljon a sajátjával, Húzz kettőre Húzz kettővel, vagy bármelyikre Joker Húzz négyet, és adja tovább a halmot. Aki nem tud, az mindet felveszi.",
-    "guide.lastcard.sevenZero": "Házi szabály: egy 7-es kijátszásával kezet cserél azzal, akinek a legkevesebb lapja van, egy 0 kijátszásakor pedig minden kéz továbbmegy a következő játékosnak.",
+    "guide.lastcard.sevenZero": "Házi szabály: egy 7-es kijátszásával kezet cserél egy Ön által választott játékossal, egy 0 kijátszásakor pedig minden kéz továbbmegy a következő játékosnak.",
     "guide.lastcard.call": "Ha két lapja van, mondja azt, hogy „Last card!”, mielőtt kijátssza az utolsó előttit. Ha elfelejti, a következő játékos rajtakaphatja: két lapot kell húznia.",
     "guide.lastcard.scoring": "Aki kifogy, megkapja a többiek kezében maradt lapok pontjait. Az első, aki eléri a {target} pontot, megnyeri a játékot.",
     "guide.lastcard.scoringLowest": "Aki kifogy, a többieket megfizetteti a kezükben maradt lapokért. Amikor valaki eléri a {target} pontot, a legalacsonyabb összeg nyer.",
     "guide.lastcard.single": "Ez a játék egyetlen osztás: abban a pillanatban véget ér, amikor valakinek kiürül a keze.",
     "guide.lastcard.freeplay": "Most játsszon le néhány kört egyedül. A világító gyűrű mutatja, hol kell lépnie.",
     "guide.lastcard.hint": "Elakadt? Koppintson a Tippre, hogy lássa, mit tenne egy erős játékos. A tipp soha nem lép Ön helyett.",
-    "guide.lastcard.done": "Ennyi! Fejezze be ezt a leosztást gyakorlásként, vagy lépjen ki az útmutatóból, és játsszon egy igazi játékot."
+    "guide.lastcard.done": "Ennyi! Fejezze be ezt a leosztást gyakorlásként, vagy lépjen ki az útmutatóból, és játsszon egy igazi játékot.",
+    "guide.lastcard.wildSwap": "Házi szabály: a Színválasztó + csere bármely színválasztóhoz hasonlóan megnevezi a színt, majd Ön kezet cserél egy tetszőleges, Ön által választott játékossal. Tartogassa arra az esetre, amikor valaki már majdnem kiment.",
+    "guide.lastcard.wildMayhem": "Házi szabály: a Színválasztó + káosz megnevezi a színt, majd az összes kezet összekeverik és egyenlően újraosztják. Akkor segít a legtöbbet, ha sokkal több lapja van, mint bárki másnak."
   },
   "it": {
     "guide.lastcard.basics.title": "Nozioni base di Last Card",
@@ -312,14 +338,16 @@
     "guide.lastcard.challenge": "Colpito da un Jolly Pesca Quattro? Puoi sfidarlo. Se era un bluff, chi l’ha giocato pesca le quattro carte al tuo posto; se era onesto, ne peschi sei e salti il turno.",
     "guide.lastcard.stackingTwos": "Regola della casa: rispondi a un Pesca Due con un tuo Pesca Due e passa tutta la pila al successivo. Chi non può prende tutto e salta il turno.",
     "guide.lastcard.stackingAny": "Regola della casa: rispondi a una carta pesca con una tua, un Pesca Due su un Pesca Due o un Jolly Pesca Quattro su entrambi, e passa la pila. Chi non può prende tutto.",
-    "guide.lastcard.sevenZero": "Regola della casa: giocare un 7 scambia la tua mano con quella di chi ha meno carte, e giocare uno 0 passa tutte le mani al giocatore successivo.",
+    "guide.lastcard.sevenZero": "Regola della casa: giocare un 7 scambia la tua mano con quella di un giocatore a tua scelta, e giocare uno 0 passa tutte le mani al giocatore successivo.",
     "guide.lastcard.call": "Quando hai due carte, di’ “Ultima carta!” prima di giocare la penultima. Se dimentichi, il giocatore successivo può coglierti in fallo: peschi due carte.",
     "guide.lastcard.scoring": "Chi finisce le carte segna le carte rimaste in mano agli altri. Il primo a {target} punti vince la partita.",
     "guide.lastcard.scoringLowest": "Chi finisce le carte fa pagare a tutti gli altri le carte rimaste in mano. Quando qualcuno raggiunge {target} punti, vince il totale più basso.",
     "guide.lastcard.single": "Questa partita è una mano singola: finisce nel momento in cui qualcuno resta senza carte.",
     "guide.lastcard.freeplay": "Ora gioca qualche turno da solo. L’anello luminoso indica dove agire.",
     "guide.lastcard.hint": "Sei in difficoltà? Tocca Suggerimento per vedere cosa farebbe un giocatore esperto. Un suggerimento non gioca mai al posto tuo.",
-    "guide.lastcard.done": "Ecco fatto! Finisci questa mano per allenarti, oppure esci dalla guida e inizia una vera partita."
+    "guide.lastcard.done": "Ecco fatto! Finisci questa mano per allenarti, oppure esci dalla guida e inizia una vera partita.",
+    "guide.lastcard.wildSwap": "Regola della casa: un Jolly scambio sceglie il colore come ogni jolly, poi scambi la tua mano con un giocatore a tua scelta. Tienilo per quando qualcuno ha quasi finito.",
+    "guide.lastcard.wildMayhem": "Regola della casa: un Jolly caos sceglie il colore, poi tutte le mani vengono mescolate insieme e ridistribuite in parti uguali. Aiuta soprattutto quando hai molte più carte di tutti gli altri."
   },
   "lt": {
     "guide.lastcard.basics.title": "Last Card pagrindai",
@@ -335,14 +363,16 @@
     "guide.lastcard.challenge": "Gavote džokerį „Traukti keturias“? Galite jį užginčyti. Jei tai blefas, keturias kortas traukia jį sužaidęs žaidėjas; jei sąžininga korta, traukiate šešias ir praleidžiate ėjimą.",
     "guide.lastcard.stackingTwos": "Namų taisyklė: į „Traukti dvi“ atsakykite savo „Traukti dvi“ ir perduokite visą krūvą toliau. Kas negali, ima viską ir praleidžia ėjimą.",
     "guide.lastcard.stackingAny": "Namų taisyklė: į traukimo kortą atsakykite savąja – „Traukti dvi“ ant „Traukti dvi“ arba džokeriu „Traukti keturias“ ant bet kurios – ir perduokite krūvą toliau. Kas negali, ima viską.",
-    "guide.lastcard.sevenZero": "Namų taisyklė: sužaidus 7, jūsų ranka pasikeičia su mažiausiai kortų turinčiojo, o sužaidus 0, visos rankos perduodamos kitam žaidėjui.",
+    "guide.lastcard.sevenZero": "Namų taisyklė: sužaidus 7, jūsų ranka pasikeičia su jūsų pasirinkto žaidėjo ranka, o sužaidus 0, visos rankos perduodamos kitam žaidėjui.",
     "guide.lastcard.call": "Turėdami dvi kortas, sakykite „Paskutinė korta!“ prieš sužaisdami priešpaskutinę. Jei pamiršite, kitas žaidėjas gali jus pagauti: traukiate dvi kortas.",
     "guide.lastcard.scoring": "Kas išeina pirmas, gauna taškų už kitų žaidėjų rankose likusias kortas. Rungtynes laimi pirmasis, pasiekęs {target} taškų.",
     "guide.lastcard.scoringLowest": "Kas išeina pirmas, priverčia visus kitus sumokėti už jų rankose likusias kortas. Kai kas nors pasiekia {target} taškų, laimi mažiausia suma.",
     "guide.lastcard.single": "Šios rungtynės yra vienas dalijimas: jos baigiasi, kai tik kieno nors ranka ištuštėja.",
     "guide.lastcard.freeplay": "Dabar patys sužaiskite keletą ėjimų. Švytintis žiedas rodo, kur veikti.",
     "guide.lastcard.hint": "Strigote? Palieskite Užuomina ir pamatysite, ką darytų stiprus žaidėjas. Užuomina niekada nežaidžia už jus.",
-    "guide.lastcard.done": "Štai ir viskas! Užbaikite šią ranką treniruotei arba išeikite iš vadovo ir žaiskite tikrą žaidimą."
+    "guide.lastcard.done": "Štai ir viskas! Užbaikite šią ranką treniruotei arba išeikite iš vadovo ir žaiskite tikrą žaidimą.",
+    "guide.lastcard.wildSwap": "Namų taisyklė: „Džokeris keiskis“ nustato spalvą kaip bet kuris džokeris, tada jūs apsikeičiate rankomis su bet kuriuo pasirinktu žaidėju. Pasilikite jį tam momentui, kai kas nors beveik baigia.",
+    "guide.lastcard.wildMayhem": "Namų taisyklė: „Džokeris chaosas“ nustato spalvą, tada visos rankos sumaišomos kartu ir vėl išdalijamos po lygiai. Labiausiai padeda, kai turite daug daugiau kortų nei visi kiti."
   },
   "lv": {
     "guide.lastcard.basics.title": "Last Card pamati",
@@ -358,14 +388,16 @@
     "guide.lastcard.challenge": "Trāpīja džokers „Vilkt četras“? Vari to apstrīdēt. Ja tas bija blefs, četras kārtis velk tā spēlētājs; ja godīga kārts, tu velc sešas un izlaid gājienu.",
     "guide.lastcard.stackingTwos": "Mājas noteikums: atbildi uz „Vilkt divas“ ar savu „Vilkt divas“ un nodod visu kaudzi tālāk. Kurš nevar, ņem visu un izlaiž gājienu.",
     "guide.lastcard.stackingAny": "Mājas noteikums: atbildi uz vilkšanas kārti ar savējo, „Vilkt divas“ uz „Vilkt divas“ vai džokeru „Vilkt četras“ uz jebkuras, un nodod kaudzi tālāk. Kurš nevar, ņem visu.",
-    "guide.lastcard.sevenZero": "Mājas noteikums: izspēlējot 7, tava roka apmainās ar rokas īpašnieka, kuram ir vismazāk kāršu, bet izspēlējot 0, visas rokas tiek nodotas nākamajam spēlētājam.",
+    "guide.lastcard.sevenZero": "Mājas noteikums: izspēlējot 7, tava roka apmainās ar tevis izvēlēta spēlētāja roku, bet izspēlējot 0, visas rokas tiek nodotas nākamajam spēlētājam.",
     "guide.lastcard.call": "Ja tev ir divas kārtis, saki „Pēdējā kārts!“ pirms izspēlē priekšpēdējo. Ja aizmirsīsi, nākamais spēlētājs var tevi notvert: tu velc divas kārtis.",
     "guide.lastcard.scoring": "Kurš iziet pirmais, saņem punktus par pārējo rokās palikušajām kārtīm. Mačā uzvar pirmais, kas sasniedz {target} punktus.",
     "guide.lastcard.scoringLowest": "Kurš iziet pirmais, liek visiem pārējiem maksāt par rokās palikušajām kārtīm. Kad kāds sasniedz {target} punktus, uzvar zemākā summa.",
     "guide.lastcard.single": "Šis mačs ir viens dalījums: tas beidzas brīdī, kad kāda roka ir tukša.",
     "guide.lastcard.freeplay": "Tagad pats nospēlē dažas gaitas. Spīdošais gredzens rāda, kur darboties.",
     "guide.lastcard.hint": "Iestrēgi? Pieskaries Padoms, lai redzētu, ko darītu stiprs spēlētājs. Padoms nekad nespēlē tavā vietā.",
-    "guide.lastcard.done": "Tas arī viss! Pabeidz šo roku treniņam vai iziet no ceļveža un spēlē īstu spēli."
+    "guide.lastcard.done": "Tas arī viss! Pabeidz šo roku treniņam vai iziet no ceļveža un spēlē īstu spēli.",
+    "guide.lastcard.wildSwap": "Mājas noteikums: „Džokers mainies“ nosauc krāsu kā jebkurš džokers, un tad tu samaini rokas ar jebkuru paša izvēlētu spēlētāju. Paturi to brīdim, kad kāds gandrīz ir izgājis.",
+    "guide.lastcard.wildMayhem": "Mājas noteikums: „Džokers haoss“ nosauc krāsu, un tad visas rokas tiek sajauktas kopā un vienādi izdalītas no jauna. Tas palīdz visvairāk, kad tev ir daudz vairāk kāršu nekā visiem pārējiem."
   },
   "mt": {
     "guide.lastcard.basics.title": "Il-bażi tal-Last Card",
@@ -381,14 +413,16 @@
     "guide.lastcard.challenge": "Ħabtek Wild Draw Four? Tista’ tikkontestaha. Jekk kienet bluff, il-plejer li lagħabha jiġbed l-erbgħa minflokok; jekk kienet karta onesta, tiġbed sitta u taqbeż it-turn tiegħek.",
     "guide.lastcard.stackingTwos": "Regola tad-dar: wieġeb Draw Two b’Draw Two tiegħek u għadda l-munzell kollu. Min ma jistax jieħu kollox u jaqbeż it-turn.",
     "guide.lastcard.stackingAny": "Regola tad-dar: wieġeb karta tal-ġbid b’waħda tiegħek, Draw Two fuq Draw Two jew Wild Draw Four fuq it-tnejn, u għadda l-munzell. Min ma jistax jieħu kollox.",
-    "guide.lastcard.sevenZero": "Regola tad-dar: li tilgħab 7 jbiddel idejk ma’ dik ta’ min għandu l-inqas karti, u li tilgħab 0 igħaddi kull id lill-plejer li jmiss.",
+    "guide.lastcard.sevenZero": "Regola tad-dar: li tilgħab 7 jbiddel idejk ma’ dik ta’ plejer li tagħżel int, u li tilgħab 0 igħaddi kull id lill-plejer li jmiss.",
     "guide.lastcard.call": "Meta jkollok żewġ karti, għid “Last card!” qabel tilgħab it-tieni mill-aħħar. Jekk tinsa, il-plejer li jmiss jista’ jaqbdek: tiġbed żewġ karti.",
     "guide.lastcard.scoring": "Min jispiċċa jiskorja l-karti li fadal f’idejn l-oħrajn. L-ewwel li jilħaq {target} punti jirbaħ il-partita.",
     "guide.lastcard.scoringLowest": "Min jispiċċa jġiegħel lill-oħrajn kollha jħallsu għall-karti li fadal f’idejhom. Meta xi ħadd jilħaq {target} punti, l-inqas total jirbaħ.",
     "guide.lastcard.single": "Din il-partita hija tqassim wieħed: tintemm hekk kif id ta’ xi ħadd tibqa’ vojta.",
     "guide.lastcard.freeplay": "Issa lgħab ftit turns waħdek. Iċ-ċirku jleqq juri fejn għandek taġixxi.",
     "guide.lastcard.hint": "Waqajt? Messek Suġġeriment biex tara x’jagħmel plejer b’saħħtu. Suġġeriment qatt ma jilgħab minfloku.",
-    "guide.lastcard.done": "Hekk hu! Spiċċa din l-id għall-prattika, jew oħroġ mill-gwida u lgħab logħba vera."
+    "guide.lastcard.done": "Hekk hu! Spiċċa din l-id għall-prattika, jew oħroġ mill-gwida u lgħab logħba vera.",
+    "guide.lastcard.wildSwap": "Regola tad-dar: Jolly Bdil isemmi l-kulur bħal kull jolly, imbagħad tpartat idejk ma’ kwalunkwe plejer li tagħżel. Żommu għal meta xi ħadd ikun kważi spiċċa.",
+    "guide.lastcard.wildMayhem": "Regola tad-dar: Jolly Kaos isemmi l-kulur, imbagħad l-idejn kollha jitħawdu flimkien u jitqassmu mill-ġdid indaqs. L-aktar jgħin meta jkollok ħafna iktar karti minn kulħadd."
   },
   "nl": {
     "guide.lastcard.basics.title": "Basisregels Last Card",
@@ -404,14 +438,16 @@
     "guide.lastcard.challenge": "Getroffen door een Wild Draw Four? Je mag hem betwisten. Bij een bluf moet de speler zelf de vier kaarten trekken; bij een eerlijke kaart trek jij er zes en sla je een beurt over.",
     "guide.lastcard.stackingTwos": "Huisregel: beantwoord een Draw Two met een eigen Draw Two en geef de hele stapel door. Wie dat niet kan, neemt alles en slaat een beurt over.",
     "guide.lastcard.stackingAny": "Huisregel: beantwoord een trekkaart met een eigen trekkaart, een Draw Two op een Draw Two of een Wild Draw Four op beide, en geef de stapel door. Wie dat niet kan, neemt alles.",
-    "guide.lastcard.sevenZero": "Huisregel: met een 7 ruil je je hand met de speler die de minste kaarten heeft, en met een 0 geeft iedereen zijn hand door aan de volgende speler.",
+    "guide.lastcard.sevenZero": "Huisregel: met een 7 ruil je je hand met een speler naar keuze, en met een 0 geeft iedereen zijn hand door aan de volgende speler.",
     "guide.lastcard.call": "Heb je twee kaarten, zeg dan “Last card!” voordat je de voorlaatste speelt. Vergeet je het, dan kan de volgende speler je betrappen: je trekt twee kaarten.",
     "guide.lastcard.scoring": "Wie uitgaat scoort de kaarten die bij alle anderen in de hand zijn gebleven. De eerste met {target} punten wint het spel.",
     "guide.lastcard.scoringLowest": "Wie uitgaat laat alle andere spelers betalen voor de kaarten in hun hand. Als iemand {target} punten bereikt, wint het laagste totaal.",
     "guide.lastcard.single": "Dit spel is één deal: het eindigt zodra iemands hand leeg is.",
     "guide.lastcard.freeplay": "Speel nu zelf een paar beurten. De oplichtende ring laat zien waar je aan de beurt bent.",
     "guide.lastcard.hint": "Kom je er niet uit? Tik op Hint om te zien wat een sterke speler zou doen. Een hint speelt nooit voor je.",
-    "guide.lastcard.done": "Dat was het! Maak deze hand af om te oefenen, of verlaat de gids en speel een echt spel."
+    "guide.lastcard.done": "Dat was het! Maak deze hand af om te oefenen, of verlaat de gids en speel een echt spel.",
+    "guide.lastcard.wildSwap": "Huisregel: een Joker ruil kiest de kleur zoals elke joker, daarna ruil je van hand met een speler naar keuze. Bewaar hem voor als iemand bijna uit is.",
+    "guide.lastcard.wildMayhem": "Huisregel: een Joker chaos kiest de kleur, daarna worden alle handen samen geschud en opnieuw gelijk verdeeld. Hij helpt het meest als je veel meer kaarten hebt dan alle anderen."
   },
   "pl": {
     "guide.lastcard.basics.title": "Podstawy Last Card",
@@ -427,14 +463,16 @@
     "guide.lastcard.challenge": "Trafiła cię Wild Draw Four? Możesz ją zakwestionować. Jeśli to blef, jej gracz dobiera te cztery karty; jeśli była uczciwa, dobierasz sześć i tracisz kolejkę.",
     "guide.lastcard.stackingTwos": "Zasada domowa: odpowiedz na Draw Two własną Draw Two i przekaż cały stos dalej. Kto nie może, bierze wszystko i traci kolejkę.",
     "guide.lastcard.stackingAny": "Zasada domowa: odpowiedz na kartę dobierania własną, Draw Two na Draw Two albo Wild Draw Four na obie, i przekaż stos dalej. Kto nie może, bierze wszystko.",
-    "guide.lastcard.sevenZero": "Zasada domowa: zagranie 7 zamienia twoją rękę z graczem, który ma najmniej kart, a zagranie 0 przekazuje wszystkie ręce następnemu graczowi.",
+    "guide.lastcard.sevenZero": "Zasada domowa: zagranie 7 zamienia twoją rękę z wybranym przez ciebie graczem, a zagranie 0 przekazuje wszystkie ręce następnemu graczowi.",
     "guide.lastcard.call": "Mając dwie karty, powiedz „Last card!”, zanim zagrasz przedostatnią. Jeśli zapomnisz, następny gracz może cię przyłapać: dobierasz dwie karty.",
     "guide.lastcard.scoring": "Kto wyjdzie z gry, zdobywa punkty za karty pozostałe w rękach pozostałych graczy. Pierwszy do {target} punktów wygrywa mecz.",
     "guide.lastcard.scoringLowest": "Kto wyjdzie z gry, każe pozostałym graczom zapłacić za karty, które zostały im w ręku. Gdy ktoś osiągnie {target} punktów, wygrywa najniższy wynik.",
     "guide.lastcard.single": "Ten mecz to jedno rozdanie: kończy się w chwili, gdy czyjaś ręka jest pusta.",
     "guide.lastcard.freeplay": "Teraz zagraj kilka tur samodzielnie. Świecący pierścień pokazuje, gdzie działać.",
     "guide.lastcard.hint": "Utknąłeś? Dotknij Podpowiedź, by zobaczyć, co zrobiłby dobry gracz. Podpowiedź nigdy nie gra za ciebie.",
-    "guide.lastcard.done": "To wszystko! Dokończ to rozdanie dla wprawy albo wyjdź z przewodnika i zagraj naprawdę."
+    "guide.lastcard.done": "To wszystko! Dokończ to rozdanie dla wprawy albo wyjdź z przewodnika i zagraj naprawdę.",
+    "guide.lastcard.wildSwap": "Zasada domowa: Dzika + zamiana wskazuje kolor jak każda dzika karta, a potem zamieniasz się ręką z dowolnym wybranym graczem. Zachowaj ją na chwilę, gdy ktoś prawie kończy.",
+    "guide.lastcard.wildMayhem": "Zasada domowa: Dzika + chaos wskazuje kolor, a potem wszystkie ręce są razem tasowane i rozdawane od nowa po równo. Najbardziej pomaga, gdy masz dużo więcej kart niż wszyscy inni."
   },
   "pt": {
     "guide.lastcard.basics.title": "Noções básicas de Last Card",
@@ -450,14 +488,16 @@
     "guide.lastcard.challenge": "Foste atingido por um Wild Draw Four? Podes contestá-lo. Se for bluff, quem o jogou compra as quatro cartas; se for honesto, compras seis e perdes a vez.",
     "guide.lastcard.stackingTwos": "Regra da casa: responde a um Draw Two com um Draw Two teu e passa a pilha toda ao seguinte. Quem não puder fica com tudo e perde a vez.",
     "guide.lastcard.stackingAny": "Regra da casa: responde a uma carta de comprar com outra tua, um Draw Two sobre um Draw Two ou um Wild Draw Four sobre qualquer um, e passa a pilha ao seguinte. Quem não puder fica com tudo.",
-    "guide.lastcard.sevenZero": "Regra da casa: jogar um 7 troca a tua mão com quem tiver menos cartas, e jogar um 0 passa todas as mãos para o jogador seguinte.",
+    "guide.lastcard.sevenZero": "Regra da casa: jogar um 7 troca a tua mão com a do jogador que escolheres, e jogar um 0 passa todas as mãos para o jogador seguinte.",
     "guide.lastcard.call": "Com duas cartas na mão, diz “Last card!” antes de jogares a penúltima. Se te esqueceres, o jogador seguinte pode apanhar-te: compras duas cartas.",
     "guide.lastcard.scoring": "Quem sair marca as cartas que ficaram nas mãos de todos os outros. O primeiro a chegar a {target} pontos ganha o jogo.",
     "guide.lastcard.scoringLowest": "Quem sair faz todos os outros pagarem pelas cartas que lhes ficaram na mão. Quando alguém chegar a {target} pontos, ganha o total mais baixo.",
     "guide.lastcard.single": "Este jogo é uma única distribuição: termina no momento em que a mão de alguém fica vazia.",
     "guide.lastcard.freeplay": "Agora joga algumas vezes por conta própria. O anel luminoso mostra onde agir.",
     "guide.lastcard.hint": "Estás preso? Toca em Dica para ver o que faria um jogador experiente. Uma dica nunca joga por ti.",
-    "guide.lastcard.done": "É isso! Termina esta mão para treinar, ou sai do guia e joga a sério."
+    "guide.lastcard.done": "É isso! Termina esta mão para treinar, ou sai do guia e joga a sério.",
+    "guide.lastcard.wildSwap": "Regra da casa: um Curinga troca escolhe a cor como qualquer curinga e depois trocas de mão com o jogador que escolheres. Guarda-o para quando alguém estiver quase a acabar.",
+    "guide.lastcard.wildMayhem": "Regra da casa: um Curinga caos escolhe a cor e depois todas as mãos são baralhadas juntas e distribuídas de novo em partes iguais. Ajuda mais quando tens muito mais cartas do que todos os outros."
   },
   "ro": {
     "guide.lastcard.basics.title": "Bazele jocului Last Card",
@@ -473,14 +513,16 @@
     "guide.lastcard.challenge": "Ai primit un Wild Draw Four? Îl poți contesta. Un bluff îl face pe cel care l-a jucat să tragă cele patru cărți; o carte cinstită te face să tragi șase și să pierzi tura.",
     "guide.lastcard.stackingTwos": "Regulă a casei: răspunde la un Draw Two cu un Draw Two al tău și trece întregul teanc mai departe. Cine nu poate ia tot și pierde tura.",
     "guide.lastcard.stackingAny": "Regulă a casei: răspunde la o carte de tras cu una a ta, un Draw Two peste un Draw Two sau un Wild Draw Four peste oricare, și trece teancul mai departe. Cine nu poate ia tot.",
-    "guide.lastcard.sevenZero": "Regulă a casei: jucând un 7 îți schimbi mâna cu cel care are cele mai puține cărți, iar jucând un 0 toate mâinile trec la următorul jucător.",
+    "guide.lastcard.sevenZero": "Regulă a casei: jucând un 7 îți schimbi mâna cu un jucător ales de tine, iar jucând un 0 toate mâinile trec la următorul jucător.",
     "guide.lastcard.call": "Având două cărți, spune „Last card!” înainte să o joci pe penultima. Dacă uiți, următorul jucător te poate prinde: tragi două cărți.",
     "guide.lastcard.scoring": "Cine iese câștigă cărțile rămase în mâinile tuturor celorlalți. Primul care ajunge la {target} puncte câștigă meciul.",
     "guide.lastcard.scoringLowest": "Cine iese îi face pe ceilalți jucători să plătească pentru cărțile rămase în mână. Când cineva ajunge la {target} puncte, câștigă totalul cel mai mic.",
     "guide.lastcard.single": "Acest meci este o singură împărțire: se încheie în clipa în care mâna cuiva rămâne goală.",
     "guide.lastcard.freeplay": "Acum joacă singur câteva ture. Inelul luminos arată unde să acționezi.",
     "guide.lastcard.hint": "Te-ai blocat? Atinge Indiciu ca să vezi ce ar face un jucător experimentat. Un indiciu nu joacă niciodată în locul tău.",
-    "guide.lastcard.done": "Asta e tot! Termină această mână pentru exercițiu sau ieși din ghid și joacă un joc adevărat."
+    "guide.lastcard.done": "Asta e tot! Termină această mână pentru exercițiu sau ieși din ghid și joacă un joc adevărat.",
+    "guide.lastcard.wildSwap": "Regulă a casei: un Joker schimb alege culoarea ca orice joker, apoi faci schimb de mână cu orice jucător alegi. Păstrează-l pentru când cineva aproape a terminat.",
+    "guide.lastcard.wildMayhem": "Regulă a casei: un Joker haos alege culoarea, apoi toate mâinile sunt amestecate laolaltă și împărțite din nou în mod egal. Ajută cel mai mult când ai mult mai multe cărți decât toți ceilalți."
   },
   "sk": {
     "guide.lastcard.basics.title": "Základy Last Card",
@@ -496,14 +538,16 @@
     "guide.lastcard.challenge": "Zasiahol vás Wild Draw Four? Môžete ho napadnúť. Blaf donúti jeho hráča potiahnuť štyri karty namiesto vás; férová karta donúti vás potiahnuť šesť a vynechať ťah.",
     "guide.lastcard.stackingTwos": "Domáce pravidlo: na Draw Two odpovedzte vlastným Draw Two a pošlite celý balík ďalej. Kto nemôže, vezme všetko a vynechá ťah.",
     "guide.lastcard.stackingAny": "Domáce pravidlo: na ťahovú kartu odpovedzte vlastnou, Draw Two na Draw Two alebo Wild Draw Four na ktorúkoľvek, a pošlite balík ďalej. Kto nemôže, vezme všetko.",
-    "guide.lastcard.sevenZero": "Domáce pravidlo: zahratie 7 vymení vašu ruku s hráčom, ktorý má najmenej kariet, a zahratie 0 pošle všetky ruky ďalšiemu hráčovi.",
+    "guide.lastcard.sevenZero": "Domáce pravidlo: zahratie 7 vymení vašu ruku s hráčom, ktorého si vyberiete, a zahratie 0 pošle všetky ruky ďalšiemu hráčovi.",
     "guide.lastcard.call": "Keď držíte dve karty, povedzte „Last card!“ skôr, než zahráte predposlednú. Zabudnete a nasledujúci hráč vás môže prichytiť: potiahnete dve karty.",
     "guide.lastcard.scoring": "Kto vyjde, získa body za karty zostávajúce v rukách ostatných. Zápas vyhrá prvý s {target} bodmi.",
     "guide.lastcard.scoringLowest": "Kto vyjde, spôsobí, že každý ďalší hráč zaplatí za karty zostávajúce v jeho ruke. Keď niekto dosiahne {target} bodov, vyhrá najnižší súčet.",
     "guide.lastcard.single": "Tento zápas je jedno rozdanie: skončí v okamihu, keď je niekomu ruka prázdna.",
     "guide.lastcard.freeplay": "Teraz si zahrajte pár ťahov sami. Svietiaci kruh ukazuje, kde máte konať.",
     "guide.lastcard.hint": "Neviete si rady? Ťuknite na Hint a uvidíte, čo by urobil silný hráč. Hint nikdy nehrá za vás.",
-    "guide.lastcard.done": "To je všetko! Dohrajte túto ruku na tréning, alebo ukončite sprievodcu a začnite skutočnú hru."
+    "guide.lastcard.done": "To je všetko! Dohrajte túto ruku na tréning, alebo ukončite sprievodcu a začnite skutočnú hru.",
+    "guide.lastcard.wildSwap": "Domáce pravidlo: Divoká + výmena určí farbu ako každá divoká karta a potom si vymeníte ruku s ľubovoľným hráčom. Nechajte si ju na chvíľu, keď je niekto takmer vonku.",
+    "guide.lastcard.wildMayhem": "Domáce pravidlo: Divoká + chaos určí farbu a potom sa všetky ruky spolu zamiešajú a znova rozdajú rovnakým dielom. Najviac pomôže, keď máte oveľa viac kariet ako ostatní."
   },
   "sl": {
     "guide.lastcard.basics.title": "Osnove igre Last Card",
@@ -519,14 +563,16 @@
     "guide.lastcard.challenge": "Vas je zadel Wild Draw Four? Lahko ga izzovete. Blef prisili njegovega igralca, da namesto vas povleče štiri karte; poštena karta pa prisili vas, da povlečete šest in izpustite potezo.",
     "guide.lastcard.stackingTwos": "Hišno pravilo: na Draw Two odgovorite z lastnim Draw Two in celoten kupček pošljete naprej. Kdor ne more, vzame vse in izpusti potezo.",
     "guide.lastcard.stackingAny": "Hišno pravilo: na vlečno karto odgovorite z lastno, Draw Two na Draw Two ali Wild Draw Four na katero koli, in kupček pošljete naprej. Kdor ne more, vzame vse.",
-    "guide.lastcard.sevenZero": "Hišno pravilo: z odigrano 7 zamenjate roko s tistim, ki ima najmanj kart, z odigrano 0 pa vse roke preidejo k naslednjemu igralcu.",
+    "guide.lastcard.sevenZero": "Hišno pravilo: z odigrano 7 zamenjate roko z igralcem po svoji izbiri, z odigrano 0 pa vse roke preidejo k naslednjemu igralcu.",
     "guide.lastcard.call": "Ko imate dve karti, recite »Last card!«, preden odigrate predzadnjo. Če pozabite, vas lahko naslednji igralec ujame: povlečete dve karti.",
     "guide.lastcard.scoring": "Kdor gre ven, dobi točke za karte, ki ostanejo v rokah drugih. Tekmo dobi prvi z {target} točkami.",
     "guide.lastcard.scoringLowest": "Kdor gre ven, vsakega drugega igralca prisili, da plača za karte, ki mu ostanejo v roki. Ko kdo doseže {target} točk, zmaga najnižja vsota.",
     "guide.lastcard.single": "Ta tekma je ena delitev: konča se v trenutku, ko je komu roka prazna.",
     "guide.lastcard.freeplay": "Zdaj sami odigrajte nekaj potez. Svetleči obroč kaže, kje morate ukrepati.",
     "guide.lastcard.hint": "Ste obstali? Tapnite Hint in videli boste, kaj bi naredil močan igralec. Namig nikoli ne igra namesto vas.",
-    "guide.lastcard.done": "To je vse! Dokončajte to roko za vajo ali zaprite vodnik in začnite pravo igro."
+    "guide.lastcard.done": "To je vse! Dokončajte to roko za vajo ali zaprite vodnik in začnite pravo igro.",
+    "guide.lastcard.wildSwap": "Hišno pravilo: Divja + menjava določi barvo kot vsaka divja karta, nato zamenjate roko s katerim koli igralcem po svoji izbiri. Prihranite jo za trenutek, ko je kdo skoraj zunaj.",
+    "guide.lastcard.wildMayhem": "Hišno pravilo: Divja + kaos določi barvo, nato se vse roke skupaj premešajo in znova enakomerno razdelijo. Najbolj pomaga, ko imate veliko več kart kot vsi ostali."
   },
   "sv": {
     "guide.lastcard.basics.title": "Grunderna i Last Card",
@@ -542,13 +588,15 @@
     "guide.lastcard.challenge": "Drabbad av ett Wild Draw Four? Du får utmana det. En bluff gör att dess spelare drar fyra kort i stället; ett ärligt kort gör att du drar sex och hoppar över din tur.",
     "guide.lastcard.stackingTwos": "Hemmaregel: svara på ett Draw Two med ett eget Draw Two och skicka hela högen vidare. Den som inte kan tar allt och hoppar över sin tur.",
     "guide.lastcard.stackingAny": "Hemmaregel: svara på ett dragkort med ett eget, ett Draw Two på ett Draw Two eller ett Wild Draw Four på vilket som helst, och skicka högen vidare. Den som inte kan tar allt.",
-    "guide.lastcard.sevenZero": "Hemmaregel: när du spelar en 7 byter du hand med den som har minst kort, och när du spelar en 0 skickas alla händer vidare till nästa spelare.",
+    "guide.lastcard.sevenZero": "Hemmaregel: när du spelar en 7 byter du hand med en spelare du väljer, och när du spelar en 0 skickas alla händer vidare till nästa spelare.",
     "guide.lastcard.call": "Med två kort kvar säger du ”Last card!” innan du spelar det näst sista. Glömmer du det kan nästa spelare haffa dig: då drar du två kort.",
     "guide.lastcard.scoring": "Den som går ut får poängen för korten som finns kvar i alla andras händer. Den första med {target} poäng vinner matchen.",
     "guide.lastcard.scoringLowest": "Den som går ut låter alla andra spelare betala för korten de har kvar på handen. När någon når {target} poäng vinner den lägsta summan.",
     "guide.lastcard.single": "Den här matchen är en enda giv: den tar slut i samma ögonblick som någons hand är tom.",
     "guide.lastcard.freeplay": "Spela nu några turer på egen hand. Den lysande ringen visar var du ska agera.",
     "guide.lastcard.hint": "Kört fast? Tryck på Hint för att se vad en stark spelare skulle göra. Ett tips spelar aldrig åt dig.",
-    "guide.lastcard.done": "Det var allt! Spela klart den här given för att öva, eller lämna guiden och spela ett riktigt spel."
+    "guide.lastcard.done": "Det var allt! Spela klart den här given för att öva, eller lämna guiden och spela ett riktigt spel.",
+    "guide.lastcard.wildSwap": "Hemmaregel: en Joker byte väljer färg som vilken joker som helst, sedan byter du hand med valfri spelare. Spara den till när någon nästan är ute.",
+    "guide.lastcard.wildMayhem": "Hemmaregel: en Joker kaos väljer färg, sedan blandas alla händer ihop och delas ut igen jämnt. Den hjälper mest när du har mycket fler kort än alla andra."
   }
 }

@@ -2397,6 +2397,8 @@ export const en: Record<string, string> = {
   'lastcard.card.drawTwo': 'Draw Two',
   'lastcard.card.wild': 'Wild',
   'lastcard.card.wildDrawFour': 'Wild Draw Four',
+  'lastcard.card.wildSwap': 'Wild Swap',
+  'lastcard.card.wildMayhem': 'Wild Mayhem',
   'variation.lastcard.classic': 'Classic',
   'err.LASTCARD_NO_MATCH': "That card doesn't match the colour, the number or the symbol",
   'err.LASTCARD_DRAW_FOUR_HELD': 'A Wild Draw Four is only allowed when you hold no card of the colour in play',
@@ -2457,7 +2459,14 @@ export const en: Record<string, string> = {
     "Stacking: answer a Draw Two with a Draw Two of your own and pass the whole stack on. Whoever can't, takes it all and misses their turn.",
   'lastcard.rules.stacking.any':
     "Stacking: answer a draw card with one of your own — a Draw Two on a Draw Two, a Wild Draw Four on either — and pass the whole stack on. Whoever can't, takes it all and misses their turn.",
-  'lastcard.rules.sevens': 'Play a 7 and you swap hands with whoever holds the fewest cards.',
+  'lastcard.rules.sevens': 'Play a 7 and you swap hands with a player you choose.',
+  'lastcard.rules.wildSwap':
+    'Wild Swap ({n} in the pack): name the colour that follows, then trade hands with any player you choose.',
+  'lastcard.rules.wildMayhem':
+    'Wild Mayhem ({n} in the pack): name the colour that follows, then every hand is gathered, shuffled and dealt out again one card at a time, starting with the next player.',
+  'lastcard.prompt.swapWith': 'Swap hands with whom?',
+  'lastcard.prompt.player': 'Player',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Choose a player to swap hands with',
   'lastcard.rules.zeros': 'Play a 0 and every hand passes to the next player in the direction of play.',
   'lastcard.remedy.stackOrTake': 'Answer with a draw card of your own, or take the {n} cards.',
   'lastcard.offer.takeStack': 'Take them',
@@ -2473,6 +2482,12 @@ export const en: Record<string, string> = {
   'option.sevenZero': 'Sevens and zeros',
   'choice.sevenZero.0': 'Off',
   'choice.sevenZero.1': 'On',
+  'option.swapCards': 'Wild Swap cards',
+  'choice.swapCards.0': 'Off',
+  'choice.swapCards.1': 'On',
+  'option.mayhemCards': 'Wild Mayhem cards',
+  'choice.mayhemCards.0': 'Off',
+  'choice.mayhemCards.1': 'On',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} played {card}',
   'lastcard.move.playedSkip': '{player} played {card} — {target} misses a turn',
@@ -2496,6 +2511,7 @@ export const en: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} challenged {target} — it was honest, so {player} draws {n} and misses a turn',
   'lastcard.move.swapped': '{player} swapped hands with {target}',
   'lastcard.move.passedHands': '{player} played a 0 — every hand moves on',
+  'lastcard.move.mayhem': 'Mayhem! {player} gathered every hand, shuffled them and dealt them out again',
   'lastcard.move.wentOut': '{player} went out and scores {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Scoring',

@@ -185,6 +185,10 @@ export function lastCardText(card: string): string {
       return t('lastcard.card.wild');
     case 'wildDrawFour':
       return t('lastcard.card.wildDrawFour');
+    case 'wildSwap':
+      return t('lastcard.card.wildSwap');
+    case 'wildMayhem':
+      return t('lastcard.card.wildMayhem');
     case 'skip':
       return `${SHAPE_GLYPH[c.colour]} ${t('lastcard.card.skip')}`;
     case 'reverse':

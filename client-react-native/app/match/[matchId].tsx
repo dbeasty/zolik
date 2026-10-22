@@ -2612,7 +2612,12 @@ function MatchScreen() {
         />
       ) : null}
 
-      <ChoiceSheet spec={asking?.ask[0] ?? null} onPick={answer} onCancel={() => setAsking(null)} />
+      <ChoiceSheet
+        spec={asking?.ask[0] ?? null}
+        players={state.players}
+        onPick={answer}
+        onCancel={() => setAsking(null)}
+      />
 
       {/* "Play where?" — a card from the keyboard that fits more than one
           place. One answer per place (and per end of a run), each named the

@@ -231,6 +231,10 @@ func lastCardText(c string) string {
 		return "wild"
 	case "W4":
 		return "wild draw-four"
+	case "WS":
+		return "wild swap"
+	case "WM":
+		return "wild mayhem"
 	}
 	colour, face, ok := strings.Cut(c, "-")
 	name, isColour := lastCardColours[colour]

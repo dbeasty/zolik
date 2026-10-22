@@ -44,10 +44,13 @@ const (
 	faceDrawTwo = "D"
 )
 
-// The two wilds. They have no colour, so their codes have no hyphen.
+// The wilds. They have no colour, so their codes have no hyphen. The Swap and
+// the Mayhem are house-rule cards, in the pack only where the table plays them.
 const (
 	cardWild         = "W"
 	cardWildDrawFour = "W4"
+	cardWildSwap     = "WS"
+	cardWildMayhem   = "WM"
 )
 
 // GameState is the whole match. Opaque to the runtime — only this package
@@ -120,9 +123,17 @@ type GameState struct {
 	PendingDraw int `json:"pendingDraw,omitempty"`
 	// DrawUntil keeps drawing until a playable card turns up.
 	DrawUntil bool `json:"drawUntil,omitempty"`
-	// SevenZero makes a 7 swap hands with the shortest hand and a 0 pass
-	// every hand on.
+	// SevenZero makes a 7 swap hands with a player of its player's choosing
+	// and a 0 pass every hand on.
 	SevenZero bool `json:"sevenZero,omitempty"`
+	// SwapCards adds the Wild Swap to the pack: name a colour and trade hands
+	// with any player. MayhemCards adds the Wild Mayhem: name a colour, and
+	// every hand is gathered, shuffled and dealt out again. Resolved once at
+	// NewMatch.
+	SwapCards   bool `json:"swapCards,omitempty"`
+	MayhemCards bool `json:"mayhemCards,omitempty"`
+	// Mayhems counts the redeals this deal, which varies each one's seed.
+	Mayhems int `json:"mayhems,omitempty"`
 
 	// --- the match across deals ----------------------------------------------
 
@@ -237,6 +248,7 @@ const (
 	ErrCallNotNow       = "LASTCARD_CALL_NOT_NOW"
 	ErrAlreadyCalled    = "LASTCARD_ALREADY_CALLED"
 	ErrMustAnswerDraw   = "LASTCARD_STACK_OR_TAKE"
+	ErrSwapWithWhom     = "LASTCARD_SWAP_WITH_WHOM"
 	ErrUnknownAction    = "UNKNOWN_ACTION"
 	ErrTooFewPlayers    = "TOO_FEW_PLAYERS"
 )
@@ -314,7 +326,19 @@ func faceOf(card string) string {
 	return card
 }
 
-func isWild(card string) bool { return card == cardWild || card == cardWildDrawFour }
+func isWild(card string) bool {
+	switch card {
+	case cardWild, cardWildDrawFour, cardWildSwap, cardWildMayhem:
+		return true
+	}
+	return false
+}
+
+// swapsHands is whether playing card trades the player's hand for another
+// player's of their choosing: a Wild Swap, or a 7 where sevens swap.
+func (s *GameState) swapsHands(card string) bool {
+	return card == cardWildSwap || (s.SevenZero && card != "" && !isWild(card) && faceOf(card) == "7")
+}
 
 func (s *GameState) top() string {
 	if len(s.DiscardPile) == 0 {
