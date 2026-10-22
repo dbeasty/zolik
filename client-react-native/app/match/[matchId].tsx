@@ -1812,6 +1812,11 @@ function MatchScreen() {
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
+  // Nobody is missing any more: said outright, so the people at the table can
+  // tell the wait is over, and — when the press is the host's — whose it is.
+  const everyoneBack = wasAbandoned && seatedHere && !awayNames.length;
+  const resumeHostName =
+    everyoneBack && !canResume && state.resumeHost ? playerName(state.players, state.resumeHost) : '';
 
   // The join code, kept in view for as long as the table can still be played,
   // because it is how a seated player who left gets back: the join call lets
@@ -2328,6 +2333,16 @@ function MatchScreen() {
                 {t('results.stoodIn', { names: stoodInNames.join(', ') })}
               </Text>
             ) : null}
+            {everyoneBack ? (
+              <Text testID="match-over-everyone-back" style={styles.overOutcome}>
+                {canResume && paused ? t('match.everyoneBackNextRound') : t('match.everyoneBack')}
+              </Text>
+            ) : null}
+            {resumeHostName ? (
+              <Text testID="match-over-waiting-host" style={styles.overOutcome}>
+                {t('match.waitingForHostResume', { name: resumeHostName })}
+              </Text>
+            ) : null}
             {wasAbandoned && !canResume && awayNames.length ? (
               <Text testID="match-over-waiting" style={styles.overOutcome}>
                 {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
@@ -2366,7 +2381,8 @@ function MatchScreen() {
                   the ring. Offered exactly where the server will honour it —
                   which on a table with other people at it means once they are
                   all back, since reviving it while somebody is away would
-                  restart a game they had counted as over. */}
+                  restart a game they had counted as over. And then only on
+                  the host's screen: the others are told whose press it is. */}
               {canResume ? (
                 <Pressable
                   testID="match-over-resume"
