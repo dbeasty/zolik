@@ -35,6 +35,10 @@ export function cardSpokenName(card: string): string {
           return t('lastcard.card.wild');
         case 'wildDrawFour':
           return t('lastcard.card.wildDrawFour');
+        case 'wildSwap':
+          return t('lastcard.card.wildSwap');
+        case 'wildMayhem':
+          return t('lastcard.card.wildMayhem');
         case 'skip':
         case 'reverse':
         case 'drawTwo':

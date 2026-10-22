@@ -212,7 +212,7 @@ function Full({ card, h, clipId, named }: { card: LastCard; h: number; clipId: s
   const panel = roundedRect(5, 5, 90, h - 10, 7);
 
   if (card.colour === null) {
-    const four = card.kind === 'wildDrawFour';
+    const four = card.kind !== 'wild';
     return (
       <>
         <Defs>
@@ -229,7 +229,7 @@ function Full({ card, h, clipId, named }: { card: LastCard; h: number; clipId: s
         <Pieces pieces={pinwheel(cx, four ? cy - 8 : cy, four ? 50 : 64, named)} />
         {four ? (
           <Lettering x={cx} y={cy + 38} size={28} fill={CREAM} outline={DUSK.field}>
-            +4
+            {card.face}
           </Lettering>
         ) : null}
         <Path d={panel} fill="none" stroke={named ? INKS[named].main : DUSK.glow} strokeWidth={named ? 4 : 2} />
@@ -312,20 +312,20 @@ function ColourTab({ card }: { card: LastCard }) {
   );
 }
 
-/** A wild's corner: the four shapes, and the +4 where it has one. */
+/** A wild's corner: the four shapes, and the mark — +4, ⇄, ✱ — where it has one. */
 function WildTab({ card }: { card: LastCard }) {
   const x = 9;
   const y = 9;
   const w = 19;
   const mid = x + w / 2;
-  const four = card.kind === 'wildDrawFour';
+  const four = card.kind !== 'wild';
   return (
     <>
       <Path d={roundedRect(x, y, w, 28, 4)} fill={CREAM} opacity={0.96} />
       {four ? (
         <>
           <SvgText fontFamily={FONT} x={mid} y={y + 13} fontSize={11} fontWeight="900" textAnchor="middle" fill={DUSK.field}>
-            +4
+            {card.face}
           </SvgText>
           <Pieces pieces={shapeBlock(mid, y + 21, 9)} />
         </>
@@ -346,8 +346,8 @@ function Classic({ card, h, named }: { card: LastCard; h: number; named?: Colour
   const cy = h / 2;
   const frame = roundedRect(3, 3, 94, h - 6, 7);
   if (card.colour === null) {
-    const four = card.kind === 'wildDrawFour';
-    const label = four ? '+4' : 'W';
+    const four = card.kind !== 'wild';
+    const label = card.face;
     return (
       <>
         <Path d={frame} fill={DUSK.field} stroke={named ? INKS[named].main : DUSK.glow} strokeWidth={named ? 6 : 3} />
@@ -422,7 +422,7 @@ function Heirloom({ card, h, clipId, named }: { card: LastCard; h: number; clipI
   const cy = h / 2;
   const panel = roundedRect(9, 9, 82, h - 18, 3);
   if (card.colour === null) {
-    const four = card.kind === 'wildDrawFour';
+    const four = card.kind !== 'wild';
     return (
       <>
         <Path d={roundedRect(0, 0, 100, h, 6)} fill={HEIRLOOM.navy} />
@@ -441,12 +441,12 @@ function Heirloom({ card, h, clipId, named }: { card: LastCard; h: number; clipI
         <Pieces pieces={pinwheel(cx, four ? cy - 8 : cy, four ? 46 : 56, named)} />
         {four ? (
           <Lettering x={cx} y={cy + 36} size={26} fill={HEIRLOOM.giltLight} outline={HEIRLOOM.navy} font={SERIF} weight="700">
-            +4
+            {card.face}
           </Lettering>
         ) : null}
-        <HeirloomIndex text={four ? '+4' : 'W'} ink={HEIRLOOM.giltLight} />
+        <HeirloomIndex text={card.face} ink={HEIRLOOM.giltLight} />
         <G transform={`rotate(180 ${cx} ${cy})`}>
-          <HeirloomIndex text={four ? '+4' : 'W'} ink={HEIRLOOM.giltLight} />
+          <HeirloomIndex text={card.face} ink={HEIRLOOM.giltLight} />
         </G>
       </>
     );
@@ -531,7 +531,7 @@ function Plain({ card, h, font, named }: { card: LastCard; h: number; font: numb
   const left = 7;
   const mid = left + font * 0.42;
   if (card.colour === null) {
-    const four = card.kind === 'wildDrawFour';
+    const four = card.kind !== 'wild';
     return (
       <>
         <Path d={frame} fill={DUSK.field} stroke={named ? INKS[named].main : DUSK.glow} strokeWidth={named ? 6 : 3} />
@@ -541,7 +541,7 @@ function Plain({ card, h, font, named }: { card: LastCard; h: number; font: numb
         {four ? (
           <>
             <SvgText fontFamily={FONT} x={left} y={font * 0.95 + 4} fontSize={font * 0.8} fontWeight="900" fill={CREAM}>
-              +4
+              {card.face}
             </SvgText>
             <Pieces pieces={shapeBlock(mid, font * 0.95 + 4 + font * 0.55, font * 0.6)} />
           </>

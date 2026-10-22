@@ -32,6 +32,8 @@ func (learnGame) Config(_ int, _ string) module.MatchConfig {
 		OptTargetScore:               200,
 		OptStacking:                  stackAny,
 		OptSevenZero:                 module.OptOn,
+		OptSwapCards:                 module.OptOn,
+		OptMayhemCards:               module.OptOn,
 		module.OptPauseBetweenRounds: module.OptOff,
 	}}
 }

@@ -15,6 +15,8 @@ func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 	stacking := cfg.Opt(OptStacking, stackOff)
 	drawUntil := cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn
 	sevenZero := cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn
+	swap := cfg.Opt(OptSwapCards, module.OptOff) == module.OptOn
+	mayhem := cfg.Opt(OptMayhemCards, module.OptOff) == module.OptOn
 	lowest := cfg.Opt(OptScoring, scoreWinnerTakes) == scoreLowest
 
 	tp := map[string]any{"target": target}
@@ -71,6 +73,14 @@ func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 	if sevenZero {
 		steps = append(steps, module.Say("sevenZero", "guide.lastcard.sevenZero", nil, module.AnchorHand).
 			About("lastcard.rules.sevens", "lastcard.rules.zeros"))
+	}
+	if swap {
+		steps = append(steps, module.Say("wildSwap", "guide.lastcard.wildSwap", nil, module.AnchorHand).
+			About("lastcard.rules.wildSwap"))
+	}
+	if mayhem {
+		steps = append(steps, module.Say("wildMayhem", "guide.lastcard.wildMayhem", nil, module.AnchorHand).
+			About("lastcard.rules.wildMayhem"))
 	}
 	if call {
 		steps = append(steps, module.Say("call", "guide.lastcard.call", nil, module.AnchorActionBar).

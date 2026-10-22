@@ -61,6 +61,12 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 			if isWild(card) {
 				a.Params = map[string]string{"colour": b.declare(s, seat.PlayerID, card)}
 			}
+			if s.swapsHands(card) {
+				if a.Params == nil {
+					a.Params = map[string]string{}
+				}
+				a.Params["with"] = shortestOther(s, seat.PlayerID)
+			}
 			return a, true
 		}
 	}
@@ -72,21 +78,68 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 // while holding the colour in play, which a table with the challenge allows.
 // Only a profile that bluffs keeps one, and only when the next player is
 // close enough to out that four cards is worth the risk of a challenge.
+//
+// It also takes out a Wild Swap or a Wild Mayhem that would leave the hand no
+// shorter — a wild that names a colour is no reason to take on cards, and
+// drawing one costs less. Played as the last card either one goes out, and
+// is kept.
 func (b bot) honest(s *GameState, playerID string, p profile, playable []string) []string {
+	out := make([]string, 0, len(playable))
+	last := len(s.Hands[playerID]) == 1
+	for _, c := range playable {
+		if !last && (c == cardWildSwap || c == cardWildMayhem) && handGain(s, playerID, c) <= 0 {
+			continue
+		}
+		out = append(out, c)
+	}
 	// Stacked on a draw card a Wild Draw Four is an answer, never a bluff.
 	if s.PendingDraw > 0 || !s.holdsColour(s.Hands[playerID]) {
-		return playable
+		return out
 	}
 	if p.bluffs && nextHandSize(s, playerID) <= 2 {
-		return playable
+		return out
 	}
-	out := make([]string, 0, len(playable))
-	for _, c := range playable {
+	honest := out[:0]
+	for _, c := range out {
 		if c != cardWildDrawFour {
-			out = append(out, c)
+			honest = append(honest, c)
 		}
 	}
-	return out
+	return honest
+}
+
+// handGain is how many cards shorter the player's hand ends up for playing
+// a card that moves hands, against keeping the hand they would have after
+// playing it: a swap takes the shortest other hand; a mayhem leaves an even
+// share of every card held, the player dealt last.
+func handGain(s *GameState, playerID, card string) int {
+	after := len(s.Hands[playerID]) - 1
+	switch {
+	case s.swapsHands(card):
+		return after - len(s.Hands[shortestOther(s, playerID)])
+	case card == cardWildMayhem:
+		total, n := 0, len(s.TurnOrder)
+		for _, p := range s.TurnOrder {
+			total += len(s.Hands[p])
+		}
+		total--
+		// Dealt round from the next player, the player who played it is
+		// last: they get the even share, and none of the remainder.
+		return after - total/n
+	}
+	return 0
+}
+
+// shortestOther is the other player holding the fewest cards, the nearest in
+// the direction of play taking a tie — whom a swap should trade with.
+func shortestOther(s *GameState, playerID string) string {
+	best := ""
+	for i, p := 1, s.nextPlayer(playerID); i < len(s.TurnOrder); i, p = i+1, s.nextPlayer(p) {
+		if best == "" || len(s.Hands[p]) < len(s.Hands[best]) {
+			best = p
+		}
+	}
+	return best
 }
 
 // nextHandSize is how many cards the next player in the direction of play is
@@ -135,8 +188,9 @@ type profile struct {
 	// kept for later is fifty points if later never comes.
 	dumpsWhenThreatened bool
 
-	// swapsDown plays a 7 first, where sevens swap hands, when it would trade
-	// for a hand at least two cards shorter.
+	// swapsDown plays a card that moves hands first — a 7 where sevens swap,
+	// a Wild Swap, a Wild Mayhem — when it would leave the hand at least two
+	// cards shorter.
 	swapsDown bool
 
 	// sometimesForgets leaves "Last card!" unsaid one time in three — a
@@ -224,7 +278,8 @@ type candidate struct {
 	wild int
 	// attack is a Skip, Reverse or Draw Two.
 	attack bool
-	// swap is a 7 that would trade this hand for a much shorter one.
+	// swap is a card that would leave this hand much shorter: a 7 or Wild
+	// Swap trading for a shorter hand, a Wild Mayhem evening out a long one.
 	swap bool
 }
 
@@ -232,14 +287,6 @@ type candidate struct {
 func (b bot) choose(s *GameState, playerID string, p profile, playable []string) string {
 	if len(s.Hands[playerID]) == 1 || len(playable) == 1 {
 		return playable[0]
-	}
-	shortest := 1 << 30
-	if s.SevenZero {
-		for _, q := range s.TurnOrder {
-			if q != playerID && len(s.Hands[q]) < shortest {
-				shortest = len(s.Hands[q])
-			}
-		}
 	}
 	if p.dumpsWhenThreatened && s.Scoring == scoreLowest && s.TargetScore > 0 && someoneNearlyOut(s, playerID) {
 		best := playable[0]
@@ -253,12 +300,11 @@ func (b bot) choose(s *GameState, playerID string, p profile, playable []string)
 	cands := make([]candidate, 0, len(playable))
 	for _, c := range playable {
 		cd := candidate{card: c, attack: isAttack(c)}
-		// After playing the 7 this hand is one card shorter; the trade is
-		// worth making when the hand it gets back is shorter still.
-		cd.swap = p.swapsDown && s.SevenZero && faceOf(c) == "7" && !isWild(c) &&
-			shortest <= len(s.Hands[playerID])-3
+		// After playing the card this hand is one card shorter; moving hands
+		// is worth it when what comes back is shorter still.
+		cd.swap = p.swapsDown && (s.swapsHands(c) || c == cardWildMayhem) && handGain(s, playerID, c) >= 2
 		switch c {
-		case cardWild:
+		case cardWild, cardWildSwap, cardWildMayhem:
 			cd.wild = 1
 		case cardWildDrawFour:
 			cd.wild = 2

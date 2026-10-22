@@ -511,6 +511,10 @@ const (
 	ParamKindChoice ParamKind = "choice"
 	// ParamKindInt: a whole number inside a declared range.
 	ParamKindInt ParamKind = "int"
+	// ParamKindPlayer: one of the players at the table — whom a card that
+	// swaps hands trades with. Each choice's Value is a player id, which a
+	// client labels with that player's name; its LabelKey is the fallback.
+	ParamKindPlayer ParamKind = "player"
 )
 
 // ParamSpec declares a non-card input an offer needs.

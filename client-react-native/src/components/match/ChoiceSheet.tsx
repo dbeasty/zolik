@@ -6,7 +6,7 @@ import { DUSK, INKS } from '@/src/components/cards/lastCardArt';
 import { lastCardColourOfKey } from '@/src/lib/cards';
 import { Sheet } from '@/src/a11y/Sheet';
 import { t } from '@/src/lib/i18n';
-import { label } from '@/src/lib/labels';
+import { label, playerName, type Named } from '@/src/lib/labels';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
 
@@ -21,14 +21,17 @@ import type { Skin } from '@/src/skins/types';
  * dismissing sends nothing, and the card stays in hand.
  *
  * The question and the answers are the module's own keys. An answer that is
- * a Last Card colour is a button of that colour.
+ * a Last Card colour is a button of that colour; an answer that is a player
+ * (`kind: 'player'` — whom a swap trades with) is a button with their name.
  */
 export function ChoiceSheet({
   spec,
+  players = [],
   onPick,
   onCancel,
 }: {
   spec: ParamSpec | null;
+  players?: Named[];
   onPick: (name: string, value: string) => void;
   onCancel: () => void;
 }) {
@@ -63,7 +66,9 @@ export function ChoiceSheet({
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={[styles.optionText, colour && styles.inkedText]}>{label(c.labelKey)}</Text>
+              <Text style={[styles.optionText, colour && styles.inkedText]}>
+                {spec.kind === 'player' ? playerName(players, c.value) : label(c.labelKey)}
+              </Text>
             </Pressable>
           );
         })}

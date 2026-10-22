@@ -33,6 +33,8 @@ func refusalRules(code string) []string {
 		return []string{"lastcard.rules.wildDrawFour"}
 	case ErrColourRequired, ErrUnknownColour:
 		return []string{"lastcard.rules.wild"}
+	case ErrSwapWithWhom:
+		return []string{"lastcard.rules.wildSwap", "lastcard.rules.sevens"}
 	case ErrAnswerDrawFour, ErrNoDrawFour:
 		return []string{"lastcard.rules.challenge"}
 	case ErrNothingToCatch, ErrCallNotNow, ErrAlreadyCalled:
