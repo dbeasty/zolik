@@ -1334,6 +1334,12 @@ export const en: Record<string, string> = {
   // sending them the link — rather than leaving a banner whose only button is
   // the way out.
   'match.abandonedWaitingFor': 'Waiting for {names} to come back to the table.',
+  // Said on a swept-up table once nobody is missing any more, so the
+  // players can tell the wait is over. Only the host brings it back;
+  // everyone else is told whose press they are waiting for.
+  'match.everyoneBack': 'Everyone is back at the table.',
+  'match.everyoneBackNextRound': 'Everyone is back at the table. Picking it up starts the next round for everyone.',
+  'match.waitingForHostResume': 'Waiting for {name} to pick the game up.',
   // The join code pinned to the top of a dealt board. Pressing it hands over
   // the link; a seated player who opens it is taken back to their own seat.
   'match.tableCode': 'Code {code}',

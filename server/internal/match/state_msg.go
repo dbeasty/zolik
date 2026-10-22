@@ -95,6 +95,10 @@ type MatchStateMsg struct {
 	// AwayPlayers is who still has to come back, in seat order. Ids, not
 	// names: the client already has the names, in Players.
 	AwayPlayers []string `json:"awayPlayers,omitempty"`
+	// ResumeHost is the one seat that may bring a swept-up table back once
+	// everyone is here, so the others can be told whose press they are
+	// waiting for. Empty when any seated player may. See resumeHost.
+	ResumeHost string `json:"resumeHost,omitempty"`
 	// StoodIn is every seat a stand-in bot has played for at this table, so
 	// a results screen can say whose record the match does not count on.
 	StoodIn []string `json:"stoodIn,omitempty"`
@@ -308,6 +312,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	msg.StoodIn = match.StoodIn
 	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
 		msg.CanResume = m.resumableBy(match, viewerID)
+		msg.ResumeHost = resumeHost(match)
 		if !msg.CanResume {
 			msg.AwayPlayers = m.playersAway(match, viewerID)
 		}

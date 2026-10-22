@@ -545,6 +545,8 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /** The one player who may bring a set-aside table back once everyone is here — its host. Absent when any seated player may. */
+  resumeHost?: string;
   /** Every seat a stand-in bot has played for at this table — their record does not count it. */
   stoodIn?: string[];
   /**

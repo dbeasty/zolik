@@ -73,7 +73,8 @@ async function tableWithAFriend(request: Ctx) {
   // screen does.
   const seated = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
   const friendName = seated.players.find((p: { id: string }) => p.id === friend.userId).name;
-  return { matchId, host, friend, friendName, auth };
+  const hostName = seated.players.find((p: { id: string }) => p.id === host.userId).name;
+  return { matchId, host, friend, friendName, hostName, auth };
 }
 
 /** A started table whose only other seat is a bot — the case resume is for. */
@@ -206,11 +207,11 @@ test.describe('a table the sweeper set aside', () => {
   // resume to surprise. Both browsers are real here for exactly that reason —
   // the rule is about two people being at the table at the same time, and one
   // context cannot be two people.
-  test('two players who are both back can pick their game up again', async ({
+  test('once both players are back, the host picks their game up again', async ({
     browser,
     request,
   }) => {
-    const { matchId, host, friend, friendName, auth } = await tableWithAFriend(request);
+    const { matchId, host, friend, friendName, hostName, auth } = await tableWithAFriend(request);
     await seedAbandoned(request, matchId, host.userId, friend.userId, auth);
 
     const hostCtx = await browser.newContext();
@@ -237,9 +238,16 @@ test.describe('a table the sweeper set aside', () => {
       await expect(hostPage.getByTestId('match-over-resume')).toBeVisible({ timeout: 30_000 });
       await expect(hostPage.getByTestId('match-over-waiting')).toHaveCount(0);
 
-      // Either of them may press it; the one who stayed has as much claim on
-      // the game as the one who dropped.
-      await friendPage.getByTestId('match-over-resume').click();
+      // Both screens say the wait is over. The press is the host's alone,
+      // and the friend is told so by name rather than left looking at a
+      // banner with no button on it.
+      await expect(hostPage.getByTestId('match-over-everyone-back')).toBeVisible({ timeout: 30_000 });
+      await expect(friendPage.getByTestId('match-over-everyone-back')).toBeVisible({ timeout: 30_000 });
+      await expect(friendPage.getByTestId('match-over-resume')).toHaveCount(0);
+      await expect(friendPage.getByTestId('match-over-waiting-host')).toContainText(hostName);
+      await expect(hostPage.getByTestId('match-over-waiting-host')).toHaveCount(0);
+
+      await hostPage.getByTestId('match-over-resume').click();
 
       // Both boards come back, and the friend's does so without a navigation
       // — the socket is already in the table's room.

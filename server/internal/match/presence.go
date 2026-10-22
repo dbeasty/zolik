@@ -232,7 +232,34 @@ func awaits(seats []string, playerID string) bool {
 // held by a peer reads as away and their table stays unresumable until they
 // are both on one instance. That is exactly today's behaviour for every human
 // table, so it degrades to what shipped rather than to something new.
+//
+// Once everyone is back the press is the host's. Every seat used to be
+// offered it, which left a table of people all looking at one button and none
+// sure whether it was theirs to press — and the same table then had to press
+// "start the next round" once each. See resumeHost for a table whose host is
+// not there to do it.
 func (m *Manager) resumableBy(match models.Match, playerID string) bool {
+	if host := resumeHost(match); host != "" && host != playerID {
+		return false
+	}
+	return m.everyoneHere(match, playerID)
+}
+
+// resumeHost is the seat that brings a swept-up table back: its host, while
+// the host is a human still holding their own seat. Empty — any seated human
+// may — when there is no such host, so a host who left the table or has a bot
+// standing in for them cannot strand everybody else.
+func resumeHost(match models.Match) string {
+	p := playerByID(match.Players, match.HostID)
+	if p == nil || p.IsAI || p.StandIn != nil {
+		return ""
+	}
+	return p.ID
+}
+
+// everyoneHere reports whether playerID is a seated human and every other
+// human seat is at the table right now.
+func (m *Manager) everyoneHere(match models.Match, playerID string) bool {
 	if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
 		return false
 	}
@@ -334,6 +361,9 @@ func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
 //     has counted it as no such thing, so once everyone is here there is
 //     nobody left for the resume to surprise. See resumableBy, which is also
 //     what the client's own offer is drawn from.
+//   - Then only the host, while the host is seated (see resumeHost), and
+//     their press also deals the next round if the table was swept between
+//     rounds (see continueForEveryone).
 //
 // The abandonment counter is deliberately left standing: the table really was
 // abandoned, and the log line saying so is a fact about what this server did.
@@ -359,12 +389,43 @@ func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string)
 	log.Printf("match=%s player=%s resumed from abandoned", matchID, playerID)
 
 	m.Broadcast(resumed)
+	m.continueForEveryone(ctx, resumed)
 	// The table was very likely swept mid-turn with bots waiting on a seat that
 	// never came back, so the loop has to be restarted rather than left for the
 	// player's next action — which, if the table is waiting on a bot, they have
 	// no way to make.
 	m.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
 	return nil
+}
+
+// continueForEveryone readies every human seat a resumed table is still
+// holding between rounds, so the host's one press deals the next round.
+//
+// A table is most often swept between rounds — the people at it got up after
+// a deal — and it comes back to the same intermission it left, waiting on
+// each of them to press "start the next round" again. They have all just come
+// back to it, and the host has just said to carry on, so asking each of them
+// once more is a second roll call for the one already taken. Each is readied
+// through the ordinary continue offer, so the module deals exactly as if they
+// had pressed it; bots and stand-ins are left to the bot loop, as always.
+func (m *Manager) continueForEveryone(ctx context.Context, match models.Match) {
+	mod := m.registry.Get(match.ModuleID)
+	if mod == nil {
+		return
+	}
+	rounds := module.RoundsFor(mod, module.State(match.State))
+	if rounds == nil || !rounds.Paused {
+		return
+	}
+	for _, id := range rounds.WaitingFor {
+		if p := playerByID(match.Players, id); p == nil || p.IsAI || p.StandIn != nil {
+			continue
+		}
+		a := module.Action{OfferID: module.OfferContinue, Verb: module.VerbContinue}
+		if err := m.handleAction(ctx, match.ID.Hex(), id, a, false); err != nil {
+			log.Printf("match=%s player=%s continue on resume refused: %v", match.ID.Hex(), id, err)
+		}
+	}
 }
 
 func (m *Manager) resumeAbandonedLocked(ctx context.Context, e *liveMatch, playerID string) (models.Match, error) {
@@ -376,13 +437,16 @@ func (m *Manager) resumeAbandonedLocked(ctx context.Context, e *liveMatch, playe
 		if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
 			return models.Match{}, module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
 		}
-		// Named rather than counted: "waiting for Anna" is something the
-		// player can act on — send her the link — where "this table has other
-		// players" is a fact they already knew.
-		return models.Match{}, module.Error{
-			Code:    "TABLE_HAS_PLAYERS_AWAY",
-			Message: strings.Join(m.playersAway(match, playerID), ","),
+		if !m.everyoneHere(match, playerID) {
+			// Named rather than counted: "waiting for Anna" is something the
+			// player can act on — send her the link — where "this table has
+			// other players" is a fact they already knew.
+			return models.Match{}, module.Error{
+				Code:    "TABLE_HAS_PLAYERS_AWAY",
+				Message: strings.Join(m.playersAway(match, playerID), ","),
+			}
 		}
+		return models.Match{}, module.Error{Code: "NOT_THE_HOST", Message: playerID}
 	}
 
 	match.Status = "active"
