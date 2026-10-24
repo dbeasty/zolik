@@ -396,6 +396,15 @@ export const de: Record<string, string> = {
   'holdem.round.uncontested': 'Alle anderen sind ausgestiegen',
   'seat.ready': 'Bereit',
   'zolik.seat.contractMet': 'Kontrakt erfüllt',
+  'zolik.hint.setsNeeded': 'Zum Auslegen brauchst du noch {n} Sätze.',
+  'zolik.hint.setsNeeded.1': 'Zum Auslegen brauchst du noch 1 Satz.',
+  'zolik.hint.runsNeeded': 'Zum Auslegen brauchst du noch {n} Reihen.',
+  'zolik.hint.runsNeeded.1': 'Zum Auslegen brauchst du noch 1 Reihe.',
+  'zolik.hint.cleanRunNeeded': 'Zum Auslegen brauchst du noch eine Reihe ohne Joker.',
+  'zolik.hint.meldPoints': 'Deine Kombinationen müssen zum Auslegen {n} Punkte wert sein — du hast {have}.',
+  'zolik.hint.downInOneTurn': 'Leg in einem Zug aus: Ein begonnenes Auslegen musst du vor dem Abwerfen beenden oder zurücknehmen.',
+  'zolik.hint.layOffWhenDown': 'Anlegen an Kombinationen darfst du erst, wenn du ausgelegt hast.',
+  'zolik.hint.discardLocked': 'Vom Ablagestapel darf ab Runde {n} gezogen werden.',
   'results.you': '(du)',
 
 

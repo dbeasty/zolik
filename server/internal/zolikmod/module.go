@@ -622,7 +622,62 @@ func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.Vie
 			Value:    gs.JokersReclaimedPendingMeld[0],
 		})
 	}
+	vm.Prompts = append(vm.Prompts, standingHints(gs, cfg, viewerID)...)
 	return vm, nil
+}
+
+// standingHints are what the deal still requires of this viewer — the melds
+// they owe before they count as down, the point floor, the discard lock — as
+// prompts marked Hint, which the client keeps out of the log box and lists in
+// a sheet of its own, the way Canasta's first-meld floor is.
+//
+// Sent most relevant first and only while unmet: a requirement that has been
+// met is simply no longer sent. What is owed is counted from the melds already
+// laid, so a player halfway down reads what is left, not the whole contract.
+func standingHints(gs rules.GameState, cfg rules.RulesConfig, viewerID string) []module.Fact {
+	if gs.Status != rules.StatusActive {
+		return nil
+	}
+	if _, seated := gs.Hands[viewerID]; !seated {
+		return nil
+	}
+	var out []module.Fact
+	if !gs.RoundReqMet[viewerID] {
+		contract := cfg.ContractFor(gs.GameNumber)
+		sets, runs, hasCleanRun := rules.PlayerMeldCounts(gs, viewerID)
+		// Each part spelled out with its own literal key, rather than one
+		// template with every count in it: see the contract header above, and
+		// a key passed through a variable never reaches cmd/dump-keys.
+		if n := contract.Sets - sets; n > 0 {
+			out = append(out, module.Fact{LabelKey: "zolik.hint.setsNeeded", Hint: true,
+				Params: map[string]any{"n": n}})
+		}
+		if n := contract.Runs - runs; n > 0 {
+			out = append(out, module.Fact{LabelKey: "zolik.hint.runsNeeded", Hint: true,
+				Params: map[string]any{"n": n}})
+		}
+		if contract.RequireCleanRun && !hasCleanRun {
+			out = append(out, module.Fact{LabelKey: "zolik.hint.cleanRunNeeded", Hint: true})
+		}
+		if floor := cfg.InitialMeldMinimum; floor > 0 {
+			if have := rules.PlayerInitialMeldNaturalValue(gs, viewerID); have < floor {
+				out = append(out, module.Fact{LabelKey: "zolik.hint.meldPoints", Hint: true,
+					Params: map[string]any{"n": floor, "have": have}})
+			}
+		}
+		// The two rules a player who is not down yet runs into without being
+		// told: a lay-down left half finished cannot be discarded on, and
+		// nothing may be laid off until the player is down.
+		out = append(out,
+			module.Fact{LabelKey: "zolik.hint.downInOneTurn", Hint: true},
+			module.Fact{LabelKey: "zolik.hint.layOffWhenDown", Hint: true},
+		)
+	}
+	if rules.IsDiscardLocked(gs.Round, cfg.DiscardDrawMinRound) {
+		out = append(out, module.Fact{LabelKey: "zolik.hint.discardLocked", Hint: true,
+			Params: map[string]any{"n": cfg.DiscardDrawMinRound}})
+	}
+	return out
 }
 
 // shownPile is how much of the discard pile this table publishes: the whole

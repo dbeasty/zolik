@@ -388,6 +388,15 @@ export const et: Record<string, string> = {
   'holdem.round.uncontested': 'Kõik teised loobusid',
   'seat.ready': 'Valmis',
   'zolik.seat.contractMet': 'Leping täidetud',
+  'zolik.hint.setsNeeded': 'Mahapanekuks on sul vaja veel {n} kolmikut.',
+  'zolik.hint.setsNeeded.1': 'Mahapanekuks on sul vaja veel 1 kolmikut.',
+  'zolik.hint.runsNeeded': 'Mahapanekuks on sul vaja veel {n} rida.',
+  'zolik.hint.runsNeeded.1': 'Mahapanekuks on sul vaja veel 1 rida.',
+  'zolik.hint.cleanRunNeeded': 'Mahapanekuks on sul vaja veel jokkerita rida.',
+  'zolik.hint.meldPoints': 'Su kombinatsioonid peavad mahapanekuks olema väärt {n} punkti — sul on {have}.',
+  'zolik.hint.downInOneTurn': 'Pane maha ühe käiguga: alustatud mahapanek tuleb enne äraviset lõpetada või tagasi võtta.',
+  'zolik.hint.layOffWhenDown': 'Kombinatsioonidele saad kaarte lisada alles siis, kui oled maha pannud.',
+  'zolik.hint.discardLocked': 'Äraviskepakist võib võtta alates ringist {n}.',
   'results.you': '(sina)',
 
 

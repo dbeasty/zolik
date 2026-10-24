@@ -387,6 +387,15 @@ export const lt: Record<string, string> = {
   'holdem.round.uncontested': 'Visi kiti pasitraukė',
   'seat.ready': 'Pasiruošęs',
   'zolik.seat.contractMet': 'Sutartis įvykdyta',
+  'zolik.hint.setsNeeded': 'Kad išsidėtum, dar reikia {n} rinkinių.',
+  'zolik.hint.setsNeeded.1': 'Kad išsidėtum, dar reikia 1 rinkinio.',
+  'zolik.hint.runsNeeded': 'Kad išsidėtum, dar reikia {n} eilių.',
+  'zolik.hint.runsNeeded.1': 'Kad išsidėtum, dar reikia 1 eilės.',
+  'zolik.hint.cleanRunNeeded': 'Kad išsidėtum, dar reikia eilės be džokerio.',
+  'zolik.hint.meldPoints': 'Tavo deriniai turi būti verti {n} taškų, kad išsidėtum — turi {have}.',
+  'zolik.hint.downInOneTurn': 'Išsidėk per vieną ėjimą: pradėtą išdėjimą reikia baigti arba atšaukti prieš išmetant.',
+  'zolik.hint.layOffWhenDown': 'Kortas prie derinių gali dėti tik tada, kai jau išsidėjai.',
+  'zolik.hint.discardLocked': 'Iš išmestų kortų krūvos galima imti nuo {n} rato.',
   'results.you': '(tu)',
 
 

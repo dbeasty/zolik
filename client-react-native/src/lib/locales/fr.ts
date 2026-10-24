@@ -391,6 +391,15 @@ export const fr: Record<string, string> = {
   'holdem.round.uncontested': 'Tous les autres se sont couchés',
   'seat.ready': 'Prêt',
   'zolik.seat.contractMet': 'Contrat rempli',
+  'zolik.hint.setsNeeded': 'Il vous faut encore {n} brelans pour poser.',
+  'zolik.hint.setsNeeded.1': 'Il vous faut encore 1 brelan pour poser.',
+  'zolik.hint.runsNeeded': 'Il vous faut encore {n} suites pour poser.',
+  'zolik.hint.runsNeeded.1': 'Il vous faut encore 1 suite pour poser.',
+  'zolik.hint.cleanRunNeeded': 'Il vous faut encore une suite sans joker pour poser.',
+  'zolik.hint.meldPoints': 'Vos combinaisons doivent valoir {n} points pour poser — vous en avez {have}.',
+  'zolik.hint.downInOneTurn': 'Posez en un seul tour : une pose commencée doit être terminée, ou reprise, avant de défausser.',
+  'zolik.hint.layOffWhenDown': 'Vous ne pouvez compléter des combinaisons qu\'une fois posé.',
+  'zolik.hint.discardLocked': 'La défausse peut être prise à partir du tour {n}.',
   'results.you': '(toi)',
 
 

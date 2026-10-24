@@ -396,6 +396,15 @@ export const hu: Record<string, string> = {
   'holdem.round.uncontested': 'Mindenki más bedobta',
   'seat.ready': 'Kész',
   'zolik.seat.contractMet': 'Szerződés teljesítve',
+  'zolik.hint.setsNeeded': 'Még {n} sor kell a lerakáshoz.',
+  'zolik.hint.setsNeeded.1': 'Még 1 sor kell a lerakáshoz.',
+  'zolik.hint.runsNeeded': 'Még {n} sorozat kell a lerakáshoz.',
+  'zolik.hint.runsNeeded.1': 'Még 1 sorozat kell a lerakáshoz.',
+  'zolik.hint.cleanRunNeeded': 'Még egy joker nélküli sorozat kell a lerakáshoz.',
+  'zolik.hint.meldPoints': 'A kombinációidnak {n} pontot kell érniük a lerakáshoz — most {have}.',
+  'zolik.hint.downInOneTurn': 'Egy körben rakj le: az elkezdett lerakást dobás előtt be kell fejezni vagy vissza kell venni.',
+  'zolik.hint.layOffWhenDown': 'Kombinációkhoz csak a lerakás után tehetsz lapot.',
+  'zolik.hint.discardLocked': 'A dobópakliból a(z) {n}. körtől lehet húzni.',
   'results.you': '(te)',
 
 

@@ -392,6 +392,15 @@ export const pl: Record<string, string> = {
   'holdem.round.uncontested': 'Wszyscy inni spasowali',
   'seat.ready': 'Gotowy',
   'zolik.seat.contractMet': 'Kontrakt spełniony',
+  'zolik.hint.setsNeeded': 'Aby się wyłożyć, potrzebujesz jeszcze {n} grup.',
+  'zolik.hint.setsNeeded.1': 'Aby się wyłożyć, potrzebujesz jeszcze 1 grupy.',
+  'zolik.hint.runsNeeded': 'Aby się wyłożyć, potrzebujesz jeszcze {n} sekwensów.',
+  'zolik.hint.runsNeeded.1': 'Aby się wyłożyć, potrzebujesz jeszcze 1 sekwensu.',
+  'zolik.hint.cleanRunNeeded': 'Aby się wyłożyć, potrzebujesz jeszcze sekwensu bez jokera.',
+  'zolik.hint.meldPoints': 'Twoje układy muszą być warte {n} pkt, aby się wyłożyć — masz {have}.',
+  'zolik.hint.downInOneTurn': 'Wyłóż się w jednym ruchu: rozpoczęte wykładanie musisz dokończyć lub cofnąć przed odrzuceniem.',
+  'zolik.hint.layOffWhenDown': 'Dokładać karty do układów możesz dopiero po wyłożeniu się.',
+  'zolik.hint.discardLocked': 'Ze stosu kart odrzuconych można brać od rundy {n}.',
   'results.you': '(ty)',
 
 

@@ -389,6 +389,15 @@ export const lv: Record<string, string> = {
   'holdem.round.uncontested': 'Visi pārējie atmeta',
   'seat.ready': 'Gatavs',
   'zolik.seat.contractMet': 'Līgums izpildīts',
+  'zolik.hint.setsNeeded': 'Lai izliktu, tev vēl vajag {n} komplektus.',
+  'zolik.hint.setsNeeded.1': 'Lai izliktu, tev vēl vajag 1 komplektu.',
+  'zolik.hint.runsNeeded': 'Lai izliktu, tev vēl vajag {n} rindas.',
+  'zolik.hint.runsNeeded.1': 'Lai izliktu, tev vēl vajag 1 rindu.',
+  'zolik.hint.cleanRunNeeded': 'Lai izliktu, tev vēl vajag rindu bez džokera.',
+  'zolik.hint.meldPoints': 'Tavām kombinācijām jābūt {n} punktu vērtām, lai izliktu — tev ir {have}.',
+  'zolik.hint.downInOneTurn': 'Izliec vienā gājienā: iesākta izlikšana jāpabeidz vai jāatsauc pirms nomešanas.',
+  'zolik.hint.layOffWhenDown': 'Kārtis kombinācijām vari pielikt tikai tad, kad esi izlicis.',
+  'zolik.hint.discardLocked': 'No nomesto kāršu kaudzes drīkst ņemt no {n}. kārtas.',
   'results.you': '(tu)',
 
 

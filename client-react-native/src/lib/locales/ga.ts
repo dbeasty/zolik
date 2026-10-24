@@ -401,6 +401,15 @@ export const ga: Record<string, string> = {
   'holdem.round.uncontested': "D'fhill gach duine eile",
   'seat.ready': 'Réidh',
   'zolik.seat.contractMet': 'Conradh comhlíonta',
+  'zolik.hint.setsNeeded': 'Tá {n} sraith eile de dhíth ort le leagan síos.',
+  'zolik.hint.setsNeeded.1': 'Tá 1 sraith eile de dhíth ort le leagan síos.',
+  'zolik.hint.runsNeeded': 'Tá {n} rith eile de dhíth ort le leagan síos.',
+  'zolik.hint.runsNeeded.1': 'Tá 1 rith eile de dhíth ort le leagan síos.',
+  'zolik.hint.cleanRunNeeded': 'Tá rith gan fáidh de dhíth ort fós le leagan síos.',
+  'zolik.hint.meldPoints': 'Caithfidh luach {n} pointe a bheith ag do theaglamaí le leagan síos — tá {have} agat.',
+  'zolik.hint.downInOneTurn': 'Leag síos in aon seal amháin: caithfear leagan a thosaigh tú a chríochnú, nó a tharraingt siar, sula gcaitheann tú cárta.',
+  'zolik.hint.layOffWhenDown': 'Ní féidir leat cártaí a chur le teaglamaí go dtí go bhfuil tú síos.',
+  'zolik.hint.discardLocked': 'Is féidir tógáil ón gcarn caite ó bhabhta {n} ar aghaidh.',
   'results.you': '(tú)',
 
 

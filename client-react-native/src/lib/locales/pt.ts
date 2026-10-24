@@ -390,6 +390,15 @@ export const pt: Record<string, string> = {
   'holdem.round.uncontested': 'Todos os outros desistiram',
   'seat.ready': 'Pronto',
   'zolik.seat.contractMet': 'Contrato cumprido',
+  'zolik.hint.setsNeeded': 'Ainda precisas de {n} trincas para baixar.',
+  'zolik.hint.setsNeeded.1': 'Ainda precisas de 1 trinca para baixar.',
+  'zolik.hint.runsNeeded': 'Ainda precisas de {n} sequências para baixar.',
+  'zolik.hint.runsNeeded.1': 'Ainda precisas de 1 sequência para baixar.',
+  'zolik.hint.cleanRunNeeded': 'Ainda precisas de uma sequência sem joker para baixar.',
+  'zolik.hint.meldPoints': 'As tuas combinações têm de valer {n} pontos para baixar — tens {have}.',
+  'zolik.hint.downInOneTurn': 'Baixa num só turno: uma baixada começada tem de ser terminada, ou desfeita, antes de descartar.',
+  'zolik.hint.layOffWhenDown': 'Só podes juntar cartas a combinações depois de baixares.',
+  'zolik.hint.discardLocked': 'Pode tirar-se do monte de descarte a partir da ronda {n}.',
   'results.you': '(tu)',
 
 

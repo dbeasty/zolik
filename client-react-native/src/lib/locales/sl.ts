@@ -387,6 +387,15 @@ export const sl: Record<string, string> = {
   'holdem.round.uncontested': 'Vsi drugi so odstopili',
   'seat.ready': 'Pripravljen',
   'zolik.seat.contractMet': 'Pogodba izpolnjena',
+  'zolik.hint.setsNeeded': 'Za odlaganje potrebuješ še {n} skupine.',
+  'zolik.hint.setsNeeded.1': 'Za odlaganje potrebuješ še 1 skupino.',
+  'zolik.hint.runsNeeded': 'Za odlaganje potrebuješ še {n} lestvice.',
+  'zolik.hint.runsNeeded.1': 'Za odlaganje potrebuješ še 1 lestvico.',
+  'zolik.hint.cleanRunNeeded': 'Za odlaganje potrebuješ še lestvico brez jokerja.',
+  'zolik.hint.meldPoints': 'Tvoje kombinacije morajo biti vredne {n} točk za odlaganje — imaš {have}.',
+  'zolik.hint.downInOneTurn': 'Odloži v eni potezi: začeto odlaganje moraš pred odmetom dokončati ali preklicati.',
+  'zolik.hint.layOffWhenDown': 'Karte h kombinacijam lahko dodajaš šele, ko si odložil.',
+  'zolik.hint.discardLocked': 'Z odmetanega kupa se sme jemati od kroga {n}.',
   'results.you': '(ti)',
 
 

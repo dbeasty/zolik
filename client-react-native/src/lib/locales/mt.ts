@@ -393,6 +393,15 @@ export const mt: Record<string, string> = {
   'holdem.round.uncontested': 'Kulħadd ieħor warrab',
   'seat.ready': 'Lest',
   'zolik.seat.contractMet': 'Kuntratt milħuq',
+  'zolik.hint.setsNeeded': 'Għadek teħtieġ {n} settijiet biex tinżel.',
+  'zolik.hint.setsNeeded.1': 'Għadek teħtieġ sett ieħor biex tinżel.',
+  'zolik.hint.runsNeeded': 'Għadek teħtieġ {n} sekwenzi biex tinżel.',
+  'zolik.hint.runsNeeded.1': 'Għadek teħtieġ sekwenza oħra biex tinżel.',
+  'zolik.hint.cleanRunNeeded': 'Għadek teħtieġ sekwenza mingħajr joker biex tinżel.',
+  'zolik.hint.meldPoints': 'Il-kombinazzjonijiet tiegħek iridu jiswew {n} punt biex tinżel — għandek {have}.',
+  'zolik.hint.downInOneTurn': 'Inżel f\'dawra waħda: tqegħid li tibda jrid jitlesta, jew jitneħħa, qabel ma tarmi.',
+  'zolik.hint.layOffWhenDown': 'Tista\' żżid karti mal-kombinazzjonijiet biss wara li tinżel.',
+  'zolik.hint.discardLocked': 'Mill-munzell tal-karti mormija tista\' tieħu mir-rawnd {n}.',
   'results.you': '(int)',
 
 

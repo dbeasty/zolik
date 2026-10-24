@@ -390,6 +390,15 @@ export const it: Record<string, string> = {
   'holdem.round.uncontested': 'Tutti gli altri hanno lasciato',
   'seat.ready': 'Pronto',
   'zolik.seat.contractMet': 'Contratto soddisfatto',
+  'zolik.hint.setsNeeded': 'Ti servono ancora {n} tris per calare.',
+  'zolik.hint.setsNeeded.1': 'Ti serve ancora 1 tris per calare.',
+  'zolik.hint.runsNeeded': 'Ti servono ancora {n} scale per calare.',
+  'zolik.hint.runsNeeded.1': 'Ti serve ancora 1 scala per calare.',
+  'zolik.hint.cleanRunNeeded': 'Ti serve ancora una scala senza jolly per calare.',
+  'zolik.hint.meldPoints': 'Le tue combinazioni devono valere {n} punti per calare — ne hai {have}.',
+  'zolik.hint.downInOneTurn': 'Cala in un solo turno: una calata iniziata va completata, o ritirata, prima di scartare.',
+  'zolik.hint.layOffWhenDown': 'Puoi attaccare carte alle combinazioni solo dopo aver calato.',
+  'zolik.hint.discardLocked': 'Dagli scarti si può pescare dal giro {n}.',
   'results.you': '(tu)',
 
 

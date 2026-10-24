@@ -393,6 +393,15 @@ export const es: Record<string, string> = {
   'holdem.round.uncontested': 'Todos los demás se retiraron',
   'seat.ready': 'Listo',
   'zolik.seat.contractMet': 'Contrato cumplido',
+  'zolik.hint.setsNeeded': 'Aún necesitas {n} tríos para bajarte.',
+  'zolik.hint.setsNeeded.1': 'Aún necesitas 1 trío para bajarte.',
+  'zolik.hint.runsNeeded': 'Aún necesitas {n} escaleras para bajarte.',
+  'zolik.hint.runsNeeded.1': 'Aún necesitas 1 escalera para bajarte.',
+  'zolik.hint.cleanRunNeeded': 'Aún necesitas una escalera sin comodín para bajarte.',
+  'zolik.hint.meldPoints': 'Tus combinaciones deben valer {n} puntos para bajarte — tienes {have}.',
+  'zolik.hint.downInOneTurn': 'Bájate en un solo turno: una bajada empezada debe terminarse, o deshacerse, antes de descartar.',
+  'zolik.hint.layOffWhenDown': 'Solo puedes añadir cartas a combinaciones cuando ya te has bajado.',
+  'zolik.hint.discardLocked': 'Se puede robar del descarte a partir de la ronda {n}.',
   'results.you': '(tú)',
 
 

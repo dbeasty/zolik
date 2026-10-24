@@ -1332,6 +1332,13 @@
     "zolik.badge.jokerOwed",
     "zolik.badge.noReturn",
     "zolik.badge.owedToMeld",
+    "zolik.hint.cleanRunNeeded",
+    "zolik.hint.discardLocked",
+    "zolik.hint.downInOneTurn",
+    "zolik.hint.layOffWhenDown",
+    "zolik.hint.meldPoints",
+    "zolik.hint.runsNeeded",
+    "zolik.hint.setsNeeded",
     "zolik.line.handAces",
     "zolik.line.handAcesLow",
     "zolik.line.handFaces",
@@ -3373,6 +3380,19 @@
       "value",
       "winners"
     ],
+    "zolik.hint.discardLocked": [
+      "n"
+    ],
+    "zolik.hint.meldPoints": [
+      "have",
+      "n"
+    ],
+    "zolik.hint.runsNeeded": [
+      "n"
+    ],
+    "zolik.hint.setsNeeded": [
+      "n"
+    ],
     "zolik.line.handAces": [
       "each",
       "n"
@@ -3880,6 +3900,10 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "zolik.hint.discardLocked",
+    "zolik.hint.meldPoints",
+    "zolik.hint.runsNeeded",
+    "zolik.hint.setsNeeded",
     "zolik.line.handAces",
     "zolik.line.handAcesLow",
     "zolik.line.handFaces",

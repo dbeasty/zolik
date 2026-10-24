@@ -403,6 +403,15 @@ export const en: Record<string, string> = {
   'holdem.round.uncontested': 'Everyone else folded',
   'seat.ready': 'Ready',
   'zolik.seat.contractMet': 'Contract met',
+  'zolik.hint.setsNeeded': 'You still need {n} sets to go down.',
+  'zolik.hint.setsNeeded.1': 'You still need 1 set to go down.',
+  'zolik.hint.runsNeeded': 'You still need {n} runs to go down.',
+  'zolik.hint.runsNeeded.1': 'You still need 1 run to go down.',
+  'zolik.hint.cleanRunNeeded': 'You still need a joker-free run to go down.',
+  'zolik.hint.meldPoints': 'Your melds must be worth {n} points to go down — you have {have}.',
+  'zolik.hint.downInOneTurn': 'Go down in one turn: a lay-down you start must be finished, or taken back, before you discard.',
+  'zolik.hint.layOffWhenDown': 'You can add cards to melds only once you are down.',
+  'zolik.hint.discardLocked': 'The discard pile can be taken from round {n}.',
   'results.you': '(you)',
 
 
