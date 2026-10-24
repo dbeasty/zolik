@@ -384,6 +384,15 @@ export const da: Record<string, string> = {
   'holdem.round.uncontested': 'Alle andre kastede sig',
   'seat.ready': 'Klar',
   'zolik.seat.contractMet': 'Kontrakt opfyldt',
+  'zolik.hint.setsNeeded': 'Du mangler stadig {n} sæt for at melde ud.',
+  'zolik.hint.setsNeeded.1': 'Du mangler stadig 1 sæt for at melde ud.',
+  'zolik.hint.runsNeeded': 'Du mangler stadig {n} rækker for at melde ud.',
+  'zolik.hint.runsNeeded.1': 'Du mangler stadig 1 række for at melde ud.',
+  'zolik.hint.cleanRunNeeded': 'Du mangler stadig en række uden joker for at melde ud.',
+  'zolik.hint.meldPoints': 'Dine meldinger skal være {n} point værd for at melde ud — du har {have}.',
+  'zolik.hint.downInOneTurn': 'Meld ud i ét træk: en påbegyndt udlægning skal gøres færdig eller tages tilbage, før du kaster.',
+  'zolik.hint.layOffWhenDown': 'Du kan først lægge kort til meldinger, når du har meldt ud.',
+  'zolik.hint.discardLocked': 'Der må tages fra kastebunken fra runde {n}.',
   'results.you': '(dig)',
 
 

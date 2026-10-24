@@ -393,6 +393,15 @@ export const nl: Record<string, string> = {
   'holdem.round.uncontested': 'Alle anderen pasten',
   'seat.ready': 'Klaar',
   'zolik.seat.contractMet': 'Contract gehaald',
+  'zolik.hint.setsNeeded': 'Je hebt nog {n} sets nodig om uit te leggen.',
+  'zolik.hint.setsNeeded.1': 'Je hebt nog 1 set nodig om uit te leggen.',
+  'zolik.hint.runsNeeded': 'Je hebt nog {n} reeksen nodig om uit te leggen.',
+  'zolik.hint.runsNeeded.1': 'Je hebt nog 1 reeks nodig om uit te leggen.',
+  'zolik.hint.cleanRunNeeded': 'Je hebt nog een reeks zonder joker nodig om uit te leggen.',
+  'zolik.hint.meldPoints': 'Je combinaties moeten {n} punten waard zijn om uit te leggen — je hebt er {have}.',
+  'zolik.hint.downInOneTurn': 'Leg uit in één beurt: een begonnen uitleg moet je afmaken of terugnemen voordat je afgooit.',
+  'zolik.hint.layOffWhenDown': 'Je mag pas kaarten aanleggen als je hebt uitgelegd.',
+  'zolik.hint.discardLocked': 'Van de aflegstapel mag vanaf ronde {n} worden gepakt.',
   'results.you': '(jij)',
 
 

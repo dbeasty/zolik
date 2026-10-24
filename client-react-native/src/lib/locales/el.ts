@@ -398,6 +398,15 @@ export const el: Record<string, string> = {
   'holdem.round.uncontested': 'Όλοι οι άλλοι πάσαραν',
   'seat.ready': 'Έτοιμος',
   'zolik.seat.contractMet': 'Το συμβόλαιο ολοκληρώθηκε',
+  'zolik.hint.setsNeeded': 'Χρειάζεσαι ακόμη {n} τριάδες για να κατέβεις.',
+  'zolik.hint.setsNeeded.1': 'Χρειάζεσαι ακόμη 1 τριάδα για να κατέβεις.',
+  'zolik.hint.runsNeeded': 'Χρειάζεσαι ακόμη {n} κέντες για να κατέβεις.',
+  'zolik.hint.runsNeeded.1': 'Χρειάζεσαι ακόμη 1 κέντα για να κατέβεις.',
+  'zolik.hint.cleanRunNeeded': 'Χρειάζεσαι ακόμη μια κέντα χωρίς τζόκερ για να κατέβεις.',
+  'zolik.hint.meldPoints': 'Οι συνδυασμοί σου πρέπει να αξίζουν {n} πόντους για να κατέβεις — έχεις {have}.',
+  'zolik.hint.downInOneTurn': 'Κατέβα σε μία κίνηση: ένα κατέβασμα που ξεκίνησες πρέπει να ολοκληρωθεί ή να αναιρεθεί πριν πετάξεις.',
+  'zolik.hint.layOffWhenDown': 'Μπορείς να προσθέτεις φύλλα σε συνδυασμούς μόνο αφού κατέβεις.',
+  'zolik.hint.discardLocked': 'Από τα πεταμένα επιτρέπεται να τραβήξεις από τον γύρο {n}.',
   'results.you': '(εσύ)',
 
 

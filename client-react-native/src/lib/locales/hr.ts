@@ -389,6 +389,15 @@ export const hr: Record<string, string> = {
   'holdem.round.uncontested': 'Svi ostali su odustali',
   'seat.ready': 'Spreman',
   'zolik.seat.contractMet': 'Ugovor ispunjen',
+  'zolik.hint.setsNeeded': 'Za spuštanje trebaš još {n} grupe.',
+  'zolik.hint.setsNeeded.1': 'Za spuštanje trebaš još 1 grupu.',
+  'zolik.hint.runsNeeded': 'Za spuštanje trebaš još {n} niza.',
+  'zolik.hint.runsNeeded.1': 'Za spuštanje trebaš još 1 niz.',
+  'zolik.hint.cleanRunNeeded': 'Za spuštanje trebaš još niz bez džokera.',
+  'zolik.hint.meldPoints': 'Tvoje kombinacije moraju vrijediti {n} bodova za spuštanje — imaš {have}.',
+  'zolik.hint.downInOneTurn': 'Spusti se u jednom potezu: započeto spuštanje moraš dovršiti ili vratiti prije odbacivanja.',
+  'zolik.hint.layOffWhenDown': 'Karte na kombinacije možeš dodavati tek kad si spušten.',
+  'zolik.hint.discardLocked': 'S hrpe odbačenih smije se uzimati od kruga {n}.',
   'results.you': '(ti)',
 
 

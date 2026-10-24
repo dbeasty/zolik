@@ -386,6 +386,15 @@ export const cs: Record<string, string> = {
   'holdem.round.uncontested': 'Ostatní složili',
   'seat.ready': 'Připraven',
   'zolik.seat.contractMet': 'Závazek splněn',
+  'zolik.hint.setsNeeded': 'Abys byl dole, potřebuješ ještě {n} skupiny.',
+  'zolik.hint.setsNeeded.1': 'Abys byl dole, potřebuješ ještě 1 skupinu.',
+  'zolik.hint.runsNeeded': 'Abys byl dole, potřebuješ ještě {n} postupky.',
+  'zolik.hint.runsNeeded.1': 'Abys byl dole, potřebuješ ještě 1 postupku.',
+  'zolik.hint.cleanRunNeeded': 'Abys byl dole, potřebuješ ještě postupku bez žolíka.',
+  'zolik.hint.meldPoints': 'Tvé kombinace musí mít {n} bodů, abys byl dole — máš {have}.',
+  'zolik.hint.downInOneTurn': 'Vylož se v jednom tahu: rozehrané vykládání musíš před odhozením dokončit, nebo vrátit.',
+  'zolik.hint.layOffWhenDown': 'Přikládat ke kombinacím můžeš, až když jsi dole.',
+  'zolik.hint.discardLocked': 'Z odhazovacího balíčku se smí brát od kola {n}.',
   'results.you': '(ty)',
 
 

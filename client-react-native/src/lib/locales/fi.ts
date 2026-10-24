@@ -389,6 +389,15 @@ export const fi: Record<string, string> = {
   'holdem.round.uncontested': 'Kaikki muut luovuttivat',
   'seat.ready': 'Valmis',
   'zolik.seat.contractMet': 'Sopimus täytetty',
+  'zolik.hint.setsNeeded': 'Tarvitset vielä {n} sarjaa päästäksesi alas.',
+  'zolik.hint.setsNeeded.1': 'Tarvitset vielä 1 sarjan päästäksesi alas.',
+  'zolik.hint.runsNeeded': 'Tarvitset vielä {n} suoraa päästäksesi alas.',
+  'zolik.hint.runsNeeded.1': 'Tarvitset vielä 1 suoran päästäksesi alas.',
+  'zolik.hint.cleanRunNeeded': 'Tarvitset vielä jokerittoman suoran päästäksesi alas.',
+  'zolik.hint.meldPoints': 'Yhdistelmiesi on oltava {n} pisteen arvoisia päästäksesi alas — sinulla on {have}.',
+  'zolik.hint.downInOneTurn': 'Mene alas yhdellä vuorolla: aloitettu lasku on saatava valmiiksi tai peruttava ennen poistoa.',
+  'zolik.hint.layOffWhenDown': 'Voit lisätä kortteja yhdistelmiin vasta, kun olet alhaalla.',
+  'zolik.hint.discardLocked': 'Poistopakasta saa nostaa kierroksesta {n} alkaen.',
   'results.you': '(sinä)',
 
 

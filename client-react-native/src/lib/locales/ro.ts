@@ -390,6 +390,15 @@ export const ro: Record<string, string> = {
   'holdem.round.uncontested': 'Toți ceilalți s-au retras',
   'seat.ready': 'Pregătit',
   'zolik.seat.contractMet': 'Contract îndeplinit',
+  'zolik.hint.setsNeeded': 'Mai ai nevoie de {n} formații pentru a coborî.',
+  'zolik.hint.setsNeeded.1': 'Mai ai nevoie de 1 formație pentru a coborî.',
+  'zolik.hint.runsNeeded': 'Mai ai nevoie de {n} serii pentru a coborî.',
+  'zolik.hint.runsNeeded.1': 'Mai ai nevoie de 1 serie pentru a coborî.',
+  'zolik.hint.cleanRunNeeded': 'Mai ai nevoie de o serie fără joker pentru a coborî.',
+  'zolik.hint.meldPoints': 'Combinațiile tale trebuie să valoreze {n} puncte pentru a coborî — ai {have}.',
+  'zolik.hint.downInOneTurn': 'Coboară într-o singură tură: o etalare începută trebuie terminată sau anulată înainte să arunci.',
+  'zolik.hint.layOffWhenDown': 'Poți adăuga cărți la combinații doar după ce ai coborât.',
+  'zolik.hint.discardLocked': 'Din teancul de cărți aruncate se poate lua din runda {n}.',
   'results.you': '(tu)',
 
 

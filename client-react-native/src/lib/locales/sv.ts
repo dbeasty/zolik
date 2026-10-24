@@ -382,6 +382,15 @@ export const sv: Record<string, string> = {
   'holdem.round.uncontested': 'Alla andra lade sig',
   'seat.ready': 'Redo',
   'zolik.seat.contractMet': 'Kontrakt uppfyllt',
+  'zolik.hint.setsNeeded': 'Du behöver fortfarande {n} set för att lägga ut.',
+  'zolik.hint.setsNeeded.1': 'Du behöver fortfarande 1 set för att lägga ut.',
+  'zolik.hint.runsNeeded': 'Du behöver fortfarande {n} stegar för att lägga ut.',
+  'zolik.hint.runsNeeded.1': 'Du behöver fortfarande 1 stege för att lägga ut.',
+  'zolik.hint.cleanRunNeeded': 'Du behöver fortfarande en stege utan joker för att lägga ut.',
+  'zolik.hint.meldPoints': 'Dina kombinationer måste vara värda {n} poäng för att lägga ut — du har {have}.',
+  'zolik.hint.downInOneTurn': 'Lägg ut i ett drag: en påbörjad utläggning måste slutföras eller tas tillbaka innan du kastar.',
+  'zolik.hint.layOffWhenDown': 'Du får lägga till kort på kombinationer först när du har lagt ut.',
+  'zolik.hint.discardLocked': 'Man får ta från slänghögen från runda {n}.',
   'results.you': '(du)',
 
 

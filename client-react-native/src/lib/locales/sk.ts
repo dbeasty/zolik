@@ -388,6 +388,15 @@ export const sk: Record<string, string> = {
   'holdem.round.uncontested': 'Všetci ostatní zložili',
   'seat.ready': 'Pripravený',
   'zolik.seat.contractMet': 'Záväzok splnený',
+  'zolik.hint.setsNeeded': 'Na vyloženie potrebuješ ešte {n} skupiny.',
+  'zolik.hint.setsNeeded.1': 'Na vyloženie potrebuješ ešte 1 skupinu.',
+  'zolik.hint.runsNeeded': 'Na vyloženie potrebuješ ešte {n} postupky.',
+  'zolik.hint.runsNeeded.1': 'Na vyloženie potrebuješ ešte 1 postupku.',
+  'zolik.hint.cleanRunNeeded': 'Na vyloženie potrebuješ ešte postupku bez žolíka.',
+  'zolik.hint.meldPoints': 'Tvoje kombinácie musia mať {n} bodov na vyloženie — máš {have}.',
+  'zolik.hint.downInOneTurn': 'Vylož sa v jednom ťahu: začaté vykladanie musíš pred odhodením dokončiť, alebo vrátiť.',
+  'zolik.hint.layOffWhenDown': 'Prikladať ku kombináciám môžeš, až keď si vyložený.',
+  'zolik.hint.discardLocked': 'Z odhadzovacieho balíčka sa smie brať od kola {n}.',
   'results.you': '(ty)',
 
 

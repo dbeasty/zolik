@@ -391,6 +391,15 @@ export const bg: Record<string, string> = {
   'holdem.round.uncontested': 'Всички други се отказаха',
   'seat.ready': 'Готов',
   'zolik.seat.contractMet': 'Договорът е изпълнен',
+  'zolik.hint.setsNeeded': 'Нужни са ти още {n} групи, за да свалиш.',
+  'zolik.hint.setsNeeded.1': 'Нужна ти е още 1 група, за да свалиш.',
+  'zolik.hint.runsNeeded': 'Нужни са ти още {n} кенти, за да свалиш.',
+  'zolik.hint.runsNeeded.1': 'Нужна ти е още 1 кента, за да свалиш.',
+  'zolik.hint.cleanRunNeeded': 'Нужна ти е още кента без жокер, за да свалиш.',
+  'zolik.hint.meldPoints': 'Комбинациите ти трябва да струват {n} точки, за да свалиш — имаш {have}.',
+  'zolik.hint.downInOneTurn': 'Свали в един ход: започнатото сваляне трябва да се довърши или върне преди хвърляне.',
+  'zolik.hint.layOffWhenDown': 'Можеш да добавяш карти към комбинации едва след като си свалил.',
+  'zolik.hint.discardLocked': 'От купчината за хвърляне може да се тегли от рунд {n}.',
   'results.you': '(ти)',
 
 
