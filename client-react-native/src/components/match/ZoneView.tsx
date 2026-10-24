@@ -1003,25 +1003,20 @@ function StackBack({ count, compact, metrics }: { count: number; compact?: boole
     );
   }
 
-  // A deck rather than a box: two darkened edges peeking out under a real
-  // card back, and the count on a chip. Same outer size as the flat box to
-  // the pixel — the offsets spend the slack the ring arithmetic below
-  // already reserves, so the zone measures identically either way.
+  // A real card back rather than a box, with the count on a chip. One card,
+  // not a fanned stack of edges: drawn as layers it read as several draw
+  // piles. Same outer size as the flat box to the pixel, the card centred in
+  // it, so the zone measures identically either way.
   const w = compact ? metrics.card.compactWidth : metrics.card.width;
   const h = compact ? metrics.card.compactHeight : metrics.card.height;
   return (
     <View style={[styles.deck, compact ? styles.backCompact : styles.backFull]}>
-      <View style={[styles.deckUnder, styles.deckUnderFar, { left: 6, top: 6, width: w, height: h }]} />
-      <View style={[styles.deckUnder, { left: 4, top: 4, width: w, height: h }]} />
-      <View style={[styles.deckUnder, styles.deckUnderNear, { left: 2, top: 2, width: w, height: h }]} />
-      {/* Shadow on the top card only — the pile below it reads as solid, so
-          one cast edge under the whole stack is what a real deck throws. */}
-      <View style={skin.card.shadow && styles.deckTopShadow}>
+      <View style={[{ width: w, height: h }, skin.card.shadow && styles.deckTopShadow]}>
         <CardBack width={w} height={h} />
-      </View>
-      <View style={[styles.deckCount, { width: w }]} pointerEvents="none">
-        <View style={styles.deckCountPill}>
-          <Text style={styles.backText}>{count}</Text>
+        <View style={[styles.deckCount, { width: w }]} pointerEvents="none">
+          <View style={styles.deckCountPill}>
+            <Text style={styles.backText}>{count}</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -1218,24 +1213,12 @@ function zoneStyles(m: Metrics, s: Skin) {
     },
     backText: { color: colors.text, fontWeight: '700' },
     // The deck variant of `back`: same outer box, no fill of its own — the
-    // card back and its under-edges paint the inside.
+    // card back paints the inside.
     deck: {
       marginTop: 6,
-      position: 'relative',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    deckUnder: {
-      position: 'absolute',
-      borderRadius: 6,
-      backgroundColor: s.card.back.colors[1],
-      borderWidth: 1,
-      borderColor: 'rgba(0, 0, 0, 0.4)',
-      opacity: 0.8,
-    },
-    deckUnderNear: { opacity: 0.9 },
-    // The third, deepest edge — the offsets (2, 4, 6) spend exactly the
-    // slack the ring arithmetic reserves, so the box still measures the
-    // same as the flat variant to the pixel.
-    deckUnderFar: { opacity: 0.65 },
     // Shadow, never size — same discipline as CardView's cardShadow.
     deckTopShadow: {
       shadowColor: '#000',

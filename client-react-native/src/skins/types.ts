@@ -190,7 +190,7 @@ export type Skin = {
     /** Each seat gets an initial-circle avatar before the name. */
     avatars: boolean;
   };
-  /** The face-down stack is drawn as a small 3D pile of card backs. */
+  /** The face-down stack is drawn as a real card back rather than a plain box. */
   deckStack: boolean;
   /**
    * The exact spot a dragged card will land — same contract as the original
