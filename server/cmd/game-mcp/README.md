@@ -12,8 +12,10 @@ listed whole); every board a seat is shown is the module's own `View` for that
 seat, the one place hidden information is filtered. Nothing in
 `internal/gamemcp` knows a rule of any game.
 
-All eight games the server hosts can be played. The three with a learn adapter
-(`zolik`, `canasta`, `holdem`) also take `net:` opponents and `coach` scores.
+All sixteen games the server hosts can be played. The three with a shipped
+model (`zolik`, `canasta`, `holdem`) also take `net:` opponents and `coach`
+scores; the other learn adapters are there to be benched against, not to be
+played by a network that does not exist yet.
 
 ## Setup
 

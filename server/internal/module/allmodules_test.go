@@ -23,6 +23,7 @@ import (
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
+	"zolik/server/internal/sietemedio"
 	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
@@ -155,6 +156,38 @@ func allModules() []hosted {
 			players:  refs("p1", "p2", "p3", "p4"),
 			cfg:      module.MatchConfig{Options: module.Options{"talie": 1}},
 			prefer:   []string{"continue", "choose_game", "play_card", "tuk", "end_turn"},
+			finishes: true,
+		},
+		{
+			name:    "sietemedio",
+			rounds:  true,
+			mod:     sietemedio.New(),
+			players: refs("p1", "p2", "p3"),
+			// The bank is one of these three seats, so every verb here
+			// belongs to a player: stake against whoever is dealing, then
+			// play the hand out. Standing is preferred over asking for a card
+			// so a driver with no sense of the arithmetic does not simply
+			// draw itself past 7½ every round.
+			cfg:      module.MatchConfig{Options: module.Options{sietemedio.OptRounds: 12}},
+			prefer:   []string{"stake", "stand", "hit"},
+			finishes: true,
+		},
+		{
+			name:     "sietemedio/cantina",
+			rounds:   true,
+			mod:      sietemedio.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: sietemedio.VarCantina, Options: module.Options{sietemedio.OptRounds: 12}},
+			prefer:   []string{"stake", "stand", "hit"},
+			finishes: true,
+		},
+		{
+			name:     "sietemedio/abierta",
+			rounds:   true,
+			mod:      sietemedio.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: sietemedio.VarAbierta, Options: module.Options{sietemedio.OptRounds: 12}},
+			prefer:   []string{"stake", "hit", "stand"},
 			finishes: true,
 		},
 		{
@@ -545,7 +578,15 @@ func TestEveryModuleAgreesWithItsOwnOffers(t *testing.T) {
 							}
 							continue
 						}
-						if actor == "" {
+						// Live rather than Enabled: getting up from the table
+						// is offered to every seated player at a drop-in
+						// table, and a seat whose only enabled control is
+						// "leave" is not the seat to drive the match with —
+						// picking it ends the playthrough on the first step
+						// and the test proves nothing. Siete y Medio is where
+						// that showed up: its banker waits while everybody
+						// else stakes.
+						if actor == "" && o.Live() {
 							actor = p.ID
 						}
 						a, ok := module.SubmissionFor(o)

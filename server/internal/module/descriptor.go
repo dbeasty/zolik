@@ -149,6 +149,18 @@ type ModuleDescriptor struct {
 // jack and the queen. Suits map H→hearts, D→bells, C→acorns, S→leaves.
 const DeckGerman = "german"
 
+// DeckSpanish is the Spanish-suited forty: oros, copas, espadas and bastos,
+// the ace to the seven, and the sota, caballo and rey where the French pack
+// has the jack, the queen and the king. There are no eights, nines or tens.
+// Suits map H→copas, D→oros, C→bastos, S→espadas.
+//
+// Optional for a client, exactly as DeckGerman is: the codes are the ordinary
+// French ones, so one that ignores this draws French faces and plays the game
+// as well — it only loses the oros and the caballo. A module dealing this pack
+// is responsible for leaving the three missing ranks out of its own deck; the
+// field says how to draw a card, not which cards exist.
+const DeckSpanish = "spanish"
+
 // DeckLastCard is Last Card's own pack: four colours of 0–9, Skip, Reverse
 // and Draw Two, and two kinds of wild. Its codes are not French ones ("C-7",
 // "T-S", "W4"), so unlike DeckGerman this is not optional for a client: one

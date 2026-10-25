@@ -12,6 +12,13 @@
  * the same lists can be written out as a plain `.svg` to look at the whole
  * pack on one sheet.
  *
+ * The *printing* in here — the frame a court or an ace sits in, the roundel,
+ * the double-ended figure and the belt that joins its two halves — is shared
+ * with the Spanish pack (`spanishArt.ts`), which brings its own four signs
+ * and its own colours and reuses everything else. That is what `SuitPack` is
+ * for: the functions below take the pack whose signs and colours to print,
+ * and default to this one, so a German-suited caller is unchanged.
+ *
  * This is original artwork, drawn for this client in the manner of the
  * double-ended Central European packs and traced from none of them. The free
  * German-suited set that exists (the xskat deck on Wikimedia Commons) is
@@ -61,8 +68,31 @@ const ACCENTS: Record<string, string> = {
   S: '#D9A320',
 };
 
+/**
+ * Everything about a pictorial pack that differs suit by suit: which suits it
+ * has, what colour each is printed in, what its figures wear, and how its
+ * sign is drawn.
+ *
+ * It exists so the frame, the ace roundel and the three court figures below
+ * can be printed for a pack other than this one. The German and Spanish packs
+ * differ in their signs and their colours; they do not differ in how a court
+ * card is laid out, and two copies of a double-ended figure would drift the
+ * first time one of them was touched.
+ */
+export type SuitPack = {
+  /** Which pack this is, for the few decisions that are not drawings — which
+   *  letters its courts wear, say. */
+  id: 'german' | 'spanish';
+  suits: readonly string[];
+  colors: Record<string, { fill: string; line: string; light: string; deep: string }>;
+  /** What a figure wears besides its suit's colour. */
+  accents: Record<string, string>;
+  /** The suit's sign, in a 100×100 box. */
+  sign(suit: string, red: string): Shape[];
+};
+
 /** A circle as a path, so a shape is only ever a path. */
-function circle(cx: number, cy: number, r: number): string {
+export function circle(cx: number, cy: number, r: number): string {
   return `M${cx - r} ${cy} A${r} ${r} 0 1 0 ${cx + r} ${cy} A${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
 }
 
@@ -171,19 +201,27 @@ export function suitShapes(suit: string, red: string): Shape[] {
 }
 
 /** A suit sign placed inside a larger drawing, `size` units across at (x, y). */
-export function placedSuit(suit: string, red: string, x: number, y: number, size: number, flipped = false): Shape[] {
+export function placedSuit(
+  suit: string,
+  red: string,
+  x: number,
+  y: number,
+  size: number,
+  flipped = false,
+  pack: SuitPack = GERMAN_PACK,
+): Shape[] {
   const transform = `translate(${x} ${y}) scale(${size / 100})${flipped ? ' rotate(180 50 50)' : ''}`;
-  return suitShapes(suit, red).map((s) => ({ ...s, transform }));
+  return pack.sign(suit, red).map((s) => ({ ...s, transform }));
 }
 
 /** The colour a suit's panel is washed with. */
-export function suitTint(suit: string, red: string): string {
-  return suit === 'H' ? red : GERMAN_SUIT_COLORS[suit]?.fill ?? red;
+export function suitTint(suit: string, red: string, pack: SuitPack = GERMAN_PACK): string {
+  return suit === 'H' ? red : pack.colors[suit]?.fill ?? red;
 }
 
 /** The colour a suit's line work — its frame, its index — is printed in. */
-export function suitLine(suit: string, red: string): string {
-  return suit === 'H' ? red : GERMAN_SUIT_COLORS[suit]?.line ?? red;
+export function suitLine(suit: string, red: string, pack: SuitPack = GERMAN_PACK): string {
+  return suit === 'H' ? red : pack.colors[suit]?.line ?? red;
 }
 
 /**
@@ -231,8 +269,14 @@ export function frameShapes(span: number, color: string, notch: Notch, tint?: st
  * The eso: one large sign in a roundel, with a flourish above and below it.
  * A German ace is a panel rather than a pip, and this is the panel.
  */
-export function aceShapes(suit: string, red: string, span: number, notch: Notch): Shape[] {
-  const line = suitLine(suit, red);
+export function aceShapes(
+  suit: string,
+  red: string,
+  span: number,
+  notch: Notch,
+  pack: SuitPack = GERMAN_PACK,
+): Shape[] {
+  const line = suitLine(suit, red, pack);
   const cy = span / 2;
   const flourish = (y: number, dir: 1 | -1): Shape[] => [
     {
@@ -248,12 +292,12 @@ export function aceShapes(suit: string, red: string, span: number, notch: Notch)
     },
   ];
   return [
-    ...frameShapes(span, line, notch, suitTint(suit, red)),
+    ...frameShapes(span, line, notch, suitTint(suit, red, pack)),
     { d: circle(50, cy, 40), stroke: line, sw: 1.6, opacity: 0.8 },
     { d: circle(50, cy, 36.5), stroke: line, sw: 0.7, opacity: 0.6 },
     ...flourish(cy - 50, 1),
     ...flourish(cy + 50, -1),
-    ...placedSuit(suit, red, 22, cy - 28, 56),
+    ...placedSuit(suit, red, 22, cy - 28, 56, false, pack),
   ];
 }
 
@@ -306,11 +350,17 @@ const MOUTH = 'M46.6 44.2 Q50 46.2 53.4 44.2';
  * Signs sit on the figure's right of the panel, clear of the corner index,
  * which owns the top left of every card.
  */
-export function courtShapes(rank: string, suit: string, waist: number, inks: CourtInks): Shape[] {
+export function courtShapes(
+  rank: string,
+  suit: string,
+  waist: number,
+  inks: CourtInks,
+  pack: SuitPack = GERMAN_PACK,
+): Shape[] {
   const { ink, red, stock } = inks;
-  const coat = suit === 'H' ? red : GERMAN_SUIT_COLORS[suit]?.fill ?? ink;
-  const coatDeep = suit === 'H' ? darken(red, 0.28) : GERMAN_SUIT_COLORS[suit]?.deep ?? ink;
-  const accent = ACCENTS[suit] ?? ink;
+  const coat = suit === 'H' ? red : pack.colors[suit]?.fill ?? ink;
+  const coatDeep = suit === 'H' ? darken(red, 0.28) : pack.colors[suit]?.deep ?? ink;
+  const accent = pack.accents[suit] ?? ink;
   const w = waist;
   const neck: Shape = { d: 'M45 46 L45 59 L55 59 L55 46 Z', fill: SKIN_SHADE };
 
@@ -375,7 +425,7 @@ export function courtShapes(rank: string, suit: string, waist: number, inks: Cou
         { d: 'M15.2 25.5 L24.8 25.5', stroke: ink, sw: 1 },
         { d: 'M20 20.5 L20 13.5 M17.2 16.5 L22.8 16.5', stroke: ink, sw: 1.7 },
         { d: circle(20, 63, 4.6), fill: SKIN, stroke: ink, sw: 1.4 },
-        ...placedSuit(suit, red, 73, 4, 24),
+        ...placedSuit(suit, red, 73, 4, 24, false, pack),
       ];
     case 'Q':
       return [
@@ -417,7 +467,7 @@ export function courtShapes(rank: string, suit: string, waist: number, inks: Cou
         { d: 'M28 19.5 C28 16 72 16 72 19.5 C72 23.5 28 23.5 28 19.5 Z', fill: ink },
         { d: 'M42 11.5 C35 12.5 29 9 26.5 3 C33 2.5 40 4.5 44 8.5 Z', fill: accent, stroke: ink, sw: 1.1 },
         { d: 'M41 10 C36 9.6 31.5 7.4 28.4 4.2', stroke: ink, sw: 0.7, opacity: 0.7 },
-        ...placedSuit(suit, red, 73.2, 2, 24),
+        ...placedSuit(suit, red, 73.2, 2, 24, false, pack),
       ];
     case 'J':
       return [
@@ -455,7 +505,7 @@ export function courtShapes(rank: string, suit: string, waist: number, inks: Cou
         { d: 'M35.8 18.5 L64.2 18.5 L64.2 23 L35.8 23 Z', fill: ink },
         { d: 'M60 10.5 C65 3 74 1.5 81 2.5 C78 9 70 13.5 62 14 Z', fill: ERMINE, stroke: ink, sw: 1.1 },
         { d: 'M62 12.6 C68 9.6 74 6 79 3.4', stroke: ink, sw: 0.7, opacity: 0.7 },
-        ...placedSuit(suit, red, 77, 60.5, 21.5),
+        ...placedSuit(suit, red, 77, 60.5, 21.5, false, pack),
       ];
   }
   return [];
@@ -465,14 +515,21 @@ export function courtShapes(rank: string, suit: string, waist: number, inks: Cou
  * A whole court panel, 100 wide and `span` tall: the frame, the figure, the
  * same figure turned about the waist, and the belt that joins them.
  */
-export function courtPanel(rank: string, suit: string, span: number, notch: Notch, inks: CourtInks): Shape[] {
+export function courtPanel(
+  rank: string,
+  suit: string,
+  span: number,
+  notch: Notch,
+  inks: CourtInks,
+  pack: SuitPack = GERMAN_PACK,
+): Shape[] {
   const reach = REACH[rank];
   if (!reach) return [];
   const waist = span / 2;
-  const half = courtShapes(rank, suit, waist, inks);
+  const half = courtShapes(rank, suit, waist, inks, pack);
   const turn = `rotate(180 50 ${waist})`;
   return [
-    ...frameShapes(span, suitLine(suit, inks.red), notch, suitTint(suit, inks.red)),
+    ...frameShapes(span, suitLine(suit, inks.red, pack), notch, suitTint(suit, inks.red, pack)),
     ...half,
     ...half.map((s) => ({ ...s, transform: s.transform ? `${turn} ${s.transform}` : turn })),
     {
@@ -481,6 +538,15 @@ export function courtPanel(rank: string, suit: string, span: number, notch: Notc
       stroke: inks.ink,
       sw: 1.2,
     },
-    { d: `M50 ${waist - 4.4} L54.4 ${waist} L50 ${waist + 4.4} L45.6 ${waist} Z`, fill: ACCENTS[suit] ?? GOLD_LINE, stroke: inks.ink, sw: 1 },
+    { d: `M50 ${waist - 4.4} L54.4 ${waist} L50 ${waist + 4.4} L45.6 ${waist} Z`, fill: pack.accents[suit] ?? GOLD_LINE, stroke: inks.ink, sw: 1 },
   ];
 }
+
+/** This file's own pack: the German-suited 32. */
+export const GERMAN_PACK: SuitPack = {
+  id: 'german',
+  suits: GERMAN_SUITS,
+  colors: GERMAN_SUIT_COLORS,
+  accents: ACCENTS,
+  sign: suitShapes,
+};

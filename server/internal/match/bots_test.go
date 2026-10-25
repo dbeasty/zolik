@@ -12,6 +12,7 @@ import (
 	"zolik/server/internal/okobere"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/sedma"
+	"zolik/server/internal/sietemedio"
 	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
@@ -52,6 +53,7 @@ func botCases() []botCase {
 		{name: "okobere", mod: okobere.New(), players: botRefs("b1", "b2", "b3"), carries: true},
 		{name: "sedma", mod: sedma.New(), players: botRefs("b1", "b2", "b3", "b4"), carries: true},
 		{name: "snaps", mod: snaps.New(), players: botRefs("b1", "b2"), carries: true},
+		{name: "sietemedio", mod: sietemedio.New(), players: botRefs("b1", "b2", "b3"), carries: true},
 		{
 			name: "lora", mod: lora.New(), players: botRefs("b1", "b2", "b3", "b4"),
 			cfg: module.MatchConfig{Options: module.Options{"talie": 1}}, carries: true,

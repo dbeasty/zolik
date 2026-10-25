@@ -3,27 +3,36 @@ import Svg from 'react-native-svg';
 
 // Card type, pinned to the card's own size — see CardText.
 import { CardText as Text } from '@/src/components/cards/CardText';
-import { GermanShapes, GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
-import { aceShapes, courtPanel, placedSuit, type Notch, type Shape } from '@/src/components/cards/germanArt';
+import { PackShapes, PackSuit, packInk } from '@/src/components/cards/PackSuit';
+import {
+  aceShapes,
+  courtPanel,
+  GERMAN_PACK,
+  placedSuit,
+  type Notch,
+  type Shape,
+  type SuitPack,
+} from '@/src/components/cards/germanArt';
 import type { CardDisplay } from '@/src/lib/cards';
-import { germanIndex } from '@/src/lib/deck';
+import { germanIndex, spanishIndex } from '@/src/lib/deck';
 import { isCourt, pipsFor } from '@/src/lib/pips';
 
 /**
- * A German-suited card face: `DeluxeFace`'s layout, with the German pack's
- * suits, courts and indices.
+ * A pictorial card face — German-suited or Spanish-suited: `DeluxeFace`'s
+ * layout, with the pack's own suits, courts and indices.
  *
  * Everything that makes the deluxe face read as a printed card carries over
  * unchanged — indices in both corners with the bottom one turned, the pip
  * arrangements in `src/lib/pips.ts` for the 7 to the 10, one large sign on
- * the ace, a double-ended figure on the courts — so a Mariáš hand sits on the
- * board at the same size and in the same grammar as a rummy hand. Every
- * measurement is a fraction of the card handed in; `CardView` owns the box,
- * and draws the plain and stacked German faces itself.
+ * the ace, a double-ended figure on the courts — so a Mariáš hand, or a Siete
+ * y Medio hand, sits on the board at the same size and in the same grammar as
+ * a rummy hand. Every measurement is a fraction of the card handed in;
+ * `CardView` owns the box, and draws the plain and stacked faces itself.
  *
- * The middle of the card is one drawing, 100 units wide, made of the shapes
- * in `germanArt.ts`; the indices are type laid over it, because which letter
- * a svršek wears is the player's language's business.
+ * The middle of the card is one drawing, 100 units wide, made of the shapes in
+ * `germanArt.ts` and `spanishArt.ts`; the indices are type laid over it,
+ * because which letter a svršek wears is the player's language's business —
+ * while a sota wears the S the pack itself prints, in every language.
  */
 
 type Props = {
@@ -33,6 +42,7 @@ type Props = {
   ink: string;
   red: string;
   stock: string;
+  pack?: SuitPack;
 };
 
 const FIELD = { left: 0.15, right: 0.85, top: 0.06, bottom: 0.94 };
@@ -41,16 +51,16 @@ const FIELD = { left: 0.15, right: 0.85, top: 0.06, bottom: 0.94 };
 const PIP = 27;
 
 /**
- * How far the two pip columns are drawn in towards the spine. A German sign
- * is a picture with an outline, wider for its height than a French pip, and
- * at the French spacing the top-left one touches the index beside it.
+ * How far the two pip columns are drawn in towards the spine. A pictorial
+ * sign is a picture with an outline, wider for its height than a French pip,
+ * and at the French spacing the top-left one touches the index beside it.
  */
 const COLUMNS = 0.84;
 
-export function GermanFace({ card, width, height, ink, red, stock }: Props) {
+export function PackFace({ card, width, height, ink, red, stock, pack = GERMAN_PACK }: Props) {
   const suit = card.suit;
-  const color = germanInk(suit, red);
-  // The deluxe face's proportions, so a German card and a French one are
+  const color = packInk(suit, red, pack);
+  // The deluxe face's proportions, so a pictorial card and a French one are
   // printed at the same weight and the pips clear the index the same way.
   const indexRank = Math.max(7, Math.round(width * 0.24));
   const indexSuit = Math.max(6, Math.round(width * 0.17));
@@ -59,7 +69,7 @@ export function GermanFace({ card, width, height, ink, red, stock }: Props) {
   const fieldWidth = width * (FIELD.right - FIELD.left);
   const fieldHeight = height * (FIELD.bottom - FIELD.top);
   const field = { left: width * FIELD.left, top: height * FIELD.top, width: fieldWidth, height: fieldHeight };
-  const label = germanIndex(card.rank);
+  const label = pack.id === 'spanish' ? spanishIndex(card.rank) : germanIndex(card.rank);
   // Two letters (a Czech "Sv") set a size down, so they fit the column a
   // single letter does — "10" included, which is the widest index and the one
   // the top-left pip sits nearest.
@@ -71,7 +81,22 @@ export function GermanFace({ card, width, height, ink, red, stock }: Props) {
   if (span > 0) {
     const pips = pipsFor(card.rank);
     if (pips.length) {
-      shapes = pips.flatMap((p) => placedSuit(suit, red, 50 + (p.x - 0.5) * COLUMNS * 100 - PIP / 2, p.y * span - PIP / 2, PIP, p.flip));
+      // The lower half of a French or German number card is printed upside
+      // down, so the card reads either way up. A baraja española is not: every
+      // coin, cup, sword and club on it stands the same way up, and a goblet
+      // turned over reads as a plant pot rather than as a cup.
+      const flips = pack.id !== 'spanish';
+      shapes = pips.flatMap((p) =>
+        placedSuit(
+          suit,
+          red,
+          50 + (p.x - 0.5) * COLUMNS * 100 - PIP / 2,
+          p.y * span - PIP / 2,
+          PIP,
+          flips && p.flip,
+          pack,
+        ),
+      );
     } else {
       // A court's frame and an ace's step in around the index. How far is
       // measured from the index actually printed: bold capitals run to about
@@ -84,15 +109,15 @@ export function GermanFace({ card, width, height, ink, red, stock }: Props) {
         h: Math.max(6, (inset + lineHeight + indexSuit + gap - field.top) * unit),
       };
       shapes = isCourt(card.rank)
-        ? courtPanel(card.rank, suit, span, notch, { ink, red, stock })
-        : aceShapes(suit, red, span, notch);
+        ? courtPanel(card.rank, suit, span, notch, { ink, red, stock }, pack)
+        : aceShapes(suit, red, span, notch, pack);
     }
   }
 
   const index = (
     <>
       <Text style={[styles.indexRank, { fontSize, lineHeight, color }]}>{label}</Text>
-      <GermanSuit suit={suit} size={indexSuit} red={red} />
+      <PackSuit suit={suit} size={indexSuit} red={red} pack={pack} />
     </>
   );
 
@@ -101,7 +126,7 @@ export function GermanFace({ card, width, height, ink, red, stock }: Props) {
       {span > 0 ? (
         <View style={[styles.field, field]}>
           <Svg width={fieldWidth} height={fieldHeight} viewBox={`0 0 100 ${span}`}>
-            <GermanShapes shapes={shapes} />
+            <PackShapes shapes={shapes} />
           </Svg>
         </View>
       ) : null}

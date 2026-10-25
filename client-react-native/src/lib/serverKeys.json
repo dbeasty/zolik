@@ -5,12 +5,15 @@
     "ALREADY_LEFT",
     "ALREADY_READY",
     "ALREADY_SHOWN",
+    "ALREADY_STAKED",
     "AMOUNT_NOT_A_NUMBER",
     "AMOUNT_REQUIRED",
     "BAD_OPTION",
     "BAD_SEATING",
     "BAD_SPLIT_POSITION",
     "BAD_TARGET",
+    "BANKER_DOES_NOT_STAKE",
+    "BANK_CANNOT_COVER",
     "BET_BELOW_MINIMUM",
     "BLACK_THREE_GO_OUT_ONLY",
     "CANNOT_ADD_SELF",
@@ -198,6 +201,7 @@
     "SNAPS_NO_EXCHANGE_CARD",
     "SNAPS_PICK_ONE_CARD",
     "SNAPS_TALON_CLOSED",
+    "STAKE_BELOW_MINIMUM",
     "STAND_IN_ENDED",
     "STAND_IN_NOT_A_PERSON",
     "STAND_IN_NOT_OFFERED",
@@ -1223,6 +1227,99 @@
     "sedma.zone.partnerHand",
     "sedma.zone.stock",
     "sedma.zone.trick",
+    "sietemedio.fact.bankCovers",
+    "sietemedio.fact.roomLeft",
+    "sietemedio.fact.tableMinimum",
+    "sietemedio.fact.yourTotal",
+    "sietemedio.header.bank",
+    "sietemedio.header.minStake",
+    "sietemedio.header.round",
+    "sietemedio.header.target",
+    "sietemedio.offer.hit",
+    "sietemedio.offer.stake",
+    "sietemedio.offer.stand",
+    "sietemedio.prompt.bankMove",
+    "sietemedio.prompt.placeStake",
+    "sietemedio.prompt.stakeAmount",
+    "sietemedio.prompt.waitingFor",
+    "sietemedio.prompt.yourMove",
+    "sietemedio.quick.doubleMin",
+    "sietemedio.quick.theLot",
+    "sietemedio.remedy.bankCoversAtMost",
+    "sietemedio.remedy.playThisHand",
+    "sietemedio.remedy.putAStakeUp",
+    "sietemedio.remedy.sayHowMuch",
+    "sietemedio.remedy.stakeAtLeast",
+    "sietemedio.remedy.stakeAtMost",
+    "sietemedio.remedy.stakeIsUp",
+    "sietemedio.remedy.waitForNextRound",
+    "sietemedio.remedy.waitYourTurn",
+    "sietemedio.remedy.youHoldTheBank",
+    "sietemedio.round.bankBust",
+    "sietemedio.round.bankSeven",
+    "sietemedio.round.bankTotal",
+    "sietemedio.round.heldTheBank",
+    "sietemedio.round.name",
+    "sietemedio.round.outcome.bust",
+    "sietemedio.round.outcome.lose",
+    "sietemedio.round.outcome.push",
+    "sietemedio.round.outcome.seven",
+    "sietemedio.round.outcome.win",
+    "sietemedio.round.total",
+    "sietemedio.rules.allFaceUp",
+    "sietemedio.rules.bankBust",
+    "sietemedio.rules.bankCovers",
+    "sietemedio.rules.bankDoesNotStake",
+    "sietemedio.rules.bankFixed",
+    "sietemedio.rules.bankLast",
+    "sietemedio.rules.bankOnSeven",
+    "sietemedio.rules.bankRound",
+    "sietemedio.rules.brokeOut",
+    "sietemedio.rules.bust",
+    "sietemedio.rules.firstCardDown",
+    "sietemedio.rules.goal",
+    "sietemedio.rules.hitStand",
+    "sietemedio.rules.leave",
+    "sietemedio.rules.leaveAway",
+    "sietemedio.rules.leaveAwayNever",
+    "sietemedio.rules.minStake",
+    "sietemedio.rules.mostChipsWins",
+    "sietemedio.rules.oneStakePerRound",
+    "sietemedio.rules.pack",
+    "sietemedio.rules.roundOrder",
+    "sietemedio.rules.rounds",
+    "sietemedio.rules.section.bank",
+    "sietemedio.rules.section.end",
+    "sietemedio.rules.section.leaving",
+    "sietemedio.rules.section.play",
+    "sietemedio.rules.section.table",
+    "sietemedio.rules.sevenPaysDouble",
+    "sietemedio.rules.sevenPaysEven",
+    "sietemedio.rules.sevenStands",
+    "sietemedio.rules.stack",
+    "sietemedio.rules.stakeFromStack",
+    "sietemedio.rules.tiesPush",
+    "sietemedio.rules.tiesToBank",
+    "sietemedio.rules.values",
+    "sietemedio.seat.bank",
+    "sietemedio.seat.bust",
+    "sietemedio.seat.lost",
+    "sietemedio.seat.noRoom",
+    "sietemedio.seat.out",
+    "sietemedio.seat.push",
+    "sietemedio.seat.seven",
+    "sietemedio.seat.showing",
+    "sietemedio.seat.stack",
+    "sietemedio.seat.stake",
+    "sietemedio.seat.total",
+    "sietemedio.seat.won",
+    "sietemedio.status.bankBust",
+    "sietemedio.status.bankSeven",
+    "sietemedio.status.bankStands",
+    "sietemedio.zone.bankHand",
+    "sietemedio.zone.hand",
+    "sietemedio.zone.pack",
+    "sietemedio.zone.yourHand",
     "snaps.fact.exchange",
     "snaps.header.closed",
     "snaps.header.deal",
@@ -1865,6 +1962,51 @@
     "sedma.rules.section.play",
     "sedma.rules.section.scoring",
     "sedma.rules.teams",
+    "sietemedio.remedy.bankCoversAtMost",
+    "sietemedio.remedy.playThisHand",
+    "sietemedio.remedy.putAStakeUp",
+    "sietemedio.remedy.sayHowMuch",
+    "sietemedio.remedy.stakeAtLeast",
+    "sietemedio.remedy.stakeAtMost",
+    "sietemedio.remedy.stakeIsUp",
+    "sietemedio.remedy.waitForNextRound",
+    "sietemedio.remedy.waitYourTurn",
+    "sietemedio.remedy.youHoldTheBank",
+    "sietemedio.rules.allFaceUp",
+    "sietemedio.rules.bankBust",
+    "sietemedio.rules.bankCovers",
+    "sietemedio.rules.bankDoesNotStake",
+    "sietemedio.rules.bankFixed",
+    "sietemedio.rules.bankLast",
+    "sietemedio.rules.bankOnSeven",
+    "sietemedio.rules.bankRound",
+    "sietemedio.rules.brokeOut",
+    "sietemedio.rules.bust",
+    "sietemedio.rules.firstCardDown",
+    "sietemedio.rules.goal",
+    "sietemedio.rules.hitStand",
+    "sietemedio.rules.leave",
+    "sietemedio.rules.leaveAway",
+    "sietemedio.rules.leaveAwayNever",
+    "sietemedio.rules.minStake",
+    "sietemedio.rules.mostChipsWins",
+    "sietemedio.rules.oneStakePerRound",
+    "sietemedio.rules.pack",
+    "sietemedio.rules.roundOrder",
+    "sietemedio.rules.rounds",
+    "sietemedio.rules.section.bank",
+    "sietemedio.rules.section.end",
+    "sietemedio.rules.section.leaving",
+    "sietemedio.rules.section.play",
+    "sietemedio.rules.section.table",
+    "sietemedio.rules.sevenPaysDouble",
+    "sietemedio.rules.sevenPaysEven",
+    "sietemedio.rules.sevenStands",
+    "sietemedio.rules.stack",
+    "sietemedio.rules.stakeFromStack",
+    "sietemedio.rules.tiesPush",
+    "sietemedio.rules.tiesToBank",
+    "sietemedio.rules.values",
     "snaps.rules.close",
     "snaps.rules.deal.turns",
     "snaps.rules.deal5",
@@ -3233,6 +3375,120 @@
     "sedma.seat.points": [
       "n"
     ],
+    "sietemedio.fact.bankCovers": [
+      "n",
+      "value"
+    ],
+    "sietemedio.fact.roomLeft": [
+      "total",
+      "value"
+    ],
+    "sietemedio.fact.tableMinimum": [
+      "n",
+      "value"
+    ],
+    "sietemedio.fact.yourTotal": [
+      "total",
+      "value"
+    ],
+    "sietemedio.header.bank": [
+      "playerId"
+    ],
+    "sietemedio.header.minStake": [
+      "n",
+      "value"
+    ],
+    "sietemedio.header.round": [
+      "n",
+      "of",
+      "value"
+    ],
+    "sietemedio.header.target": [
+      "value"
+    ],
+    "sietemedio.prompt.waitingFor": [
+      "playerId"
+    ],
+    "sietemedio.quick.doubleMin": [
+      "value"
+    ],
+    "sietemedio.quick.theLot": [
+      "value"
+    ],
+    "sietemedio.remedy.bankCoversAtMost": [
+      "n"
+    ],
+    "sietemedio.remedy.putAStakeUp": [
+      "n"
+    ],
+    "sietemedio.remedy.sayHowMuch": [
+      "n"
+    ],
+    "sietemedio.remedy.stakeAtLeast": [
+      "n"
+    ],
+    "sietemedio.remedy.stakeAtMost": [
+      "n"
+    ],
+    "sietemedio.round.bankBust": [
+      "playerId",
+      "total",
+      "value"
+    ],
+    "sietemedio.round.bankSeven": [
+      "playerId"
+    ],
+    "sietemedio.round.bankTotal": [
+      "playerId",
+      "total",
+      "value"
+    ],
+    "sietemedio.round.total": [
+      "total",
+      "value"
+    ],
+    "sietemedio.rules.brokeOut": [
+      "n"
+    ],
+    "sietemedio.rules.leaveAway": [
+      "minutes"
+    ],
+    "sietemedio.rules.minStake": [
+      "n"
+    ],
+    "sietemedio.rules.rounds": [
+      "n"
+    ],
+    "sietemedio.rules.stack": [
+      "n"
+    ],
+    "sietemedio.seat.showing": [
+      "value"
+    ],
+    "sietemedio.seat.stack": [
+      "chips",
+      "value"
+    ],
+    "sietemedio.seat.stake": [
+      "chips",
+      "value"
+    ],
+    "sietemedio.seat.total": [
+      "value"
+    ],
+    "sietemedio.status.bankBust": [
+      "playerId",
+      "total",
+      "value"
+    ],
+    "sietemedio.status.bankSeven": [
+      "playerId"
+    ],
+    "sietemedio.status.bankStands": [
+      "playerId",
+      "total",
+      "value"
+    ],
     "snaps.fact.exchange": [
       "card"
     ],
@@ -3775,6 +4031,38 @@
     "sedma.round.points",
     "sedma.rules.end",
     "sedma.seat.points",
+    "sietemedio.fact.bankCovers",
+    "sietemedio.fact.roomLeft",
+    "sietemedio.fact.tableMinimum",
+    "sietemedio.fact.yourTotal",
+    "sietemedio.header.bank",
+    "sietemedio.header.minStake",
+    "sietemedio.header.round",
+    "sietemedio.header.target",
+    "sietemedio.prompt.waitingFor",
+    "sietemedio.quick.doubleMin",
+    "sietemedio.quick.theLot",
+    "sietemedio.remedy.bankCoversAtMost",
+    "sietemedio.remedy.putAStakeUp",
+    "sietemedio.remedy.sayHowMuch",
+    "sietemedio.remedy.stakeAtLeast",
+    "sietemedio.remedy.stakeAtMost",
+    "sietemedio.round.bankBust",
+    "sietemedio.round.bankSeven",
+    "sietemedio.round.bankTotal",
+    "sietemedio.round.total",
+    "sietemedio.rules.brokeOut",
+    "sietemedio.rules.leaveAway",
+    "sietemedio.rules.minStake",
+    "sietemedio.rules.rounds",
+    "sietemedio.rules.stack",
+    "sietemedio.seat.showing",
+    "sietemedio.seat.stack",
+    "sietemedio.seat.stake",
+    "sietemedio.seat.total",
+    "sietemedio.status.bankBust",
+    "sietemedio.status.bankSeven",
+    "sietemedio.status.bankStands",
     "snaps.fact.exchange",
     "snaps.header.closed",
     "snaps.header.deal",
