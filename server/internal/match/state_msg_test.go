@@ -227,3 +227,108 @@ func TestBuildStateMsgOmitsRoundsForAGameWithoutThem(t *testing.T) {
 		t.Error(`the wire carries a "rounds" key for a game with no rounds`)
 	}
 }
+
+// A broadcast decodes the state once and reads every seat's board from the
+// copy. That is only acceptable if each seat is sent exactly what asking the
+// module for that seat alone would have sent, whatever order the seats are
+// read in and whoever was read before them.
+func TestBroadcastProjectionMatchesPerViewerBuild(t *testing.T) {
+	m, match := dealt(t, "zolik", "p1", "p2", "p3")
+	mod := m.registry.Get("zolik")
+	rounds := module.RoundsFor(mod, module.State(match.State))
+
+	proj, ok := module.ProjectionFor(mod, module.State(match.State))
+	if !ok {
+		t.Fatal("zolik offers no projection")
+	}
+	viewers := []string{"p3", "p1", "", "p2", "p1"}
+	for _, viewer := range viewers {
+		shared, _ := json.Marshal(m.buildStateMsg(match, viewer, rounds, proj))
+		alone, _ := json.Marshal(m.buildStateMsg(match, viewer, rounds, nil))
+		if string(shared) != string(alone) {
+			t.Fatalf("viewer %q: shared projection differs from the module's own\nshared: %s\nalone:  %s", viewer, shared, alone)
+		}
+	}
+
+	// And the hidden-hand rule itself, on the shared copy: p2's cards are in
+	// p2's message and nobody else's.
+	for _, viewer := range []string{"p1", "p2", "p3"} {
+		msg := m.buildStateMsg(match, viewer, rounds, proj)
+		for _, z := range msg.View.Zones {
+			if z.Kind == module.ZoneHand && z.OwnerID != viewer && len(z.Cards) > 0 {
+				t.Errorf("%s was shown %s's hand through the shared projection", viewer, z.OwnerID)
+			}
+		}
+	}
+}
+
+// What a broadcast sends each seat is built from shared parts — the state the
+// move applied, decoded once with its offers kept, the descriptor and the seat
+// facts worked out once for every recipient — and the projection then goes on
+// to the bot loop, which asks it for the seat to play. None of that sharing
+// may show: at every position of played matches each seat's frame must be,
+// byte for byte, the one BuildStateMsg makes for that seat on its own, and the
+// bot loop must be offered what the module itself would offer.
+func TestBroadcastFramesMatchPerViewerBuildsThroughPlayedMatches(t *testing.T) {
+	ids := []string{"p1", "p2", "p3"}
+	for _, seed := range []int64{1, 2, 3} {
+		m, match := dealt(t, "zolik", ids...)
+		match.Players[1].IsAI, match.Players[2].IsAI = true, true
+		mod := m.registry.Get("zolik")
+		refs := make([]module.PlayerRef, 0, len(ids))
+		for _, id := range ids {
+			refs = append(refs, module.PlayerRef{ID: id, Name: id})
+		}
+		state, err := mod.NewMatch(module.MatchConfig{}, refs, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		match.State = models.JSONDoc(state)
+		bot := module.BotFor(mod)
+		var held module.Projection
+		for step := 0; step < 300; step++ {
+			raw := module.State(match.State)
+			proj, rounds := held, module.RoundsFor(mod, raw)
+			if proj == nil {
+				proj, _ = module.ProjectionFor(mod, raw)
+			}
+			o := stateMsgOpts{rounds: rounds, proj: proj, withOffers: true}
+			d := mod.Descriptor()
+			o.desc = &d
+			facts := m.seatFacts(match)
+			for _, viewer := range []string{"p2", "p1", "", "p3", "stranger"} {
+				shared, _ := json.Marshal(withSeatFacts(m.buildStateMsgWith(match, viewer, o), facts))
+				alone, _ := json.Marshal(m.BuildStateMsg(match, viewer))
+				if string(shared) != string(alone) {
+					t.Fatalf("seed %d step %d viewer %q: broadcast frame differs from a lone build\nshared: %s\nalone:  %s",
+						seed, step, viewer, shared, alone)
+				}
+			}
+			if done, _, _ := mod.Finished(raw); done {
+				break
+			}
+			actor := module.ActiveSeat(mod, raw, "p1", refs)
+			if actor == "" {
+				break
+			}
+			offers, _ := proj.LegalActions(actor)
+			own, _ := mod.LegalActions(raw, actor)
+			a, _ := json.Marshal(offers)
+			b, _ := json.Marshal(own)
+			if string(a) != string(b) {
+				t.Fatalf("seed %d step %d: the bot loop is offered something other than the module's own list", seed, step)
+			}
+			action, ok := bot.Act(raw, module.BotSeat{PlayerID: actor, Skill: module.SkillMedium, Seed: seed}, offers)
+			if !ok {
+				if action, ok = module.ChooseAction(offers, nil); !ok {
+					break
+				}
+			}
+			next, _, p, _, err := module.ApplyAndProject(mod, raw, actor, action)
+			if err != nil {
+				break
+			}
+			match.State, held = models.JSONDoc(next), p
+		}
+	}
+}

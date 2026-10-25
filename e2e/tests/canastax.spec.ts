@@ -357,3 +357,59 @@ test('dragging cards between melds works at phone width', async ({ page, request
   });
   await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-9']).toBe('9C 9D 9S 2C');
 });
+
+/**
+ * A new dirty sequence with either wild in the gap: 9♥ 2♣ J♥ and 9♥ JOKER J♥.
+ * The offer names one wild of its own choosing; the player may pick the other.
+ * With nothing on the table the side has not opened, and only the joker's 70
+ * reaches the minimum — the offer has to choose it, or there is no offer at all.
+ */
+for (const { opened, wild, extra } of [
+  { opened: false, wild: 'JOKER3', extra: 'KS' },
+  { opened: true, wild: 'JOKER3', extra: 'KS' },
+  { opened: true, wild: '2C', extra: 'KS' },
+  // The queen makes 9-J-Q possible too; 9-J alone must still go.
+  { opened: true, wild: 'JOKER3', extra: 'QH' },
+  { opened: true, wild: '2C', extra: 'QH' },
+]) {
+  test(`9H ${wild} JH goes down as a new sequence (${opened ? 'opened' : 'opening'}, holding ${extra})`, async ({ page, request }) => {
+    test.setTimeout(60_000);
+    const { matchId, host } = await canastaXTable(request, (s, p1) => {
+      for (const t of s.teams) {
+        t.melds = [];
+        t.hasMelded = opened;
+      }
+      s.hands[p1] = ['9H', '2C', 'JOKER3', 'JH', extra, '5D', '7S', '3D', 'QC', 'AD'];
+    });
+    await openMatch(page, host, matchId);
+
+    await selectOnly(page, ['9H', wild, 'JH']);
+    const bar = page.getByTestId('action-bar');
+    const meld = bar.locator('[data-testid="offer-group:verb.lay_meld"], [data-testid^="offer-lay_meld"]').first();
+    await expect(meld).toBeVisible();
+    await expect(meld).not.toHaveAttribute('aria-disabled', 'true');
+    await meld.click();
+    await expect
+      .poll(async () => Object.values((await onServer(request, matchId, host)).melds))
+      .toContain(`9H ${wild} JH`);
+  });
+}
+
+test('9H 2C JH alone cannot open, and says why', async ({ page, request }) => {
+  test.setTimeout(60_000);
+  const { matchId, host } = await canastaXTable(request, (s, p1) => {
+    for (const t of s.teams) {
+      t.melds = [];
+      t.hasMelded = false;
+    }
+    s.hands[p1] = ['9H', '2C', 'JOKER3', 'JH', 'KS', '5D', '7S', '3D', 'QC', 'AD'];
+  });
+  await openMatch(page, host, matchId);
+
+  await selectOnly(page, ['9H', '2C', 'JH']);
+  const bar = page.getByTestId('action-bar');
+  const meld = bar.locator('[data-testid="offer-group:verb.lay_meld"], [data-testid^="offer-lay_meld"]').first();
+  await meld.click();
+  await expect(page.getByText(/minimum|50/i).first()).toBeVisible();
+  expect(Object.keys((await onServer(request, matchId, host)).melds)).toEqual([]);
+});

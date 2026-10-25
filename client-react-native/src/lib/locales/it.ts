@@ -20,6 +20,12 @@ export const it: Record<string, string> = {
   'err.DISPLACED': 'Aperta in un\'altra scheda — questa ha smesso di sincronizzarsi',
   'err.UNREACHABLE': 'Impossibile raggiungere il server. Controlla la connessione e riprova.',
   'err.INVALID_CREDENTIALS': 'Nome utente e password non corrispondono.',
+  'err.CREDENTIALS_REQUIRED': 'Inserisci un nome utente e una password.',
+  'err.PASSWORD_TOO_LONG': 'Quella password è troppo lunga.',
+  'err.USERNAME_TAKEN': 'Quel nome utente o indirizzo e-mail è già in uso.',
+  'err.INVALID_EMAIL': 'Non sembra un indirizzo e-mail.',
+  'err.CODE_INVALID': 'Quel codice non è valido. Richiedine uno nuovo.',
+  'err.TOO_MANY_CODES': 'Sono stati richiesti troppi codici per quell’indirizzo. Riprova tra poco.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const it: Record<string, string> = {
   'zolik.rules.lead.winner': 'Chi chiude apre la smazzata successiva.',
   'zolik.rules.meldFloor.on':
     'La tua prima calata deve totalizzare almeno {n} punti naturali perché tu risulti calato.',
+  'zolik.rules.meldFloor.values':
+    "Per quel minimo ogni carta conta quanto costa in mano, tranne l'asso: {aceHigh} in un tris o sopra il re, {aceLow} sotto il 2. Un jolly conta come la carta che sostituisce.",
   'zolik.rules.meldFloor.off': "Non c'è un minimo di punti sulla tua prima calata.",
   'zolik.rules.cleanRun.on':
     'Almeno una delle tue scale deve essere del tutto priva di jolly perché tu risulti calato.',
@@ -120,6 +128,8 @@ export const it: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Ogni smazzata richiede la stessa combinazione: {sets} gruppi e {runs} scale.',
   'zolik.rules.end.afterDeals': 'La partita finisce dopo {n} smazzate.',
+  'zolik.rules.penalty.values':
+    "Una carta rimasta in mano costa: jolly {joker}, 10, fante, donna o re {face}, 2-9 il suo numero, e un asso {ace} — o solo {aceLow} se in mano hai anche un 2 del suo seme, o la donna e il re del suo seme, o se allungherebbe una scala sul tavolo.",
   'zolik.rules.end.atScore': 'Si continua a smazzare finché qualcuno raggiunge {n} punti — poi è finita.',
 
   'prsi.rules.section.goal': 'Obiettivo',
@@ -179,6 +189,8 @@ export const it: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'La pila degli scarti resta congelata per tutta la mano: per prenderla devi abbinare la carta in cima a due carte naturali della tua mano.',
   'canasta.rules.pileOntoMeld': 'Se la tua parte ha già una combinazione incompleta del valore della carta in cima, puoi prendere tutta la pila degli scarti e aggiungerle quella carta: non ti serve una coppia in mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinazione già in tavola non può prendere la pila degli scarti: per prenderla devi abbinare la carta in cima a due carte della tua stessa mano.',
+  'canasta.rules.cardValues':
+    "Valore delle carte: jolly {joker}, 2 {two}, asso {ace}, dal re all'8 {high}, dal 7 al 4 {low}, tre nero {black}. I tre rossi sono bonus e non contano mai per una combinazione.",
   'canasta.rules.meldFloorBands':
     'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} oltre.',
   'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} fino a {highUpTo}, {top} oltre.',
@@ -309,6 +321,8 @@ export const it: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Inizia il round successivo',
+  'round.autoContinue': 'Inizia il round successivo automaticamente',
+  'round.autoContinueIn': 'Prossimo round tra {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -376,6 +390,15 @@ export const it: Record<string, string> = {
   'holdem.round.uncontested': 'Tutti gli altri hanno lasciato',
   'seat.ready': 'Pronto',
   'zolik.seat.contractMet': 'Contratto soddisfatto',
+  'zolik.hint.setsNeeded': 'Ti servono ancora {n} tris per calare.',
+  'zolik.hint.setsNeeded.1': 'Ti serve ancora 1 tris per calare.',
+  'zolik.hint.runsNeeded': 'Ti servono ancora {n} scale per calare.',
+  'zolik.hint.runsNeeded.1': 'Ti serve ancora 1 scala per calare.',
+  'zolik.hint.cleanRunNeeded': 'Ti serve ancora una scala senza jolly per calare.',
+  'zolik.hint.meldPoints': 'Le tue combinazioni devono valere {n} punti per calare — ne hai {have}.',
+  'zolik.hint.downInOneTurn': 'Cala in un solo turno: una calata iniziata va completata, o ritirata, prima di scartare.',
+  'zolik.hint.layOffWhenDown': 'Puoi attaccare carte alle combinazioni solo dopo aver calato.',
+  'zolik.hint.discardLocked': 'Dagli scarti si può pescare dal giro {n}.',
   'results.you': '(tu)',
 
 
@@ -647,6 +670,8 @@ export const it: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Una combinazione è un gruppo di tre o quattro carte dello stesso valore, oppure una scala di tre o più carte dello stesso seme.',
   'ginrummy.rules.aceLow': "L'asso è sempre basso — non esiste la scala da donna ad asso.",
+  'ginrummy.rules.cardValues':
+    "Nel deadwood un asso conta {ace}, un 2-9 il suo numero, e un 10, fante, donna o re {face}.",
   'ginrummy.rules.knockLimit': 'Puoi bussare non appena il tuo deadwood scende a {n} o meno.',
   'ginrummy.rules.oklahoma': 'Il limite per bussare in questa mano è dato dal valore della carta scoperta.',
   'ginrummy.rules.gin': 'Deadwood zero è gin — la migliore bussata possibile.',
@@ -735,6 +760,8 @@ export const it: Record<string, string> = {
   'rummytiles.rules.run': 'Una scala è formata da tre o più numeri consecutivi dello stesso colore.',
   'rummytiles.rules.noWrap': "Il 13 non riprende dall'1.",
   'rummytiles.rules.joker': 'Un jolly sostituisce qualsiasi tessera.',
+  'rummytiles.rules.tileValues':
+    "Una tessera vale il suo numero. Un jolly in una combinazione vale la tessera che sostituisce; uno rimasto in mano costa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Finché non hai calato {n} punti o più in un solo turno, dalla tua sola mano, non puoi toccare nulla di ciò che è già sul tavolo.',
   'rummytiles.rules.turnDescription':
@@ -812,6 +839,8 @@ export const it: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Le carte dei giocatori si danno scoperte; il banco tiene una carta coperta finché non hanno giocato tutti.',
   'blackjack.rules.hitStand': 'Chiedi tutte le carte che vuoi, oppure stai su ciò che hai.',
+  'blackjack.rules.cardValues':
+    "Un 2-9 conta il suo numero; un 10, fante, donna o re conta {face}.",
   'blackjack.rules.aces': 'Un asso vale undici finché ci sta, e uno quando non ci sta più.',
   'blackjack.rules.blackjack': 'Un asso con una carta da dieci, nelle prime due carte, è blackjack.',
   'blackjack.rules.pays3to2': 'Il blackjack paga 3:2.',
@@ -1322,6 +1351,9 @@ export const it: Record<string, string> = {
   'match.resume': 'Riprendi da dove eri rimasto',
   'match.resuming': 'Recupero del tavolo…',
   'match.abandonedWaitingFor': 'In attesa che {names} torni al tavolo.',
+  'match.everyoneBack': 'Sono tutti di nuovo al tavolo.',
+  'match.everyoneBackNextRound': 'Sono tutti di nuovo al tavolo. Riprendere avvia il turno successivo per tutti.',
+  'match.waitingForHostResume': 'In attesa che {name} riprenda la partita.',
   'match.tableCode': 'Codice {code}',
   'match.tableCodeShare': 'Torna al nostro tavolo',
   'match.abandonedSendCode': 'Manda loro un link per tornare al loro posto: funziona su qualsiasi dispositivo.',
@@ -1755,6 +1787,10 @@ export const it: Record<string, string> = {
   'canasta.unit.points': 'punti',
   'ginrummy.unit.points': 'punti',
   'holdem.seat.dealer': 'Mazziere',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Fuori mano',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Eliminato',
@@ -2351,6 +2387,8 @@ export const it: Record<string, string> = {
   'lastcard.card.drawTwo': 'Pesca due',
   'lastcard.card.wild': 'Jolly',
   'lastcard.card.wildDrawFour': 'Jolly pesca quattro',
+  'lastcard.card.wildSwap': 'Jolly scambio',
+  'lastcard.card.wildMayhem': 'Jolly caos',
   'variation.lastcard.classic': 'Classico',
   'err.LASTCARD_NO_MATCH': 'Quella carta non corrisponde né al colore, né al numero, né al simbolo',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Il Jolly pesca quattro è consentito solo se non hai carte del colore in gioco',
@@ -2406,7 +2444,12 @@ export const it: Record<string, string> = {
   'lastcard.rules.section.house': 'Regole della casa',
   'lastcard.rules.stacking.twos': 'Accumulo: rispondi a un Pesca due con un tuo Pesca due e passa avanti tutto il cumulo. Chi non può prende tutto e salta il turno.',
   'lastcard.rules.stacking.any': 'Accumulo: rispondi a una carta pesca con una tua — un Pesca due su un Pesca due, un Jolly pesca quattro su entrambi — e passa avanti tutto il cumulo. Chi non può prende tutto e salta il turno.',
-  'lastcard.rules.sevens': 'Giocando una carta 7, scambi la tua mano con chi ha meno carte.',
+  'lastcard.rules.sevens': 'Giocando una carta 7, scambi la tua mano con un giocatore a tua scelta.',
+  'lastcard.rules.wildSwap': 'Jolly scambio ({n} nel mazzo): indica il colore che segue, poi scambia la tua mano con un giocatore a tua scelta.',
+  'lastcard.rules.wildMayhem': 'Jolly caos ({n} nel mazzo): indica il colore che segue, poi tutte le mani vengono raccolte, mescolate e ridistribuite una carta alla volta, a partire dal giocatore successivo.',
+  'lastcard.prompt.swapWith': 'Con chi scambi la mano?',
+  'lastcard.prompt.player': 'Giocatore',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Scegli un giocatore con cui scambiare la mano',
   'lastcard.rules.zeros': 'Giocando una carta 0, ogni mano passa al giocatore successivo nel senso di gioco.',
   'lastcard.remedy.stackOrTake': 'Rispondi con una tua carta pesca, oppure prendi le {n} carte.',
   'lastcard.offer.takeStack': 'Prendile',
@@ -2422,6 +2465,12 @@ export const it: Record<string, string> = {
   'option.sevenZero': 'Sette e zeri',
   'choice.sevenZero.0': 'No',
   'choice.sevenZero.1': 'Sì',
+  'option.swapCards': 'Carte Jolly scambio',
+  'choice.swapCards.0': 'No',
+  'choice.swapCards.1': 'Sì',
+  'option.mayhemCards': 'Carte Jolly caos',
+  'choice.mayhemCards.0': 'No',
+  'choice.mayhemCards.1': 'Sì',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} ha giocato {card}',
   'lastcard.move.playedSkip': '{player} ha giocato {card} — {target} salta il turno',
@@ -2445,6 +2494,7 @@ export const it: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} ha contestato {target} — era onesto, quindi {player} pesca {n} carte e salta il turno',
   'lastcard.move.swapped': '{player} ha scambiato la mano con {target}',
   'lastcard.move.passedHands': '{player} ha giocato lo 0 — tutte le mani passano avanti',
+  'lastcard.move.mayhem': 'Caos! {player} ha raccolto tutte le mani, le ha mescolate e ridistribuite',
   'lastcard.move.wentOut': '{player} ha chiuso e segna {n} punti',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Punteggio',

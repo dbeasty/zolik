@@ -297,6 +297,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 
 	// The seats. This is the field poker added, and it is where every number
 	// that is not a card lives.
+	sb, bb := -1, -1
+	if len(s.BlindSeats) == 2 && s.Status != "completed" {
+		sb, bb = s.BlindSeats[0], s.BlindSeats[1]
+	}
 	for i := range s.Seats {
 		st := &s.Seats[i]
 		seat := module.Seat{
@@ -316,6 +320,16 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		}
 		if i == s.Button {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.dealer")
+		}
+		// Who paid in before seeing a card. The header says how much the
+		// blinds are; this says whose they were, which is what decides who
+		// acts last and whose raise is really a raise. Heads-up the button is
+		// also the small blind, so a seat may carry both marks.
+		if i == sb {
+			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.smallBlind")
+		}
+		if i == bb {
+			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.bigBlind")
 		}
 		if st.Folded {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.folded")

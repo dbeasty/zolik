@@ -57,10 +57,17 @@ function parseLastCardDisplay(card: string): CardDisplay | null {
   };
 }
 
+/** A tile colour's shape, so colour is never the only thing telling two tiles apart. */
+export const TILE_GLYPH: Record<string, string> = { R: "●", B: "■", O: "▲", K: "◆" };
+
 export function parseCard(card: string): CardDisplay {
   if (isLastCardCode(card)) {
     const lc = parseLastCardDisplay(card);
     if (lc) return lc;
+  }
+  if (isTileCode(card)) {
+    const [n, colour] = card.split("-");
+    return { rank: n, suitSymbol: TILE_GLYPH[colour] ?? "●", suit: colour, isRed: colour === "R", isJoker: false };
   }
   if (card.startsWith("JOKER")) {
     return {
@@ -185,6 +192,10 @@ export function lastCardText(card: string): string {
       return t('lastcard.card.wild');
     case 'wildDrawFour':
       return t('lastcard.card.wildDrawFour');
+    case 'wildSwap':
+      return t('lastcard.card.wildSwap');
+    case 'wildMayhem':
+      return t('lastcard.card.wildMayhem');
     case 'skip':
       return `${SHAPE_GLYPH[c.colour]} ${t('lastcard.card.skip')}`;
     case 'reverse':

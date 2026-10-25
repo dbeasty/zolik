@@ -82,6 +82,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: module.OptOn, Label: "Offered"}, {Value: module.OptOff, Label: "Not offered"},
 				},
 			},
+			module.HintsOption(),
 		},
 	}
 }

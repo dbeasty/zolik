@@ -6,14 +6,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Last Card's own pack: codes "<colour>-<face>" and the two wilds "W" and
-// "W4". Drawn in the card's colour, with the colour's shape beside the face —
+// Last Card's own pack: codes "<colour>-<face>" and the wilds "W" and "W4",
+// with the house rules' "WS" (Swap) and "WM" (Mayhem). Drawn in the card's colour, with the colour's shape beside the face —
 // the shape carries the colour for a terminal, or a player, without it.
 
 var lastCardDeck bool
 
 type lastCardFace struct {
-	face  string // "7", "SK", "RV", "+2", "W", "+4"
+	face  string // "7", "SK", "RV", "+2", "W", "+4", "SW", "MH"
 	shape string // ● ◆ ▲ ■, or ✦ for a wild
 	style lipgloss.Style
 }
@@ -45,6 +45,10 @@ func parseLastCard(card string) (lastCardFace, bool) {
 		return lastCardFace{face: "W", shape: "✦", style: wildStyle}, true
 	case "W4":
 		return lastCardFace{face: "+4", shape: "✦", style: wildStyle}, true
+	case "WS":
+		return lastCardFace{face: "SW", shape: "✦", style: wildStyle}, true
+	case "WM":
+		return lastCardFace{face: "MH", shape: "✦", style: wildStyle}, true
 	}
 	colour, face, ok := strings.Cut(card, "-")
 	c, known := lastCardColours[colour]

@@ -117,6 +117,48 @@ func TestThreeHandedBlinds(t *testing.T) {
 	}
 }
 
+// TestSeatsSayWhoseBlindsTheyAre pins the marks the board reads: three-handed
+// the blinds are two seats, heads up the button carries the small blind too.
+func TestSeatsSayWhoseBlindsTheyAre(t *testing.T) {
+	for _, n := range []int{2, 3} {
+		ids := []string{"p1", "p2", "p3"}[:n]
+		raw, err := New().NewMatch(module.MatchConfig{}, refs(ids...), 1)
+		if err != nil {
+			t.Fatalf("NewMatch: %v", err)
+		}
+		s := mustDecode(t, raw)
+		vm, err := New().View(raw, "p1")
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		marks := map[string][]string{}
+		for _, seat := range vm.Seats {
+			marks[seat.PlayerID] = seat.LabelKeys
+		}
+		sb, bb := s.blindSeats()
+		if !slices.Contains(marks[s.Seats[sb].PlayerID], "holdem.seat.smallBlind") {
+			t.Errorf("%d-handed: small blind seat %s marks %v", n, s.Seats[sb].PlayerID, marks[s.Seats[sb].PlayerID])
+		}
+		if !slices.Contains(marks[s.Seats[bb].PlayerID], "holdem.seat.bigBlind") {
+			t.Errorf("%d-handed: big blind seat %s marks %v", n, s.Seats[bb].PlayerID, marks[s.Seats[bb].PlayerID])
+		}
+		blinds := 0
+		for _, ks := range marks {
+			for _, k := range ks {
+				if k == "holdem.seat.smallBlind" || k == "holdem.seat.bigBlind" {
+					blinds++
+				}
+			}
+		}
+		if blinds != 2 {
+			t.Errorf("%d-handed: %d blind marks, want 2: %v", n, blinds, marks)
+		}
+		if n == 2 && sb != s.Button {
+			t.Errorf("heads up, the button is the small blind")
+		}
+	}
+}
+
 // TestBigBlindHasTheOption — posting a blind is not acting, so a big blind who
 // is merely called round to still gets to raise.
 func TestBigBlindHasTheOption(t *testing.T) {

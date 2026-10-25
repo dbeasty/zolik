@@ -51,6 +51,17 @@ export function isDealerLabel(key: string): boolean {
   return key.split(".").pop() === "dealer";
 }
 
+/**
+ * The badge a seat mark is drawn as, if its game gave it one: the wording at
+ * `<key>.short`, when the locale bundle has it. A mark worth a glance round
+ * the table gets a two-letter badge from its own game's bundle, and this
+ * client never learns what the mark means.
+ */
+export function badgeOf(key: string): string | undefined {
+  const short = `${key}.short`;
+  return messageTemplate(short) !== undefined ? t(short) : undefined;
+}
+
 /** A message key rendered for display, falling back to its own shape. */
 export function label(
   key: string | undefined,
@@ -108,6 +119,14 @@ function tokenText(value: unknown, players: Named[], spoken = false): string {
       .join(hand && !spoken ? " " : ", ");
   }
   if (typeof value !== "string") return String(value);
+  // A fact's value is one string, so a set of tiles arrives comma-joined
+  // ("10-R,11-R,12-R"). Read as the list it is when every part is a tile.
+  if (value.includes(",")) {
+    const parts = value.split(",");
+    if (parts.every((v) => isTileCode(v) && !players.some((p) => p.id === v))) {
+      return tokenText(parts, players, spoken);
+    }
+  }
   const player = players.find((p) => p.id === value);
   if (player) return player.name;
   if (KEY_SHAPED.test(value)) return label(value);

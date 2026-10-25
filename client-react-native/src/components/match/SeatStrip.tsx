@@ -11,11 +11,12 @@ import { seatElementId } from '@/src/lib/flights';
 import { ms } from '@/src/lib/motion';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { useReactions } from '@/src/components/avatars/ReactionsContext';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
 import { scoreText, seatSpokenLabel } from '@/src/lib/boardSpeech';
 import { cssLoop } from '@/src/lib/cssLoop';
-import { factText, isDealerLabel, label, playerName, shownScore } from '@/src/lib/labels';
+import { badgeOf, factText, isDealerLabel, label, playerName, shownScore } from '@/src/lib/labels';
 import { partnerText, partnersOf } from '@/src/lib/sides';
 import type { Skin } from '@/src/skins/types';
 import { t } from '@/src/lib/i18n';
@@ -133,6 +134,8 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   // and simply does not rise — the fact is still on screen, in the two cues
   // that were never movement.
   const stillness = useReducedMotion();
+  // What each face is acting out — the same events the board sounds for.
+  const reactions = useReactions();
   const styles = useMemo(() => seatStyles(metrics, skin), [metrics, skin]);
   const [stripWidth, setStripWidth] = useState(0);
 
@@ -168,6 +171,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         spec={avatarFor(seat.playerId, !!(player?.isAI || player?.isAgent), player?.avatar)}
         size={metrics.seat.avatar}
         ringColor={seat.active ? skin.colors.gold : undefined}
+        reaction={reactions[seat.playerId] ?? null}
       />
     ) : null;
     const pickBot =
@@ -403,6 +407,14 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                 <Text style={styles.tag}>{label(key)}</Text>
               </View>
             </Tip>
+          ) : badgeOf(key) ? (
+            // A mark its game gave a short form is drawn as a badge, like the
+            // button: something a glance round the table finds, with the
+            // words beside it for anyone who does not read the letters.
+            <View key={key} style={styles.dealerRow} testID={`seat-badge-${seat.playerId}-${key}`}>
+              <MarkBadge text={badgeOf(key)!} styles={styles} />
+              <Text style={styles.tag}>{label(key)}</Text>
+            </View>
           ) : (
             <Text key={key} style={styles.tag}>
               {label(key)}
@@ -461,6 +473,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                   <Avatar
                     spec={avatarFor(seat.playerId, !!(player?.isAI || player?.isAgent), player?.avatar)}
                     size={metrics.seat.avatarCompact}
+                    reaction={reactions[seat.playerId] ?? null}
                   />
                 ) : null}
                 {/* The one mark worth the width on a collapsed rail: whose
@@ -469,6 +482,10 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                 {(seat.labelKeys ?? []).some(isDealerLabel) ? (
                   <DealerButton size={Math.round(metrics.seat.avatarCompact * 0.8)} skin={skin} />
                 ) : null}
+                {(seat.labelKeys ?? []).map((key) => {
+                  const badge = badgeOf(key);
+                  return badge ? <MarkBadge key={key} text={badge} styles={styles} /> : null;
+                })}
                 <Text style={styles.summaryName} numberOfLines={1}>
                   {seat.active ? '● ' : ''}
                   {playerName(players, seat.playerId)}
@@ -808,6 +825,16 @@ function seatStyles(m: Metrics, s: Skin) {
     turn: { color: colors.accent, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
     tag: { color: colors.gold, fontSize: m.panel.bodyFont - 1, marginTop: 2 },
     dealerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    markBadge: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.gold,
+      backgroundColor: 'rgba(212, 175, 55, 0.22)',
+      paddingHorizontal: 5,
+      minWidth: 22,
+      alignItems: 'center',
+    },
+    markBadgeText: { color: colors.text, fontSize: m.panel.bodyFont - 3, fontWeight: '700' },
     // Louder than a fact, quieter than a tag: who you are playing with is not
     // a number and not a warning.
     team: { color: colors.text, fontSize: m.panel.bodyFont - 1, fontWeight: '600', marginTop: 2 },
@@ -818,4 +845,13 @@ function seatStyles(m: Metrics, s: Skin) {
     teamMine: { color: colors.gold, fontWeight: '700' },
     fact: { color: colors.muted, fontSize: m.panel.bodyFont - 1, marginTop: 1 },
   });
+}
+
+/** A seat mark's short form, drawn as a badge. */
+function MarkBadge({ text, styles }: { text: string; styles: { markBadge: object; markBadgeText: object } }) {
+  return (
+    <View style={styles.markBadge}>
+      <Text style={styles.markBadgeText}>{text}</Text>
+    </View>
+  );
 }

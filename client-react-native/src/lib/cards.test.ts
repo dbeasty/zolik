@@ -58,3 +58,10 @@ describe("tiles in prose", () => {
     expect(tileText("7H")).toBe("7H");
   });
 });
+
+describe("parseCard on a tile", () => {
+  it("reads a tile as its number and colour shape, not a malformed card", () => {
+    expect(parseCard("7-R")).toMatchObject({ rank: "7", suitSymbol: "●", suit: "R", isJoker: false });
+    expect(parseCard("13-K")).toMatchObject({ rank: "13", suitSymbol: "◆", suit: "K" });
+  });
+});

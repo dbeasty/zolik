@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Dimensions } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 
 import { getA11yPrefs, useA11yPrefs } from '@/src/a11y/prefs';
 import { useSystemContrast } from '@/src/a11y/systemContrast';
@@ -49,7 +49,15 @@ export function SkinProvider({ children }: { children: ReactNode }) {
   // that restyled itself when the window crossed 768 would be a look changing
   // under their hands mid-deal. Resizing is free to change every *size*; that
   // is `useMetrics`'s job and it does follow the window.
-  const [chosen, setChosen] = useState<Skin>(() => defaultSkinFor(Dimensions.get('window').width));
+  //
+  // On the web the first render must also match the pre-rendered page, which
+  // is drawn at a window width of zero: the narrow skin. Starting a wide
+  // window on the wide skin made React find the match screen's markup and the
+  // HTML disagreeing (error #418) on every visit at 768px and up. The width's
+  // own default is applied one tick later, with the saved choice below.
+  const [chosen, setChosen] = useState<Skin>(() =>
+    defaultSkinFor(Platform.OS === 'web' ? 0 : Dimensions.get('window').width),
+  );
   const { contrast, fourColour } = useA11yPrefs();
   const systemContrast = useSystemContrast();
   const forced = contrast === 'on' || (contrast === 'auto' && systemContrast);
@@ -61,7 +69,9 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     let live = true;
     loadSkinId().then((id) => {
       const saved = skinById(id);
-      if (live && saved) setChosen(saved);
+      if (!live) return;
+      if (saved) setChosen(saved);
+      else if (Platform.OS === 'web') setChosen(defaultSkinFor(Dimensions.get('window').width));
     });
     return () => {
       live = false;

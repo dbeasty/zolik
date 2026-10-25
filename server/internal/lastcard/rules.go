@@ -1,6 +1,10 @@
 package lastcard
 
-import "zolik/server/internal/module"
+import (
+	"strconv"
+
+	"zolik/server/internal/module"
+)
 
 var _ module.RulesProvider = (*Module)(nil)
 
@@ -15,6 +19,8 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	stacking := cfg.Opt(OptStacking, stackOff)
 	drawUntil := cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn
 	sevenZero := cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn
+	swap := cfg.Opt(OptSwapCards, module.OptOff) == module.OptOn
+	mayhem := cfg.Opt(OptMayhemCards, module.OptOff) == module.OptOn
 	lowest := cfg.Opt(OptScoring, scoreWinnerTakes) == scoreLowest
 
 	goal := module.Fact{LabelKey: "lastcard.rules.goal"}
@@ -39,7 +45,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	out := []module.RuleSection{
 		module.Section("lastcard.rules.section.goal", goal),
 		module.Section("lastcard.rules.section.setup",
-			module.Fact{LabelKey: "lastcard.rules.deck", Value: "108"},
+			module.Fact{LabelKey: "lastcard.rules.deck", Value: strconv.Itoa(deckSize(swap, mayhem))},
 			module.Fact{LabelKey: "lastcard.rules.deal", Params: map[string]any{"n": handSize}},
 		),
 		module.Section("lastcard.rules.section.turn",
@@ -67,6 +73,12 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "lastcard.rules.sevens"},
 			module.Fact{LabelKey: "lastcard.rules.zeros"},
 		)
+	}
+	if swap {
+		house = append(house, module.Fact{LabelKey: "lastcard.rules.wildSwap", Params: map[string]any{"n": swapCopies}})
+	}
+	if mayhem {
+		house = append(house, module.Fact{LabelKey: "lastcard.rules.wildMayhem", Params: map[string]any{"n": mayhemCopies}})
 	}
 	if len(house) > 0 {
 		out = append(out, module.Section("lastcard.rules.section.house", house...))

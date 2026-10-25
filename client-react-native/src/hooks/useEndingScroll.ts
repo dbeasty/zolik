@@ -148,7 +148,10 @@ export type EndingScroll = {
 export function useEndingScroll(
   state: Ending | null,
   scrollTo: (y: number) => void,
+  /** `rounds: false` leaves a round's stop where the player is; a match's still moves. */
+  opts: { rounds?: boolean } = {},
 ): EndingScroll {
+  const scrollRounds = opts.rounds ?? true;
   const stop = state ? stopOf(state) : null;
   const id = stop?.id ?? null;
   const kind = stop?.kind ?? null;
@@ -193,11 +196,15 @@ export function useEndingScroll(
 
   useEffect(() => {
     if (!pending) return;
+    if (pending === 'round' && !scrollRounds) {
+      setPending(null);
+      return;
+    }
     const block = blockOf(pending, spans.current);
     if (!block || viewport.current <= 0) return;
     setPending(null);
     scrollTo(stopAt(block, viewport.current, offset.current));
-  }, [pending, measured, scrollTo]);
+  }, [pending, measured, scrollTo, scrollRounds]);
 
   const scrollProps = {
     onLayout: useCallback((e: LayoutChangeEvent) => {

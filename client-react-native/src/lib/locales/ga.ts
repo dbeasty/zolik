@@ -20,6 +20,12 @@ export const ga: Record<string, string> = {
   'err.DISPLACED': 'Osclaíodh i gcluaisín eile é — stad an ceann seo ag sioncronú',
   'err.UNREACHABLE': 'Ní féidir teacht ar an bhfreastalaí. Seiceáil do cheangal agus bain triail eile as.',
   'err.INVALID_CREDENTIALS': 'Ní hionann an t-ainm úsáideora agus an focal faire.',
+  'err.CREDENTIALS_REQUIRED': 'Cuir isteach ainm úsáideora agus pasfhocal.',
+  'err.PASSWORD_TOO_LONG': 'Tá an pasfhocal sin rófhada.',
+  'err.USERNAME_TAKEN': 'Tá an t-ainm úsáideora nó an ríomhphost sin in úsáid cheana.',
+  'err.INVALID_EMAIL': 'Ní chosúil le seoladh ríomhphoist é sin.',
+  'err.CODE_INVALID': 'Níl an cód sin bailí. Iarr ceann nua.',
+  'err.TOO_MANY_CODES': 'Iarradh an iomarca cód don seoladh sin. Bain triail eile as i gceann tamaill.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -112,6 +118,8 @@ export const ga: Record<string, string> = {
   'zolik.rules.lead.winner': 'Tosaíonn an té a théann amach an chéad dáileadh eile.',
   'zolik.rules.meldFloor.on':
     'Caithfidh do chéad leagan síos {n} phointe nádúrtha ar a laghad a bhaint amach sula mbeidh tú síos.',
+  'zolik.rules.meldFloor.values':
+    "I dtreo an íosmhéid sin, comhairtear gach cárta ar a gcosnaíonn sé i do lámh, seachas aon: {aceHigh} i dtacar nó os cionn rí, {aceLow} faoi bhun 2. Comhairtear fear grinn mar an cárta a sheasann sé dó.",
   'zolik.rules.meldFloor.off': 'Níl aon íosluach pointí ar do chéad leagan síos.',
   'zolik.rules.cleanRun.on':
     'Caithfidh ceann amháin ar a laghad de do shraitheanna a bheith go hiomlán gan áilteoir sula gcomhairtear síos thú.',
@@ -122,6 +130,8 @@ export const ga: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Éilíonn gach dáileadh an meascán céanna: {sets} thacar agus {runs} shraith.',
   'zolik.rules.end.afterDeals': 'Críochnaíonn an cluiche tar éis {n} dháileadh.',
+  'zolik.rules.penalty.values':
+    "Cosnaíonn cárta a fhanann i do lámh: fear grinn {joker}, 10, cuireata, banríon nó rí {face}, 2 go 9 a uimhir féin, agus aon {ace} — nó {aceLow} amháin má tá 2 dá chulaith, nó banríon agus rí dá chulaith, i do lámh freisin, nó dá gcuirfeadh sé le sraith ar an mbord.",
   'zolik.rules.end.atScore':
     'Leantar ag dáileadh go dtí go sroicheann duine éigin {n} bpointe — ansin tá deireadh leis.',
 
@@ -182,6 +192,8 @@ export const ga: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Tá an carn caite reoite ar feadh na dála ar fad: ní féidir leat é a thógáil ach an cárta barr a mheaitseáil le dhá chárta nádúrtha as do lámh.',
   'canasta.rules.pileOntoMeld': 'Má tá cumasc neamhchríochnaithe de luach an chárta uachtaraigh ag do thaobh cheana, is féidir leat an carn caite ar fad a thógáil agus an cárta sin a chur leis — ní gá péire a bheith i do lámh.',
   'canasta.rules.pileNoMeldCapture': 'Ní féidir le cumasc atá ar an mbord cheana an carn caite a thógáil: chun é a thógáil caithfidh tú an cárta barr a mheaitseáil le dhá chárta as do lámh féin.',
+  'canasta.rules.cardValues':
+    "Luach na gcártaí: fear grinn {joker}, 2 {two}, aon {ace}, rí go dtí 8 {high}, 7 go dtí 4 {low}, trí dubh {black}. Is bónais iad na tríonna dearga agus ní chomhairtear riamh i dtreo leagan iad.",
   'canasta.rules.meldFloorBands':
     'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} os a chionn sin.',
   'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} suas go {highUpTo} agus {top} os a chionn sin.',
@@ -320,6 +332,8 @@ export const ga: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Tosaigh an chéad bhabhta eile',
+  'round.autoContinue': 'Tosaigh an chéad bhabhta eile go huathoibríoch',
+  'round.autoContinueIn': 'An chéad bhabhta eile i {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -387,6 +401,15 @@ export const ga: Record<string, string> = {
   'holdem.round.uncontested': "D'fhill gach duine eile",
   'seat.ready': 'Réidh',
   'zolik.seat.contractMet': 'Conradh comhlíonta',
+  'zolik.hint.setsNeeded': 'Tá {n} sraith eile de dhíth ort le leagan síos.',
+  'zolik.hint.setsNeeded.1': 'Tá 1 sraith eile de dhíth ort le leagan síos.',
+  'zolik.hint.runsNeeded': 'Tá {n} rith eile de dhíth ort le leagan síos.',
+  'zolik.hint.runsNeeded.1': 'Tá 1 rith eile de dhíth ort le leagan síos.',
+  'zolik.hint.cleanRunNeeded': 'Tá rith gan fáidh de dhíth ort fós le leagan síos.',
+  'zolik.hint.meldPoints': 'Caithfidh luach {n} pointe a bheith ag do theaglamaí le leagan síos — tá {have} agat.',
+  'zolik.hint.downInOneTurn': 'Leag síos in aon seal amháin: caithfear leagan a thosaigh tú a chríochnú, nó a tharraingt siar, sula gcaitheann tú cárta.',
+  'zolik.hint.layOffWhenDown': 'Ní féidir leat cártaí a chur le teaglamaí go dtí go bhfuil tú síos.',
+  'zolik.hint.discardLocked': 'Is féidir tógáil ón gcarn caite ó bhabhta {n} ar aghaidh.',
   'results.you': '(tú)',
 
 
@@ -662,6 +685,8 @@ export const ga: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Is é atá i gcumasc ná tacar de thrí nó ceithre chárta den luach céanna, nó sraith de thrí chárta nó níos mó den dath céanna.',
   'ginrummy.rules.aceLow': 'Bíonn an tAonach íseal i gcónaí — níl aon sraith ó Bhanríon go hAonach ann.',
+  'ginrummy.rules.cardValues':
+    "San adhmad marbh is fiú aon {ace}, 2 go 9 a n-uimhir féin, agus 10, cuireata, banríon nó rí {face}.",
   'ginrummy.rules.knockLimit': 'Is féidir leat cnagadh chomh luath is atá do deadwood {n} nó níos lú.',
   'ginrummy.rules.oklahoma': 'Socraítear teorainn chnagtha na láimhe seo de réir luach an chárta iompaithe.',
   'ginrummy.rules.gin': 'Is é gin é deadwood a náid — an cnagadh is fearr is féidir.',
@@ -752,6 +777,8 @@ export const ga: Record<string, string> = {
   'rummytiles.rules.run': 'Is é atá i sraith ná trí uimhir as a chéile nó níos mó den dath céanna.',
   'rummytiles.rules.noWrap': 'Ní fhilleann 13 timpeall go dtí 1.',
   'rummytiles.rules.joker': 'Seasann áilteoir do leacán ar bith.',
+  'rummytiles.rules.tileValues':
+    "Is fiú tíl a huimhir féin. Is fiú fear grinn i dtacar an tíl a sheasann sé di; cosnaíonn ceann a fhanann i do lámh {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Go dtí go leagann tú {n} bpointe nó níos mó in aon seal amháin, ó do lámh féin amháin, níl cead agat baint le haon rud atá ar an mbord cheana.',
   'rummytiles.rules.turnDescription':
@@ -830,6 +857,8 @@ export const ga: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Dáiltear cártaí na n-imreoirí aghaidh suas; coinníonn an dáileoir cárta amháin síos go dtí go mbíonn gach duine tar éis imirt.',
   'blackjack.rules.hitStand': 'Tarraing an oiread cártaí is mian leat, nó seas ar a bhfuil agat.',
+  'blackjack.rules.cardValues':
+    "Is fiú 2 go 9 a n-uimhir féin; is fiú 10, cuireata, banríon nó rí {face}.",
   'blackjack.rules.aces':
     'Comhairtear aonach mar aon déag fad is a oireann sé, agus mar a haon nuair nach n-oireann.',
   'blackjack.rules.blackjack': 'Is blackjack é aonach le cárta deich-luacha ar an gcéad dá chárta.',
@@ -1342,6 +1371,9 @@ export const ga: Record<string, string> = {
   'match.resume': 'Lean ar aghaidh ón áit ar stop tú',
   'match.resuming': 'An tábla á thabhairt ar ais…',
   'match.abandonedWaitingFor': 'Ag fanacht le {names} filleadh ar an tábla.',
+  'match.everyoneBack': 'Tá gach duine ar ais ag an mbord.',
+  'match.everyoneBackNextRound': 'Tá gach duine ar ais ag an mbord. Má leantar ar aghaidh, tosóidh an chéad bhabhta eile do chách.',
+  'match.waitingForHostResume': 'Ag fanacht le {name} leanúint leis an gcluiche.',
   'match.tableCode': 'Cód {code}',
   'match.tableCodeShare': 'Fill ar ár mbord',
   'match.abandonedSendCode': 'Seol nasc chucu ar ais chuig a suíochán — oibríonn sé ar aon ghléas.',
@@ -1774,6 +1806,10 @@ export const ga: Record<string, string> = {
   'canasta.unit.points': 'pointe',
   'ginrummy.unit.points': 'pointe',
   'holdem.seat.dealer': 'Dáileoir',
+  'holdem.seat.smallBlind': 'Dall beag',
+  'holdem.seat.bigBlind': 'Dall mór',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Fillte',
   'holdem.seat.allIn': 'Gach rud isteach',
   'holdem.seat.out': 'Amuigh',
@@ -2366,6 +2402,8 @@ export const ga: Record<string, string> = {
   'lastcard.card.drawTwo': 'Tarraing a Dó',
   'lastcard.card.wild': 'Fiáin',
   'lastcard.card.wildDrawFour': 'Fiáin Tarraing a Ceathair',
+  'lastcard.card.wildSwap': 'Fiáin Malartú',
+  'lastcard.card.wildMayhem': 'Fiáin Anord',
   'variation.lastcard.classic': 'Clasaiceach',
   'err.LASTCARD_NO_MATCH': 'Ní mheaitseálann an cárta sin an dath, an uimhir ná an tsiombail',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Ní cheadaítear Fiáin Tarraing a Ceathair ach nuair nach bhfuil aon chárta den dath atá in imirt agat',
@@ -2421,7 +2459,12 @@ export const ga: Record<string, string> = {
   'lastcard.rules.section.house': 'Rialacha an tí',
   'lastcard.rules.stacking.twos': 'Carnadh: freagair Tarraing a Dó le Tarraing a Dó de do chuid féin agus seol an carn ar fad ar aghaidh. An té nach féidir leis, tógann sé an t-iomlán agus cailleann sé a sheal.',
   'lastcard.rules.stacking.any': 'Carnadh: freagair cárta tarraingthe le ceann de do chuid féin — Tarraing a Dó ar Tarraing a Dó, Fiáin Tarraing a Ceathair ar cheachtar acu — agus seol an carn ar fad ar aghaidh. An té nach féidir leis, tógann sé an t-iomlán agus cailleann sé a sheal.',
-  'lastcard.rules.sevens': 'Imir 7 agus malartaíonn tú lámha leis an té a bhfuil an líon is lú cártaí aige.',
+  'lastcard.rules.sevens': 'Imir 7 agus malartaíonn tú lámha le himreoir de do rogha féin.',
+  'lastcard.rules.wildSwap': 'Fiáin Malartú ({n} sa phaca): ainmnigh an dath a leanann, ansin malartaigh lámha le himreoir de do rogha féin.',
+  'lastcard.rules.wildMayhem': 'Fiáin Anord ({n} sa phaca): ainmnigh an dath a leanann, ansin bailítear gach lámh, suaitear iad agus roinntear arís iad cárta ar chárta, ag tosú leis an gcéad imreoir eile.',
+  'lastcard.prompt.swapWith': 'Cé leis a malartóidh tú lámha?',
+  'lastcard.prompt.player': 'Imreoir',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Roghnaigh imreoir le lámha a mhalartú leis',
   'lastcard.rules.zeros': 'Imir 0 agus téann gach lámh chuig an gcéad imreoir eile i dtreo na himeartha.',
   'lastcard.remedy.stackOrTake': 'Freagair le cárta tarraingthe de do chuid féin, nó tóg na {n} cárta.',
   'lastcard.offer.takeStack': 'Tóg iad',
@@ -2437,6 +2480,12 @@ export const ga: Record<string, string> = {
   'option.sevenZero': 'Seachtanna agus nialais',
   'choice.sevenZero.0': 'As',
   'choice.sevenZero.1': 'Ann',
+  'option.swapCards': 'Cártaí Fiáin Malartú',
+  'choice.swapCards.0': 'As',
+  'choice.swapCards.1': 'Ann',
+  'option.mayhemCards': 'Cártaí Fiáin Anord',
+  'choice.mayhemCards.0': 'As',
+  'choice.mayhemCards.1': 'Ann',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': "D'imir {player} {card}",
   'lastcard.move.playedSkip': "D'imir {player} {card} — cailleann {target} seal",
@@ -2460,6 +2509,7 @@ export const ga: Record<string, string> = {
   'lastcard.move.challengeLost': 'Thug {player} dúshlán do {target} — bhí sé macánta, mar sin caithfidh {player} {n} a tharraingt agus seal a chailleadh',
   'lastcard.move.swapped': 'Mhalartaigh {player} lámha le {target}',
   'lastcard.move.passedHands': "D'imir {player} 0 — bogann gach lámh ar aghaidh",
+  'lastcard.move.mayhem': 'Anord! Bhailigh {player} gach lámh, suaitheadh iad agus roinneadh arís iad',
   'lastcard.move.wentOut': 'Níl cárta ar bith fágtha ag {player}, a scórálann {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Scóráil',

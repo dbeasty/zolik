@@ -1,4 +1,5 @@
-import { ZOLIK_BASE_URL } from '@/src/config';
+import { WEB_COOKIE_SESSION, ZOLIK_BASE_URL } from '@/src/config';
+import type { GuideLesson } from '@/src/guide/types';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
 import type { DealResult, MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
@@ -88,6 +89,21 @@ type SignInResponse = {
   offlinePass?: string;
 };
 
+/**
+ * The refresh token a cookie-session client holds in place of the real one,
+ * which the browser keeps in an HttpOnly cookie the page cannot read (see
+ * server/internal/auth/cookies.go). It stands for "the session is there", so
+ * the code that asks whether there is one to renew still gets a yes, and it
+ * is what gets persisted in place of the secret.
+ */
+export const COOKIE_HELD_REFRESH = 'cookie';
+
+export type ZolikClientOptions = {
+  /** Keep the refresh token and guest key in cookies the server sets. For
+   *  the web build's own server, where localStorage is the alternative. */
+  cookieSession?: boolean;
+};
+
 export class ZolikClient {
   baseUrl: string;
   accessToken = '';
@@ -113,9 +129,23 @@ export class ZolikClient {
   /** How requests and sockets reach the server. See src/net/transport.ts. */
   readonly transport: Transport;
 
-  constructor(baseUrl: string = ZOLIK_BASE_URL, transport?: Transport) {
+  private readonly cookieSession: boolean;
+
+  constructor(baseUrl: string = ZOLIK_BASE_URL, transport?: Transport, options: ZolikClientOptions = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.transport = transport ?? new HttpTransport(this.baseUrl);
+    this.cookieSession = options.cookieSession ?? false;
+  }
+
+  /** The refresh token to hold after a response: the marker, when the real
+   *  one went into the cookie and the body came back empty. */
+  private held(refreshToken: string): string {
+    return this.cookieSession && !refreshToken ? COOKIE_HELD_REFRESH : refreshToken;
+  }
+
+  /** The refresh token to put in a request body; none when the cookie has it. */
+  private sendable(refreshToken: string): string | undefined {
+    return refreshToken && refreshToken !== COOKIE_HELD_REFRESH ? refreshToken : undefined;
   }
 
   /** Opens a socket at an address this client's `*SocketUrl` produced. */
@@ -198,11 +228,11 @@ export class ZolikClient {
       false,
     );
     this.accessToken = data.accessToken;
-    this.refreshToken = data.refreshToken;
+    this.refreshToken = this.held(data.refreshToken);
     this.userId = data.userId || data.guestId;
     return {
       accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
+      refreshToken: this.refreshToken,
       userId: this.userId,
       // The server's answer is the one that counts: when no name was sent it
       // is the name it invented, and that is what the table will show.
@@ -380,7 +410,7 @@ export class ZolikClient {
       offlinePass?: string;
     }>('/auth/register', { username, password, email: email || undefined }, false);
     this.accessToken = data.accessToken;
-    this.refreshToken = data.refreshToken;
+    this.refreshToken = this.held(data.refreshToken);
     await this.loadUserId();
     return this.toSession(username, false, data.offlinePass);
   }
@@ -392,7 +422,7 @@ export class ZolikClient {
       offlinePass?: string;
     }>('/auth/login', { username, password }, false);
     this.accessToken = data.accessToken;
-    this.refreshToken = data.refreshToken;
+    this.refreshToken = this.held(data.refreshToken);
     await this.loadUserId();
     return this.toSession(username, false, data.offlinePass);
   }
@@ -400,7 +430,7 @@ export class ZolikClient {
   async logout(): Promise<void> {
     if (this.refreshToken) {
       try {
-        await this.post('/auth/logout', { refreshToken: this.refreshToken }, false);
+        await this.post('/auth/logout', { refreshToken: this.sendable(this.refreshToken) }, false);
       } catch {
         /* ignore */
       }
@@ -463,13 +493,13 @@ export class ZolikClient {
       accessToken: string;
       refreshToken: string;
       offlinePass?: string;
-    }>('/auth/refresh', { refreshToken: spent, timeZone: deviceTimeZone() }, false);
+    }>('/auth/refresh', { refreshToken: this.sendable(spent), timeZone: deviceTimeZone() }, false);
     // Signed out or signed in as someone else while this was in the air: the
     // answer belongs to a session that is no longer bound.
     if (this.refreshToken !== spent) return;
     this.accessToken = data.accessToken;
-    this.refreshToken = data.refreshToken;
-    this.onTokensUpdated?.(data.accessToken, data.refreshToken, data.offlinePass);
+    this.refreshToken = this.held(data.refreshToken);
+    this.onTokensUpdated?.(data.accessToken, this.refreshToken, data.offlinePass);
   }
 
   // --- matches -------------------------------------------------------------
@@ -531,12 +561,46 @@ export class ZolikClient {
     );
   }
 
+  /**
+   * The guided lessons a module ships for the table being configured, with
+   * the same variation and options `moduleRules` takes — a lesson is written
+   * against the resolved table, so asking for the wrong one teaches the wrong
+   * game. Empty for a game with no guide yet.
+   */
+  async moduleLessons(
+    moduleId: string,
+    variation?: string,
+    options?: Record<string, number>,
+  ): Promise<GuideLesson[]> {
+    const q = new URLSearchParams();
+    if (variation) q.set('variation', variation);
+    for (const [name, value] of Object.entries(options ?? {})) {
+      q.set(`opt.${name}`, String(value));
+    }
+    const qs = q.toString();
+    const data = await this.get<{ lessons: GuideLesson[] }>(
+      `/modules/${encodeURIComponent(moduleId)}/lessons${qs ? `?${qs}` : ''}`,
+      false,
+    );
+    return data.lessons ?? [];
+  }
+
+  /**
+   * `lessonId` deals the table for one of the module's guided lessons: the
+   * lesson's own deal, and a table that keeps out of statistics and out of
+   * the host's games.
+   */
   async createMatch(
     moduleId: string,
     variation?: string,
     options: Record<string, number> = {},
+    lessonId?: string,
   ): Promise<{ matchId: string; joinCode: string; inviteUrl?: string }> {
-    return this.post('/matches', { moduleId, variation, options, avatar: this.avatarId }, true);
+    return this.post(
+      '/matches',
+      { moduleId, variation, options, avatar: this.avatarId, ...(lessonId ? { lessonId } : {}) },
+      true,
+    );
   }
 
   /** Joins by match id or by the short code a host reads out. */
@@ -1017,12 +1081,12 @@ export class ZolikClient {
    *  sign-in path leaves the client in the same state. */
   private toOutcome(data: SignInResponse): SignInOutcome {
     this.accessToken = data.accessToken;
-    this.refreshToken = data.refreshToken;
+    this.refreshToken = this.held(data.refreshToken);
     this.userId = data.userId;
     return {
       session: {
         accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
+        refreshToken: this.refreshToken,
         userId: data.userId,
         username: data.username,
         isGuest: false,
@@ -1094,10 +1158,16 @@ export class ZolikClient {
     if (auth && sentWith) {
       headers.Authorization = `Bearer ${sentWith}`;
     }
+    // Only the auth routes read the session cookies, and only they answer
+    // credentialed CORS; anything else sent with credentials to a dev server
+    // on another port would be refused by the browser.
+    const withCookies = this.cookieSession && path.startsWith('/auth/');
+    if (withCookies) headers['X-Zolik-Session'] = 'cookie';
     const res = await this.transport.fetch(path, {
       method,
       headers,
       body: body != null ? JSON.stringify(body) : undefined,
+      ...(withCookies ? { credentials: 'include' as const } : {}),
     });
     if (res.status === 401 && auth && this.refreshToken && !retried) {
       // Someone else refreshed while this request was out: its token is
@@ -1131,7 +1201,8 @@ function queryString(params: Record<string, string | number | undefined>): strin
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
-export const apiClient = new ZolikClient();
+// A browser page keeps its session in cookies; native keeps it in the keychain.
+export const apiClient = new ZolikClient(ZOLIK_BASE_URL, undefined, { cookieSession: WEB_COOKIE_SESSION });
 
 function parseRetryAfterMs(header: string | null): number | undefined {
   if (!header) return undefined;

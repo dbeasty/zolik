@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { MatchModule } from '@/src/api/matchTypes';
 import { heading } from '@/src/a11y/props';
 import { GameButtons } from '@/src/components/GameButtons';
+import { TourLink } from '@/src/guide/TourLink';
 import { useSession } from '@/src/context/SessionContext';
 import { narrowOnFirstPaint, useHydrated } from '@/src/hooks/useHydrated';
 import { useMetrics } from '@/src/hooks/useMetrics';
@@ -102,6 +103,10 @@ export default function IntroScreen() {
               <Text style={styles.joinLinkText}>{t('nav.join')} ›</Text>
             </Pressable>
           </View>
+
+          {/* The tour needs a session for its example game page, so a guest
+              screen comes first like it does for the game buttons. */}
+          <TourLink testID="intro-tour" onBefore={() => void markIntroSeen()} />
 
           <View style={[styles.bullets, !narrow && styles.bulletsRow]}>
             {BULLETS.map((b) => (

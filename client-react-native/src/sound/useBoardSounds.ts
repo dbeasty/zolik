@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { MatchState, MoveLine, Zone } from '@/src/api/matchTypes';
+import { reactionsFor, reactionsForEnding, type Reaction, type ReactionKind } from '@/src/components/avatars/reactions';
 import { getLocale, t } from '@/src/lib/i18n';
 import { newMoveLines } from '@/src/lib/boardSpeech';
 import { isLive } from '@/src/lib/turnStep';
@@ -14,6 +15,10 @@ import { playSound, say } from '@/src/sound/player';
  * first board a screen opens on is silent — reloading or returning from the
  * rules screen must not replay a round that ended before you got there. An
  * ending is read off `flash`, which already is "an ending that is news".
+ *
+ * Returns what the faces at the table should act out for the same events
+ * (`reactions.ts`), so a face moves exactly when the board makes a sound for
+ * it — and still moves with the sound off.
  */
 export function useBoardSounds(
   state: MatchState | null,
@@ -23,6 +28,18 @@ export function useBoardSounds(
   const board = useRef<{ zones: Zone[] } | null>(null);
   const movesSeen = useRef<MoveLine[] | undefined>(undefined);
   const turnSeen = useRef<boolean | undefined>(undefined);
+  const [reactions, setReactions] = useState<Record<string, Reaction>>({});
+  const nonce = useRef(0);
+  const react = (kinds: Record<string, ReactionKind>) => {
+    const ids = Object.keys(kinds);
+    if (!ids.length) return;
+    const at = ++nonce.current;
+    setReactions((prev) => {
+      const next = { ...prev };
+      for (const id of ids) next[id] = { kind: kinds[id]!, at };
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!state) return;
@@ -33,6 +50,7 @@ export function useBoardSounds(
 
     const fresh = newMoveLines(movesSeen.current, state.recentMoves);
     movesSeen.current = state.recentMoves ?? [];
+    react(reactionsFor(fresh, sfx));
     for (let i = fresh.length - 1; i >= 0; i--) {
       const line = sayFor(fresh[i]!.fact);
       if (line) {
@@ -55,6 +73,7 @@ export function useBoardSounds(
       if (flash.kind === 'match') {
         playSound(iWon || winners.length === 0 ? 'win' : 'lose');
         say(t(iWon ? 'sound.say.youWin' : 'sound.say.gameOver'), getLocale());
+        react(reactionsForEnding((state?.players ?? []).map((p) => p.id), winners));
       } else {
         playSound('round');
       }
@@ -63,4 +82,6 @@ export function useBoardSounds(
     // `winners` is derived from `state`, and only the edge of `flash.visible` matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flash.visible, flash.kind]);
+
+  return reactions;
 }

@@ -127,6 +127,7 @@ func dealHand(s *GameState) []module.Event {
 	sb, bb := s.blindSeats()
 	post(s, sb, s.SmallBlind)
 	post(s, bb, s.BigBlind)
+	s.BlindSeats = []int{sb, bb}
 	s.CurrentBet = s.BigBlind
 	s.MinRaise = s.BigBlind
 

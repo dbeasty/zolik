@@ -20,6 +20,12 @@ export const pl: Record<string, string> = {
   'err.DISPLACED': 'Otwarto w innej karcie — ta przestała się synchronizować',
   'err.UNREACHABLE': 'Nie można połączyć się z serwerem. Sprawdź połączenie i spróbuj ponownie.',
   'err.INVALID_CREDENTIALS': 'Nazwa użytkownika i hasło nie pasują do siebie.',
+  'err.CREDENTIALS_REQUIRED': 'Podaj nazwę użytkownika i hasło.',
+  'err.PASSWORD_TOO_LONG': 'To hasło jest za długie.',
+  'err.USERNAME_TAKEN': 'Ta nazwa użytkownika lub ten e-mail jest już zajęty.',
+  'err.INVALID_EMAIL': 'To nie wygląda na adres e-mail.',
+  'err.CODE_INVALID': 'Ten kod jest nieprawidłowy. Poproś o nowy.',
+  'err.TOO_MANY_CODES': 'Zażądano zbyt wielu kodów dla tego adresu. Spróbuj za chwilę.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -112,6 +118,8 @@ export const pl: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kto wychodzi, ten zaczyna następne rozdanie.',
   'zolik.rules.meldFloor.on':
     'Twoje pierwsze wyłożenie musi dać łącznie co najmniej {n} punktów naturalnych, żebyś był wyłożony.',
+  'zolik.rules.meldFloor.values':
+    "Do tego minimum każda karta liczy się tak jak w ręce, z wyjątkiem asa: {aceHigh} w secie lub nad królem, {aceLow} pod dwójką. Joker liczy się jak karta, którą zastępuje.",
   'zolik.rules.meldFloor.off': 'Pierwsze wyłożenie nie ma minimalnej wartości punktowej.',
   'zolik.rules.cleanRun.on':
     'Co najmniej jeden z twoich sekwensów musi być całkowicie bez jokera, żebyś liczył się jako wyłożony.',
@@ -122,6 +130,8 @@ export const pl: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Każde rozdanie wymaga tego samego zestawu: {sets} grup i {runs} sekwensów.',
   'zolik.rules.end.afterDeals': 'Mecz kończy się po {n} rozdaniach.',
+  'zolik.rules.penalty.values':
+    "Karta, która zostanie ci w ręce, kosztuje: joker {joker}, 10, walet, dama lub król {face}, od 2 do 9 swoją liczbę, a as {ace} — lub tylko {aceLow}, jeśli masz też w ręce dwójkę w jego kolorze albo damę i króla w jego kolorze, lub gdyby przedłużył sekwens na stole.",
   'zolik.rules.end.atScore': 'Rozdaje się dalej, aż ktoś osiągnie {n} punktów — wtedy koniec.',
 
   'prsi.rules.section.goal': 'Cel',
@@ -181,6 +191,8 @@ export const pl: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Stos odrzuconych jest zamrożony przez całe rozdanie: aby go wziąć, musisz dołożyć do wierzchniej karty dwie naturalne karty z ręki.',
   'canasta.rules.pileOntoMeld': 'Jeśli twoja strona ma już na stole niedokończony układ o wartości wierzchniej karty, możesz wziąć cały stos odrzuconych i dołożyć do niego tę kartę — para w ręce nie jest potrzebna.',
   'canasta.rules.pileNoMeldCapture': 'Układ leżący już na stole nie może wziąć stosu odrzuconych: aby go wziąć, musisz dołożyć do wierzchniej karty dwie karty z własnej ręki.',
+  'canasta.rules.cardValues':
+    "Wartości kart: joker {joker}, dwójka {two}, as {ace}, od króla do ósemki {high}, od siódemki do czwórki {low}, czarna trójka {black}. Czerwone trójki są premią i nigdy nie liczą się do układu.",
   'canasta.rules.meldFloorBands':
     'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} powyżej.',
   'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo}, powyżej {top}.',
@@ -311,6 +323,8 @@ export const pl: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Zacznij następną rundę',
+  'round.autoContinue': 'Zaczynaj następną rundę automatycznie',
+  'round.autoContinueIn': 'Następna runda za {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -378,6 +392,15 @@ export const pl: Record<string, string> = {
   'holdem.round.uncontested': 'Wszyscy inni spasowali',
   'seat.ready': 'Gotowy',
   'zolik.seat.contractMet': 'Kontrakt spełniony',
+  'zolik.hint.setsNeeded': 'Aby się wyłożyć, potrzebujesz jeszcze {n} grup.',
+  'zolik.hint.setsNeeded.1': 'Aby się wyłożyć, potrzebujesz jeszcze 1 grupy.',
+  'zolik.hint.runsNeeded': 'Aby się wyłożyć, potrzebujesz jeszcze {n} sekwensów.',
+  'zolik.hint.runsNeeded.1': 'Aby się wyłożyć, potrzebujesz jeszcze 1 sekwensu.',
+  'zolik.hint.cleanRunNeeded': 'Aby się wyłożyć, potrzebujesz jeszcze sekwensu bez jokera.',
+  'zolik.hint.meldPoints': 'Twoje układy muszą być warte {n} pkt, aby się wyłożyć — masz {have}.',
+  'zolik.hint.downInOneTurn': 'Wyłóż się w jednym ruchu: rozpoczęte wykładanie musisz dokończyć lub cofnąć przed odrzuceniem.',
+  'zolik.hint.layOffWhenDown': 'Dokładać karty do układów możesz dopiero po wyłożeniu się.',
+  'zolik.hint.discardLocked': 'Ze stosu kart odrzuconych można brać od rundy {n}.',
   'results.you': '(ty)',
 
 
@@ -648,6 +671,8 @@ export const pl: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Układ to grupa trzech lub czterech kart tej samej wartości albo sekwens trzech lub więcej kart w jednym kolorze.',
   'ginrummy.rules.aceLow': 'As jest zawsze niski — nie ma sekwensu od damy do asa.',
+  'ginrummy.rules.cardValues':
+    "W deadwood as liczy się za {ace}, karty od 2 do 9 według liczby, a 10, walet, dama i król za {face}.",
   'ginrummy.rules.knockLimit': 'Możesz zapukać, gdy twój deadwood wynosi {n} lub mniej.',
   'ginrummy.rules.oklahoma': 'Limit pukania w tym rozdaniu wyznacza wartość odkrytej karty.',
   'ginrummy.rules.gin': 'Zerowy deadwood to gin — najlepsze możliwe zapukanie.',
@@ -734,6 +759,8 @@ export const pl: Record<string, string> = {
   'rummytiles.rules.run': 'Sekwens to trzy albo więcej kolejnych liczb w jednym kolorze.',
   'rummytiles.rules.noWrap': 'Po 13 nie wraca się do 1.',
   'rummytiles.rules.joker': 'Joker zastępuje dowolną kostkę.',
+  'rummytiles.rules.tileValues':
+    "Kostka jest warta swoją liczbę. Joker w układzie jest wart tyle, co kostka, którą zastępuje; joker, który zostanie ci w ręce, kosztuje {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Dopóki nie wyłożysz {n} lub więcej punktów w jednej kolejce, wyłącznie z własnej ręki, nie wolno ci ruszać niczego, co już leży na stole.',
   'rummytiles.rules.turnDescription':
@@ -811,6 +838,8 @@ export const pl: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Karty graczy rozdaje się odkryte; krupier trzyma jedną kartę zakrytą, dopóki wszyscy nie zagrają.',
   'blackjack.rules.hitStand': 'Dobierz tyle kart, ile chcesz, albo zostań przy tym, co masz.',
+  'blackjack.rules.cardValues':
+    "Karty od 2 do 9 liczą się według liczby; 10, walet, dama i król za {face}.",
   'blackjack.rules.aces': 'As liczy się jako jedenaście, dopóki to się mieści, a poza tym jako jeden.',
   'blackjack.rules.blackjack': 'As z kartą o wartości dziesięć, na dwóch pierwszych kartach, to blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack płaci 3:2.',
@@ -1313,6 +1342,9 @@ export const pl: Record<string, string> = {
   'match.resume': 'Wróć tam, gdzie skończyłeś',
   'match.resuming': 'Przywracanie stołu…',
   'match.abandonedWaitingFor': 'Czekamy, aż {names} wróci do stołu.',
+  'match.everyoneBack': 'Wszyscy wrócili do stołu.',
+  'match.everyoneBackNextRound': 'Wszyscy wrócili do stołu. Wznowienie rozpocznie następną rundę dla wszystkich.',
+  'match.waitingForHostResume': 'Czekamy, aż {name} wznowi grę.',
   'match.tableCode': 'Kod {code}',
   'match.tableCodeShare': 'Wróć do naszego stołu',
   'match.abandonedSendCode': 'Wyślij im link do ich miejsca — działa na każdym urządzeniu.',
@@ -1745,6 +1777,10 @@ export const pl: Record<string, string> = {
   'canasta.unit.points': 'pkt',
   'ginrummy.unit.points': 'pkt',
   'holdem.seat.dealer': 'Rozdający',
+  'holdem.seat.smallBlind': 'Mały blind',
+  'holdem.seat.bigBlind': 'Duży blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Spasował',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Odpadł',
@@ -2341,6 +2377,8 @@ export const pl: Record<string, string> = {
   'lastcard.card.drawTwo': 'Weź dwie',
   'lastcard.card.wild': 'Dzika karta',
   'lastcard.card.wildDrawFour': 'Dzika + weź cztery',
+  'lastcard.card.wildSwap': 'Dzika + zamiana',
+  'lastcard.card.wildMayhem': 'Dzika + chaos',
   'variation.lastcard.classic': 'Klasyczne',
   'err.LASTCARD_NO_MATCH': 'Ta karta nie pasuje ani kolorem, ani liczbą, ani symbolem',
   'err.LASTCARD_DRAW_FOUR_HELD':
@@ -2397,7 +2435,12 @@ export const pl: Record<string, string> = {
   'lastcard.rules.section.house': 'Zasady domowe',
   'lastcard.rules.stacking.twos': 'Przebijanie: odpowiedz na Weź dwie własną Weź dwie i przekaż cały stos dalej. Kto nie może, bierze wszystko i traci kolejkę.',
   'lastcard.rules.stacking.any': 'Przebijanie: odpowiedz na kartę dobierania własną — Weź dwie na Weź dwie, Dziką + weź cztery na którąkolwiek z nich — i przekaż cały stos dalej. Kto nie może, bierze wszystko i traci kolejkę.',
-  'lastcard.rules.sevens': 'Zagraj 7, a zamienisz się ręką z tym, kto ma najmniej kart.',
+  'lastcard.rules.sevens': 'Zagraj 7, a zamienisz się ręką z wybranym graczem.',
+  'lastcard.rules.wildSwap': 'Dzika + zamiana ({n} w talii): podaj kolor, który obowiązuje dalej, a potem zamień się ręką z dowolnym wybranym graczem.',
+  'lastcard.rules.wildMayhem': 'Dzika + chaos ({n} w talii): podaj kolor, który obowiązuje dalej, a potem wszystkie ręce są zbierane, tasowane i rozdawane od nowa po jednej karcie, zaczynając od następnego gracza.',
+  'lastcard.prompt.swapWith': 'Z kim zamienić się ręką?',
+  'lastcard.prompt.player': 'Gracz',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Wybierz gracza, z którym zamienisz się ręką',
   'lastcard.rules.zeros': 'Zagraj 0, a każda ręka przechodzi do następnego gracza w kierunku gry.',
   'lastcard.remedy.stackOrTake': 'Odpowiedz własną kartą dobierania albo weź {n} kart.',
   'lastcard.offer.takeStack': 'Weź je',
@@ -2413,6 +2456,12 @@ export const pl: Record<string, string> = {
   'option.sevenZero': 'Siódemki i zera',
   'choice.sevenZero.0': 'Nie',
   'choice.sevenZero.1': 'Tak',
+  'option.swapCards': 'Karty Dzika + zamiana',
+  'choice.swapCards.0': 'Nie',
+  'choice.swapCards.1': 'Tak',
+  'option.mayhemCards': 'Karty Dzika + chaos',
+  'choice.mayhemCards.0': 'Nie',
+  'choice.mayhemCards.1': 'Tak',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} zagrywa {card}',
   'lastcard.move.playedSkip': '{player} zagrywa {card} — {target} traci kolejkę',
@@ -2436,6 +2485,7 @@ export const pl: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} podważa kartę od {target} — była uczciwa, więc {player} dobiera {n} i traci kolejkę',
   'lastcard.move.swapped': '{player} zamienia się ręką z {target}',
   'lastcard.move.passedHands': '{player} zagrywa 0 — każda ręka idzie dalej',
+  'lastcard.move.mayhem': 'Chaos! {player} zbiera wszystkie ręce, tasuje je i rozdaje od nowa',
   'lastcard.move.wentOut': '{player} pozbywa się wszystkich kart i zdobywa {n} pkt',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Punktacja',

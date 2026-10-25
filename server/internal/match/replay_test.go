@@ -598,11 +598,29 @@ func TestFinishedMatchesReplayWithNothingHidden(t *testing.T) {
 					revealedSomewhere = true
 				}
 			}
-			if !revealedSomewhere {
+			if why, exempt := nothingToHide[g.name]; exempt {
+				// The exemption has to stay true, or it is hiding a game that
+				// quietly stopped hiding anything.
+				if revealedSomewhere {
+					t.Errorf("%s is exempt (%s) but an open board showed more — the exemption is stale", g.name, why)
+				}
+			} else if !revealedSomewhere {
 				t.Errorf("%s never showed a single card more with the hands open", g.name)
 			}
 		})
 	}
+}
+
+// nothingToHide names the tables where an open replay is identical to a seat's
+// own, with the reason.
+//
+// A game that hides nothing is not a game that forgot to: Siete y Medio's
+// Abierta deals every card face up, the banker's included, which is the whole
+// point of it — it is the table to learn the game at. The map is checked both
+// ways, so an exemption that stops being true fails here rather than going
+// quiet.
+var nothingToHide = map[string]string{
+	"sietemedio/abierta": "every card at this table is dealt face up",
 }
 
 // --- checkpoints, and the chapters that come off them ----------------------

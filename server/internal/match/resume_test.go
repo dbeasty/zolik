@@ -6,10 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"zolik/server/internal/canasta"
+	"zolik/server/internal/db"
 	"zolik/server/internal/match"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/ws"
 )
 
 // abandonedMatch writes a match in the state the reaper leaves behind: a
@@ -154,22 +157,131 @@ func TestResumeBringsBackAHumanTableWhenEverybodyIsBack(t *testing.T) {
 	}
 }
 
-// Either of them may press it. The player who stayed has at least as much
-// claim on the game as the one who dropped, and a rule that let only the
-// returning player resume would stall on whoever happened to press first.
-func TestEitherPlayerMayResumeOnceBothAreBack(t *testing.T) {
+// Once both are back the press is the host's, and only the host's: a table
+// of people all offered one button left each of them unsure whether it was
+// theirs to press.
+func TestOnlyTheHostMayResumeOnceEverybodyIsBack(t *testing.T) {
 	ctx := t.Context()
 	m, repo, _ := newReaperHarness(t)
 	saved := abandonedMatch(t, repo, models.Player{ID: "p2", Name: "Bo"})
 	sitDown(t, m, saved.ID.Hex(), "p1")
 	sitDown(t, m, saved.ID.Hex(), "p2")
 
-	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p2"); err != nil {
-		t.Fatalf("resuming as the second player: %v", err)
+	err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p2")
+	if module.CodeOf(err) != "NOT_THE_HOST" {
+		t.Fatalf("code = %q, want NOT_THE_HOST (err %v)", module.CodeOf(err), err)
+	}
+	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1"); err != nil {
+		t.Fatalf("resuming as the host: %v", err)
 	}
 	got, _ := repo.FindByID(ctx, saved.ID)
 	if got.Status != "active" {
 		t.Errorf("status = %q, want active", got.Status)
+	}
+}
+
+// A host who has left the table cannot hold everybody else up: with no host
+// in a seat, anyone seated may bring it back, as before.
+func TestAnyPlayerMayResumeWhenTheHostIsNotSeated(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	saved := abandonedMatch(t, repo, models.Player{ID: "p2", Name: "Bo"})
+	saved.HostID = "gone"
+	if err := repo.UpdateWithVersion(ctx, saved.ID, saved.Version, saved); err != nil {
+		t.Fatalf("moving the host: %v", err)
+	}
+	sitDown(t, m, saved.ID.Hex(), "p1")
+	sitDown(t, m, saved.ID.Hex(), "p2")
+
+	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p2"); err != nil {
+		t.Fatalf("resuming with no host seated: %v", err)
+	}
+}
+
+// A table swept between rounds comes back to the same intermission, and the
+// host's resume is the go-ahead for the next deal: nobody is asked to press
+// "start the next round" again after everybody has just come back to it.
+func TestResumingBetweenRoundsDealsTheNextRound(t *testing.T) {
+	ctx := t.Context()
+	mod := canasta.New()
+	refs := []module.PlayerRef{{ID: "p1", Name: "Ada"}, {ID: "p2", Name: "Bo"}}
+	state, err := mod.NewMatch(module.MatchConfig{Options: module.Options{
+		"targetScore":                5000,
+		module.OptPauseBetweenRounds: module.OptOn,
+	}}, refs, 4)
+	if err != nil {
+		t.Fatalf("NewMatch: %v", err)
+	}
+	bot := module.BotFor(mod)
+	for step := 0; ; step++ {
+		if r := module.RoundsFor(mod, state); r != nil && r.Paused {
+			break
+		}
+		if step > 4000 {
+			t.Fatal("the first deal never ended")
+		}
+		actor := module.AwaitedSeats(mod, state, "p1", refs)[0]
+		offers, err := mod.LegalActions(state, actor)
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		a, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
+		if !ok {
+			a, _ = module.ChooseAction(offers, nil)
+		}
+		if state, _, err = mod.Apply(state, actor, a); err != nil {
+			t.Fatalf("step %d: %v", step, err)
+		}
+	}
+	dealt := len(module.RoundsFor(mod, state).Rounds)
+
+	k, err := db.OpenKDB(t.TempDir())
+	if err != nil {
+		t.Fatalf("opening kdb: %v", err)
+	}
+	t.Cleanup(func() { _ = k.Close(context.Background()) })
+	repo := match.NewKDBRepository(k)
+	hub, err := ws.NewHub(ws.NewConnRegistry(), "")
+	if err != nil {
+		t.Fatalf("building a hub: %v", err)
+	}
+	t.Cleanup(func() { _ = hub.Close() })
+	m := match.NewManager(repo, module.NewRegistry(mod), hub)
+
+	ended := time.Now().UTC().Add(-time.Hour)
+	saved, err := repo.Insert(ctx, models.Match{
+		ModuleID:  "canasta",
+		Status:    "abandoned",
+		Players:   []models.Player{{ID: "p1", Name: "Ada"}, {ID: "p2", Name: "Bo"}},
+		TurnOrder: []string{"p1", "p2"},
+		HostID:    "p1",
+		EndedAt:   &ended,
+		CreatedAt: ended,
+	})
+	if err != nil {
+		t.Fatalf("inserting: %v", err)
+	}
+	next := saved
+	next.Snapshots = []int{0}
+	if err := repo.CommitSnapshot(ctx, saved.ID, saved.Version, next, nil, 0, models.JSONDoc(state)); err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+	sitDown(t, m, saved.ID.Hex(), "p1")
+	sitDown(t, m, saved.ID.Hex(), "p2")
+
+	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1"); err != nil {
+		t.Fatalf("resuming: %v", err)
+	}
+	cur, err := m.Current(ctx, saved.ID.Hex())
+	if err != nil {
+		t.Fatalf("current: %v", err)
+	}
+	r := module.RoundsFor(mod, module.State(cur.State))
+	if r.Paused {
+		t.Fatalf("still between rounds after the host resumed, waiting for %v", r.WaitingFor)
+	}
+	if len(r.Rounds) != dealt {
+		t.Errorf("rounds = %d, want %d: the next deal, not a skipped one", len(r.Rounds), dealt)
 	}
 }
 

@@ -113,7 +113,10 @@ export function MoveAnnouncements({
             >
               <Text
                 testID={`announce-${i}`}
-                numberOfLines={open ? undefined : 1}
+                // Folded, a line may take a second row rather than end in an
+                // ellipsis: the corner buttons leave it about two thirds of the
+                // width, and a name plus what it did is longer than that.
+                numberOfLines={open ? undefined : 2}
                 style={[styles.line, newest && styles.newest, settled && styles.settled, !open && styles.foldedLine]}
               >
                 <LastCardInk text={factText(m.fact, players)} />
@@ -121,6 +124,13 @@ export function MoveAnnouncements({
             </View>
           );
         });
+
+  // Nothing to say yet — a fresh deal, before anyone has moved, with no
+  // prompt, requirement or standing fact — is no box at all. It was a bordered
+  // rectangle holding only its two corner buttons.
+  if (moves.length === 0 && turnPrompts.length === 0 && hints.length === 0 && standing.length === 0) {
+    return null;
+  }
 
   return (
     <View
@@ -158,11 +168,6 @@ export function MoveAnnouncements({
             </Text>
           </Pressable>
         ) : null}
-        {standing.map((f, i) => (
-          <Text key={`standing-${i}`} testID={`standing-${i}`} style={styles.standing} numberOfLines={1}>
-            <LastCardInk text={factText(f, players)} />
-          </Text>
-        ))}
         <Tip text={t('a11y.board.tip.repeat')}>
           <Pressable
             testID="moves-repeat"
@@ -229,6 +234,18 @@ export function MoveAnnouncements({
           </Text>
         ))}
       </View>
+      {/* Under the lines, not in the corner: set beside the buttons it took
+          a third of the row, and the line above it — a player's name and what
+          they did — was cut short to make room for it. */}
+      {standing.length > 0 ? (
+        <View style={styles.standingRow}>
+          {standing.map((f, i) => (
+            <Text key={`standing-${i}`} testID={`standing-${i}`} style={styles.standing}>
+              <LastCardInk text={factText(f, players)} />
+            </Text>
+          ))}
+        </View>
+      ) : null}
       {hintsOpen && focused ? <HintsSheet hints={hints} players={players} onClose={() => setHintsOpen(false)} /> : null}
     </View>
   );
@@ -301,7 +318,8 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     row: { borderLeftWidth: 3, borderLeftColor: 'transparent', paddingLeft: 8 },
     // In the box's top-right corner, out of the flow — see the render.
     repeatAt: { position: 'absolute', top: short ? 2 : 6, right: 8, zIndex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    standing: { color: colors.text, fontSize: 14, fontWeight: '600', marginRight: 6 },
+    standingRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, paddingLeft: 11 },
+    standing: { color: colors.text, fontSize: 14, fontWeight: '600' },
     repeat: { minWidth: 24, minHeight: 24, alignItems: 'center', justifyContent: 'center' },
     repeatText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
     toggleText: { color: colors.muted, fontSize: 16, fontWeight: '700' },

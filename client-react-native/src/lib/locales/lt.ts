@@ -20,6 +20,12 @@ export const lt: Record<string, string> = {
   'err.DISPLACED': 'Atidaryta kitame skirtuke — šis nustojo sinchronizuotis',
   'err.UNREACHABLE': 'Nepavyksta pasiekti serverio. Patikrinkite ryšį ir bandykite dar kartą.',
   'err.INVALID_CREDENTIALS': 'Vartotojo vardas ir slaptažodis nesutampa.',
+  'err.CREDENTIALS_REQUIRED': 'Įveskite naudotojo vardą ir slaptažodį.',
+  'err.PASSWORD_TOO_LONG': 'Šis slaptažodis per ilgas.',
+  'err.USERNAME_TAKEN': 'Šis naudotojo vardas ar el. paštas jau užimtas.',
+  'err.INVALID_EMAIL': 'Tai neatrodo kaip el. pašto adresas.',
+  'err.CODE_INVALID': 'Šis kodas negalioja. Paprašykite naujo.',
+  'err.TOO_MANY_CODES': 'Šiam adresui paprašyta per daug kodų. Pabandykite po akimirkos.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -110,6 +116,8 @@ export const lt: Record<string, string> = {
     'Pirmas ėjimas kiekvieną dalijimą pasislenka per vieną vietą, nesvarbu, kas laimėjo.',
   'zolik.rules.lead.winner': 'Kas išeina, pradeda kitą dalijimą.',
   'zolik.rules.meldFloor.on': 'Tavo pirmas išdėjimas turi duoti bent {n} natūralių taškų, kad būtum išdėjęs.',
+  'zolik.rules.meldFloor.values':
+    "Į šį minimumą kiekviena korta skaičiuojama tiek, kiek kainuoja rankoje, išskyrus tūzą: {aceHigh} rinkinyje arba virš karaliaus, {aceLow} žemiau dvejeto. Džokeris skaičiuojamas kaip korta, kurią pakeičia.",
   'zolik.rules.meldFloor.off': 'Pirmam išdėjimui minimalios taškų vertės nėra.',
   'zolik.rules.cleanRun.on':
     'Bent viena tavo seka turi būti visiškai be džokerio, kad būtum laikomas išdėjusiu.',
@@ -119,6 +127,8 @@ export const lt: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Kiekvienas dalijimas reikalauja to paties derinio: {sets} grupių ir {runs} sekų.',
   'zolik.rules.end.afterDeals': 'Rungtynės baigiasi po {n} dalijimų.',
+  'zolik.rules.penalty.values':
+    "Rankoje likusi korta kainuoja: džokeris {joker}, 10, valetas, dama ar karalius {face}, nuo 2 iki 9 – savo skaičių, o tūzas {ace} — arba tik {aceLow}, jei rankoje turite ir tos pačios rūšies dvejetą, arba tos pačios rūšies damą ir karalių, arba jei jis pratęstų eilę ant stalo.",
   'zolik.rules.end.atScore': 'Dalijama toliau, kol kas nors pasiekia {n} taškų — tada baigta.',
 
   'prsi.rules.section.goal': 'Tikslas',
@@ -177,6 +187,8 @@ export const lt: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Atmetimo krūvelė užšaldyta visą dalijimą: paimti ją gali tik pridėjęs prie viršutinės kortos dvi natūralias kortas iš rankos.',
   'canasta.rules.pileOntoMeld': 'Jei tavo pusė jau turi nebaigtą viršutinės kortos vertės derinį, gali paimti visą atmetimo krūvelę ir pridėti tą kortą prie derinio — poros rankoje nereikia.',
   'canasta.rules.pileNoMeldCapture': 'Ant stalo gulintis derinys atmetimo krūvelės paimti negali: kad ją paimtum, prie viršutinės kortos turi pridėti dvi kortas iš savo rankos.',
+  'canasta.rules.cardValues':
+    "Kortų vertės: džokeris {joker}, dvejetas {two}, tūzas {ace}, nuo karaliaus iki aštuntuko {high}, nuo septintuko iki ketverto {low}, juodas trejetas {black}. Raudoni trejetai yra premija ir niekada neįskaičiuojami į derinį.",
   'canasta.rules.meldFloorBands':
     'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} virš to.',
   'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} iki {highUpTo} ir {top} virš to.',
@@ -306,6 +318,8 @@ export const lt: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Pradėti kitą raundą',
+  'round.autoContinue': 'Pradėti kitą raundą automatiškai',
+  'round.autoContinueIn': 'Kitas raundas po {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -373,6 +387,15 @@ export const lt: Record<string, string> = {
   'holdem.round.uncontested': 'Visi kiti pasitraukė',
   'seat.ready': 'Pasiruošęs',
   'zolik.seat.contractMet': 'Sutartis įvykdyta',
+  'zolik.hint.setsNeeded': 'Kad išsidėtum, dar reikia {n} rinkinių.',
+  'zolik.hint.setsNeeded.1': 'Kad išsidėtum, dar reikia 1 rinkinio.',
+  'zolik.hint.runsNeeded': 'Kad išsidėtum, dar reikia {n} eilių.',
+  'zolik.hint.runsNeeded.1': 'Kad išsidėtum, dar reikia 1 eilės.',
+  'zolik.hint.cleanRunNeeded': 'Kad išsidėtum, dar reikia eilės be džokerio.',
+  'zolik.hint.meldPoints': 'Tavo deriniai turi būti verti {n} taškų, kad išsidėtum — turi {have}.',
+  'zolik.hint.downInOneTurn': 'Išsidėk per vieną ėjimą: pradėtą išdėjimą reikia baigti arba atšaukti prieš išmetant.',
+  'zolik.hint.layOffWhenDown': 'Kortas prie derinių gali dėti tik tada, kai jau išsidėjai.',
+  'zolik.hint.discardLocked': 'Iš išmestų kortų krūvos galima imti nuo {n} rato.',
   'results.you': '(tu)',
 
 
@@ -642,6 +665,8 @@ export const lt: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Derinys — tai trijų ar keturių vienos vertės kortų grupė arba trijų ar daugiau vienos rūšies kortų seka.',
   'ginrummy.rules.aceLow': 'Tūzas visada žemas — sekos nuo damos iki tūzo nėra.',
+  'ginrummy.rules.cardValues':
+    "Negyvose kortose tūzas vertas {ace}, nuo 2 iki 9 – savo skaičiaus, o 10, valetas, dama ir karalius – {face}.",
   'ginrummy.rules.knockLimit': 'Belsti gali, kai tik tavo deadwood yra {n} arba mažiau.',
   'ginrummy.rules.oklahoma': 'Šio dalijimo beldimo ribą nustato atverstos kortos vertė.',
   'ginrummy.rules.gin': 'Nulinis deadwood — tai ginas, geriausias įmanomas beldimas.',
@@ -730,6 +755,8 @@ export const lt: Record<string, string> = {
   'rummytiles.rules.run': 'Seka — tai trys ar daugiau iš eilės einančių skaičių vienos spalvos.',
   'rummytiles.rules.noWrap': 'Po 13 vėl neprasideda 1.',
   'rummytiles.rules.joker': 'Džokeris atstoja bet kurią plytelę.',
+  'rummytiles.rules.tileValues':
+    "Kauliukas vertas savo skaičiaus. Džokeris derinyje vertas kauliuko, kurį pakeičia; rankoje likęs džokeris kainuoja {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Kol vienu ėjimu, vien iš savo rankos, neišdėjai {n} ar daugiau taškų, negali liesti nieko, kas jau yra ant stalo.',
   'rummytiles.rules.turnDescription':
@@ -806,6 +833,8 @@ export const lt: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Žaidėjų kortos dalijamos atverstos; dalytojas vieną kortą laiko uždengtą, kol visi sužais.',
   'blackjack.rules.hitStand': 'Traukk tiek kortų, kiek nori, arba likk prie to, ką turi.',
+  'blackjack.rules.cardValues':
+    "Kortos nuo 2 iki 9 vertos savo skaičiaus; 10, valetas, dama ir karalius – {face}.",
   'blackjack.rules.aces': 'Tūzas skaičiuojamas kaip vienuolika, kol tai telpa, ir kaip vienas, kai netelpa.',
   'blackjack.rules.blackjack': 'Tūzas su dešimties vertės korta pirmose dviejose kortose yra blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack moka 3:2.',
@@ -1308,6 +1337,9 @@ export const lt: Record<string, string> = {
   'match.resume': 'Tęsk ten, kur baigei',
   'match.resuming': 'Atkuriamas stalas…',
   'match.abandonedWaitingFor': 'Laukiama, kol {names} grįš prie stalo.',
+  'match.everyoneBack': 'Visi vėl prie stalo.',
+  'match.everyoneBackNextRound': 'Visi vėl prie stalo. Tęsiant visiems prasidės kitas raundas.',
+  'match.waitingForHostResume': 'Laukiama, kol {name} pratęs žaidimą.',
   'match.tableCode': 'Kodas {code}',
   'match.tableCodeShare': 'Grįžk prie mūsų stalo',
   'match.abandonedSendCode': 'Nusiųsk jiems nuorodą atgal į jų vietą — ji veikia bet kuriame įrenginyje.',
@@ -1740,6 +1772,10 @@ export const lt: Record<string, string> = {
   'canasta.unit.points': 'taškų',
   'ginrummy.unit.points': 'taškų',
   'holdem.seat.dealer': 'Dalytojas',
+  'holdem.seat.smallBlind': 'Mažasis blindas',
+  'holdem.seat.bigBlind': 'Didysis blindas',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Pasitraukė',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Iškritęs',
@@ -2332,6 +2368,8 @@ export const lt: Record<string, string> = {
   'lastcard.card.drawTwo': 'Imk dvi',
   'lastcard.card.wild': 'Džokeris',
   'lastcard.card.wildDrawFour': 'Džokeris imk keturias',
+  'lastcard.card.wildSwap': 'Džokeris keiskis',
+  'lastcard.card.wildMayhem': 'Džokeris chaosas',
   'variation.lastcard.classic': 'Klasikinis',
   'err.LASTCARD_NO_MATCH': 'Ši korta netinka nei spalva, nei skaičiumi, nei simboliu',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Džokeris imk keturias leidžiamas tik tada, kai neturi nė vienos žaidžiamos spalvos kortos',
@@ -2387,7 +2425,12 @@ export const lt: Record<string, string> = {
   'lastcard.rules.section.house': 'Namų taisyklės',
   'lastcard.rules.stacking.twos': 'Krovimas: atsakyk į Imk dvi savo Imk dvi ir perduok visą krūvą toliau. Kas negali, ima viską ir praleidžia savo ėjimą.',
   'lastcard.rules.stacking.any': 'Krovimas: atsakyk į ėmimo kortą savo ėmimo korta — Imk dvi ant Imk dvi, Džokerį imk keturias ant bet kurios iš jų — ir perduok visą krūvą toliau. Kas negali, ima viską ir praleidžia savo ėjimą.',
-  'lastcard.rules.sevens': 'Sužaisk 7 ir apsikeisi rankomis su tuo, kuris turi mažiausiai kortų.',
+  'lastcard.rules.sevens': 'Sužaisk 7 ir apsikeisi rankomis su pasirinktu žaidėju.',
+  'lastcard.rules.wildSwap': 'Džokeris keiskis ({n} kaladėje): pasakyk spalvą, kuri tęsiasi, tada apsikeisk rankomis su bet kuriuo pasirinktu žaidėju.',
+  'lastcard.rules.wildMayhem': 'Džokeris chaosas ({n} kaladėje): pasakyk spalvą, kuri tęsiasi, tada visos rankos surenkamos, sumaišomos ir vėl išdalijamos po vieną kortą, pradedant nuo kito žaidėjo.',
+  'lastcard.prompt.swapWith': 'Su kuo apsikeisti rankomis?',
+  'lastcard.prompt.player': 'Žaidėjas',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Pasirink žaidėją, su kuriuo apsikeisi rankomis',
   'lastcard.rules.zeros': 'Sužaisk 0 ir kiekviena ranka pereina kitam žaidėjui žaidimo kryptimi.',
   'lastcard.remedy.stackOrTake': 'Atsakyk savo ėmimo korta arba imk kortas ({n}).',
   'lastcard.offer.takeStack': 'Imti jas',
@@ -2403,6 +2446,12 @@ export const lt: Record<string, string> = {
   'option.sevenZero': 'Septynetų ir nulių keitimas',
   'choice.sevenZero.0': 'Išjungtas',
   'choice.sevenZero.1': 'Įjungtas',
+  'option.swapCards': 'Kortos „Džokeris keiskis“',
+  'choice.swapCards.0': 'Išjungtas',
+  'choice.swapCards.1': 'Įjungtas',
+  'option.mayhemCards': 'Kortos „Džokeris chaosas“',
+  'choice.mayhemCards.0': 'Išjungtas',
+  'choice.mayhemCards.1': 'Įjungtas',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} sužaidė {card}',
   'lastcard.move.playedSkip': '{player} sužaidė {card} — {target} praleidžia ėjimą',
@@ -2426,6 +2475,7 @@ export const lt: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} užginčijo žaidėjo {target} ėjimą — jis buvo sąžiningas, todėl {player} ima {n} ir praleidžia ėjimą',
   'lastcard.move.swapped': '{player} apsikeitė kortomis su žaidėju {target}',
   'lastcard.move.passedHands': '{player} sužaidė 0 — visų kortos keliauja toliau',
+  'lastcard.move.mayhem': 'Chaosas! {player} surinko visas rankas, sumaišė jas ir išdalijo iš naujo',
   'lastcard.move.wentOut': '{player} atsikratė visų kortų ir gauna taškų: {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Taškų skaičiavimas',

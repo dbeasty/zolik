@@ -20,6 +20,12 @@ export const es: Record<string, string> = {
   'err.DISPLACED': 'Abierta en otra pestaña — esta ha dejado de sincronizarse',
   'err.UNREACHABLE': 'No se puede conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.',
   'err.INVALID_CREDENTIALS': 'El nombre de usuario y la contraseña no coinciden.',
+  'err.CREDENTIALS_REQUIRED': 'Introduce un nombre de usuario y una contraseña.',
+  'err.PASSWORD_TOO_LONG': 'Esa contraseña es demasiado larga.',
+  'err.USERNAME_TAKEN': 'Ese nombre de usuario o correo ya está en uso.',
+  'err.INVALID_EMAIL': 'Eso no parece una dirección de correo.',
+  'err.CODE_INVALID': 'Ese código no es válido. Pide uno nuevo.',
+  'err.TOO_MANY_CODES': 'Se han pedido demasiados códigos para esa dirección. Inténtalo de nuevo en un momento.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -112,6 +118,8 @@ export const es: Record<string, string> = {
   'zolik.rules.lead.winner': 'Quien se va sale primero en el siguiente reparto.',
   'zolik.rules.meldFloor.on':
     'Tu primera bajada debe sumar al menos {n} puntos naturales antes de que cuentes como bajado.',
+  'zolik.rules.meldFloor.values':
+    "Para ese mínimo cada carta cuenta lo que cuesta en la mano, salvo el as: {aceHigh} en un trío o por encima del rey, {aceLow} por debajo del 2. Un comodín cuenta como la carta que sustituye.",
   'zolik.rules.meldFloor.off': 'No hay un mínimo de puntos en tu primera bajada.',
   'zolik.rules.cleanRun.on':
     'Al menos una de tus escaleras debe ir completamente sin comodines para que cuentes como bajado.',
@@ -122,6 +130,8 @@ export const es: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Cada reparto exige la misma combinación: {sets} grupos y {runs} escaleras.',
   'zolik.rules.end.afterDeals': 'La partida termina tras {n} repartos.',
+  'zolik.rules.penalty.values':
+    "Una carta que te quede en la mano cuesta: comodín {joker}, 10, jota, reina o rey {face}, 2 a 9 su número, y un as {ace}, o solo {aceLow} si también tienes un 2 de su palo, o la reina y el rey de su palo, o si alargaría una escalera de la mesa.",
   'zolik.rules.end.atScore': 'Se sigue repartiendo hasta que alguien llega a {n} puntos — entonces se acaba.',
 
   'prsi.rules.section.goal': 'Objetivo',
@@ -181,6 +191,8 @@ export const es: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'El montón de descarte está congelado toda la mano: para llevártelo tienes que casar su carta superior con dos cartas naturales de tu mano.',
   'canasta.rules.pileOntoMeld': 'Si tu bando ya tiene una combinación sin terminar del valor de la carta superior, puedes llevarte todo el montón de descarte y añadirle esa carta: no necesitas una pareja en la mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinación que ya está en la mesa no puede llevarse el montón de descarte: para llevártelo tienes que casar su carta superior con dos cartas de tu propia mano.',
+  'canasta.rules.cardValues':
+    "Valor de las cartas: comodín {joker}, 2 {two}, as {ace}, del rey al 8 {high}, del 7 al 4 {low}, tres negro {black}. Los treses rojos son bonificaciones y nunca cuentan para una combinación.",
   'canasta.rules.meldFloorBands':
     'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} más allá.',
   'canasta.rules.meldFloorBandsFive': 'Tu primera combinación debe alcanzar un mínimo de puntos que sube con tu puntuación: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} hasta {highUpTo} y {top} por encima.',
@@ -312,6 +324,8 @@ export const es: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Empezar la siguiente ronda',
+  'round.autoContinue': 'Empezar la siguiente ronda automáticamente',
+  'round.autoContinueIn': 'Siguiente ronda en {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -379,6 +393,15 @@ export const es: Record<string, string> = {
   'holdem.round.uncontested': 'Todos los demás se retiraron',
   'seat.ready': 'Listo',
   'zolik.seat.contractMet': 'Contrato cumplido',
+  'zolik.hint.setsNeeded': 'Aún necesitas {n} tríos para bajarte.',
+  'zolik.hint.setsNeeded.1': 'Aún necesitas 1 trío para bajarte.',
+  'zolik.hint.runsNeeded': 'Aún necesitas {n} escaleras para bajarte.',
+  'zolik.hint.runsNeeded.1': 'Aún necesitas 1 escalera para bajarte.',
+  'zolik.hint.cleanRunNeeded': 'Aún necesitas una escalera sin comodín para bajarte.',
+  'zolik.hint.meldPoints': 'Tus combinaciones deben valer {n} puntos para bajarte — tienes {have}.',
+  'zolik.hint.downInOneTurn': 'Bájate en un solo turno: una bajada empezada debe terminarse, o deshacerse, antes de descartar.',
+  'zolik.hint.layOffWhenDown': 'Solo puedes añadir cartas a combinaciones cuando ya te has bajado.',
+  'zolik.hint.discardLocked': 'Se puede robar del descarte a partir de la ronda {n}.',
   'results.you': '(tú)',
 
 
@@ -651,6 +674,8 @@ export const es: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Una combinación es un grupo de tres o cuatro cartas de un mismo valor, o una escalera de tres o más del mismo palo.',
   'ginrummy.rules.aceLow': 'El as siempre va bajo — no existe la escalera de dama a as.',
+  'ginrummy.rules.cardValues':
+    "En el deadwood, un as cuenta {ace}, un 2 a 9 su número, y un 10, jota, reina o rey {face}.",
   'ginrummy.rules.knockLimit': 'Puedes llamar en cuanto tu deadwood sea {n} o menos.',
   'ginrummy.rules.oklahoma': 'El límite para llamar en esta mano lo fija el valor de la carta levantada.',
   'ginrummy.rules.gin': 'Deadwood cero es gin — la mejor llamada posible.',
@@ -739,6 +764,8 @@ export const es: Record<string, string> = {
   'rummytiles.rules.run': 'Una escalera son tres o más números consecutivos de un mismo color.',
   'rummytiles.rules.noWrap': 'El 13 no vuelve a enlazar con el 1.',
   'rummytiles.rules.joker': 'Un comodín sustituye a cualquier ficha.',
+  'rummytiles.rules.tileValues':
+    "Una ficha vale su número. Un comodín en una combinación vale la ficha que sustituye; uno que te quede en la mano cuesta {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Hasta que no hayas bajado {n} puntos o más en un solo turno, y solo desde tu propia mano, no puedes tocar nada de lo que ya está en la mesa.',
   'rummytiles.rules.turnDescription':
@@ -816,6 +843,8 @@ export const es: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Las cartas de los jugadores se reparten boca arriba; el crupier mantiene una carta tapada hasta que todos hayan jugado.',
   'blackjack.rules.hitStand': 'Pide tantas cartas como quieras, o plántate con lo que tengas.',
+  'blackjack.rules.cardValues':
+    "Un 2 a 9 cuenta su número; un 10, jota, reina o rey cuenta {face}.",
   'blackjack.rules.aces': 'Un as vale once mientras quepa, y uno cuando no.',
   'blackjack.rules.blackjack': 'Un as con una carta de valor diez, en las dos primeras cartas, es blackjack.',
   'blackjack.rules.pays3to2': 'El blackjack paga 3:2.',
@@ -1328,6 +1357,9 @@ export const es: Record<string, string> = {
   'match.resume': 'Continuar donde lo dejaste',
   'match.resuming': 'Recuperando la mesa…',
   'match.abandonedWaitingFor': 'Esperando a que {names} vuelva a la mesa.',
+  'match.everyoneBack': 'Todos han vuelto a la mesa.',
+  'match.everyoneBackNextRound': 'Todos han vuelto a la mesa. Al retomarla empieza la siguiente ronda para todos.',
+  'match.waitingForHostResume': 'Esperando a que {name} retome la partida.',
   'match.tableCode': 'Código {code}',
   'match.tableCodeShare': 'Vuelve a nuestra mesa',
   'match.abandonedSendCode': 'Envíales un enlace de vuelta a su asiento: funciona en cualquier dispositivo.',
@@ -1760,6 +1792,10 @@ export const es: Record<string, string> = {
   'canasta.unit.points': 'puntos',
   'ginrummy.unit.points': 'puntos',
   'holdem.seat.dealer': 'Repartidor',
+  'holdem.seat.smallBlind': 'Ciega pequeña',
+  'holdem.seat.bigBlind': 'Ciega grande',
+  'holdem.seat.smallBlind.short': 'CP',
+  'holdem.seat.bigBlind.short': 'CG',
   'holdem.seat.folded': 'Retirado',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Fuera',
@@ -2356,6 +2392,8 @@ export const es: Record<string, string> = {
   'lastcard.card.drawTwo': 'Roba dos',
   'lastcard.card.wild': 'Comodín',
   'lastcard.card.wildDrawFour': 'Comodín roba cuatro',
+  'lastcard.card.wildSwap': 'Comodín intercambio',
+  'lastcard.card.wildMayhem': 'Comodín caos',
   'variation.lastcard.classic': 'Clásico',
   'err.LASTCARD_NO_MATCH': 'Esa carta no coincide ni en color, ni en número, ni en símbolo',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Un Comodín roba cuatro solo se permite si no tienes ninguna carta del color en juego',
@@ -2411,7 +2449,12 @@ export const es: Record<string, string> = {
   'lastcard.rules.section.house': 'Reglas de la casa',
   'lastcard.rules.stacking.twos': 'Acumular: responde a un Roba dos con otro Roba dos tuyo y pasa todo el montón. Quien no pueda se lo lleva entero y pierde su turno.',
   'lastcard.rules.stacking.any': 'Acumular: responde a una carta de robo con otra tuya — un Roba dos sobre un Roba dos, un Comodín roba cuatro sobre cualquiera de los dos — y pasa todo el montón. Quien no pueda se lo lleva entero y pierde su turno.',
-  'lastcard.rules.sevens': 'Si juegas un 7, cambias tu mano con quien tenga menos cartas.',
+  'lastcard.rules.sevens': 'Si juegas un 7, cambias tu mano con el jugador que elijas.',
+  'lastcard.rules.wildSwap': 'Comodín intercambio ({n} en el mazo): di el color que sigue y luego cambia tu mano con el jugador que elijas.',
+  'lastcard.rules.wildMayhem': 'Comodín caos ({n} en el mazo): di el color que sigue y luego se recogen todas las manos, se barajan y se reparten de nuevo carta a carta, empezando por el siguiente jugador.',
+  'lastcard.prompt.swapWith': '¿Con quién cambias la mano?',
+  'lastcard.prompt.player': 'Jugador',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Elige un jugador con quien cambiar la mano',
   'lastcard.rules.zeros': 'Si juegas un 0, cada mano pasa al siguiente jugador en el sentido del juego.',
   'lastcard.remedy.stackOrTake': 'Responde con una carta de robo tuya o roba las {n} cartas.',
   'lastcard.offer.takeStack': 'Robarlas',
@@ -2427,6 +2470,12 @@ export const es: Record<string, string> = {
   'option.sevenZero': 'Sietes y ceros',
   'choice.sevenZero.0': 'No',
   'choice.sevenZero.1': 'Sí',
+  'option.swapCards': 'Cartas Comodín intercambio',
+  'choice.swapCards.0': 'No',
+  'choice.swapCards.1': 'Sí',
+  'option.mayhemCards': 'Cartas Comodín caos',
+  'choice.mayhemCards.0': 'No',
+  'choice.mayhemCards.1': 'Sí',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} jugó {card}',
   'lastcard.move.playedSkip': '{player} jugó {card} — {target} pierde su turno',
@@ -2450,6 +2499,7 @@ export const es: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} desafió a {target} — era honesto, así que {player} roba {n} y pierde su turno',
   'lastcard.move.swapped': '{player} intercambió su mano con {target}',
   'lastcard.move.passedHands': '{player} jugó un 0 — todas las manos pasan al siguiente',
+  'lastcard.move.mayhem': '¡Caos! {player} recogió todas las manos, las barajó y las repartió de nuevo',
   'lastcard.move.wentOut': '{player} se quedó sin cartas y suma {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Puntuación',

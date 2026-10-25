@@ -83,6 +83,10 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 			LabelKey: "lastcard.move.swapped", Params: map[string]any{"player": player, "target": ev.Data["with"]},
 		}}, true
 
+	case "hands_shuffled":
+		return module.Move{PlayerID: player, Fact: module.Fact{
+			LabelKey: "lastcard.move.mayhem", Params: map[string]any{"player": player},
+		}}, true
 	case "hands_passed":
 		return module.Move{PlayerID: player, Fact: module.Fact{
 			LabelKey: "lastcard.move.passedHands", Params: map[string]any{"player": player},

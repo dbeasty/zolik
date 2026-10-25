@@ -1918,6 +1918,19 @@ func TestEveryModulesHintNamesAControl(t *testing.T) {
 	}
 }
 
+// TestEveryModuleDeclaresHints — every game offers hints, so every game's
+// setup must show the Hints choice, starting on, or a host cannot turn them off.
+func TestEveryModuleDeclaresHints(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			d := g.mod.Descriptor()
+			if spec := d.Option(module.OptHints); spec == nil || !spec.Allows(module.OptOn) || !spec.Allows(module.OptOff) {
+				t.Fatalf("no Hints option (module.HintsOption) in the descriptor: %+v", spec)
+			}
+		})
+	}
+}
+
 // TestEveryTableThatPausesOffersAStandIn — a game that waits for everyone must
 // let the people still at the table go on without somebody whose phone died,
 // and a game that already plays past an absent seat must not offer a second

@@ -73,6 +73,9 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if containsWild(playable) {
 		play.Params = []module.ParamSpec{colourParam(s.Hands[playerID], wildsIn(playable))}
 	}
+	if swaps := s.swapsIn(playable); len(swaps) > 0 && len(s.TurnOrder) > 2 {
+		play.Params = append(play.Params, s.withParam(playerID, swaps))
+	}
 	offers = append(offers, play)
 
 	// --- draw ----------------------------------------------------------------
@@ -107,7 +110,7 @@ func (m *Module) playableCards(raw module.State, s *GameState, playerID string) 
 			continue
 		}
 		seen[card] = true
-		if ok, _ := probe(m, raw, playerID, playAction(card)); ok {
+		if ok, _ := probe(m, raw, playerID, s.playAction(playerID, card)); ok {
 			out = append(out, card)
 		}
 	}
@@ -126,7 +129,7 @@ func (m *Module) probeFirst(raw module.State, s *GameState, playerID string) (bo
 	}
 	why := ""
 	for _, card := range hand {
-		ok, code := probe(m, raw, playerID, playAction(card))
+		ok, code := probe(m, raw, playerID, s.playAction(playerID, card))
 		if ok {
 			return true, ""
 		}
@@ -137,10 +140,15 @@ func (m *Module) probeFirst(raw module.State, s *GameState, playerID string) (bo
 	return false, why
 }
 
-func playAction(card string) module.Action {
-	a := module.Action{Verb: VerbPlay, Cards: []string{card}}
+// playAction is card played with whatever it asks for filled in: a colour
+// for a wild, and for a card that swaps hands, the next player to swap with.
+func (s *GameState) playAction(playerID, card string) module.Action {
+	a := module.Action{Verb: VerbPlay, Cards: []string{card}, Params: map[string]string{}}
 	if isWild(card) {
-		a.Params = map[string]string{"colour": colours[0]}
+		a.Params["colour"] = colours[0]
+	}
+	if s.swapsHands(card) {
+		a.Params["with"] = s.nextPlayer(playerID)
 	}
 	return a
 }
@@ -190,6 +198,36 @@ func longestColour(hand []string) string {
 		}
 	}
 	return best
+}
+
+// swapsIn is the cards among the playable ones that swap hands — the cards
+// the "with whom" parameter is asked for.
+func (s *GameState) swapsIn(cards []string) []string {
+	var out []string
+	for _, c := range cards {
+		if s.swapsHands(c) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// withParam declares whom a swap trades with: any other player, listed round
+// the table from the next one in the direction of play. It starts on the
+// shortest hand — the trade a player almost always wants — the nearest
+// taking a tie. Between two players there is nobody to choose, and the
+// parameter is left out.
+func (s *GameState) withParam(playerID string, swaps []string) module.ParamSpec {
+	spec := module.ParamSpec{Name: "with", Kind: module.ParamKindPlayer, LabelKey: "lastcard.prompt.swapWith", Cards: swaps}
+	shortest := ""
+	for i, p := 1, s.nextPlayer(playerID); i < len(s.TurnOrder); i, p = i+1, s.nextPlayer(p) {
+		spec.Choices = append(spec.Choices, module.ParamChoice{Value: p, LabelKey: "lastcard.prompt.player"})
+		if shortest == "" || len(s.Hands[p]) < len(s.Hands[shortest]) {
+			shortest = p
+		}
+	}
+	spec.DefaultChoice = shortest
+	return spec
 }
 
 // wildsIn is the wilds among the playable cards — the cards the colour

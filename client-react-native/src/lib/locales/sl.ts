@@ -20,6 +20,12 @@ export const sl: Record<string, string> = {
   'err.DISPLACED': 'Odprto v drugem zavihku — ta se je nehal sinhronizirati',
   'err.UNREACHABLE': 'Strežnik ni dosegljiv. Preverite povezavo in poskusite znova.',
   'err.INVALID_CREDENTIALS': 'Uporabniško ime in geslo se ne ujemata.',
+  'err.CREDENTIALS_REQUIRED': 'Vnesite uporabniško ime in geslo.',
+  'err.PASSWORD_TOO_LONG': 'To geslo je predolgo.',
+  'err.USERNAME_TAKEN': 'To uporabniško ime ali e-poštni naslov je že zaseden.',
+  'err.INVALID_EMAIL': 'To ne izgleda kot e-poštni naslov.',
+  'err.CODE_INVALID': 'Ta koda ni veljavna. Zahtevajte novo.',
+  'err.TOO_MANY_CODES': 'Za ta naslov je bilo zahtevanih preveč kod. Poskusite znova čez trenutek.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const sl: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kdor izide, začne naslednje deljenje.',
   'zolik.rules.meldFloor.on':
     'Tvoje prvo polaganje mora skupaj znašati vsaj {n} naravnih točk, da si položen.',
+  'zolik.rules.meldFloor.values':
+    "Za ta minimum vsaka karta šteje toliko, kot stane v roki, razen asa: {aceHigh} v trojki ali nad kraljem, {aceLow} pod dvojko. Džoker šteje kot karta, ki jo nadomešča.",
   'zolik.rules.meldFloor.off': 'Za prvo polaganje ni najmanjše točkovne vrednosti.',
   'zolik.rules.cleanRun.on':
     'Vsaj eden tvojih nizov mora biti povsem brez jokerja, da se šteješ za položenega.',
@@ -120,6 +128,8 @@ export const sl: Record<string, string> = {
     'Tekma traja {n} deljenj in vsako deljenje zahteva svojo kombinacijo skupin in nizov.',
   'zolik.rules.contracts.static': 'Vsako deljenje zahteva isto kombinacijo: {sets} skupin in {runs} nizov.',
   'zolik.rules.end.afterDeals': 'Tekma se konča po {n} deljenjih.',
+  'zolik.rules.penalty.values':
+    "Karta, ki vam ostane v roki, stane: džoker {joker}, 10, fant, dama ali kralj {face}, od 2 do 9 svojo številko, as pa {ace} — ali le {aceLow}, če imate v roki tudi dvojko njegove barve ali damo in kralja njegove barve, ali če bi podaljšal lestvico na mizi.",
   'zolik.rules.end.atScore': 'Deli se naprej, dokler kdo ne doseže {n} točk — takrat je konec.',
 
   'prsi.rules.section.goal': 'Cilj',
@@ -178,6 +188,8 @@ export const sl: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Kup odvrženih je zamrznjen vso deljitev: vzameš ga lahko le tako, da vrhnji karti dodaš dve naravni karti iz roke.',
   'canasta.rules.pileOntoMeld': 'Če ima tvoja stran že nedokončano kombinacijo v vrednosti vrhnje karte, lahko vzameš cel kup odvrženih in ji dodaš to karto — para v roki ne potrebuješ.',
   'canasta.rules.pileNoMeldCapture': 'Kombinacija, ki je že na mizi, kupa odvrženih ne more vzeti: da ga vzameš, moraš vrhnji karti dodati dve karti iz lastne roke.',
+  'canasta.rules.cardValues':
+    "Vrednosti kart: džoker {joker}, dvojka {two}, as {ace}, od kralja do osmice {high}, od sedmice do štirice {low}, črna trojka {black}. Rdeče trojke so bonus in se nikoli ne štejejo v kombinacijo.",
   'canasta.rules.meldFloorBands':
     'Tvoje prvo polaganje mora doseči najmanjše število točk, ki raste z izidom: {negative} pod ničlo, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tem.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora doseči točkovni minimum, ki raste s tvojim rezultatom: {negative} pod ničlo, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} in {top} nad tem.',
@@ -306,6 +318,8 @@ export const sl: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Začni naslednji krog',
+  'round.autoContinue': 'Samodejno začni naslednji krog',
+  'round.autoContinueIn': 'Naslednji krog čez {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -373,6 +387,15 @@ export const sl: Record<string, string> = {
   'holdem.round.uncontested': 'Vsi drugi so odstopili',
   'seat.ready': 'Pripravljen',
   'zolik.seat.contractMet': 'Pogodba izpolnjena',
+  'zolik.hint.setsNeeded': 'Za odlaganje potrebuješ še {n} skupine.',
+  'zolik.hint.setsNeeded.1': 'Za odlaganje potrebuješ še 1 skupino.',
+  'zolik.hint.runsNeeded': 'Za odlaganje potrebuješ še {n} lestvice.',
+  'zolik.hint.runsNeeded.1': 'Za odlaganje potrebuješ še 1 lestvico.',
+  'zolik.hint.cleanRunNeeded': 'Za odlaganje potrebuješ še lestvico brez jokerja.',
+  'zolik.hint.meldPoints': 'Tvoje kombinacije morajo biti vredne {n} točk za odlaganje — imaš {have}.',
+  'zolik.hint.downInOneTurn': 'Odloži v eni potezi: začeto odlaganje moraš pred odmetom dokončati ali preklicati.',
+  'zolik.hint.layOffWhenDown': 'Karte h kombinacijam lahko dodajaš šele, ko si odložil.',
+  'zolik.hint.discardLocked': 'Z odmetanega kupa se sme jemati od kroga {n}.',
   'results.you': '(ti)',
 
 
@@ -640,6 +663,8 @@ export const sl: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinacija je skupina treh ali štirih kart ene vrednosti ali niz treh ali več kart iste barve.',
   'ginrummy.rules.aceLow': 'As je vedno nizek — niza od dame do asa ni.',
+  'ginrummy.rules.cardValues':
+    "V mrtvih kartah as šteje {ace}, karte od 2 do 9 svojo številko, 10, fant, dama in kralj pa {face}.",
   'ginrummy.rules.knockLimit': 'Trkati smeš takoj, ko je tvoj deadwood {n} ali manj.',
   'ginrummy.rules.oklahoma': 'Mejo trkanja v tem deljenju določa vrednost obrnjene karte.',
   'ginrummy.rules.gin': 'Nič deadwooda je gin — najboljše možno trkanje.',
@@ -726,6 +751,8 @@ export const sl: Record<string, string> = {
   'rummytiles.rules.run': 'Niz so tri ali več zaporednih številk iste barve.',
   'rummytiles.rules.noWrap': 'Po 13 se ne začne znova pri 1.',
   'rummytiles.rules.joker': 'Joker predstavlja katero koli ploščico.',
+  'rummytiles.rules.tileValues':
+    "Ploščica je vredna svoje številke. Džoker v kombinaciji je vreden ploščice, ki jo nadomešča; džoker, ki vam ostane v roki, stane {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Dokler v eni sami potezi, izključno iz svoje roke, ne položiš {n} ali več točk, se ne smeš dotakniti ničesar, kar je že na mizi.',
   'rummytiles.rules.turnDescription':
@@ -803,6 +830,8 @@ export const sl: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Karte igralcev se delijo z licem navzgor; delivec eno karto drži zakrito, dokler vsi ne odigrajo.',
   'blackjack.rules.hitStand': 'Vzemi toliko kart, kolikor želiš, ali obstani pri tem, kar imaš.',
+  'blackjack.rules.cardValues':
+    "Karte od 2 do 9 štejejo svojo številko; 10, fant, dama in kralj štejejo {face}.",
   'blackjack.rules.aces': 'As velja enajst, dokler to gre, sicer pa ena.',
   'blackjack.rules.blackjack': 'As s karto vrednosti deset, na prvih dveh kartah, je blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack plača 3:2.',
@@ -1301,6 +1330,9 @@ export const sl: Record<string, string> = {
   'match.resume': 'Nadaljuj, kjer si končal',
   'match.resuming': 'Obnavljam mizo…',
   'match.abandonedWaitingFor': 'Čaka se, da se {names} vrne k mizi.',
+  'match.everyoneBack': 'Vsi so spet za mizo.',
+  'match.everyoneBackNextRound': 'Vsi so spet za mizo. Nadaljevanje začne naslednji krog za vse.',
+  'match.waitingForHostResume': 'Čakamo, da {name} nadaljuje igro.',
   'match.tableCode': 'Koda {code}',
   'match.tableCodeShare': 'Vrni se k naši mizi',
   'match.abandonedSendCode': 'Pošlji jim povezavo nazaj na njihovo mesto — deluje na kateri koli napravi.',
@@ -1734,6 +1766,10 @@ export const sl: Record<string, string> = {
   'canasta.unit.points': 'točk',
   'ginrummy.unit.points': 'točk',
   'holdem.seat.dealer': 'Delivec',
+  'holdem.seat.smallBlind': 'Mali blind',
+  'holdem.seat.bigBlind': 'Veliki blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Odstopil',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Izpadel',
@@ -2330,6 +2366,8 @@ export const sl: Record<string, string> = {
   'lastcard.card.drawTwo': 'Vleci dve',
   'lastcard.card.wild': 'Divja karta',
   'lastcard.card.wildDrawFour': 'Divja + vleci štiri',
+  'lastcard.card.wildSwap': 'Divja + menjava',
+  'lastcard.card.wildMayhem': 'Divja + kaos',
   'variation.lastcard.classic': 'Klasično',
   'err.LASTCARD_NO_MATCH': 'Ta karta se ne ujema ne po barvi ne po številki ne po simbolu',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Divja + vleci štiri je dovoljena le, kadar nimaš nobene karte barve, ki je v igri',
@@ -2385,7 +2423,12 @@ export const sl: Record<string, string> = {
   'lastcard.rules.section.house': 'Hišna pravila',
   'lastcard.rules.stacking.twos': 'Nalaganje: na Vleci dve odgovori s svojo Vleci dve in podaj ves kup naprej. Kdor ne more, vzame vse in izpusti potezo.',
   'lastcard.rules.stacking.any': 'Nalaganje: na karto za vlečenje odgovori s svojo — Vleci dve na Vleci dve, Divjo + vleci štiri na katerokoli od njiju — in podaj ves kup naprej. Kdor ne more, vzame vse in izpusti potezo.',
-  'lastcard.rules.sevens': 'Odigraj 7 in zamenjaš roko s tistim, ki ima najmanj kart.',
+  'lastcard.rules.sevens': 'Odigraj 7 in zamenjaš roko z igralcem po svoji izbiri.',
+  'lastcard.rules.wildSwap': 'Divja + menjava ({n} v kupčku): povej barvo, ki sledi, nato zamenjaj roko s katerim koli igralcem po svoji izbiri.',
+  'lastcard.rules.wildMayhem': 'Divja + kaos ({n} v kupčku): povej barvo, ki sledi, nato se vse roke zberejo, premešajo in znova razdelijo po eno karto, začenši z naslednjim igralcem.',
+  'lastcard.prompt.swapWith': 'S kom zamenjaš roko?',
+  'lastcard.prompt.player': 'Igralec',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Izberi igralca, s katerim zamenjaš roko',
   'lastcard.rules.zeros': 'Odigraj 0 in vsaka roka preide k naslednjemu igralcu v smeri igre.',
   'lastcard.remedy.stackOrTake': 'Odgovori s svojo karto za vlečenje ali vzemi {n} kart.',
   'lastcard.offer.takeStack': 'Vzemi jih',
@@ -2401,6 +2444,12 @@ export const sl: Record<string, string> = {
   'option.sevenZero': 'Sedmice in ničle',
   'choice.sevenZero.0': 'Izklopljeno',
   'choice.sevenZero.1': 'Vklopljeno',
+  'option.swapCards': 'Karte Divja + menjava',
+  'choice.swapCards.0': 'Izklopljeno',
+  'choice.swapCards.1': 'Vklopljeno',
+  'option.mayhemCards': 'Karte Divja + kaos',
+  'choice.mayhemCards.0': 'Izklopljeno',
+  'choice.mayhemCards.1': 'Vklopljeno',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} odigra {card}',
   'lastcard.move.playedSkip': '{player} odigra {card} — {target} izpusti potezo',
@@ -2424,6 +2473,7 @@ export const sl: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} izpodbija karto od {target} — bila je poštena, zato {player} vleče {n} in izpusti potezo',
   'lastcard.move.swapped': '{player} in {target} zamenjata roki',
   'lastcard.move.passedHands': '{player} odigra 0 — vse roke gredo naprej',
+  'lastcard.move.mayhem': 'Kaos! {player} zbere vse roke, jih premeša in znova razdeli',
   'lastcard.move.wentOut': '{player} se znebi vseh kart in dobi {n} točk',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Točkovanje',

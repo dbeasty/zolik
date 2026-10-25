@@ -20,6 +20,12 @@ export const nl: Record<string, string> = {
   'err.DISPLACED': 'Geopend in een ander tabblad — deze synchroniseert niet meer',
   'err.UNREACHABLE': 'De server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.',
   'err.INVALID_CREDENTIALS': 'Die gebruikersnaam en dat wachtwoord komen niet overeen.',
+  'err.CREDENTIALS_REQUIRED': 'Voer een gebruikersnaam en wachtwoord in.',
+  'err.PASSWORD_TOO_LONG': 'Dat wachtwoord is te lang.',
+  'err.USERNAME_TAKEN': 'Die gebruikersnaam of dat e-mailadres is al in gebruik.',
+  'err.INVALID_EMAIL': 'Dat lijkt niet op een e-mailadres.',
+  'err.CODE_INVALID': 'Die code is niet geldig. Vraag een nieuwe aan.',
+  'err.TOO_MANY_CODES': 'Er zijn te veel codes aangevraagd voor dat adres. Probeer het zo meteen opnieuw.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const nl: Record<string, string> = {
   'zolik.rules.lead.winner': 'Wie uitgaat, begint de volgende ronde.',
   'zolik.rules.meldFloor.on':
     'Je eerste leg moet minstens {n} natuurlijke punten opleveren voordat je uitgelegd bent.',
+  'zolik.rules.meldFloor.values':
+    "Voor dat minimum telt elke kaart wat hij in de hand kost, behalve een aas: {aceHigh} in een set of boven een heer, {aceLow} onder een 2. Een joker telt als de kaart die hij vervangt.",
   'zolik.rules.meldFloor.off': 'Er geldt geen minimum aantal punten voor je eerste leg.',
   'zolik.rules.cleanRun.on':
     'Minstens één van je reeksen moet volledig jokervrij zijn voordat je als uitgelegd telt.',
@@ -119,6 +127,8 @@ export const nl: Record<string, string> = {
     'De partij duurt {n} rondes, en elke ronde vraagt haar eigen combinatie van groepen en reeksen.',
   'zolik.rules.contracts.static': 'Elke ronde vraagt dezelfde combinatie: {sets} groepen en {runs} reeksen.',
   'zolik.rules.end.afterDeals': 'De partij eindigt na {n} rondes.',
+  'zolik.rules.penalty.values':
+    "Een kaart die je overhoudt kost: joker {joker}, 10, boer, vrouw of heer {face}, 2 tot en met 9 zijn getal, en een aas {ace} — of maar {aceLow} als je ook een 2 van die kleur, of vrouw en heer van die kleur, in de hand hebt, of als hij een reeks op tafel zou verlengen.",
   'zolik.rules.end.atScore': 'Er wordt doorgedeeld tot iemand {n} punten haalt — dan is het voorbij.',
 
   'prsi.rules.section.goal': 'Doel',
@@ -179,6 +189,8 @@ export const nl: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'De aflegstapel is het hele spel bevroren: je kunt hem alleen nemen door de bovenste kaart te combineren met twee natuurlijke kaarten uit je hand.',
   'canasta.rules.pileOntoMeld': 'Heeft jouw partij al een onafgemaakte combinatie van de waarde van de bovenste kaart, dan mag je de hele aflegstapel nemen en die kaart eraan toevoegen — een paar in je hand is niet nodig.',
   'canasta.rules.pileNoMeldCapture': 'Een combinatie die al op tafel ligt kan de aflegstapel niet nemen: daarvoor moet je de bovenste kaart combineren met twee kaarten uit je eigen hand.',
+  'canasta.rules.cardValues':
+    "Kaartwaarden: joker {joker}, 2 {two}, aas {ace}, heer tot en met 8 {high}, 7 tot en met 4 {low}, zwarte drie {black}. Rode drieën zijn bonussen en tellen nooit mee voor een combinatie.",
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} daarboven.',
   'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} tot {highUpTo} en {top} daarboven.',
@@ -312,6 +324,8 @@ export const nl: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Start de volgende ronde',
+  'round.autoContinue': 'Start de volgende ronde automatisch',
+  'round.autoContinueIn': 'Volgende ronde over {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -379,6 +393,15 @@ export const nl: Record<string, string> = {
   'holdem.round.uncontested': 'Alle anderen pasten',
   'seat.ready': 'Klaar',
   'zolik.seat.contractMet': 'Contract gehaald',
+  'zolik.hint.setsNeeded': 'Je hebt nog {n} sets nodig om uit te leggen.',
+  'zolik.hint.setsNeeded.1': 'Je hebt nog 1 set nodig om uit te leggen.',
+  'zolik.hint.runsNeeded': 'Je hebt nog {n} reeksen nodig om uit te leggen.',
+  'zolik.hint.runsNeeded.1': 'Je hebt nog 1 reeks nodig om uit te leggen.',
+  'zolik.hint.cleanRunNeeded': 'Je hebt nog een reeks zonder joker nodig om uit te leggen.',
+  'zolik.hint.meldPoints': 'Je combinaties moeten {n} punten waard zijn om uit te leggen — je hebt er {have}.',
+  'zolik.hint.downInOneTurn': 'Leg uit in één beurt: een begonnen uitleg moet je afmaken of terugnemen voordat je afgooit.',
+  'zolik.hint.layOffWhenDown': 'Je mag pas kaarten aanleggen als je hebt uitgelegd.',
+  'zolik.hint.discardLocked': 'Van de aflegstapel mag vanaf ronde {n} worden gepakt.',
   'results.you': '(jij)',
 
 
@@ -655,6 +678,8 @@ export const nl: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Een combinatie is een groep van drie of vier kaarten van één waarde, of een reeks van drie of meer kaarten in één kleur.',
   'ginrummy.rules.aceLow': 'De aas telt altijd laag — een reeks van vrouw tot en met aas bestaat niet.',
+  'ginrummy.rules.cardValues':
+    "Bij deadwood telt een aas {ace}, een 2 tot en met 9 zijn getal, en een 10, boer, vrouw of heer {face}.",
   'ginrummy.rules.knockLimit': 'Je mag kloppen zodra je deadwood {n} of minder is.',
   'ginrummy.rules.oklahoma': 'De klopgrens van deze hand wordt bepaald door de waarde van de open kaart.',
   'ginrummy.rules.gin': 'Nul deadwood is gin — de best mogelijke klop.',
@@ -742,6 +767,8 @@ export const nl: Record<string, string> = {
   'rummytiles.rules.run': 'Een reeks bestaat uit drie of meer opeenvolgende getallen in één kleur.',
   'rummytiles.rules.noWrap': 'Na de 13 begint het niet opnieuw bij de 1.',
   'rummytiles.rules.joker': 'Een joker staat voor elke willekeurige steen.',
+  'rummytiles.rules.tileValues':
+    "Een steen is zijn getal waard. Een joker in een combinatie is de steen waard die hij vervangt; een joker die je overhoudt kost {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Zolang je niet in één beurt {n} punten of meer hebt gelegd, uitsluitend uit je eigen hand, mag je niets aanraken van wat al op tafel ligt.',
   'rummytiles.rules.turnDescription':
@@ -819,6 +846,8 @@ export const nl: Record<string, string> = {
   'blackjack.rules.faceUp':
     'De kaarten van de spelers worden open gedeeld; de dealer houdt één kaart dicht tot iedereen gespeeld heeft.',
   'blackjack.rules.hitStand': 'Neem zoveel kaarten als je wilt, of blijf staan op wat je hebt.',
+  'blackjack.rules.cardValues':
+    "Een 2 tot en met 9 telt zijn getal; een 10, boer, vrouw of heer telt {face}.",
   'blackjack.rules.aces': 'Een aas telt voor elf zolang dat past, en anders voor één.',
   'blackjack.rules.blackjack':
     'Een aas met een tienwaardige kaart, op de eerste twee kaarten, is een blackjack.',
@@ -1333,6 +1362,9 @@ export const nl: Record<string, string> = {
   'match.resume': 'Ga verder waar je gebleven was',
   'match.resuming': 'Tafel wordt teruggehaald…',
   'match.abandonedWaitingFor': 'Wachten tot {names} terugkomt aan tafel.',
+  'match.everyoneBack': 'Iedereen is terug aan tafel.',
+  'match.everyoneBackNextRound': 'Iedereen is terug aan tafel. Verder spelen start de volgende ronde voor iedereen.',
+  'match.waitingForHostResume': 'Wachten tot {name} het spel hervat.',
   'match.tableCode': 'Code {code}',
   'match.tableCodeShare': 'Kom terug aan onze tafel',
   'match.abandonedSendCode': 'Stuur ze een link terug naar hun plek — die werkt op elk apparaat.',
@@ -1765,6 +1797,10 @@ export const nl: Record<string, string> = {
   'canasta.unit.points': 'punten',
   'ginrummy.unit.points': 'punten',
   'holdem.seat.dealer': 'Deler',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Gepast',
   'holdem.seat.allIn': 'All-in',
   'holdem.seat.out': 'Uit',
@@ -2361,6 +2397,8 @@ export const nl: Record<string, string> = {
   'lastcard.card.drawTwo': 'Pak twee',
   'lastcard.card.wild': 'Joker',
   'lastcard.card.wildDrawFour': 'Joker pak vier',
+  'lastcard.card.wildSwap': 'Joker ruil',
+  'lastcard.card.wildMayhem': 'Joker chaos',
   'variation.lastcard.classic': 'Klassiek',
   'err.LASTCARD_NO_MATCH': 'Die kaart past niet qua kleur, getal of symbool',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Een Joker pak vier is alleen toegestaan als je geen kaart van de kleur in het spel hebt',
@@ -2416,7 +2454,12 @@ export const nl: Record<string, string> = {
   'lastcard.rules.section.house': 'Huisregels',
   'lastcard.rules.stacking.twos': 'Stapelen: beantwoord een Pak twee met een eigen Pak twee en geef de hele stapel door. Wie dat niet kan, pakt alles en slaat een beurt over.',
   'lastcard.rules.stacking.any': 'Stapelen: beantwoord een pakkaart met een eigen pakkaart — een Pak twee op een Pak twee, een Joker pak vier op allebei — en geef de hele stapel door. Wie dat niet kan, pakt alles en slaat een beurt over.',
-  'lastcard.rules.sevens': 'Speel een 7 en je ruilt van hand met wie de minste kaarten heeft.',
+  'lastcard.rules.sevens': 'Speel een 7 en je ruilt van hand met een speler naar keuze.',
+  'lastcard.rules.wildSwap': 'Joker ruil ({n} in de stapel): noem de kleur die volgt en ruil dan van hand met een speler naar keuze.',
+  'lastcard.rules.wildMayhem': 'Joker chaos ({n} in de stapel): noem de kleur die volgt; daarna worden alle handen verzameld, geschud en één voor één opnieuw uitgedeeld, te beginnen bij de volgende speler.',
+  'lastcard.prompt.swapWith': 'Met wie ruil je van hand?',
+  'lastcard.prompt.player': 'Speler',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Kies een speler om mee van hand te ruilen',
   'lastcard.rules.zeros': 'Speel een 0 en elke hand gaat door naar de volgende speler in de speelrichting.',
   'lastcard.remedy.stackOrTake': 'Beantwoord met een eigen pakkaart, of pak de {n} kaarten.',
   'lastcard.offer.takeStack': 'Pakken',
@@ -2432,6 +2475,12 @@ export const nl: Record<string, string> = {
   'option.sevenZero': 'Zevens en nullen',
   'choice.sevenZero.0': 'Uit',
   'choice.sevenZero.1': 'Aan',
+  'option.swapCards': 'Joker ruil-kaarten',
+  'choice.swapCards.0': 'Uit',
+  'choice.swapCards.1': 'Aan',
+  'option.mayhemCards': 'Joker chaos-kaarten',
+  'choice.mayhemCards.0': 'Uit',
+  'choice.mayhemCards.1': 'Aan',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} speelde {card}',
   'lastcard.move.playedSkip': '{player} speelde {card} — {target} slaat een beurt over',
@@ -2455,6 +2504,7 @@ export const nl: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} vocht {target} aan — het was eerlijk, dus {player} pakt {n} en slaat een beurt over',
   'lastcard.move.swapped': '{player} ruilde van hand met {target}',
   'lastcard.move.passedHands': '{player} speelde een 0 — elke hand schuift door',
+  'lastcard.move.mayhem': 'Chaos! {player} verzamelde alle handen, schudde ze en deelde ze opnieuw uit',
   'lastcard.move.wentOut': '{player} is uit en scoort {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Puntentelling',

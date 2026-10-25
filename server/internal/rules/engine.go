@@ -13,7 +13,14 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 	// Callers reasonably read their pre-action state after calling (the
 	// server logged a discard's handBefore that way and always printed the
 	// post-discard hand), and one error path persists it.
-	state = cloneState(state)
+	return applyOwned(cloneState(state), playerID, action)
+}
+
+// applyOwned is ApplyAction on a state the caller has already copied and
+// gives up: it is written to freely. The offer probes come in here with their
+// scratch copy (see probeScratch), which ApplyAction would otherwise copy a
+// second time.
+func applyOwned(state GameState, playerID string, action Action) (ApplyOutcome, error) {
 	if state.GameNumber == 0 {
 		state.GameNumber = 1
 	}

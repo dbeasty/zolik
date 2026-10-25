@@ -52,4 +52,12 @@ describe('formatApiError', () => {
     expect(text).toBe(t('err.INVALID_CREDENTIALS'));
     expect(text).not.toBe('invalid credentials');
   });
+
+  it('words the register and email-code refusals from their codes', () => {
+    for (const code of ['CREDENTIALS_REQUIRED', 'PASSWORD_TOO_LONG', 'USERNAME_TAKEN', 'INVALID_EMAIL', 'CODE_INVALID', 'TOO_MANY_CODES']) {
+      const text = formatApiError(new ApiError('english fallback', 400, code));
+      expect(text).toBe(t(`err.${code}`));
+      expect(text).not.toBe('english fallback');
+    }
+  });
 });

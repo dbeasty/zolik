@@ -17,6 +17,9 @@ describe('sfxBetween', () => {
   it('plays the take sound when a face-up pile goes to a hand', () => {
     expect(sfxBetween({ zones: [pile('discard', 6), hand(5)] }, { zones: [pile('discard', 0), hand(11)] })).toBe('take');
   });
+  it('plays the shorter pick sound when one card is lifted off a face-up pile', () => {
+    expect(sfxBetween({ zones: [pile('discard', 6), hand(5)] }, { zones: [pile('discard', 5), hand(6)] })).toBe('pick');
+  });
   it('treats a draw from the hidden stock as a plain card sound', () => {
     expect(sfxBetween({ zones: [stock(40), hand(5)] }, { zones: [stock(39), hand(6)] })).toBe('card');
   });

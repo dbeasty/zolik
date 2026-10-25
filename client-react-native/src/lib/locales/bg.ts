@@ -20,6 +20,12 @@ export const bg: Record<string, string> = {
   'err.DISPLACED': 'Отворено в друг раздел — този спря да се синхронизира',
   'err.UNREACHABLE': 'Няма връзка със сървъра. Проверете връзката си и опитайте отново.',
   'err.INVALID_CREDENTIALS': 'Потребителското име и паролата не съвпадат.',
+  'err.CREDENTIALS_REQUIRED': 'Въведете потребителско име и парола.',
+  'err.PASSWORD_TOO_LONG': 'Паролата е твърде дълга.',
+  'err.USERNAME_TAKEN': 'Това потребителско име или имейл вече е заето.',
+  'err.INVALID_EMAIL': 'Това не прилича на имейл адрес.',
+  'err.CODE_INVALID': 'Този код не е валиден. Поискайте нов.',
+  'err.TOO_MANY_CODES': 'Поискани са твърде много кодове за този адрес. Опитайте отново след малко.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const bg: Record<string, string> = {
   'zolik.rules.lead.winner': 'Който излезе, започва следващото раздаване.',
   'zolik.rules.meldFloor.on':
     'Първото ти сваляне трябва да е поне {n} естествени точки, за да се смяташ за свалил.',
+  'zolik.rules.meldFloor.values':
+    "За този минимум всяка карта се брои колкото струва в ръката, освен асото: {aceHigh} в сет или над поп, {aceLow} под двойка. Жокерът се брои като картата, която замества.",
   'zolik.rules.meldFloor.off': 'Няма минимална стойност в точки за първото ти сваляне.',
   'zolik.rules.cleanRun.on':
     'Поне една от поредиците ти трябва да е напълно без жокер, за да се броиш за свалил.',
@@ -121,6 +129,8 @@ export const bg: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Всяко раздаване изисква една и съща комбинация: {sets} групи и {runs} поредици.',
   'zolik.rules.end.afterDeals': 'Мачът свършва след {n} раздавания.',
+  'zolik.rules.penalty.values':
+    "Карта, останала в ръката ви, струва: жокер {joker}, 10, вале, дама или поп {face}, от 2 до 9 – колкото е числото, а асо {ace} — или само {aceLow}, ако в ръката си имате и двойка от неговата боя, или дама и поп от неговата боя, или ако би удължило редица на масата.",
   'zolik.rules.end.atScore': 'Раздава се, докато някой стигне {n} точки — тогава свършва.',
 
   'prsi.rules.section.goal': 'Цел',
@@ -179,6 +189,8 @@ export const bg: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Купчината с изхвърлени е замразена през цялото раздаване: можеш да я вземеш само като допълниш горната карта с две естествени карти от ръката си.',
   'canasta.rules.pileOntoMeld': 'Ако страната ти вече има незавършена комбинация със стойността на горната карта, можеш да вземеш цялата купчина с изхвърлени и да добавиш тази карта към нея — двойка от ръката не ти трябва.',
   'canasta.rules.pileNoMeldCapture': 'Комбинация, която вече е на масата, не може да вземе купчината с изхвърлени: за да я вземеш, трябва да допълниш горната ѝ карта с две карти от собствената си ръка.',
+  'canasta.rules.cardValues':
+    "Стойност на картите: жокер {joker}, двойка {two}, асо {ace}, от поп до осмица {high}, от седмица до четворка {low}, черна тройка {black}. Червените тройки са бонус и никога не се броят към комбинация.",
   'canasta.rules.meldFloorBands':
     'Първото ти сваляне трябва да достигне минимум точки, който расте с резултата ти: {negative} под нулата, {low} до {lowUpTo}, {mid} до {midUpTo}, {high} над това.',
   'canasta.rules.meldFloorBandsFive': 'Първата ти комбинация трябва да достигне точков минимум, който расте с резултата ти: {negative} под нулата, {low} до {lowUpTo}, {mid} до {midUpTo}, {high} до {highUpTo} и {top} над това.',
@@ -310,6 +322,8 @@ export const bg: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Започни следващия рунд',
+  'round.autoContinue': 'Започвай следващия рунд автоматично',
+  'round.autoContinueIn': 'Следващ рунд след {seconds} с',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -377,6 +391,15 @@ export const bg: Record<string, string> = {
   'holdem.round.uncontested': 'Всички други се отказаха',
   'seat.ready': 'Готов',
   'zolik.seat.contractMet': 'Договорът е изпълнен',
+  'zolik.hint.setsNeeded': 'Нужни са ти още {n} групи, за да свалиш.',
+  'zolik.hint.setsNeeded.1': 'Нужна ти е още 1 група, за да свалиш.',
+  'zolik.hint.runsNeeded': 'Нужни са ти още {n} кенти, за да свалиш.',
+  'zolik.hint.runsNeeded.1': 'Нужна ти е още 1 кента, за да свалиш.',
+  'zolik.hint.cleanRunNeeded': 'Нужна ти е още кента без жокер, за да свалиш.',
+  'zolik.hint.meldPoints': 'Комбинациите ти трябва да струват {n} точки, за да свалиш — имаш {have}.',
+  'zolik.hint.downInOneTurn': 'Свали в един ход: започнатото сваляне трябва да се довърши или върне преди хвърляне.',
+  'zolik.hint.layOffWhenDown': 'Можеш да добавяш карти към комбинации едва след като си свалил.',
+  'zolik.hint.discardLocked': 'От купчината за хвърляне може да се тегли от рунд {n}.',
   'results.you': '(ти)',
 
 
@@ -652,6 +675,8 @@ export const bg: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Комбинацията е група от три или четири карти с една стойност, или поредица от три и повече карти в една боя.',
   'ginrummy.rules.aceLow': 'Асото винаги е ниско — няма поредица от дама до асо.',
+  'ginrummy.rules.cardValues':
+    "В мъртвите карти асото се брои {ace}, от 2 до 9 – колкото е числото, а 10, вале, дама и поп – {face}.",
   'ginrummy.rules.knockLimit': 'Можеш да чукнеш, щом дедудът ти е {n} или по-малко.',
   'ginrummy.rules.oklahoma':
     'Границата за чукане в това раздаване се определя от стойността на обърнатата карта.',
@@ -739,6 +764,8 @@ export const bg: Record<string, string> = {
   'rummytiles.rules.run': 'Поредицата е три или повече последователни числа в един цвят.',
   'rummytiles.rules.noWrap': '13 не се връща обратно към 1.',
   'rummytiles.rules.joker': 'Жокерът замества всяка плочка.',
+  'rummytiles.rules.tileValues':
+    "Плочката струва колкото е числото ѝ. Жокер в комбинация струва колкото плочката, която замества; жокер, останал в ръката ви, струва {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Докато не свалиш {n} или повече точки в един-единствен ход, само от собствената си ръка, не можеш да пипаш нищо, което вече е на масата.',
   'rummytiles.rules.turnDescription':
@@ -816,6 +843,8 @@ export const bg: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Картите на играчите се раздават с лице нагоре; крупието държи една карта покрита, докато всички изиграят.',
   'blackjack.rules.hitStand': 'Тегли колкото карти искаш или остани с това, което имаш.',
+  'blackjack.rules.cardValues':
+    "Картите от 2 до 9 се броят колкото е числото; 10, вале, дама и поп – {face}.",
   'blackjack.rules.aces':
     'Асото се брои за единайсет, докато това се побира, и за едно, когато не се побира.',
   'blackjack.rules.blackjack': 'Асо с карта със стойност десет, на първите две карти, е блекджек.',
@@ -1319,6 +1348,9 @@ export const bg: Record<string, string> = {
   'match.resume': 'Продължи оттам, докъдето стигна',
   'match.resuming': 'Масата се възстановява…',
   'match.abandonedWaitingFor': 'Чака се {names} да се върне на масата.',
+  'match.everyoneBack': 'Всички са отново на масата.',
+  'match.everyoneBackNextRound': 'Всички са отново на масата. Продължаването започва следващия рунд за всички.',
+  'match.waitingForHostResume': 'Чакаме {name} да продължи играта.',
   'match.tableCode': 'Код {code}',
   'match.tableCodeShare': 'Върни се на нашата маса',
   'match.abandonedSendCode': 'Изпрати им връзка обратно към мястото им — работи на всяко устройство.',
@@ -1751,6 +1783,10 @@ export const bg: Record<string, string> = {
   'canasta.unit.points': 'точки',
   'ginrummy.unit.points': 'точки',
   'holdem.seat.dealer': 'Раздаващ',
+  'holdem.seat.smallBlind': 'Малък блайнд',
+  'holdem.seat.bigBlind': 'Голям блайнд',
+  'holdem.seat.smallBlind.short': 'МБ',
+  'holdem.seat.bigBlind.short': 'ГБ',
   'holdem.seat.folded': 'Пас',
   'holdem.seat.allIn': 'Ол ин',
   'holdem.seat.out': 'Отпаднал',
@@ -2347,6 +2383,8 @@ export const bg: Record<string, string> = {
   'lastcard.card.drawTwo': 'Тегли две',
   'lastcard.card.wild': 'Дива карта',
   'lastcard.card.wildDrawFour': 'Дива + тегли четири',
+  'lastcard.card.wildSwap': 'Дива + размяна',
+  'lastcard.card.wildMayhem': 'Дива + хаос',
   'variation.lastcard.classic': 'Класически',
   'err.LASTCARD_NO_MATCH': 'Тази карта не съвпада нито по боя, нито по число, нито по символ',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Дива + тегли четири е разрешена само когато нямаш карта от боята в игра',
@@ -2402,7 +2440,12 @@ export const bg: Record<string, string> = {
   'lastcard.rules.section.house': 'Домашни правила',
   'lastcard.rules.stacking.twos': 'Натрупване: отговори на Тегли две със своя Тегли две и предай цялата купчина нататък. Който не може, взема всичко и пропуска хода си.',
   'lastcard.rules.stacking.any': 'Натрупване: отговори на карта за теглене със своя — Тегли две върху Тегли две, Дива + тегли четири върху която и да е от тях — и предай цялата купчина нататък. Който не може, взема всичко и пропуска хода си.',
-  'lastcard.rules.sevens': 'Изиграй 7 и сменяш ръката си с този, който държи най-малко карти.',
+  'lastcard.rules.sevens': 'Изиграй 7 и сменяш ръката си с играч по твой избор.',
+  'lastcard.rules.wildSwap': 'Дива + размяна ({n} в тестето): назови боята, която следва, после смени ръката си с играч по твой избор.',
+  'lastcard.rules.wildMayhem': 'Дива + хаос ({n} в тестето): назови боята, която следва, после всички ръце се събират, разбъркват и раздават отново по една карта, като се започва от следващия играч.',
+  'lastcard.prompt.swapWith': 'С кого да смениш ръката си?',
+  'lastcard.prompt.player': 'Играч',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Избери играч, с когото да смениш ръката си',
   'lastcard.rules.zeros': 'Изиграй 0 и всяка ръка минава към следващия играч по посоката на играта.',
   'lastcard.remedy.stackOrTake': 'Отговори със своя карта за теглене или вземи {n} карти.',
   'lastcard.offer.takeStack': 'Вземи ги',
@@ -2418,6 +2461,12 @@ export const bg: Record<string, string> = {
   'option.sevenZero': 'Седмици и нули',
   'choice.sevenZero.0': 'Изкл.',
   'choice.sevenZero.1': 'Вкл.',
+  'option.swapCards': 'Карти „Дива + размяна“',
+  'choice.swapCards.0': 'Изкл.',
+  'choice.swapCards.1': 'Вкл.',
+  'option.mayhemCards': 'Карти „Дива + хаос“',
+  'choice.mayhemCards.0': 'Изкл.',
+  'choice.mayhemCards.1': 'Вкл.',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} изигра {card}',
   'lastcard.move.playedSkip': '{player} изигра {card} — {target} пропуска хода си',
@@ -2441,6 +2490,7 @@ export const bg: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} оспори {target} — картата беше честна, затова {player} тегли {n} и пропуска хода си',
   'lastcard.move.swapped': '{player} размени ръка с {target}',
   'lastcard.move.passedHands': '{player} изигра 0 — всяка ръка се премести нататък',
+  'lastcard.move.mayhem': 'Хаос! {player} събра всички ръце, разбърка ги и ги раздаде отново',
   'lastcard.move.wentOut': '{player} излезе и получава {n} точки',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Точкуване',

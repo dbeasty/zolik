@@ -20,6 +20,12 @@ export const el: Record<string, string> = {
   'err.DISPLACED': 'Άνοιξε σε άλλη καρτέλα — αυτή σταμάτησε να συγχρονίζεται',
   'err.UNREACHABLE': 'Δεν είναι δυνατή η σύνδεση με τον διακομιστή. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.',
   'err.INVALID_CREDENTIALS': 'Το όνομα χρήστη και ο κωδικός πρόσβασης δεν ταιριάζουν.',
+  'err.CREDENTIALS_REQUIRED': 'Εισάγετε όνομα χρήστη και κωδικό πρόσβασης.',
+  'err.PASSWORD_TOO_LONG': 'Ο κωδικός πρόσβασης είναι πολύ μεγάλος.',
+  'err.USERNAME_TAKEN': 'Αυτό το όνομα χρήστη ή email χρησιμοποιείται ήδη.',
+  'err.INVALID_EMAIL': 'Αυτό δεν μοιάζει με διεύθυνση email.',
+  'err.CODE_INVALID': 'Αυτός ο κωδικός δεν είναι έγκυρος. Ζητήστε νέο.',
+  'err.TOO_MANY_CODES': 'Ζητήθηκαν πάρα πολλοί κωδικοί για αυτή τη διεύθυνση. Δοκιμάστε ξανά σε λίγο.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -113,6 +119,8 @@ export const el: Record<string, string> = {
   'zolik.rules.lead.winner': 'Όποιος βγει παίζει πρώτος στην επόμενη μοιρασιά.',
   'zolik.rules.meldFloor.on':
     'Το πρώτο σου κατέβασμα πρέπει να φτάνει τουλάχιστον {n} φυσικούς πόντους για να είσαι κατεβασμένος.',
+  'zolik.rules.meldFloor.values':
+    "Για αυτό το ελάχιστο κάθε φύλλο μετρά όσο κοστίζει στο χέρι, εκτός από τον άσο: {aceHigh} σε τριάδα ή πάνω από τον ρήγα, {aceLow} κάτω από το 2. Ο τζόκερ μετρά όσο το φύλλο που αντικαθιστά.",
   'zolik.rules.meldFloor.off': 'Δεν υπάρχει ελάχιστη αξία πόντων στο πρώτο σου κατέβασμα.',
   'zolik.rules.cleanRun.on':
     'Τουλάχιστον μία από τις κέντες σου πρέπει να είναι εντελώς χωρίς μπαλαντέρ για να μετράς ως κατεβασμένος.',
@@ -123,6 +131,8 @@ export const el: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Κάθε μοιρασιά απαιτεί τον ίδιο συνδυασμό: {sets} ομάδες και {runs} κέντες.',
   'zolik.rules.end.afterDeals': 'Ο αγώνας τελειώνει μετά από {n} μοιρασιές.',
+  'zolik.rules.penalty.values':
+    "Ένα φύλλο που μένει στο χέρι σας κοστίζει: τζόκερ {joker}, 10, βαλές, ντάμα ή ρήγας {face}, 2 έως 9 τον αριθμό του, και ο άσος {ace} — ή μόνο {aceLow} αν έχετε επίσης στο χέρι ένα 2 του ίδιου χρώματος, ή τη ντάμα και τον ρήγα του ίδιου χρώματος, ή αν θα επέκτεινε μια σειρά στο τραπέζι.",
   'zolik.rules.end.atScore': 'Μοιράζεται ξανά μέχρι κάποιος να φτάσει τους {n} πόντους — τότε τελειώνει.',
 
   'prsi.rules.section.goal': 'Στόχος',
@@ -183,6 +193,8 @@ export const el: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Ο σωρός απόρριψης είναι παγωμένος όλη τη μοιρασιά: μπορείς να τον πάρεις μόνο ταιριάζοντας το πάνω φύλλο με δύο φυσικά φύλλα από το χέρι σου.',
   'canasta.rules.pileOntoMeld': 'Αν η πλευρά σου έχει ήδη έναν ημιτελή συνδυασμό της αξίας του πάνω φύλλου, μπορείς να πάρεις όλον τον σωρό απόρριψης και να προσθέσεις εκεί το φύλλο — δεν χρειάζεσαι ζευγάρι στο χέρι σου.',
   'canasta.rules.pileNoMeldCapture': 'Ένας συνδυασμός που βρίσκεται ήδη στο τραπέζι δεν μπορεί να πάρει τον σωρό απόρριψης: για να τον πάρεις πρέπει να ταιριάξεις το πάνω φύλλο με δύο φύλλα από το ίδιο σου το χέρι.',
+  'canasta.rules.cardValues':
+    "Αξία φύλλων: τζόκερ {joker}, 2 {two}, άσος {ace}, από ρήγα έως 8 {high}, από 7 έως 4 {low}, μαύρο τρία {black}. Τα κόκκινα τρία είναι μπόνους και δεν μετρούν ποτέ σε συνδυασμό.",
   'canasta.rules.meldFloorBands':
     'Το πρώτο σου κατέβασμα πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} έως {lowUpTo}, {mid} έως {midUpTo}, {high} πιο πάνω.',
   'canasta.rules.meldFloorBandsFive': 'Ο πρώτος σου συνδυασμός πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} ως {lowUpTo}, {mid} ως {midUpTo}, {high} ως {highUpTo} και {top} πάνω από αυτό.',
@@ -317,6 +329,8 @@ export const el: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Ξεκίνα τον επόμενο γύρο',
+  'round.autoContinue': 'Αυτόματη έναρξη επόμενου γύρου',
+  'round.autoContinueIn': 'Επόμενος γύρος σε {seconds} δ',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -384,6 +398,15 @@ export const el: Record<string, string> = {
   'holdem.round.uncontested': 'Όλοι οι άλλοι πάσαραν',
   'seat.ready': 'Έτοιμος',
   'zolik.seat.contractMet': 'Το συμβόλαιο ολοκληρώθηκε',
+  'zolik.hint.setsNeeded': 'Χρειάζεσαι ακόμη {n} τριάδες για να κατέβεις.',
+  'zolik.hint.setsNeeded.1': 'Χρειάζεσαι ακόμη 1 τριάδα για να κατέβεις.',
+  'zolik.hint.runsNeeded': 'Χρειάζεσαι ακόμη {n} κέντες για να κατέβεις.',
+  'zolik.hint.runsNeeded.1': 'Χρειάζεσαι ακόμη 1 κέντα για να κατέβεις.',
+  'zolik.hint.cleanRunNeeded': 'Χρειάζεσαι ακόμη μια κέντα χωρίς τζόκερ για να κατέβεις.',
+  'zolik.hint.meldPoints': 'Οι συνδυασμοί σου πρέπει να αξίζουν {n} πόντους για να κατέβεις — έχεις {have}.',
+  'zolik.hint.downInOneTurn': 'Κατέβα σε μία κίνηση: ένα κατέβασμα που ξεκίνησες πρέπει να ολοκληρωθεί ή να αναιρεθεί πριν πετάξεις.',
+  'zolik.hint.layOffWhenDown': 'Μπορείς να προσθέτεις φύλλα σε συνδυασμούς μόνο αφού κατέβεις.',
+  'zolik.hint.discardLocked': 'Από τα πεταμένα επιτρέπεται να τραβήξεις από τον γύρο {n}.',
   'results.you': '(εσύ)',
 
 
@@ -660,6 +683,8 @@ export const el: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Συνδυασμός είναι μια ομάδα τριών ή τεσσάρων φύλλων μιας αξίας, ή μια κέντα τριών ή περισσότερων στο ίδιο χρώμα.',
   'ginrummy.rules.aceLow': 'Ο άσος είναι πάντα χαμηλά — δεν υπάρχει κέντα από ντάμα ως άσο.',
+  'ginrummy.rules.cardValues':
+    "Στα νεκρά φύλλα ο άσος μετρά {ace}, τα 2 έως 9 τον αριθμό τους, και το 10, ο βαλές, η ντάμα και ο ρήγας {face}.",
   'ginrummy.rules.knockLimit': 'Μπορείς να χτυπήσεις μόλις το ντεντγουντ σου γίνει {n} ή λιγότερο.',
   'ginrummy.rules.oklahoma':
     'Το όριο χτυπήματος σε αυτή τη μοιρασιά ορίζεται από την αξία του ανοιχτού φύλλου.',
@@ -752,6 +777,8 @@ export const el: Record<string, string> = {
   'rummytiles.rules.run': 'Κέντα είναι τρεις ή περισσότεροι διαδοχικοί αριθμοί στο ίδιο χρώμα.',
   'rummytiles.rules.noWrap': 'Το 13 δεν γυρίζει πίσω στο 1.',
   'rummytiles.rules.joker': 'Ο μπαλαντέρ αντιπροσωπεύει οποιοδήποτε πλακίδιο.',
+  'rummytiles.rules.tileValues':
+    "Ένα πλακίδιο αξίζει τον αριθμό του. Ένας τζόκερ σε συνδυασμό αξίζει όσο το πλακίδιο που αντικαθιστά· ένας που μένει στο χέρι σας κοστίζει {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Μέχρι να κατεβάσεις {n} ή περισσότερους πόντους σε μία μόνο σειρά, μόνο από το δικό σου χέρι, δεν μπορείς να αγγίξεις τίποτα από όσα βρίσκονται ήδη στο τραπέζι.',
   'rummytiles.rules.turnDescription':
@@ -831,6 +858,8 @@ export const el: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Τα φύλλα των παικτών μοιράζονται ανοιχτά· ο ντίλερ κρατά ένα φύλλο κλειστό μέχρι να παίξουν όλοι.',
   'blackjack.rules.hitStand': 'Τράβα όσα φύλλα θέλεις, ή μείνε σε αυτό που έχεις.',
+  'blackjack.rules.cardValues':
+    "Τα 2 έως 9 μετρούν τον αριθμό τους· το 10, ο βαλές, η ντάμα και ο ρήγας μετρούν {face}.",
   'blackjack.rules.aces': 'Ο άσος μετρά έντεκα όσο αυτό χωράει, και ένα όταν δεν χωράει.',
   'blackjack.rules.blackjack': 'Άσος με φύλλο αξίας δέκα, στα δύο πρώτα φύλλα, είναι μπλακ τζακ.',
   'blackjack.rules.pays3to2': 'Το μπλακ τζακ πληρώνει 3:2.',
@@ -1348,6 +1377,9 @@ export const el: Record<string, string> = {
   'match.resume': 'Συνέχισε από εκεί που έμεινες',
   'match.resuming': 'Επαναφορά τραπεζιού…',
   'match.abandonedWaitingFor': 'Αναμένεται να επιστρέψει στο τραπέζι: {names}.',
+  'match.everyoneBack': 'Όλοι επέστρεψαν στο τραπέζι.',
+  'match.everyoneBackNextRound': 'Όλοι επέστρεψαν στο τραπέζι. Η συνέχιση ξεκινά τον επόμενο γύρο για όλους.',
+  'match.waitingForHostResume': 'Αναμονή για να συνεχίσει το παιχνίδι ο/η {name}.',
   'match.tableCode': 'Κωδικός {code}',
   'match.tableCodeShare': 'Γύρνα στο τραπέζι μας',
   'match.abandonedSendCode': 'Στείλε τους έναν σύνδεσμο πίσω στη θέση τους — λειτουργεί σε κάθε συσκευή.',
@@ -1781,6 +1813,10 @@ export const el: Record<string, string> = {
   'canasta.unit.points': 'πόντοι',
   'ginrummy.unit.points': 'πόντοι',
   'holdem.seat.dealer': 'Μοιράζει',
+  'holdem.seat.smallBlind': 'Μικρό blind',
+  'holdem.seat.bigBlind': 'Μεγάλο blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Πάσο',
   'holdem.seat.allIn': 'Όλα μέσα',
   'holdem.seat.out': 'Εκτός',
@@ -2373,6 +2409,8 @@ export const el: Record<string, string> = {
   'lastcard.card.drawTwo': 'Τράβα δύο',
   'lastcard.card.wild': 'Μπαλαντέρ',
   'lastcard.card.wildDrawFour': 'Μπαλαντέρ τράβα τέσσερα',
+  'lastcard.card.wildSwap': 'Μπαλαντέρ ανταλλαγή',
+  'lastcard.card.wildMayhem': 'Μπαλαντέρ χάος',
   'variation.lastcard.classic': 'Κλασικό',
   'err.LASTCARD_NO_MATCH': 'Αυτό το φύλλο δεν ταιριάζει ούτε στο χρώμα ούτε στον αριθμό ούτε στο σύμβολο',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Το Μπαλαντέρ τράβα τέσσερα επιτρέπεται μόνο όταν δεν έχεις κανένα φύλλο του χρώματος που παίζεται',
@@ -2428,7 +2466,12 @@ export const el: Record<string, string> = {
   'lastcard.rules.section.house': 'Κανόνες του σπιτιού',
   'lastcard.rules.stacking.twos': 'Στοίβαξη: απάντησε σε ένα Τράβα δύο με ένα δικό σου Τράβα δύο και δώσε όλη τη στοίβα παρακάτω. Όποιος δεν μπορεί, τα παίρνει όλα και χάνει τη σειρά του.',
   'lastcard.rules.stacking.any': 'Στοίβαξη: απάντησε σε ένα φύλλο τραβήγματος με ένα δικό σου — Τράβα δύο πάνω σε Τράβα δύο, Μπαλαντέρ τράβα τέσσερα πάνω σε οποιοδήποτε από τα δύο — και δώσε όλη τη στοίβα παρακάτω. Όποιος δεν μπορεί, τα παίρνει όλα και χάνει τη σειρά του.',
-  'lastcard.rules.sevens': 'Παίξε ένα 7 και ανταλλάσσεις χέρι με όποιον έχει τα λιγότερα φύλλα.',
+  'lastcard.rules.sevens': 'Παίξε ένα 7 και ανταλλάσσεις χέρι με όποιον παίκτη διαλέξεις.',
+  'lastcard.rules.wildSwap': 'Μπαλαντέρ ανταλλαγή ({n} στην τράπουλα): πες το χρώμα που ακολουθεί και μετά άλλαξε χέρι με όποιον παίκτη διαλέξεις.',
+  'lastcard.rules.wildMayhem': 'Μπαλαντέρ χάος ({n} στην τράπουλα): πες το χρώμα που ακολουθεί και μετά όλα τα χέρια μαζεύονται, ανακατεύονται και μοιράζονται ξανά ένα-ένα φύλλο, ξεκινώντας από τον επόμενο παίκτη.',
+  'lastcard.prompt.swapWith': 'Με ποιον ανταλλάσσεις χέρι;',
+  'lastcard.prompt.player': 'Παίκτης',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Διάλεξε παίκτη για να ανταλλάξεις χέρι',
   'lastcard.rules.zeros': 'Παίξε ένα 0 και κάθε χέρι περνά στον επόμενο παίκτη προς την κατεύθυνση του παιχνιδιού.',
   'lastcard.remedy.stackOrTake': 'Απάντησε με δικό σου φύλλο τραβήγματος ή πάρε τα {n} φύλλα.',
   'lastcard.offer.takeStack': 'Πάρε τα',
@@ -2444,6 +2487,12 @@ export const el: Record<string, string> = {
   'option.sevenZero': 'Ανταλλαγή με εφτάρια και μηδενικά',
   'choice.sevenZero.0': 'Ανενεργή',
   'choice.sevenZero.1': 'Ενεργή',
+  'option.swapCards': 'Φύλλα «Μπαλαντέρ ανταλλαγή»',
+  'choice.swapCards.0': 'Ανενεργή',
+  'choice.swapCards.1': 'Ενεργή',
+  'option.mayhemCards': 'Φύλλα «Μπαλαντέρ χάος»',
+  'choice.mayhemCards.0': 'Ανενεργή',
+  'choice.mayhemCards.1': 'Ενεργή',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} έπαιξε {card}',
   'lastcard.move.playedSkip': '{player} έπαιξε {card} — {target} χάνει γύρο',
@@ -2467,6 +2516,7 @@ export const el: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} αμφισβήτησε τον παίκτη {target} — ήταν τίμιο, οπότε {player} τραβά {n} και χάνει γύρο',
   'lastcard.move.swapped': '{player} αντάλλαξε χέρια με τον παίκτη {target}',
   'lastcard.move.passedHands': '{player} έπαιξε 0 — όλα τα χέρια περνούν στον επόμενο',
+  'lastcard.move.mayhem': 'Χάος! {player} μάζεψε όλα τα χέρια, τα ανακάτεψε και τα μοίρασε ξανά',
   'lastcard.move.wentOut': '{player} ξεφορτώθηκε όλα τα φύλλα και παίρνει {n} πόντους',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Βαθμολογία',

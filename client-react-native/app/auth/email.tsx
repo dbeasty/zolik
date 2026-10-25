@@ -7,6 +7,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimedMessage } from '@/src/lib/auth';
 import { shared } from '@/src/theme';
+import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
@@ -36,7 +37,7 @@ export default function EmailSignInScreen() {
       await startEmailSignIn(email.trim());
       setStep('code');
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('error.sendCode'));
+      setError(formatApiError(e, t('error.sendCode')));
     } finally {
       setBusy(false);
     }
@@ -51,7 +52,7 @@ export default function EmailSignInScreen() {
       if (claimed) setNotice(claimed);
       router.replace('/');
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('error.badCode'));
+      setError(formatApiError(e, t('error.badCode')));
     } finally {
       setBusy(false);
     }

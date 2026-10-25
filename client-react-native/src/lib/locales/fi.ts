@@ -20,6 +20,12 @@ export const fi: Record<string, string> = {
   'err.DISPLACED': 'Avattu toisessa välilehdessä — tämä lakkasi synkronoimasta',
   'err.UNREACHABLE': 'Palvelimeen ei saada yhteyttä. Tarkista yhteytesi ja yritä uudelleen.',
   'err.INVALID_CREDENTIALS': 'Käyttäjänimi ja salasana eivät täsmää.',
+  'err.CREDENTIALS_REQUIRED': 'Anna käyttäjätunnus ja salasana.',
+  'err.PASSWORD_TOO_LONG': 'Salasana on liian pitkä.',
+  'err.USERNAME_TAKEN': 'Tämä käyttäjätunnus tai sähköposti on jo käytössä.',
+  'err.INVALID_EMAIL': 'Tämä ei näytä sähköpostiosoitteelta.',
+  'err.CODE_INVALID': 'Koodi ei kelpaa. Pyydä uusi.',
+  'err.TOO_MANY_CODES': 'Tälle osoitteelle on pyydetty liian monta koodia. Yritä hetken kuluttua uudelleen.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const fi: Record<string, string> = {
   'zolik.rules.lead.winner': 'Ulos päässyt aloittaa seuraavan jaon.',
   'zolik.rules.meldFloor.on':
     'Ensimmäisen laskusi on oltava vähintään {n} luonnollista pistettä, ennen kuin olet laskenut alas.',
+  'zolik.rules.meldFloor.values':
+    "Tähän minimiin jokainen kortti lasketaan sen mukaan, mitä se maksaa kädessä, paitsi ässä: {aceHigh} sarjassa tai kuninkaan yläpuolella, {aceLow} kakkosen alapuolella. Jokeri lasketaan korvaamansa kortin arvoisena.",
   'zolik.rules.meldFloor.off': 'Ensimmäiselle laskulle ei ole pisteminimiä.',
   'zolik.rules.cleanRun.on':
     'Vähintään yhden suorasi on oltava täysin jokeriton, ennen kuin sinut lasketaan alas laskeneeksi.',
@@ -120,6 +128,8 @@ export const fi: Record<string, string> = {
     'Ottelu kestää {n} jakoa, ja jokainen jako vaatii oman ryhmien ja suorien yhdistelmänsä.',
   'zolik.rules.contracts.static': 'Jokainen jako vaatii saman yhdistelmän: {sets} ryhmää ja {runs} suoraa.',
   'zolik.rules.end.afterDeals': 'Ottelu päättyy {n} jaon jälkeen.',
+  'zolik.rules.penalty.values':
+    "Käteen jäänyt kortti maksaa: jokeri {joker}, 10, jätkä, rouva tai kuningas {face}, 2–9 numeronsa, ja ässä {ace} — tai vain {aceLow}, jos kädessäsi on myös saman maan kakkonen tai saman maan rouva ja kuningas, tai jos se jatkaisi pöydällä olevaa suoraa.",
   'zolik.rules.end.atScore': 'Jakoa jatketaan, kunnes joku saavuttaa {n} pistettä — sitten se on ohi.',
 
   'prsi.rules.section.goal': 'Tavoite',
@@ -179,6 +189,8 @@ export const fi: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Poistopino on jäädytetty koko jaon ajan: saat sen vain sovittamalla päällimmäisen kortin kahteen luonnolliseen korttiin kädestäsi.',
   'canasta.rules.pileOntoMeld': 'Jos puolellasi on jo pöydässä keskeneräinen yhdistelmä päällimmäisen kortin arvoa, saat ottaa koko poistopinon ja lisätä sen kortin siihen — paria kädessä ei tarvita.',
   'canasta.rules.pileNoMeldCapture': 'Pöydässä jo oleva yhdistelmä ei voi ottaa poistopinoa: sen ottamiseen tarvitset päällimmäisen kortin pariksi kaksi korttia omasta kädestäsi.',
+  'canasta.rules.cardValues':
+    "Korttien arvot: jokeri {joker}, 2 {two}, ässä {ace}, kuninkaasta kahdeksikkoon {high}, seitsemästä neloseen {low}, musta kolmonen {black}. Punaiset kolmoset ovat bonuksia eivätkä koskaan laske yhdistelmän arvoon.",
   'canasta.rules.meldFloorBands':
     'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} {lowUpTo}:aan asti, {mid} {midUpTo}:een asti, {high} sen yli.',
   'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} {lowUpTo} asti, {mid} {midUpTo} asti, {high} {highUpTo} asti ja {top} sen yli.',
@@ -308,6 +320,8 @@ export const fi: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Aloita seuraava kierros',
+  'round.autoContinue': 'Aloita seuraava kierros automaattisesti',
+  'round.autoContinueIn': 'Seuraava kierros {seconds} s kuluttua',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -375,6 +389,15 @@ export const fi: Record<string, string> = {
   'holdem.round.uncontested': 'Kaikki muut luovuttivat',
   'seat.ready': 'Valmis',
   'zolik.seat.contractMet': 'Sopimus täytetty',
+  'zolik.hint.setsNeeded': 'Tarvitset vielä {n} sarjaa päästäksesi alas.',
+  'zolik.hint.setsNeeded.1': 'Tarvitset vielä 1 sarjan päästäksesi alas.',
+  'zolik.hint.runsNeeded': 'Tarvitset vielä {n} suoraa päästäksesi alas.',
+  'zolik.hint.runsNeeded.1': 'Tarvitset vielä 1 suoran päästäksesi alas.',
+  'zolik.hint.cleanRunNeeded': 'Tarvitset vielä jokerittoman suoran päästäksesi alas.',
+  'zolik.hint.meldPoints': 'Yhdistelmiesi on oltava {n} pisteen arvoisia päästäksesi alas — sinulla on {have}.',
+  'zolik.hint.downInOneTurn': 'Mene alas yhdellä vuorolla: aloitettu lasku on saatava valmiiksi tai peruttava ennen poistoa.',
+  'zolik.hint.layOffWhenDown': 'Voit lisätä kortteja yhdistelmiin vasta, kun olet alhaalla.',
+  'zolik.hint.discardLocked': 'Poistopakasta saa nostaa kierroksesta {n} alkaen.',
   'results.you': '(sinä)',
 
 
@@ -646,6 +669,8 @@ export const fi: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Yhdistelmä on kolmen tai neljän samanarvoisen kortin ryhmä tai kolmen tai useamman samanmaisen kortin suora.',
   'ginrummy.rules.aceLow': 'Ässä on aina matala — rouvasta ässään ei ole suoraa.',
+  'ginrummy.rules.cardValues':
+    "Kuolleissa korteissa ässä on {ace}, 2–9 numeronsa arvoinen ja 10, jätkä, rouva ja kuningas {face}.",
   'ginrummy.rules.knockLimit': 'Voit koputtaa heti kun deadwoodisi on {n} tai vähemmän.',
   'ginrummy.rules.oklahoma': 'Tämän jaon koputusrajan määrää avatun kortin arvo.',
   'ginrummy.rules.gin': 'Nolla deadwoodia on gin — paras mahdollinen koputus.',
@@ -732,6 +757,8 @@ export const fi: Record<string, string> = {
   'rummytiles.rules.run': 'Suora on kolme tai useampi peräkkäinen numero samassa värissä.',
   'rummytiles.rules.noWrap': '13 ei jatku takaisin ykköseen.',
   'rummytiles.rules.joker': 'Jokeri edustaa mitä tahansa laattaa.',
+  'rummytiles.rules.tileValues':
+    "Laatta on numeronsa arvoinen. Yhdistelmässä jokeri on korvaamansa laatan arvoinen; käteen jäänyt jokeri maksaa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Ennen kuin olet laskenut {n} pistettä tai enemmän yhdellä vuorolla, pelkästään omasta kädestäsi, et saa koskea mihinkään, mikä on jo pöydässä.',
   'rummytiles.rules.turnDescription':
@@ -809,6 +836,8 @@ export const fi: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Pelaajien kortit jaetaan kuvapuoli ylöspäin; jakaja pitää yhden kortin piilossa, kunnes kaikki ovat pelanneet.',
   'blackjack.rules.hitStand': 'Ota niin monta korttia kuin haluat, tai jää siihen mitä sinulla on.',
+  'blackjack.rules.cardValues':
+    "Kortit 2–9 ovat numeronsa arvoisia; 10, jätkä, rouva ja kuningas ovat {face}.",
   'blackjack.rules.aces': 'Ässä lasketaan yhdeksitoista niin kauan kuin se mahtuu, ja muuten ykköseksi.',
   'blackjack.rules.blackjack': 'Ässä ja kympin arvoinen kortti kahdella ensimmäisellä kortilla on blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack maksaa 3:2.',
@@ -1317,6 +1346,9 @@ export const fi: Record<string, string> = {
   'match.resume': 'Jatka siitä, mihin jäit',
   'match.resuming': 'Palautetaan pöytää…',
   'match.abandonedWaitingFor': 'Odotetaan, että {names} palaa pöytään.',
+  'match.everyoneBack': 'Kaikki ovat taas pöydässä.',
+  'match.everyoneBackNextRound': 'Kaikki ovat taas pöydässä. Jatkaminen aloittaa seuraavan kierroksen kaikille.',
+  'match.waitingForHostResume': 'Odotetaan, että {name} jatkaa peliä.',
   'match.tableCode': 'Koodi {code}',
   'match.tableCodeShare': 'Palaa pöytäämme',
   'match.abandonedSendCode': 'Lähetä heille linkki takaisin paikalleen — se toimii millä tahansa laitteella.',
@@ -1749,6 +1781,10 @@ export const fi: Record<string, string> = {
   'canasta.unit.points': 'pistettä',
   'ginrummy.unit.points': 'pistettä',
   'holdem.seat.dealer': 'Jakaja',
+  'holdem.seat.smallBlind': 'Pieni blindi',
+  'holdem.seat.bigBlind': 'Iso blindi',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Luovutti',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Ulkona',
@@ -2341,6 +2377,8 @@ export const fi: Record<string, string> = {
   'lastcard.card.drawTwo': 'Nosta kaksi',
   'lastcard.card.wild': 'Jokeri',
   'lastcard.card.wildDrawFour': 'Nosta neljä -jokeri',
+  'lastcard.card.wildSwap': 'Vaihtojokeri',
+  'lastcard.card.wildMayhem': 'Kaaosjokeri',
   'variation.lastcard.classic': 'Klassinen',
   'err.LASTCARD_NO_MATCH': 'Kortti ei sovi väriin, numeroon eikä symboliin',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Nosta neljä -jokeri on sallittu vain, kun sinulla ei ole yhtään pelissä olevan värin korttia',
@@ -2396,7 +2434,12 @@ export const fi: Record<string, string> = {
   'lastcard.rules.section.house': 'Kotisäännöt',
   'lastcard.rules.stacking.twos': 'Pinoaminen: vastaa Nosta kaksi -korttiin omalla Nosta kaksi -kortillasi ja siirrä koko pino eteenpäin. Joka ei voi, ottaa kaiken ja menettää vuoronsa.',
   'lastcard.rules.stacking.any': 'Pinoaminen: vastaa nostokorttiin omalla nostokortillasi — Nosta kaksi Nosta kahden päälle, Nosta neljä -jokeri kumman tahansa päälle — ja siirrä koko pino eteenpäin. Joka ei voi, ottaa kaiken ja menettää vuoronsa.',
-  'lastcard.rules.sevens': 'Pelaa 7, niin vaihdat kättä sen pelaajan kanssa, jolla on vähiten kortteja.',
+  'lastcard.rules.sevens': 'Pelaa 7, niin vaihdat kättä valitsemasi pelaajan kanssa.',
+  'lastcard.rules.wildSwap': 'Vaihtojokeri ({n} pakassa): nimeä väri, joka jatkuu, ja vaihda sitten kättä valitsemasi pelaajan kanssa.',
+  'lastcard.rules.wildMayhem': 'Kaaosjokeri ({n} pakassa): nimeä väri, joka jatkuu, minkä jälkeen kaikki kädet kerätään, sekoitetaan ja jaetaan uudelleen kortti kerrallaan seuraavasta pelaajasta alkaen.',
+  'lastcard.prompt.swapWith': 'Kenen kanssa vaihdat kättä?',
+  'lastcard.prompt.player': 'Pelaaja',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Valitse pelaaja, jonka kanssa vaihdat kättä',
   'lastcard.rules.zeros': 'Pelaa 0, niin jokainen käsi siirtyy seuraavalle pelaajalle pelisuuntaan.',
   'lastcard.remedy.stackOrTake': 'Vastaa omalla nostokortillasi tai ota {n} korttia.',
   'lastcard.offer.takeStack': 'Ota ne',
@@ -2412,6 +2455,12 @@ export const fi: Record<string, string> = {
   'option.sevenZero': 'Seiskat ja nollat',
   'choice.sevenZero.0': 'Pois',
   'choice.sevenZero.1': 'Päällä',
+  'option.swapCards': 'Vaihtojokerit',
+  'choice.swapCards.0': 'Pois',
+  'choice.swapCards.1': 'Päällä',
+  'option.mayhemCards': 'Kaaosjokerit',
+  'choice.mayhemCards.0': 'Pois',
+  'choice.mayhemCards.1': 'Päällä',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} pelasi kortin {card}',
   'lastcard.move.playedSkip': '{player} pelasi kortin {card} — {target} menettää vuoronsa',
@@ -2435,6 +2484,7 @@ export const fi: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} haastoi pelaajan {target} — se oli rehellinen, joten {player} nostaa {n} ja menettää vuoronsa',
   'lastcard.move.swapped': '{player} vaihtoi kädet pelaajan {target} kanssa',
   'lastcard.move.passedHands': '{player} pelasi nollan — jokainen käsi siirtyy eteenpäin',
+  'lastcard.move.mayhem': 'Kaaos! {player} keräsi kaikki kädet, sekoitti ne ja jakoi ne uudelleen',
   'lastcard.move.wentOut': '{player} pääsi korteistaan eroon ja saa {n} pistettä',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Pisteytys',

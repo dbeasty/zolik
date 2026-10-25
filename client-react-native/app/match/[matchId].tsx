@@ -34,6 +34,8 @@ import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RulesButton } from '@/src/components/match/RulesButton';
 import { RoundResults } from '@/src/components/match/RoundResults';
+import { AutoContinue } from '@/src/components/match/AutoContinue';
+import { useAutoContinue } from '@/src/lib/autoContinuePref';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { InviteBackSheet } from '@/src/components/match/InviteBackSheet';
 import { TableCode } from '@/src/components/match/TableCode';
@@ -48,6 +50,10 @@ import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useStandIn } from '@/src/components/StandInSheet';
 import { TableBanner } from '@/src/components/match/TableBanner';
+import { GuideCard } from '@/src/guide/GuideCard';
+import { GuideExitSheet } from '@/src/guide/GuideExitSheet';
+import { GuideTarget } from '@/src/guide/GuideTarget';
+import { useGuide } from '@/src/guide/useGuide';
 import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
@@ -55,7 +61,9 @@ import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import { SoundToggle } from '@/src/sound/SoundToggle';
 import { useBoardSounds } from '@/src/sound/useBoardSounds';
+import { ReactionsContext } from '@/src/components/avatars/ReactionsContext';
 import {
+  companyFor,
   dropSpotsFor,
   groupElementId,
   liftKey,
@@ -219,7 +227,24 @@ function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, notice, send: sendNow, clearError, clearNotice } = useMatchSocket(url, client);
+  const { state, error, connected, notice, send: sendRaw, clearError, clearNotice } = useMatchSocket(url, client);
+
+  // The guided lesson this table was dealt for, if it was one. Every move
+  // that actually leaves for the table is reported to it (so it counts the
+  // ones the table accepts), and every move a player is about to make is
+  // checked with it first (so a strict step can hold back the ones that would
+  // derail the walk-through). Null at an ordinary table.
+  const guide = useGuide(client, state, error);
+  const guideRef = useRef(guide);
+  guideRef.current = guide;
+  const [guideExitOpen, setGuideExitOpen] = useState(false);
+  const sendNow = useCallback(
+    (action: MatchAction) => {
+      guideRef.current?.sent(action);
+      sendRaw(action);
+    },
+    [sendRaw],
+  );
 
   // Every move leaves through here. A move that plays a card the offer says
   // a question is for — the colour a wild names — waits for the answer
@@ -252,6 +277,7 @@ function MatchScreen() {
   const [confirming, setConfirming] = useState<MatchAction | null>(null);
   const send = useCallback(
     (action: MatchAction) => {
+      if (guide && !guide.allow(action)) return;
       if (a11yPrefs.confirmFinal && state) {
         const me = session?.userId ?? '';
         const hands = (state.view?.zones ?? []).filter((z) => z.kind === 'hand' && z.ownerId === me);
@@ -264,7 +290,7 @@ function MatchScreen() {
       }
       proceed(action);
     },
-    [a11yPrefs.confirmFinal, state, session?.userId, proceed],
+    [a11yPrefs.confirmFinal, state, session?.userId, proceed, guide],
   );
   const answer = useCallback(
     (name: string, value: string) => {
@@ -422,6 +448,13 @@ function MatchScreen() {
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
   const [explaining, setExplaining] = useState<Refusal | null>(null);
+  // A board that changes mid-drag — a bot's move landing, the moves box
+  // appearing above the hand for the first time in a deal — can move every
+  // target below the change, and targets are measured once, at pick-up. So a
+  // new state re-reads them while a card is in hand.
+  useEffect(() => {
+    if (dragRef.current) drops.measure();
+  }, [state, drops.measure]);
   // Whose score is being explained, and from which round's cell if any.
   const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
   // The host may change any bot's strength at any point: tapping its face
@@ -502,7 +535,8 @@ function MatchScreen() {
   // has to be able to tell apart from "no round has ended".
   const flash = useResultsFlash(state);
   // Card, pile, turn, round and match sounds, and the announcer.
-  useBoardSounds(state, viewerId, flash);
+  // …and the faces at the table acting the same events out.
+  const reactions = useBoardSounds(state, viewerId, flash);
 
   // The look the board is wearing, and the switcher's handle on the rest.
   // The style factory keys on the skin, so switching repaints everything at
@@ -619,7 +653,11 @@ function MatchScreen() {
     },
     [stillness],
   );
-  const ending = useEndingScroll(state, goTo);
+  // A player who has the next round dealt for them is not stopping to read
+  // the settlement, so the board does not jump down to it after every hand.
+  // The end of the match still scrolls: that one is worth being taken to.
+  const [autoContinue] = useAutoContinue(state?.moduleId);
+  const ending = useEndingScroll(state, goTo, { rounds: !autoContinue });
   // And where the player is when one begins, which is the top of a board whose
   // game is halfway down it. The other half of the same idea as `ending`, and
   // the two can never both want the scroller: a deal is on or the table has
@@ -927,7 +965,12 @@ function MatchScreen() {
   const fromMeld = (o: ActionOffer) => o.source?.zone === 'from_meld' && !o.source?.submit?.length;
   // Everything a hand selection could be for: the whole list, less the moves
   // that start on the table.
-  const handOffers = state.legalActions.filter((o) => !fromMeld(o));
+  // A tile lying loose in a tray is lifted the same way, except that the offer
+  // lists every tile it would take (`source.cards`) rather than naming one run
+  // (`source.submit`): any of them is a head, and the pick is just that tile.
+  const isTrayLift = (o: ActionOffer) =>
+    o.source?.zone === 'from_table' && !o.source.submit?.length && !!o.source.cards?.length;
+  const handOffers = state.legalActions.filter((o) => !fromMeld(o) && !isTrayLift(o));
   // Melds whose cards may be picked up right now, by meld id.
   const pickableGroups = new Set(
     state.legalActions
@@ -961,16 +1004,25 @@ function MatchScreen() {
   // the offers and nothing else — which card heads a movable run is a rule,
   // and the module has already answered it by offering the move.
   const handIds = new Set(myHands.map((z) => z.id));
-  const liftOffers = state.legalActions.filter(
-    (o) =>
-      o.enabled &&
-      !!o.source?.submit?.length &&
-      (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))),
-  );
+  const isTableLift = (o: ActionOffer) =>
+    isTrayLift(o) ||
+    (!!o.source?.submit?.length && (!!o.source.meldId || (!!o.source.zoneId && !handIds.has(o.source.zoneId))));
+  const liftOffers = state.legalActions.filter((o) => o.enabled && isTableLift(o));
+  // What cards picked from the hand may be for. A lift names a card that is
+  // not in it — Samba's top of the pile — and a hand holding another copy of
+  // that card would otherwise light the lift up as if it were the one picked.
+  const handDropOffers = handOffers.filter((o) => !isTableLift(o));
+  /** The cards an offer lifts when `card` is the one pressed. */
+  const liftedBy = (o: ActionOffer, card: string) => (isTrayLift(o) ? [card] : o.source!.submit!);
   const liftable = new Set(
-    liftOffers.map((o) => liftKey(o.source!.meldId ?? o.source!.zoneId!, o.source!.submit![0]!)),
+    liftOffers.flatMap((o) =>
+      isTrayLift(o)
+        ? o.source!.cards!.map((c) => liftKey(o.source!.zoneId!, c))
+        : [liftKey(o.source!.meldId ?? o.source!.zoneId!, o.source!.submit![0]!)],
+    ),
   );
-  const liftsOf = (card: string) => liftOffers.filter((o) => o.source!.submit![0] === card);
+  const liftsOf = (card: string) =>
+    liftOffers.filter((o) => (isTrayLift(o) ? o.source!.cards!.includes(card) : o.source!.submit![0] === card));
 
   const canAct = state.legalActions.some(isLive);
   const step = turnStep(state.legalActions);
@@ -1029,7 +1081,7 @@ function MatchScreen() {
         ? state.legalActions.filter((o) => o.enabled && fromMeld(o) && o.source?.meldId === fromMeldId)
         : fromTable
           ? liftsOf(cards[0] ?? '')
-          : handOffers,
+          : handDropOffers,
       cards,
     );
   const liveSpots = drag ? spotsFor(drag.cards, drag.fromTable, drag.fromMeld) : [];
@@ -1083,7 +1135,10 @@ function MatchScreen() {
     : meldPickLive
       ? dropSpotsFor(moveCandidates, meldPickLive.cards)
     : selectedCards.length > 0
-      ? dropSpotsFor(pendingCandidates, selectedCards)
+      ? dropSpotsFor(
+          pendingCandidates.filter((o) => !isTableLift(o)),
+          selectedCards,
+        )
       : pendingGroupKey
         ? pendingCandidates.flatMap((o) =>
             o.target?.meldId ? [{ offerId: o.id, elementId: groupElementId(o.target.meldId), ready: true }] : [],
@@ -1139,7 +1194,7 @@ function MatchScreen() {
     const aimed = armedMeldIdLive ? offers.filter((o) => o.target?.meldId === armedMeldIdLive) : [];
     const only = aimed.length === 1 ? aimed[0] : offers.length === 1 ? offers[0] : undefined;
     if (only) {
-      const action = submissionFor(only, { cards: only.source!.submit });
+      const action = submissionFor(only, { cards: liftedBy(only, card) });
       if (!action) return;
       send(action);
       clearSelection();
@@ -1148,27 +1203,45 @@ function MatchScreen() {
     }
     clearSelection();
     setPendingGroupKey(null);
-    setTablePick((was) => (was?.[0] === card ? null : offers[0]!.source!.submit!));
+    setTablePick((was) => (was?.[0] === card ? null : liftedBy(offers[0]!, card)));
   };
 
   // The same run carried by hand rather than picked by a press.
   const beginTableDrag = (card: string) => {
     const offer = liftsOf(card)[0];
     if (!offer) return;
-    const cards = offer.source!.submit!;
+    const cards = liftedBy(offer, card);
     setTablePick(null);
     dragRef.current = { slotIds: [], cards, fromTable: true };
     setDrag({ cards, fromTable: true });
     drops.measure();
   };
 
+  // One card of a meld, and whatever the module says it cannot leave without
+  // (`companyFor`) — each companion found at its own index in the group.
+  const withCompany = (meldId: string, index: number, card: string) => {
+    const pick = { meldId, indices: [index], cards: [card] };
+    const company = companyFor(
+      state.legalActions.filter((o) => fromMeld(o) && o.source?.meldId === meldId),
+      card,
+    );
+    const group = (state.view?.zones ?? []).flatMap((z) => z.groups ?? []).find((g) => g.id === meldId);
+    for (const c of company) {
+      const at = group?.cards.findIndex((x, i) => x === c && !pick.indices.includes(i)) ?? -1;
+      if (at < 0) return { meldId, indices: [index], cards: [card] };
+      pick.indices.push(at);
+      pick.cards.push(c);
+    }
+    return pick;
+  };
+
   // Cards of an open meld carried by hand: the ones already picked in that
-  // meld if this is one of them, else just this one. Mirrors a press (see
+  // meld if this is one of them, else this one with any company it needs. Mirrors a press (see
   // `onPickGroupCard`) so a drag and a tap-then-target are the same move.
-  const beginMeldDrag = (meldId: string, index: number, card: string) => {
-    if (!pickableGroups.has(meldId)) return;
+  const beginMeldDrag = (meldId: string, index: number, card: string): number[] | undefined => {
+    if (!pickableGroups.has(meldId)) return undefined;
     const live = meldPickLive && meldPickLive.meldId === meldId && meldPickLive.indices.includes(index);
-    const pick = live ? meldPickLive : { meldId, indices: [index], cards: [card] };
+    const pick = live ? meldPickLive : withCompany(meldId, index, card);
     setSelected(new Set());
     setSelectionIsAuto(false);
     setPendingGroupKey(null);
@@ -1178,6 +1251,7 @@ function MatchScreen() {
     dragRef.current = { slotIds: [], cards: pick.cards, fromMeld: meldId };
     setDrag({ cards: pick.cards, fromMeld: meldId });
     drops.measure();
+    return pick.indices;
   };
 
   const beginDrag = (zoneId: string, index: number) => {
@@ -1696,9 +1770,13 @@ function MatchScreen() {
   // A results panel is worth putting up at the end of a round as well as at the
   // end of a match, and there is nothing to put in one before the first round
   // has finished.
-  const showResults =
-    !!state.rounds?.rounds.length &&
-    (state.status === 'completed' || state.status === 'abandoned' || !!state.rounds.paused);
+  //
+  // Held open at those moments, and kept the rest of the time too — folded
+  // away like any other panel, so the score is a tap away mid-round rather
+  // than gone until the next settlement.
+  const showResults = !!state.rounds?.rounds.length;
+  const resultsHeld =
+    state.status === 'completed' || state.status === 'abandoned' || !!state.rounds?.paused;
 
   // The table is sitting between rounds. The module's own answer, never worked
   // out here from the controls that happen to be live.
@@ -1734,6 +1812,11 @@ function MatchScreen() {
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
+  // Nobody is missing any more: said outright, so the people at the table can
+  // tell the wait is over, and — when the press is the host's — whose it is.
+  const everyoneBack = wasAbandoned && seatedHere && !awayNames.length;
+  const resumeHostName =
+    everyoneBack && !canResume && state.resumeHost ? playerName(state.players, state.resumeHost) : '';
 
   // The join code, kept in view for as long as the table can still be played,
   // because it is how a seated player who left gets back: the join call lets
@@ -1782,60 +1865,21 @@ function MatchScreen() {
       ? t('server.explainHost')
       : t('server.explainGuest', { name: serverName });
 
-  // The controls, built once and rendered in one of two places.
-  //
-  // Ordinarily they sit directly under the hand, because every one of them acts
-  // on the cards picked just above it. Between rounds none of that holds: the
-  // module offers exactly one control — go on to the next round — the hand is
-  // not actionable, and a single button left several screens below the
-  // settlement it belongs to is how a paused table comes to read as a stuck
-  // one. So while the table is paused they are rendered up with the results
-  // instead, and the two positions share one piece of JSX so they can never
-  // drift apart.
-  const controlsPanel = (
-    <Panel
-      {...zonePanelProps('controls')}
-      title={t('match.controls')}
-      region={t('a11y.board.region.actions')}
-      testID="controls-panel"
-      summary={
-        <OfferGlance
-          offers={handOffers}
-          selectedCards={selectedCards}
-          armedGroupId={armedMeldIdLive}
-          onSend={send}
-          onConsumeSelection={clearSelection}
-          params={offerParams}
-          onParamsChange={setOfferParams}
-          onAmbiguous={(groupKey) => {
-            setPendingGroupKey(groupKey);
-            drops.measure();
-          }}
-          onExplain={explain}
-          testID="controls-summary"
-        />
-      }
-    >
-      {/* What to do now, in one line, from the same offers the controls
-          below are drawn from — see `src/lib/turnStep.ts`. */}
-      {step && !paused ? (
-        <View style={styles.stepRow}>
-          <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
-            {step.obligation
-              ? factText(step.obligation, state.players)
-              : t('step.yourTurn', {
-                  moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
-                })}
-          </Text>
-          {hintsAllowed ? (
-            <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
-              <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton} hitSlop={8}>
-                <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
-              </Pressable>
-            </Tip>
-          ) : null}
-        </View>
-      ) : null}
+  // The hint and what it said, shared by the open panel and the minimized
+  // one. A player who put the controls away still makes moves from the
+  // summary, so the button that suggests one has to stay in reach too.
+  const controlsMinimized = zonePanelProps('controls').minimized;
+  const hintButton =
+    hintsAllowed && step && !paused ? (
+      <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
+        <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton} hitSlop={8}>
+          <Attention active={!!guide?.anchored('hint')} radius={8} />
+          <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
+        </Pressable>
+      </Tip>
+    ) : null;
+  const hintText = (
+    <>
       {hint && hintOffer ? (
         <Text testID="hint-line" style={styles.hintLine}>
           {factText(
@@ -1852,6 +1896,62 @@ function MatchScreen() {
           {reasonText(hintRefusal, hintRefusal)}
         </Text>
       ) : null}
+    </>
+  );
+
+  // The controls, built once and rendered in one of two places.
+  //
+  // Ordinarily they sit directly under the hand, because every one of them acts
+  // on the cards picked just above it. Between rounds none of that holds: the
+  // module offers exactly one control — go on to the next round — the hand is
+  // not actionable, and a single button left several screens below the
+  // settlement it belongs to is how a paused table comes to read as a stuck
+  // one. So while the table is paused they are rendered up with the results
+  // instead, and the two positions share one piece of JSX so they can never
+  // drift apart.
+  const controlsPanel = (
+    <Panel
+      {...zonePanelProps('controls')}
+      title={t('match.controls')}
+      region={t('a11y.board.region.actions')}
+      testID="controls-panel"
+      accessory={controlsMinimized ? hintButton : undefined}
+      summary={
+        <>
+          <OfferGlance
+            offers={handOffers}
+            selectedCards={selectedCards}
+            armedGroupId={armedMeldIdLive}
+            onSend={send}
+            onConsumeSelection={clearSelection}
+            params={offerParams}
+            onParamsChange={setOfferParams}
+            onAmbiguous={(groupKey) => {
+              setPendingGroupKey(groupKey);
+              drops.measure();
+            }}
+            onExplain={explain}
+            testID="controls-summary"
+          />
+          {hintText}
+        </>
+      }
+    >
+      {/* What to do now, in one line, from the same offers the controls
+          below are drawn from — see `src/lib/turnStep.ts`. */}
+      {step && !paused ? (
+        <View style={styles.stepRow}>
+          <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
+            {step.obligation
+              ? factText(step.obligation, state.players)
+              : t('step.yourTurn', {
+                  moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
+                })}
+          </Text>
+          {hintButton}
+        </View>
+      ) : null}
+      {hintText}
       {/* The engine's own sentence stands in for a code this build has
           no translation for — it is at least a sentence, where the bare
           code reads as a crash. A code we do know still wins, so a
@@ -1909,6 +2009,14 @@ function MatchScreen() {
           drops.measure();
         }}
       />
+      {paused ? (
+        <AutoContinue
+          moduleId={state.moduleId}
+          offers={handOffers}
+          round={state.rounds?.rounds[state.rounds.rounds.length - 1]?.number ?? 0}
+          onSend={send}
+        />
+      ) : null}
       {!canAct && state.status === 'active' ? (
         <Text testID="match-waiting" style={styles.muted}>
           {turnHolderName ? t('match.waitingForName', { name: turnHolderName }) : t('match.waitingForPlayer')}
@@ -2094,6 +2202,9 @@ function MatchScreen() {
         onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
         onKeepWaiting={standIn.act ? (id) => void standIn.act?.(id, false) : undefined}
       />
+      {/* The guide speaks from here, outside the board, for the same reason
+          the banner above does — and exit is always one press away. */}
+      {guide ? <GuideCard guide={guide} onExit={() => setGuideExitOpen(true)} /> : null}
       <ScrollView
         ref={scrollRef}
         // Wide enough for the table and no wider. On a large monitor the felt
@@ -2222,6 +2333,16 @@ function MatchScreen() {
                 {t('results.stoodIn', { names: stoodInNames.join(', ') })}
               </Text>
             ) : null}
+            {everyoneBack ? (
+              <Text testID="match-over-everyone-back" style={styles.overOutcome}>
+                {canResume && paused ? t('match.everyoneBackNextRound') : t('match.everyoneBack')}
+              </Text>
+            ) : null}
+            {resumeHostName ? (
+              <Text testID="match-over-waiting-host" style={styles.overOutcome}>
+                {t('match.waitingForHostResume', { name: resumeHostName })}
+              </Text>
+            ) : null}
             {wasAbandoned && !canResume && awayNames.length ? (
               <Text testID="match-over-waiting" style={styles.overOutcome}>
                 {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
@@ -2260,7 +2381,8 @@ function MatchScreen() {
                   the ring. Offered exactly where the server will honour it —
                   which on a table with other people at it means once they are
                   all back, since reviving it while somebody is away would
-                  restart a game they had counted as over. */}
+                  restart a game they had counted as over. And then only on
+                  the host's screen: the others are told whose press it is. */}
               {canResume ? (
                 <Pressable
                   testID="match-over-resume"
@@ -2401,6 +2523,10 @@ function MatchScreen() {
               standings={state.standings}
               viewerId={viewerId}
               onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
+              // Folded by default while play is on, so it is stored the other
+              // way round from the board's panels: present means opened out.
+              minimized={resultsHeld ? undefined : !panels.isMinimized('results:open')}
+              onToggleMinimized={resultsHeld ? undefined : () => panels.toggle('results:open')}
             />
             {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
           </View>
@@ -2417,10 +2543,19 @@ function MatchScreen() {
           styles={styles}
           zonePanelProps={zonePanelProps}
           dropProps={dropProps}
-          hand={handPanel}
-          controls={
-            paused ? null : <View {...opening.anchor('controls')}>{controlsPanel}</View>
+          hand={
+            <GuideTarget guide={guide} anchor="hand">
+              {handPanel}
+            </GuideTarget>
           }
+          controls={
+            paused ? null : (
+              <GuideTarget guide={guide} anchor="actionBar">
+                <View {...opening.anchor('controls')}>{controlsPanel}</View>
+              </GuideTarget>
+            )
+          }
+          tableRing={!!guide?.tableRing}
           tableAnchor={opening.anchor('table')}
           // Only where the game keeps rounds: a score with no account behind
           // it — Prší's, which is a card count — has nothing to open.
@@ -2437,6 +2572,15 @@ function MatchScreen() {
           for all three, because they are one question. */}
       {botStrength.sheet}
       {standIn.sheet}
+      {guide ? (
+        <GuideExitSheet
+          guide={guide}
+          client={client}
+          matchId={String(matchId)}
+          visible={guideExitOpen}
+          onClose={() => setGuideExitOpen(false)}
+        />
+      ) : null}
       <LeaveSheet
         visible={!!leaving}
         onCancel={() => setLeaving(null)}
@@ -2468,7 +2612,12 @@ function MatchScreen() {
         />
       ) : null}
 
-      <ChoiceSheet spec={asking?.ask[0] ?? null} onPick={answer} onCancel={() => setAsking(null)} />
+      <ChoiceSheet
+        spec={asking?.ask[0] ?? null}
+        players={state.players}
+        onPick={answer}
+        onCancel={() => setAsking(null)}
+      />
 
       {/* "Play where?" — a card from the keyboard that fits more than one
           place. One answer per place (and per end of a run), each named the
@@ -2586,7 +2735,11 @@ function MatchScreen() {
     </View>
   );
   // Which pack the cards are drawn from — see src/lib/deck.ts.
-  return <DeckProvider deck={state.deck}>{screen}</DeckProvider>;
+  return (
+    <DeckProvider deck={state.deck}>
+      <ReactionsContext.Provider value={reactions}>{screen}</ReactionsContext.Provider>
+    </DeckProvider>
+  );
 }
 
 /** An offer's own control label, for a sentence about the move it sends. */

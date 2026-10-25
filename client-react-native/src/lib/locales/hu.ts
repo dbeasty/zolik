@@ -20,6 +20,12 @@ export const hu: Record<string, string> = {
   'err.DISPLACED': 'Másik lapon nyílt meg — ez leállt a szinkronizálással',
   'err.UNREACHABLE': 'A szerver nem érhető el. Ellenőrizd a kapcsolatot, és próbáld újra.',
   'err.INVALID_CREDENTIALS': 'A felhasználónév és a jelszó nem egyezik.',
+  'err.CREDENTIALS_REQUIRED': 'Adj meg felhasználónevet és jelszót.',
+  'err.PASSWORD_TOO_LONG': 'Ez a jelszó túl hosszú.',
+  'err.USERNAME_TAKEN': 'Ez a felhasználónév vagy e-mail-cím már foglalt.',
+  'err.INVALID_EMAIL': 'Ez nem úgy néz ki, mint egy e-mail-cím.',
+  'err.CODE_INVALID': 'Ez a kód érvénytelen. Kérj újat.',
+  'err.TOO_MANY_CODES': 'Túl sok kódot kértek erre a címre. Próbáld újra egy kicsit később.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -112,6 +118,8 @@ export const hu: Record<string, string> = {
   'zolik.rules.lead.winner': 'Aki kiszáll, az kezdi a következő leosztást.',
   'zolik.rules.meldFloor.on':
     'Az első lerakásodnak legalább {n} természetes pontot kell adnia ahhoz, hogy leraktnak számíts.',
+  'zolik.rules.meldFloor.values':
+    "Ebbe a minimumba minden lap annyit számít, amennyibe a kézben kerül, kivéve az ászt: {aceHigh} egy drillben vagy a király fölött, {aceLow} a 2-es alatt. A joker annyit ér, mint a lap, amelyet helyettesít.",
   'zolik.rules.meldFloor.off': 'Az első lerakásodra nincs minimális pontérték.',
   'zolik.rules.cleanRun.on':
     'Legalább az egyik sorodnak teljesen joker nélkülinek kell lennie ahhoz, hogy leraktnak számíts.',
@@ -122,6 +130,8 @@ export const hu: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Minden leosztás ugyanazt a kombinációt kéri: {sets} csoport és {runs} sor.',
   'zolik.rules.end.afterDeals': 'A mérkőzés {n} leosztás után ér véget.',
+  'zolik.rules.penalty.values':
+    "A kezedben maradt lap ára: joker {joker}, 10, bubi, dáma vagy király {face}, 2–9 a számértéke, az ász pedig {ace} — vagy csak {aceLow}, ha a kezedben van az ő színéből egy 2-es is, vagy az ő színének dámája és királya, vagy ha meghosszabbítana egy sort az asztalon.",
   'zolik.rules.end.atScore': 'Addig osztanak újra, amíg valaki el nem éri a(z) {n} pontot — akkor vége.',
 
   'prsi.rules.section.goal': 'Cél',
@@ -183,6 +193,8 @@ export const hu: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'A dobópakli az egész osztás alatt be van fagyasztva: csak úgy viheted el, ha a felső lapját két természetes lappal párosítod a kezedből.',
   'canasta.rules.pileOntoMeld': 'Ha az oldaladnak már van befejezetlen kombinációja a felső lap értékéből, elviheted az egész dobópaklit, és hozzáteheted azt a lapot — nem kell hozzá pár a kezedben.',
   'canasta.rules.pileNoMeldCapture': 'Az asztalon fekvő kombináció nem viheti el a dobópaklit: az elvitelhez a felső lapját két saját kézből származó lappal kell párosítanod.',
+  'canasta.rules.cardValues':
+    "Kártyaértékek: joker {joker}, 2-es {two}, ász {ace}, királytól 8-asig {high}, 7-estől 4-esig {low}, fekete 3-as {black}. A piros 3-asok bónuszok, és sosem számítanak bele egy kirakásba.",
   'canasta.rules.meldFloorBands':
     'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} azon felül.',
   'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} {highUpTo}-ig, azon felül {top}.',
@@ -315,6 +327,8 @@ export const hu: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Következő kör indítása',
+  'round.autoContinue': 'Következő kör automatikus indítása',
+  'round.autoContinueIn': 'Következő kör {seconds} mp múlva',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -382,6 +396,15 @@ export const hu: Record<string, string> = {
   'holdem.round.uncontested': 'Mindenki más bedobta',
   'seat.ready': 'Kész',
   'zolik.seat.contractMet': 'Szerződés teljesítve',
+  'zolik.hint.setsNeeded': 'Még {n} sor kell a lerakáshoz.',
+  'zolik.hint.setsNeeded.1': 'Még 1 sor kell a lerakáshoz.',
+  'zolik.hint.runsNeeded': 'Még {n} sorozat kell a lerakáshoz.',
+  'zolik.hint.runsNeeded.1': 'Még 1 sorozat kell a lerakáshoz.',
+  'zolik.hint.cleanRunNeeded': 'Még egy joker nélküli sorozat kell a lerakáshoz.',
+  'zolik.hint.meldPoints': 'A kombinációidnak {n} pontot kell érniük a lerakáshoz — most {have}.',
+  'zolik.hint.downInOneTurn': 'Egy körben rakj le: az elkezdett lerakást dobás előtt be kell fejezni vagy vissza kell venni.',
+  'zolik.hint.layOffWhenDown': 'Kombinációkhoz csak a lerakás után tehetsz lapot.',
+  'zolik.hint.discardLocked': 'A dobópakliból a(z) {n}. körtől lehet húzni.',
   'results.you': '(te)',
 
 
@@ -657,6 +680,8 @@ export const hu: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'A kombináció három vagy négy azonos értékű lapból álló csoport, vagy három vagy több azonos színű lapból álló sor.',
   'ginrummy.rules.aceLow': 'Az ász mindig alacsony — dámától ászig nincs sor.',
+  'ginrummy.rules.cardValues':
+    "A holtfában az ász {ace}, a 2–9 a számértéke, a 10, bubi, dáma és király pedig {face} pontot ér.",
   'ginrummy.rules.knockLimit': 'Kopoghatsz, amint a deadwoodod {n} vagy kevesebb.',
   'ginrummy.rules.oklahoma': 'Ebben a leosztásban a kopogási határt a felfordított lap értéke szabja meg.',
   'ginrummy.rules.gin': 'A nulla deadwood a gin — a lehető legjobb kopogás.',
@@ -743,6 +768,8 @@ export const hu: Record<string, string> = {
   'rummytiles.rules.run': 'A sor három vagy több egymást követő szám azonos színben.',
   'rummytiles.rules.noWrap': 'A 13 után nem kezdődik újra az 1.',
   'rummytiles.rules.joker': 'A joker bármelyik lapkát helyettesíti.',
+  'rummytiles.rules.tileValues':
+    "Egy kő a számát éri. Egy joker a kirakásban annyit ér, mint a kő, amelyet helyettesít; a kezedben maradt joker {joker} pontba kerül.",
   'rummytiles.rules.initialMeldDescription':
     'Amíg egyetlen körben, kizárólag a saját kezedből, nem raktál le {n} vagy több pontot, semmihez nem nyúlhatsz, ami már az asztalon van.',
   'rummytiles.rules.turnDescription':
@@ -820,6 +847,8 @@ export const hu: Record<string, string> = {
   'blackjack.rules.faceUp':
     'A játékosok lapjait nyíltan osztják; az osztó egy lapot lefordítva tart, amíg mindenki le nem játszott.',
   'blackjack.rules.hitStand': 'Húzz annyi lapot, amennyit akarsz, vagy maradj annál, amid van.',
+  'blackjack.rules.cardValues':
+    "A 2–9 a számértékét éri; a 10, bubi, dáma és király {face} pontot.",
   'blackjack.rules.aces': 'Az ász tizenegyet ér, amíg belefér, egyébként egyet.',
   'blackjack.rules.blackjack': 'Ász egy tízértékű lappal, az első két lapon: ez a blackjack.',
   'blackjack.rules.pays3to2': 'A blackjack 3:2-t fizet.',
@@ -1324,6 +1353,9 @@ export const hu: Record<string, string> = {
   'match.resume': 'Folytasd ott, ahol abbahagytad',
   'match.resuming': 'Asztal visszahozása…',
   'match.abandonedWaitingFor': 'Várunk arra, hogy {names} visszatérjen az asztalhoz.',
+  'match.everyoneBack': 'Mindenki visszatért az asztalhoz.',
+  'match.everyoneBackNextRound': 'Mindenki visszatért az asztalhoz. A folytatás mindenkinek elindítja a következő kört.',
+  'match.waitingForHostResume': 'Várakozás, hogy {name} folytassa a játékot.',
   'match.tableCode': 'Kód: {code}',
   'match.tableCodeShare': 'Gyere vissza az asztalunkhoz',
   'match.abandonedSendCode': 'Küldj nekik egy linket vissza a helyükre — bármilyen eszközön működik.',
@@ -1756,6 +1788,10 @@ export const hu: Record<string, string> = {
   'canasta.unit.points': 'pont',
   'ginrummy.unit.points': 'pont',
   'holdem.seat.dealer': 'Osztó',
+  'holdem.seat.smallBlind': 'Kis vak',
+  'holdem.seat.bigBlind': 'Nagy vak',
+  'holdem.seat.smallBlind.short': 'KV',
+  'holdem.seat.bigBlind.short': 'NV',
   'holdem.seat.folded': 'Bedobta',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Kiesett',
@@ -2353,6 +2389,8 @@ export const hu: Record<string, string> = {
   'lastcard.card.drawTwo': 'Húzz kettőt',
   'lastcard.card.wild': 'Színválasztó',
   'lastcard.card.wildDrawFour': 'Színválasztó + húzz négyet',
+  'lastcard.card.wildSwap': 'Színválasztó + csere',
+  'lastcard.card.wildMayhem': 'Színválasztó + káosz',
   'variation.lastcard.classic': 'Klasszikus',
   'err.LASTCARD_NO_MATCH': 'Ez a lap sem színben, sem számban, sem jelben nem egyezik',
   'err.LASTCARD_DRAW_FOUR_HELD':
@@ -2409,7 +2447,12 @@ export const hu: Record<string, string> = {
   'lastcard.rules.section.house': 'Házszabályok',
   'lastcard.rules.stacking.twos': 'Halmozás: a Húzz kettőt lapra válaszolj a saját Húzz kettőt lapoddal, és add tovább az egész halmot. Aki nem tud, felhúz mindent, és kimarad a köre.',
   'lastcard.rules.stacking.any': 'Halmozás: a húzató lapra válaszolj a sajátoddal — Húzz kettőt a Húzz kettőtre, Színválasztó + húzz négyet bármelyikre —, és add tovább az egész halmot. Aki nem tud, felhúz mindent, és kimarad a köre.',
-  'lastcard.rules.sevens': 'Ha 7-est teszel le, kezet cserélsz azzal, akinél a legkevesebb lap van.',
+  'lastcard.rules.sevens': 'Ha 7-est teszel le, kezet cserélsz egy általad választott játékossal.',
+  'lastcard.rules.wildSwap': 'Színválasztó + csere ({n} a pakliban): mondd meg a következő színt, majd cserélj kezet egy általad választott játékossal.',
+  'lastcard.rules.wildMayhem': 'Színválasztó + káosz ({n} a pakliban): mondd meg a következő színt, majd az összes kezet összeszedjük, megkeverjük és egyenként újraosztjuk, a következő játékostól kezdve.',
+  'lastcard.prompt.swapWith': 'Kivel cserélsz kezet?',
+  'lastcard.prompt.player': 'Játékos',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Válaszd ki, kivel cserélsz kezet',
   'lastcard.rules.zeros': 'Ha 0-t teszel le, minden kéz a játék irányában következő játékoshoz kerül.',
   'lastcard.remedy.stackOrTake': 'Válaszolj a saját húzató lapoddal, vagy húzd fel a(z) {n} lapot.',
   'lastcard.offer.takeStack': 'Felhúzom',
@@ -2425,6 +2468,12 @@ export const hu: Record<string, string> = {
   'option.sevenZero': 'Hetesek és nullák',
   'choice.sevenZero.0': 'Ki',
   'choice.sevenZero.1': 'Be',
+  'option.swapCards': 'Színválasztó + csere lapok',
+  'choice.swapCards.0': 'Ki',
+  'choice.swapCards.1': 'Be',
+  'option.mayhemCards': 'Színválasztó + káosz lapok',
+  'choice.mayhemCards.0': 'Ki',
+  'choice.mayhemCards.1': 'Be',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} kijátszotta: {card}',
   'lastcard.move.playedSkip': '{player} kijátszotta: {card} — {target} kimarad',
@@ -2448,6 +2497,7 @@ export const hu: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} megtámadta {target} lapját — becsületes volt, így {player} húz {n} lapot, és kimarad',
   'lastcard.move.swapped': '{player} kezet cserélt vele: {target}',
   'lastcard.move.passedHands': '{player} 0-t játszott ki — minden kéz továbbvándorol',
+  'lastcard.move.mayhem': 'Káosz! {player} összeszedte az összes kezet, megkeverte és újraosztotta őket',
   'lastcard.move.wentOut': '{player} kifogyott a lapokból, és {n} pontot kap',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Pontozás',

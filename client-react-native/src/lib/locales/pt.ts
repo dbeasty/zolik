@@ -20,6 +20,12 @@ export const pt: Record<string, string> = {
   'err.DISPLACED': 'Aberta noutro separador — esta deixou de sincronizar',
   'err.UNREACHABLE': 'Não foi possível contactar o servidor. Verifique a ligação e tente novamente.',
   'err.INVALID_CREDENTIALS': 'O nome de utilizador e a palavra-passe não coincidem.',
+  'err.CREDENTIALS_REQUIRED': 'Introduza um nome de utilizador e uma palavra-passe.',
+  'err.PASSWORD_TOO_LONG': 'Essa palavra-passe é demasiado longa.',
+  'err.USERNAME_TAKEN': 'Esse nome de utilizador ou e-mail já está em uso.',
+  'err.INVALID_EMAIL': 'Isso não parece um endereço de e-mail.',
+  'err.CODE_INVALID': 'Esse código não é válido. Peça um novo.',
+  'err.TOO_MANY_CODES': 'Foram pedidos demasiados códigos para esse endereço. Tente novamente daqui a pouco.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -112,6 +118,8 @@ export const pt: Record<string, string> = {
   'zolik.rules.lead.winner': 'Quem sai abre a ronda seguinte.',
   'zolik.rules.meldFloor.on':
     'A tua primeira baixa tem de somar pelo menos {n} pontos naturais para contares como baixado.',
+  'zolik.rules.meldFloor.values':
+    "Para esse mínimo cada carta conta o que custa na mão, exceto o ás: {aceHigh} num trio ou acima do rei, {aceLow} abaixo do 2. Um curinga conta como a carta que substitui.",
   'zolik.rules.meldFloor.off': 'Não há mínimo de pontos na tua primeira baixa.',
   'zolik.rules.cleanRun.on':
     'Pelo menos uma das tuas sequências tem de ser totalmente sem jokers para contares como baixado.',
@@ -121,6 +129,8 @@ export const pt: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Todas as rondas exigem a mesma combinação: {sets} grupos e {runs} sequências.',
   'zolik.rules.end.afterDeals': 'A partida acaba ao fim de {n} rondas.',
+  'zolik.rules.penalty.values':
+    "Uma carta que fique na mão custa: curinga {joker}, 10, valete, dama ou rei {face}, 2 a 9 o seu número, e um ás {ace} — ou só {aceLow} se também tiver na mão um 2 do seu naipe, ou a dama e o rei do seu naipe, ou se prolongasse uma sequência na mesa.",
   'zolik.rules.end.atScore': 'Continua a dar-se cartas até alguém chegar a {n} pontos — aí acaba.',
 
   'prsi.rules.section.goal': 'Objetivo',
@@ -180,6 +190,8 @@ export const pt: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'O monte de descartes está congelado durante toda a mão: para o levares tens de juntar a carta do topo a duas cartas naturais da tua mão.',
   'canasta.rules.pileOntoMeld': 'Se o teu lado já tiver uma combinação por terminar do valor da carta do topo, podes levar todo o monte de descartes e juntar-lhe essa carta — não precisas de um par na mão.',
   'canasta.rules.pileNoMeldCapture': 'Uma combinação que já está na mesa não pode levar o monte de descartes: para o levares tens de juntar a carta do topo a duas cartas da tua própria mão.',
+  'canasta.rules.cardValues':
+    "Valor das cartas: curinga {joker}, 2 {two}, ás {ace}, do rei ao 8 {high}, do 7 ao 4 {low}, três preto {black}. Os três vermelhos são bónus e nunca contam para uma combinação.",
   'canasta.rules.meldFloorBands':
     'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} acima disso.',
   'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} até {highUpTo} e {top} acima disso.',
@@ -309,6 +321,8 @@ export const pt: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Começar a ronda seguinte',
+  'round.autoContinue': 'Começar a ronda seguinte automaticamente',
+  'round.autoContinueIn': 'Ronda seguinte em {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -376,6 +390,15 @@ export const pt: Record<string, string> = {
   'holdem.round.uncontested': 'Todos os outros desistiram',
   'seat.ready': 'Pronto',
   'zolik.seat.contractMet': 'Contrato cumprido',
+  'zolik.hint.setsNeeded': 'Ainda precisas de {n} trincas para baixar.',
+  'zolik.hint.setsNeeded.1': 'Ainda precisas de 1 trinca para baixar.',
+  'zolik.hint.runsNeeded': 'Ainda precisas de {n} sequências para baixar.',
+  'zolik.hint.runsNeeded.1': 'Ainda precisas de 1 sequência para baixar.',
+  'zolik.hint.cleanRunNeeded': 'Ainda precisas de uma sequência sem joker para baixar.',
+  'zolik.hint.meldPoints': 'As tuas combinações têm de valer {n} pontos para baixar — tens {have}.',
+  'zolik.hint.downInOneTurn': 'Baixa num só turno: uma baixada começada tem de ser terminada, ou desfeita, antes de descartar.',
+  'zolik.hint.layOffWhenDown': 'Só podes juntar cartas a combinações depois de baixares.',
+  'zolik.hint.discardLocked': 'Pode tirar-se do monte de descarte a partir da ronda {n}.',
   'results.you': '(tu)',
 
 
@@ -649,6 +672,8 @@ export const pt: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Uma combinação é um grupo de três ou quatro cartas do mesmo valor, ou uma sequência de três ou mais no mesmo naipe.',
   'ginrummy.rules.aceLow': 'O ás é sempre baixo — não existe sequência de dama a ás.',
+  'ginrummy.rules.cardValues':
+    "No deadwood, um ás conta {ace}, um 2 a 9 o seu número, e um 10, valete, dama ou rei {face}.",
   'ginrummy.rules.knockLimit': 'Podes bater assim que o teu deadwood for {n} ou menos.',
   'ginrummy.rules.oklahoma': 'O limite para bater nesta mão é dado pelo valor da carta virada.',
   'ginrummy.rules.gin': 'Deadwood zero é gin — a melhor batida possível.',
@@ -736,6 +761,8 @@ export const pt: Record<string, string> = {
   'rummytiles.rules.run': 'Uma sequência são três ou mais números seguidos da mesma cor.',
   'rummytiles.rules.noWrap': 'O 13 não volta a ligar ao 1.',
   'rummytiles.rules.joker': 'Um joker representa qualquer peça.',
+  'rummytiles.rules.tileValues':
+    "Uma peça vale o seu número. Um curinga numa combinação vale a peça que substitui; um que fique na mão custa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Enquanto não tiveres baixado {n} pontos ou mais numa só jogada, apenas da tua própria mão, não podes mexer em nada do que já está na mesa.',
   'rummytiles.rules.turnDescription':
@@ -813,6 +840,8 @@ export const pt: Record<string, string> = {
   'blackjack.rules.faceUp':
     'As cartas dos jogadores são dadas viradas para cima; o dador mantém uma carta tapada até todos terem jogado.',
   'blackjack.rules.hitStand': 'Pede as cartas que quiseres, ou fica com o que tens.',
+  'blackjack.rules.cardValues':
+    "Um 2 a 9 conta o seu número; um 10, valete, dama ou rei conta {face}.",
   'blackjack.rules.aces': 'Um ás vale onze enquanto isso couber, e um quando não couber.',
   'blackjack.rules.blackjack': 'Um ás com uma carta de valor dez, nas duas primeiras cartas, é um blackjack.',
   'blackjack.rules.pays3to2': 'Um blackjack paga 3:2.',
@@ -1326,6 +1355,9 @@ export const pt: Record<string, string> = {
   'match.resume': 'Continuar onde ficaste',
   'match.resuming': 'A recuperar a mesa…',
   'match.abandonedWaitingFor': 'À espera de que {names} volte à mesa.',
+  'match.everyoneBack': 'Estão todos de volta à mesa.',
+  'match.everyoneBackNextRound': 'Estão todos de volta à mesa. Retomar começa a próxima ronda para todos.',
+  'match.waitingForHostResume': 'À espera de que {name} retome o jogo.',
   'match.tableCode': 'Código {code}',
   'match.tableCodeShare': 'Volta à nossa mesa',
   'match.abandonedSendCode': 'Envia-lhes um link de volta ao seu lugar — funciona em qualquer dispositivo.',
@@ -1759,6 +1791,10 @@ export const pt: Record<string, string> = {
   'canasta.unit.points': 'pontos',
   'ginrummy.unit.points': 'pontos',
   'holdem.seat.dealer': 'Dador',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Desistiu',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Fora',
@@ -2355,6 +2391,8 @@ export const pt: Record<string, string> = {
   'lastcard.card.drawTwo': 'Compra duas',
   'lastcard.card.wild': 'Curinga',
   'lastcard.card.wildDrawFour': 'Curinga compra quatro',
+  'lastcard.card.wildSwap': 'Curinga troca',
+  'lastcard.card.wildMayhem': 'Curinga caos',
   'variation.lastcard.classic': 'Clássico',
   'err.LASTCARD_NO_MATCH': 'Essa carta não coincide na cor, no número nem no símbolo',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Um Curinga compra quatro só é permitido se não tiveres nenhuma carta da cor em jogo',
@@ -2410,7 +2448,12 @@ export const pt: Record<string, string> = {
   'lastcard.rules.section.house': 'Regras da casa',
   'lastcard.rules.stacking.twos': 'Acumular: responde a um Compra duas com um Compra duas teu e passa a pilha toda. Quem não puder fica com tudo e perde a vez.',
   'lastcard.rules.stacking.any': 'Acumular: responde a uma carta de compra com uma tua — um Compra duas sobre um Compra duas, um Curinga compra quatro sobre qualquer um deles — e passa a pilha toda. Quem não puder fica com tudo e perde a vez.',
-  'lastcard.rules.sevens': 'Joga um 7 e trocas de mão com quem tiver menos cartas.',
+  'lastcard.rules.sevens': 'Joga um 7 e trocas de mão com o jogador que escolheres.',
+  'lastcard.rules.wildSwap': 'Curinga troca ({n} no baralho): diz a cor que se segue e depois troca de mão com o jogador que escolheres.',
+  'lastcard.rules.wildMayhem': 'Curinga caos ({n} no baralho): diz a cor que se segue e depois todas as mãos são recolhidas, baralhadas e distribuídas de novo uma carta de cada vez, a começar pelo jogador seguinte.',
+  'lastcard.prompt.swapWith': 'Trocar de mão com quem?',
+  'lastcard.prompt.player': 'Jogador',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Escolhe um jogador com quem trocar de mão',
   'lastcard.rules.zeros': 'Joga um 0 e cada mão passa para o jogador seguinte no sentido do jogo.',
   'lastcard.remedy.stackOrTake': 'Responde com uma carta de compra tua, ou compra as {n} cartas.',
   'lastcard.offer.takeStack': 'Comprá-las',
@@ -2426,6 +2469,12 @@ export const pt: Record<string, string> = {
   'option.sevenZero': 'Setes e zeros',
   'choice.sevenZero.0': 'Não',
   'choice.sevenZero.1': 'Sim',
+  'option.swapCards': 'Cartas Curinga troca',
+  'choice.swapCards.0': 'Não',
+  'choice.swapCards.1': 'Sim',
+  'option.mayhemCards': 'Cartas Curinga caos',
+  'choice.mayhemCards.0': 'Não',
+  'choice.mayhemCards.1': 'Sim',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} jogou {card}',
   'lastcard.move.playedSkip': '{player} jogou {card} — {target} perde a vez',
@@ -2449,6 +2498,7 @@ export const pt: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} contestou {target} — era honesto, por isso {player} compra {n} e perde a vez',
   'lastcard.move.swapped': '{player} trocou de mão com {target}',
   'lastcard.move.passedHands': '{player} jogou um 0 — todas as mãos passam para o lado',
+  'lastcard.move.mayhem': 'Caos! {player} recolheu todas as mãos, baralhou-as e voltou a distribuí-las',
   'lastcard.move.wentOut': '{player} ficou sem cartas e soma {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Pontuação',

@@ -20,6 +20,12 @@ export const da: Record<string, string> = {
   'err.DISPLACED': 'Åbnet i en anden fane — denne er stoppet med at synkronisere',
   'err.UNREACHABLE': 'Kan ikke nå serveren. Tjek din forbindelse, og prøv igen.',
   'err.INVALID_CREDENTIALS': 'Brugernavnet og adgangskoden passer ikke sammen.',
+  'err.CREDENTIALS_REQUIRED': 'Indtast et brugernavn og en adgangskode.',
+  'err.PASSWORD_TOO_LONG': 'Adgangskoden er for lang.',
+  'err.USERNAME_TAKEN': 'Det brugernavn eller den e-mail er allerede i brug.',
+  'err.INVALID_EMAIL': 'Det ligner ikke en e-mailadresse.',
+  'err.CODE_INVALID': 'Koden er ikke gyldig. Bed om en ny.',
+  'err.TOO_MANY_CODES': 'Der er bedt om for mange koder til den adresse. Prøv igen om lidt.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -109,6 +115,8 @@ export const da: Record<string, string> = {
   'zolik.rules.lead.rotate': 'Udspillet flytter én plads per giv, uanset hvem der vandt.',
   'zolik.rules.lead.winner': 'Den, der går ud, spiller ud i næste giv.',
   'zolik.rules.meldFloor.on': 'Din første udlægning skal give mindst {n} naturlige point, før du er lagt ud.',
+  'zolik.rules.meldFloor.values':
+    "Til det minimum tæller hvert kort det, det koster på hånden, undtagen et es: {aceHigh} i et sæt eller over en konge, {aceLow} under en 2'er. En joker tæller som det kort, den erstatter.",
   'zolik.rules.meldFloor.off': 'Der er ingen mindsteværdi i point på din første udlægning.',
   'zolik.rules.cleanRun.on': 'Mindst én af dine rækker skal være helt jokerfri, før du tæller som lagt ud.',
   'zolik.rules.cleanRun.off': 'Dine rækker må bruge jokere frit — ingen række behøver at være jokerfri.',
@@ -116,6 +124,8 @@ export const da: Record<string, string> = {
     'Matchen varer {n} giv, og hver giv kræver sin egen kombination af grupper og rækker.',
   'zolik.rules.contracts.static': 'Hver giv kræver den samme kombination: {sets} grupper og {runs} rækker.',
   'zolik.rules.end.afterDeals': 'Matchen slutter efter {n} giv.',
+  'zolik.rules.penalty.values':
+    "Et kort, du sidder tilbage med, koster: joker {joker}, 10, knægt, dame eller konge {face}, 2 til 9 sit tal, og et es {ace} — eller kun {aceLow}, hvis du også har en 2'er i samme kulør, eller dame og konge i samme kulør, på hånden, eller hvis det ville forlænge en række på bordet.",
   'zolik.rules.end.atScore': 'Der gives videre, indtil nogen når {n} point — så er det slut.',
 
   'prsi.rules.section.goal': 'Mål',
@@ -175,6 +185,8 @@ export const da: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Kastebunken er frosset hele givet: du kan kun tage den ved at lægge to naturlige kort fra hånden til det øverste kort.',
   'canasta.rules.pileOntoMeld': 'Har din side allerede en ufærdig kombination af det øverste korts værdi, kan du tage hele kastebunken og lægge det kort til den — du behøver ikke et par på hånden.',
   'canasta.rules.pileNoMeldCapture': 'En kombination, der allerede ligger på bordet, kan ikke tage kastebunken: for at tage den skal du lægge to kort fra din egen hånd til det øverste kort.',
+  'canasta.rules.cardValues':
+    "Kortværdier: joker {joker}, 2 {two}, es {ace}, konge til og med 8 {high}, 7 til og med 4 {low}, sort treer {black}. Røde treere er bonusser og tæller aldrig med i en melding.",
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} derover.',
   'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} op til {highUpTo} og {top} derover.',
@@ -303,6 +315,8 @@ export const da: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Start næste runde',
+  'round.autoContinue': 'Start næste runde automatisk',
+  'round.autoContinueIn': 'Næste runde om {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -370,6 +384,15 @@ export const da: Record<string, string> = {
   'holdem.round.uncontested': 'Alle andre kastede sig',
   'seat.ready': 'Klar',
   'zolik.seat.contractMet': 'Kontrakt opfyldt',
+  'zolik.hint.setsNeeded': 'Du mangler stadig {n} sæt for at melde ud.',
+  'zolik.hint.setsNeeded.1': 'Du mangler stadig 1 sæt for at melde ud.',
+  'zolik.hint.runsNeeded': 'Du mangler stadig {n} rækker for at melde ud.',
+  'zolik.hint.runsNeeded.1': 'Du mangler stadig 1 række for at melde ud.',
+  'zolik.hint.cleanRunNeeded': 'Du mangler stadig en række uden joker for at melde ud.',
+  'zolik.hint.meldPoints': 'Dine meldinger skal være {n} point værd for at melde ud — du har {have}.',
+  'zolik.hint.downInOneTurn': 'Meld ud i ét træk: en påbegyndt udlægning skal gøres færdig eller tages tilbage, før du kaster.',
+  'zolik.hint.layOffWhenDown': 'Du kan først lægge kort til meldinger, når du har meldt ud.',
+  'zolik.hint.discardLocked': 'Der må tages fra kastebunken fra runde {n}.',
   'results.you': '(dig)',
 
 
@@ -642,6 +665,8 @@ export const da: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'En kombination er en gruppe på tre eller fire kort af én værdi, eller en række på tre eller flere i én farve.',
   'ginrummy.rules.aceLow': 'Esset er altid lavt — der findes ingen række fra dame til es.',
+  'ginrummy.rules.cardValues':
+    "I dødtræ tæller et es {ace}, 2 til 9 deres tal, og 10, knægt, dame og konge {face}.",
   'ginrummy.rules.knockLimit': 'Du må banke, så snart dit deadwood er {n} eller derunder.',
   'ginrummy.rules.oklahoma': 'Bankegrænsen i denne hånd sættes af værdien på det opvendte kort.',
   'ginrummy.rules.gin': 'Nul deadwood er gin — den bedst mulige bankning.',
@@ -727,6 +752,8 @@ export const da: Record<string, string> = {
   'rummytiles.rules.run': 'En række er tre eller flere tal i træk i samme farve.',
   'rummytiles.rules.noWrap': '13 fortsætter ikke rundt til 1.',
   'rummytiles.rules.joker': 'En joker står for en hvilken som helst brik.',
+  'rummytiles.rules.tileValues':
+    "En brik er sit tal værd. En joker i en kombination er den brik værd, den erstatter; en joker, du sidder tilbage med, koster {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Indtil du har lagt {n} point eller mere ud i én enkelt tur, alene fra din egen hånd, må du ikke røre noget af det, der allerede ligger på bordet.',
   'rummytiles.rules.turnDescription':
@@ -803,6 +830,8 @@ export const da: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Spillernes kort deles ud med billedsiden op; dealeren holder ét kort skjult, indtil alle har spillet.',
   'blackjack.rules.hitStand': 'Tag så mange kort, du vil, eller stå på det, du har.',
+  'blackjack.rules.cardValues':
+    "2 til 9 tæller deres tal; 10, knægt, dame og konge tæller {face}.",
   'blackjack.rules.aces': 'Et es tæller som elleve, så længe det kan lade sig gøre, og ellers som ét.',
   'blackjack.rules.blackjack': 'Et es med et tikort, på de to første kort, er en blackjack.',
   'blackjack.rules.pays3to2': 'En blackjack betaler 3:2.',
@@ -1305,6 +1334,9 @@ export const da: Record<string, string> = {
   'match.resume': 'Fortsæt hvor du slap',
   'match.resuming': 'Henter bordet tilbage…',
   'match.abandonedWaitingFor': 'Venter på, at {names} kommer tilbage til bordet.',
+  'match.everyoneBack': 'Alle er tilbage ved bordet.',
+  'match.everyoneBackNextRound': 'Alle er tilbage ved bordet. Når spillet tages op igen, starter næste runde for alle.',
+  'match.waitingForHostResume': 'Venter på, at {name} tager spillet op igen.',
   'match.tableCode': 'Kode {code}',
   'match.tableCodeShare': 'Kom tilbage til vores bord',
   'match.abandonedSendCode': 'Send dem et link tilbage til deres plads — det virker på enhver enhed.',
@@ -1737,6 +1769,10 @@ export const da: Record<string, string> = {
   'canasta.unit.points': 'point',
   'ginrummy.unit.points': 'point',
   'holdem.seat.dealer': 'Giver',
+  'holdem.seat.smallBlind': 'Lille blind',
+  'holdem.seat.bigBlind': 'Stor blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Passet',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Ude',
@@ -2333,6 +2369,8 @@ export const da: Record<string, string> = {
   'lastcard.card.drawTwo': 'Træk to',
   'lastcard.card.wild': 'Joker',
   'lastcard.card.wildDrawFour': 'Joker træk fire',
+  'lastcard.card.wildSwap': 'Joker byt',
+  'lastcard.card.wildMayhem': 'Joker kaos',
   'variation.lastcard.classic': 'Klassisk',
   'err.LASTCARD_NO_MATCH': 'Det kort passer hverken i farve, tal eller symbol',
   'err.LASTCARD_DRAW_FOUR_HELD': 'En Joker træk fire er kun tilladt, når du ikke har noget kort i den farve, der er i spil',
@@ -2388,7 +2426,12 @@ export const da: Record<string, string> = {
   'lastcard.rules.section.house': 'Husregler',
   'lastcard.rules.stacking.twos': 'Stabling: svar på en Træk to med din egen Træk to, og send hele stakken videre. Den, der ikke kan, tager det hele og mister sin tur.',
   'lastcard.rules.stacking.any': 'Stabling: svar på et trækkort med dit eget — en Træk to på en Træk to, en Joker træk fire på begge — og send hele stakken videre. Den, der ikke kan, tager det hele og mister sin tur.',
-  'lastcard.rules.sevens': 'Spil et 7-tal, og du bytter hånd med den, der har færrest kort.',
+  'lastcard.rules.sevens': 'Spil et 7-tal, og du bytter hånd med en spiller efter eget valg.',
+  'lastcard.rules.wildSwap': 'Joker byt ({n} i bunken): nævn den farve, der følger, og byt så hånd med en spiller efter eget valg.',
+  'lastcard.rules.wildMayhem': 'Joker kaos ({n} i bunken): nævn den farve, der følger, og så samles alle hænder, blandes og deles ud igen ét kort ad gangen, begyndende med næste spiller.',
+  'lastcard.prompt.swapWith': 'Byt hånd med hvem?',
+  'lastcard.prompt.player': 'Spiller',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Vælg en spiller at bytte hånd med',
   'lastcard.rules.zeros': 'Spil et 0, og hver hånd går videre til næste spiller i spilleretningen.',
   'lastcard.remedy.stackOrTake': 'Svar med dit eget trækkort, eller tag de {n} kort.',
   'lastcard.offer.takeStack': 'Tag dem',
@@ -2404,6 +2447,12 @@ export const da: Record<string, string> = {
   'option.sevenZero': 'Syvere og nuller',
   'choice.sevenZero.0': 'Fra',
   'choice.sevenZero.1': 'Til',
+  'option.swapCards': 'Joker byt-kort',
+  'choice.swapCards.0': 'Fra',
+  'choice.swapCards.1': 'Til',
+  'option.mayhemCards': 'Joker kaos-kort',
+  'choice.mayhemCards.0': 'Fra',
+  'choice.mayhemCards.1': 'Til',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} spillede {card}',
   'lastcard.move.playedSkip': '{player} spillede {card} — {target} mister sin tur',
@@ -2427,6 +2476,7 @@ export const da: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} udfordrede {target} — det var ærligt, så {player} trækker {n} og mister sin tur',
   'lastcard.move.swapped': '{player} byttede hånd med {target}',
   'lastcard.move.passedHands': '{player} spillede et 0 — alle hænder går videre',
+  'lastcard.move.mayhem': 'Kaos! {player} samlede alle hænder, blandede dem og delte dem ud igen',
   'lastcard.move.wentOut': '{player} gik ud og scorer {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Pointgivning',

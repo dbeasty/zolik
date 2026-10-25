@@ -20,6 +20,12 @@ export const lv: Record<string, string> = {
   'err.DISPLACED': 'Atvērts citā cilnē — šis pārtrauca sinhronizēties',
   'err.UNREACHABLE': 'Nevar sazināties ar serveri. Pārbaudiet savienojumu un mēģiniet vēlreiz.',
   'err.INVALID_CREDENTIALS': 'Lietotājvārds un parole nesakrīt.',
+  'err.CREDENTIALS_REQUIRED': 'Ievadiet lietotājvārdu un paroli.',
+  'err.PASSWORD_TOO_LONG': 'Šī parole ir pārāk gara.',
+  'err.USERNAME_TAKEN': 'Šis lietotājvārds vai e-pasts jau ir aizņemts.',
+  'err.INVALID_EMAIL': 'Tas neizskatās pēc e-pasta adreses.',
+  'err.CODE_INVALID': 'Šis kods nav derīgs. Pieprasiet jaunu.',
+  'err.TOO_MANY_CODES': 'Šai adresei pieprasīts pārāk daudz kodu. Mēģiniet vēlreiz pēc brīža.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const lv: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kurš iziet, tas sāk nākamo dalījumu.',
   'zolik.rules.meldFloor.on':
     'Tavai pirmajai izlikšanai kopā jādod vismaz {n} dabiskie punkti, lai tu būtu izlicies.',
+  'zolik.rules.meldFloor.values':
+    "Šajā minimumā katra kārts skaitās tik, cik tā maksā rokā, izņemot dūzi: {aceHigh} komplektā vai virs karaļa, {aceLow} zem divnieka. Džokers skaitās kā kārts, ko tas aizstāj.",
   'zolik.rules.meldFloor.off': 'Pirmajai izlikšanai nav minimālās punktu vērtības.',
   'zolik.rules.cleanRun.on':
     'Vismaz vienai no tavām secībām jābūt pilnīgi bez džokera, lai tevi uzskatītu par izlikušos.',
@@ -120,6 +128,8 @@ export const lv: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Katrs dalījums prasa vienu un to pašu kombināciju: {sets} grupas un {runs} secības.',
   'zolik.rules.end.afterDeals': 'Mačs beidzas pēc {n} dalījumiem.',
+  'zolik.rules.penalty.values':
+    "Rokā palikusi kārts maksā: džokers {joker}, 10, kalps, dāma vai karalis {face}, no 2 līdz 9 – savu skaitli, bet dūzis {ace} — vai tikai {aceLow}, ja rokā ir arī tā masta divnieks vai tā masta dāma un karalis, vai ja tas pagarinātu rindu uz galda.",
   'zolik.rules.end.atScore': 'Dala tālāk, līdz kāds sasniedz {n} punktus — tad ir beigas.',
 
   'prsi.rules.section.goal': 'Mērķis',
@@ -179,6 +189,8 @@ export const lv: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Izmešanas kaudze ir iesaldēta visu dalījumu: to vari paņemt tikai tad, ja augšējai kārtij pievieno divas dabiskās kārtis no rokas.',
   'canasta.rules.pileOntoMeld': 'Ja tavai pusei jau ir nepabeigta kombinācija augšējās kārts vērtībā, vari paņemt visu izmešanas kaudzi un pievienot tai šo kārti — pāris rokā nav vajadzīgs.',
   'canasta.rules.pileNoMeldCapture': 'Kombinācija, kas jau ir uz galda, izmešanas kaudzi paņemt nevar: lai to paņemtu, augšējai kārtij jāpievieno divas kārtis no paša rokas.',
+  'canasta.rules.cardValues':
+    "Kāršu vērtības: džokers {joker}, divnieks {two}, dūzis {ace}, no karaļa līdz astotniekam {high}, no septītnieka līdz četriniekam {low}, melnais trijnieks {black}. Sarkanie trijnieki ir bonuss un nekad netiek ieskaitīti kombinācijā.",
   'canasta.rules.meldFloorBands':
     'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} virs tā.',
   'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} līdz {highUpTo} un {top} virs tā.',
@@ -308,6 +320,8 @@ export const lv: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Sākt nākamo raundu',
+  'round.autoContinue': 'Sākt nākamo raundu automātiski',
+  'round.autoContinueIn': 'Nākamais raunds pēc {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -375,6 +389,15 @@ export const lv: Record<string, string> = {
   'holdem.round.uncontested': 'Visi pārējie atmeta',
   'seat.ready': 'Gatavs',
   'zolik.seat.contractMet': 'Līgums izpildīts',
+  'zolik.hint.setsNeeded': 'Lai izliktu, tev vēl vajag {n} komplektus.',
+  'zolik.hint.setsNeeded.1': 'Lai izliktu, tev vēl vajag 1 komplektu.',
+  'zolik.hint.runsNeeded': 'Lai izliktu, tev vēl vajag {n} rindas.',
+  'zolik.hint.runsNeeded.1': 'Lai izliktu, tev vēl vajag 1 rindu.',
+  'zolik.hint.cleanRunNeeded': 'Lai izliktu, tev vēl vajag rindu bez džokera.',
+  'zolik.hint.meldPoints': 'Tavām kombinācijām jābūt {n} punktu vērtām, lai izliktu — tev ir {have}.',
+  'zolik.hint.downInOneTurn': 'Izliec vienā gājienā: iesākta izlikšana jāpabeidz vai jāatsauc pirms nomešanas.',
+  'zolik.hint.layOffWhenDown': 'Kārtis kombinācijām vari pielikt tikai tad, kad esi izlicis.',
+  'zolik.hint.discardLocked': 'No nomesto kāršu kaudzes drīkst ņemt no {n}. kārtas.',
   'results.you': '(tu)',
 
 
@@ -642,6 +665,8 @@ export const lv: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinācija ir trīs vai četru vienas vērtības kāršu grupa vai trīs un vairāk vienas krāsas kāršu secība.',
   'ginrummy.rules.aceLow': 'Dūzis vienmēr ir zems — secības no dāmas līdz dūzim nav.',
+  'ginrummy.rules.cardValues':
+    "Liekajās kārtīs dūzis ir {ace}, no 2 līdz 9 – savs skaitlis, bet 10, kalps, dāma un karalis – {face}.",
   'ginrummy.rules.knockLimit': 'Tu drīksti klauvēt, tiklīdz tavs deadwood ir {n} vai mazāk.',
   'ginrummy.rules.oklahoma': 'Šī dalījuma klauvēšanas robežu nosaka apgrieztās kārts vērtība.',
   'ginrummy.rules.gin': 'Nulles deadwood ir džins — labākā iespējamā klauvēšana.',
@@ -729,6 +754,8 @@ export const lv: Record<string, string> = {
   'rummytiles.rules.run': 'Secība ir trīs vai vairāk pēc kārtas ejoši skaitļi vienā krāsā.',
   'rummytiles.rules.noWrap': 'Pēc 13 atkal nesākas 1.',
   'rummytiles.rules.joker': 'Džokers aizstāj jebkuru kauliņu.',
+  'rummytiles.rules.tileValues':
+    "Kauliņš ir sava skaitļa vērts. Džokers kombinācijā ir tā kauliņa vērts, ko aizstāj; rokā palicis džokers maksā {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Kamēr vienā gājienā, tikai no savas rokas, neesi izlicis {n} vai vairāk punktus, tu nedrīksti aizskart neko, kas jau ir uz galda.',
   'rummytiles.rules.turnDescription':
@@ -805,6 +832,8 @@ export const lv: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Spēlētāju kārtis izdala ar attēlu uz augšu; dalītājs vienu kārti tur aizklātu, līdz visi ir izspēlējuši.',
   'blackjack.rules.hitStand': 'Velc tik kāršu, cik vēlies, vai paliec pie tā, kas tev ir.',
+  'blackjack.rules.cardValues':
+    "Kārtis no 2 līdz 9 ir sava skaitļa vērtībā; 10, kalps, dāma un karalis – {face}.",
   'blackjack.rules.aces': 'Dūzis skaitās vienpadsmit, kamēr tas ietilpst, un viens, kad neietilpst.',
   'blackjack.rules.blackjack': 'Dūzis ar desmit vērtības kārti pirmajās divās kārtīs ir blekdžeks.',
   'blackjack.rules.pays3to2': 'Blekdžeks maksā 3:2.',
@@ -1307,6 +1336,9 @@ export const lv: Record<string, string> = {
   'match.resume': 'Turpini tur, kur beidzi',
   'match.resuming': 'Atjaunoju galdu…',
   'match.abandonedWaitingFor': 'Gaida, kad {names} atgriezīsies pie galda.',
+  'match.everyoneBack': 'Visi ir atpakaļ pie galda.',
+  'match.everyoneBackNextRound': 'Visi ir atpakaļ pie galda. Turpinot visiem sāksies nākamā kārta.',
+  'match.waitingForHostResume': 'Gaidām, kad {name} turpinās spēli.',
   'match.tableCode': 'Kods {code}',
   'match.tableCodeShare': 'Atgriezies pie mūsu galda',
   'match.abandonedSendCode': 'Nosūti viņiem saiti atpakaļ uz viņu vietu — tā darbojas jebkurā ierīcē.',
@@ -1739,6 +1771,10 @@ export const lv: Record<string, string> = {
   'canasta.unit.points': 'punkti',
   'ginrummy.unit.points': 'punkti',
   'holdem.seat.dealer': 'Dalītājs',
+  'holdem.seat.smallBlind': 'Mazais blinds',
+  'holdem.seat.bigBlind': 'Lielais blinds',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Pameta',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Ārā',
@@ -2331,6 +2367,8 @@ export const lv: Record<string, string> = {
   'lastcard.card.drawTwo': 'Ņem divas',
   'lastcard.card.wild': 'Džokers',
   'lastcard.card.wildDrawFour': 'Džokers ņem četras',
+  'lastcard.card.wildSwap': 'Džokers mainies',
+  'lastcard.card.wildMayhem': 'Džokers haoss',
   'variation.lastcard.classic': 'Klasisks',
   'err.LASTCARD_NO_MATCH': 'Šī kārts neatbilst ne krāsai, ne skaitlim, ne simbolam',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Džokers ņem četras ir atļauts tikai tad, ja tev nav nevienas spēlē esošās krāsas kārts',
@@ -2386,7 +2424,12 @@ export const lv: Record<string, string> = {
   'lastcard.rules.section.house': 'Mājas noteikumi',
   'lastcard.rules.stacking.twos': 'Krāšana: atbildi uz Ņem divas ar savu Ņem divas un nodod visu kaudzi tālāk. Kurš nevar, paņem visu un izlaiž savu gājienu.',
   'lastcard.rules.stacking.any': 'Krāšana: atbildi uz ņemšanas kārti ar savu — Ņem divas uz Ņem divas, Džokers ņem četras uz jebkuru no tām — un nodod visu kaudzi tālāk. Kurš nevar, paņem visu un izlaiž savu gājienu.',
-  'lastcard.rules.sevens': 'Izspēlē 7, un tu samaini rokas ar to, kuram ir vismazāk kāršu.',
+  'lastcard.rules.sevens': 'Izspēlē 7, un tu samaini rokas ar paša izvēlētu spēlētāju.',
+  'lastcard.rules.wildSwap': 'Džokers mainies ({n} kavā): nosauc krāsu, kas turpinās, un tad samaini rokas ar jebkuru paša izvēlētu spēlētāju.',
+  'lastcard.rules.wildMayhem': 'Džokers haoss ({n} kavā): nosauc krāsu, kas turpinās, un tad visas rokas tiek savāktas, sajauktas un izdalītas no jauna pa vienai kārtij, sākot ar nākamo spēlētāju.',
+  'lastcard.prompt.swapWith': 'Ar ko samainīt rokas?',
+  'lastcard.prompt.player': 'Spēlētājs',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Izvēlies spēlētāju, ar kuru samainīt rokas',
   'lastcard.rules.zeros': 'Izspēlē 0, un katra roka pāriet nākamajam spēlētājam spēles virzienā.',
   'lastcard.remedy.stackOrTake': 'Atbildi ar savu ņemšanas kārti vai paņem {n} kārtis.',
   'lastcard.offer.takeStack': 'Paņemt tās',
@@ -2402,6 +2445,12 @@ export const lv: Record<string, string> = {
   'option.sevenZero': 'Septiņnieku un nuļļu maiņa',
   'choice.sevenZero.0': 'Izslēgta',
   'choice.sevenZero.1': 'Ieslēgta',
+  'option.swapCards': 'Kārtis „Džokers mainies“',
+  'choice.swapCards.0': 'Izslēgta',
+  'choice.swapCards.1': 'Ieslēgta',
+  'option.mayhemCards': 'Kārtis „Džokers haoss“',
+  'choice.mayhemCards.0': 'Izslēgta',
+  'choice.mayhemCards.1': 'Ieslēgta',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} izspēlēja {card}',
   'lastcard.move.playedSkip': '{player} izspēlēja {card} — {target} izlaiž gājienu',
@@ -2425,6 +2474,7 @@ export const lv: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} apstrīdēja spēlētāja {target} gājienu — tas bija godīgi, tāpēc {player} velk {n} un izlaiž gājienu',
   'lastcard.move.swapped': '{player} samainīja kārtis ar spēlētāju {target}',
   'lastcard.move.passedHands': '{player} izspēlēja 0 — visu spēlētāju kārtis pāriet tālāk',
+  'lastcard.move.mayhem': 'Haoss! {player} savāca visas rokas, sajauca tās un izdalīja no jauna',
   'lastcard.move.wentOut': '{player} izspēlēja visas kārtis un iegūst punktus: {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Punktu skaitīšana',

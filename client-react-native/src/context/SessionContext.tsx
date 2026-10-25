@@ -235,8 +235,12 @@ type SessionContextValue = {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 // expo-secure-store has no web implementation; fall back to localStorage
-// there (it's not encrypted, but this only ever holds JWTs, same as any
-// other browser-based session token).
+// there. It is not encrypted and every script on the page can read it, so in
+// a browser the refresh token does not live in it: the server keeps that, and
+// a copy of the guest key, in HttpOnly cookies (WEB_COOKIE_SESSION), and the
+// session stored here carries COOKIE_HELD_REFRESH in the token's place. Safari
+// also erases this storage after a week without a visit; the cookies outlive
+// that, so a returning guest is still recognised.
 export const storage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
@@ -977,8 +981,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // The seat the app held at load, once the stored session is read.
     if (!IS_DESKTOP || loading) return;
     const seat = wantedSeat.current;
-    if (seat && seatIsShareable(seat) && !offline) void sitFromApp(seat);
-    else setSeatPending(false);
+    if (seat && seatIsShareable(seat) && !offline) {
+      // A game window opened for an ONLINE match while the app holds an
+      // offline seat follows the match it was opened for: if the internet
+      // server knows the match, the window stays online (an offline table's
+      // match ids are not known there).
+      const matchId = IS_DESKTOP_GAME_WINDOW ? DESKTOP_WINDOW?.matchId : undefined;
+      if (matchId && session?.accessToken) {
+        void apiClient.getMatch(matchId).then(
+          () => {
+            gameWindowStartedOnline.current = true;
+            // This window is not at the app's table, and must not tell the
+            // app it left it.
+            appSeat.current = 'none';
+            wantedSeat.current = null;
+            setSeatPending(false);
+          },
+          () => void sitFromApp(seat),
+        );
+      } else {
+        void sitFromApp(seat);
+      }
+    } else setSeatPending(false);
     // Once, when loading ends.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);

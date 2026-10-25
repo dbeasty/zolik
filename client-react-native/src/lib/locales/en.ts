@@ -29,6 +29,12 @@ export const en: Record<string, string> = {
   'err.DISPLACED': 'Opened in another tab — this one has stopped syncing',
   'err.UNREACHABLE': 'Can’t reach the server. Check your connection and try again.',
   'err.INVALID_CREDENTIALS': 'That username and password do not match.',
+  'err.CREDENTIALS_REQUIRED': 'Enter a username and a password.',
+  'err.PASSWORD_TOO_LONG': 'That password is too long.',
+  'err.USERNAME_TAKEN': 'That username or email is already taken.',
+  'err.INVALID_EMAIL': 'That doesn’t look like an email address.',
+  'err.CODE_INVALID': 'That code isn’t valid. Request a new one.',
+  'err.TOO_MANY_CODES': 'Too many codes requested for that address. Try again shortly.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -119,6 +125,8 @@ export const en: Record<string, string> = {
   'zolik.rules.lead.winner': 'Whoever goes out leads the next deal.',
   'zolik.rules.meldFloor.on':
     "Your first meld (or melds) must total at least {n} natural points before you're down.",
+  'zolik.rules.meldFloor.values':
+    "Toward that minimum each card counts what it costs in hand, except an ace: {aceHigh} in a set or above a king, {aceLow} below a 2. A joker counts as the card it stands for.",
   'zolik.rules.meldFloor.off': "There's no minimum point value on your first meld.",
   'zolik.rules.cleanRun.on':
     'At least one of your runs must be completely joker-free before you count as down.',
@@ -127,6 +135,8 @@ export const en: Record<string, string> = {
     'The match is {n} deals long, and each deal requires its own combination of sets and runs.',
   'zolik.rules.contracts.static': 'Every deal requires the same combination: {sets} sets and {runs} runs.',
   'zolik.rules.end.afterDeals': 'The match ends after {n} deals.',
+  'zolik.rules.penalty.values':
+    "A card left in your hand costs: a joker {joker}, a 10, jack, queen or king {face}, a 2 to 9 its number, and an ace {ace} — or only {aceLow} if a 2 of its suit, or both the queen and king of its suit, are also in your hand, or it would extend a run on the table.",
   'zolik.rules.end.atScore': "The match keeps redealing until someone reaches {n} points — then it's over.",
 
   'prsi.rules.section.goal': 'Goal',
@@ -187,6 +197,8 @@ export const en: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'The discard pile is frozen all deal: to take it you must match its top card with two natural cards from your hand.',
   'canasta.rules.pileOntoMeld': "If your side already has an unfinished meld of the top card's rank, you can take the whole discard pile to add that card to it — no matching pair in your hand is needed.",
   'canasta.rules.pileNoMeldCapture': 'A meld already on the table cannot take the discard pile: to take it you must match its top card with two cards from your own hand.',
+  'canasta.rules.cardValues':
+    "Each card counts: a joker {joker}, a 2 {two}, an ace {ace}, a king down to an 8 {high}, a 7 down to a 4 {low}, a black three {black}. Red threes are bonuses and never count toward a meld.",
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} beyond that.',
   'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} up to {highUpTo}, {top} beyond that.',
@@ -320,6 +332,10 @@ export const en: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Start the next round',
+  // A switch under that control: press it for me after a few seconds, every
+  // round of this game. `{seconds}` counts down to the press.
+  'round.autoContinue': 'Start the next round automatically',
+  'round.autoContinueIn': 'Next round in {seconds}s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -387,6 +403,15 @@ export const en: Record<string, string> = {
   'holdem.round.uncontested': 'Everyone else folded',
   'seat.ready': 'Ready',
   'zolik.seat.contractMet': 'Contract met',
+  'zolik.hint.setsNeeded': 'You still need {n} sets to go down.',
+  'zolik.hint.setsNeeded.1': 'You still need 1 set to go down.',
+  'zolik.hint.runsNeeded': 'You still need {n} runs to go down.',
+  'zolik.hint.runsNeeded.1': 'You still need 1 run to go down.',
+  'zolik.hint.cleanRunNeeded': 'You still need a joker-free run to go down.',
+  'zolik.hint.meldPoints': 'Your melds must be worth {n} points to go down — you have {have}.',
+  'zolik.hint.downInOneTurn': 'Go down in one turn: a lay-down you start must be finished, or taken back, before you discard.',
+  'zolik.hint.layOffWhenDown': 'You can add cards to melds only once you are down.',
+  'zolik.hint.discardLocked': 'The discard pile can be taken from round {n}.',
   'results.you': '(you)',
 
 
@@ -640,6 +665,8 @@ export const en: Record<string, string> = {
   'ginrummy.rules.drawDiscard': 'On your turn, draw one card — from the stock or the discard pile — then discard one.',
   'ginrummy.rules.setsAndRuns': 'A meld is a set of three or four cards of one rank, or a run of three or more in one suit.',
   'ginrummy.rules.aceLow': 'The ace is always low — there is no run from Queen through Ace.',
+  'ginrummy.rules.cardValues':
+    "Deadwood counts an ace as {ace}, a 2 to 9 as its number, and a 10, jack, queen or king as {face}.",
   'ginrummy.rules.knockLimit': 'You may knock once your deadwood is {n} or less.',
   'ginrummy.rules.oklahoma': "This hand's knock limit is set by the value of the upcard.",
   'ginrummy.rules.gin': 'Zero deadwood is gin — the best possible knock.',
@@ -724,6 +751,8 @@ export const en: Record<string, string> = {
   'rummytiles.rules.run': 'A run is three or more consecutive numbers in one colour.',
   'rummytiles.rules.noWrap': '13 does not run back around to 1.',
   'rummytiles.rules.joker': 'A joker stands for any tile.',
+  'rummytiles.rules.tileValues':
+    "A tile is worth its number. A joker in a set is worth the tile it stands for; one left in your hand costs {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Until you have laid {n} or more points in a single turn, from your own hand alone, you may not touch anything already on the table.',
   'rummytiles.rules.turnDescription':
@@ -799,6 +828,8 @@ export const en: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Player cards are dealt face up; the dealer keeps one card down until everyone has played.',
   'blackjack.rules.hitStand': 'Draw as many cards as you like, or stand on what you have.',
+  'blackjack.rules.cardValues':
+    "A 2 to 9 counts its number; a 10, jack, queen or king counts {face}.",
   'blackjack.rules.aces': 'An ace counts as eleven while that fits, and as one when it does not.',
   'blackjack.rules.blackjack':
     'An ace with a ten-value card, on the first two cards, is a blackjack.',
@@ -1312,6 +1343,12 @@ export const en: Record<string, string> = {
   // sending them the link — rather than leaving a banner whose only button is
   // the way out.
   'match.abandonedWaitingFor': 'Waiting for {names} to come back to the table.',
+  // Said on a swept-up table once nobody is missing any more, so the
+  // players can tell the wait is over. Only the host brings it back;
+  // everyone else is told whose press they are waiting for.
+  'match.everyoneBack': 'Everyone is back at the table.',
+  'match.everyoneBackNextRound': 'Everyone is back at the table. Picking it up starts the next round for everyone.',
+  'match.waitingForHostResume': 'Waiting for {name} to pick the game up.',
   // The join code pinned to the top of a dealt board. Pressing it hands over
   // the link; a seated player who opens it is taken back to their own seat.
   'match.tableCode': 'Code {code}',
@@ -1764,6 +1801,15 @@ export const en: Record<string, string> = {
   'canasta.unit.points': 'points',
   'ginrummy.unit.points': 'points',
   'holdem.seat.dealer': 'Dealer',
+  // Whose blind it was this hand. Spelled out beside the seat; the amounts
+  // are in the table header.
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  // The short form a seat mark is drawn with, as a badge beside the seat —
+  // any `<mark>.short` key turns its mark into one. Two or three letters; the
+  // poker abbreviations are widely used untranslated.
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Folded',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Out',
@@ -2360,6 +2406,8 @@ export const en: Record<string, string> = {
   'lastcard.card.drawTwo': 'Draw Two',
   'lastcard.card.wild': 'Wild',
   'lastcard.card.wildDrawFour': 'Wild Draw Four',
+  'lastcard.card.wildSwap': 'Wild Swap',
+  'lastcard.card.wildMayhem': 'Wild Mayhem',
   'variation.lastcard.classic': 'Classic',
   'err.LASTCARD_NO_MATCH': "That card doesn't match the colour, the number or the symbol",
   'err.LASTCARD_DRAW_FOUR_HELD': 'A Wild Draw Four is only allowed when you hold no card of the colour in play',
@@ -2420,7 +2468,14 @@ export const en: Record<string, string> = {
     "Stacking: answer a Draw Two with a Draw Two of your own and pass the whole stack on. Whoever can't, takes it all and misses their turn.",
   'lastcard.rules.stacking.any':
     "Stacking: answer a draw card with one of your own — a Draw Two on a Draw Two, a Wild Draw Four on either — and pass the whole stack on. Whoever can't, takes it all and misses their turn.",
-  'lastcard.rules.sevens': 'Play a 7 and you swap hands with whoever holds the fewest cards.',
+  'lastcard.rules.sevens': 'Play a 7 and you swap hands with a player you choose.',
+  'lastcard.rules.wildSwap':
+    'Wild Swap ({n} in the pack): name the colour that follows, then trade hands with any player you choose.',
+  'lastcard.rules.wildMayhem':
+    'Wild Mayhem ({n} in the pack): name the colour that follows, then every hand is gathered, shuffled and dealt out again one card at a time, starting with the next player.',
+  'lastcard.prompt.swapWith': 'Swap hands with whom?',
+  'lastcard.prompt.player': 'Player',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Choose a player to swap hands with',
   'lastcard.rules.zeros': 'Play a 0 and every hand passes to the next player in the direction of play.',
   'lastcard.remedy.stackOrTake': 'Answer with a draw card of your own, or take the {n} cards.',
   'lastcard.offer.takeStack': 'Take them',
@@ -2436,6 +2491,12 @@ export const en: Record<string, string> = {
   'option.sevenZero': 'Sevens and zeros',
   'choice.sevenZero.0': 'Off',
   'choice.sevenZero.1': 'On',
+  'option.swapCards': 'Wild Swap cards',
+  'choice.swapCards.0': 'Off',
+  'choice.swapCards.1': 'On',
+  'option.mayhemCards': 'Wild Mayhem cards',
+  'choice.mayhemCards.0': 'Off',
+  'choice.mayhemCards.1': 'On',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} played {card}',
   'lastcard.move.playedSkip': '{player} played {card} — {target} misses a turn',
@@ -2459,6 +2520,7 @@ export const en: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} challenged {target} — it was honest, so {player} draws {n} and misses a turn',
   'lastcard.move.swapped': '{player} swapped hands with {target}',
   'lastcard.move.passedHands': '{player} played a 0 — every hand moves on',
+  'lastcard.move.mayhem': 'Mayhem! {player} gathered every hand, shuffled them and dealt them out again',
   'lastcard.move.wentOut': '{player} went out and scores {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Scoring',

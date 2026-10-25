@@ -20,6 +20,12 @@ export const ro: Record<string, string> = {
   'err.DISPLACED': 'Deschisă într-o altă filă — aceasta a încetat să se sincronizeze',
   'err.UNREACHABLE': 'Nu se poate contacta serverul. Verificați conexiunea și încercați din nou.',
   'err.INVALID_CREDENTIALS': 'Numele de utilizator și parola nu se potrivesc.',
+  'err.CREDENTIALS_REQUIRED': 'Introdu un nume de utilizator și o parolă.',
+  'err.PASSWORD_TOO_LONG': 'Parola aceea este prea lungă.',
+  'err.USERNAME_TAKEN': 'Numele de utilizator sau e-mailul acela este deja folosit.',
+  'err.INVALID_EMAIL': 'Aceasta nu pare o adresă de e-mail.',
+  'err.CODE_INVALID': 'Codul acela nu este valid. Cere unul nou.',
+  'err.TOO_MANY_CODES': 'Au fost cerute prea multe coduri pentru acea adresă. Încearcă din nou peste puțin timp.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const ro: Record<string, string> = {
   'zolik.rules.lead.winner': 'Cine iese începe împărțirea următoare.',
   'zolik.rules.meldFloor.on':
     'Prima ta coborâre trebuie să totalizeze cel puțin {n} puncte naturale ca să fii coborât.',
+  'zolik.rules.meldFloor.values':
+    "Pentru acest minim fiecare carte contează cât costă în mână, cu excepția asului: {aceHigh} într-un set sau peste rege, {aceLow} sub 2. Un joker contează ca și cartea pe care o înlocuiește.",
   'zolik.rules.meldFloor.off': 'Nu există o valoare minimă de puncte la prima coborâre.',
   'zolik.rules.cleanRun.on':
     'Cel puțin una dintre scările tale trebuie să fie complet fără joker ca să fii considerat coborât.',
@@ -120,6 +128,8 @@ export const ro: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Fiecare împărțire cere aceeași combinație: {sets} grupuri și {runs} scări.',
   'zolik.rules.end.afterDeals': 'Meciul se încheie după {n} împărțiri.',
+  'zolik.rules.penalty.values':
+    "O carte rămasă în mână costă: joker {joker}, 10, valet, damă sau rege {face}, de la 2 la 9 numărul ei, iar un as {ace} — sau doar {aceLow} dacă ai în mână și un 2 de aceeași culoare, ori dama și regele de aceeași culoare, sau dacă ar prelungi o secvență de pe masă.",
   'zolik.rules.end.atScore':
     'Se împarte mai departe până când cineva ajunge la {n} puncte — atunci s-a terminat.',
 
@@ -180,6 +190,8 @@ export const ro: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Teancul de aruncate este înghețat toată mâna: îl poți lua doar potrivind cartea de deasupra cu două cărți naturale din mână.',
   'canasta.rules.pileOntoMeld': 'Dacă partea ta are deja o combinație neterminată de valoarea cărții de deasupra, poți lua tot teancul de aruncate ca să adaugi acea carte la ea — nu ai nevoie de o pereche în mână.',
   'canasta.rules.pileNoMeldCapture': 'O combinație aflată deja pe masă nu poate lua teancul de aruncate: ca să îl iei trebuie să potrivești cartea de deasupra cu două cărți din propria mână.',
+  'canasta.rules.cardValues':
+    "Valoarea cărților: joker {joker}, 2 {two}, as {ace}, de la rege la 8 {high}, de la 7 la 4 {low}, trei negru {black}. Treiurile roșii sunt bonusuri și nu se socotesc niciodată la o formație.",
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} peste.',
   'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} până la {highUpTo} și {top} peste.',
@@ -309,6 +321,8 @@ export const ro: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Începe runda următoare',
+  'round.autoContinue': 'Începe automat runda următoare',
+  'round.autoContinueIn': 'Runda următoare în {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -376,6 +390,15 @@ export const ro: Record<string, string> = {
   'holdem.round.uncontested': 'Toți ceilalți s-au retras',
   'seat.ready': 'Pregătit',
   'zolik.seat.contractMet': 'Contract îndeplinit',
+  'zolik.hint.setsNeeded': 'Mai ai nevoie de {n} formații pentru a coborî.',
+  'zolik.hint.setsNeeded.1': 'Mai ai nevoie de 1 formație pentru a coborî.',
+  'zolik.hint.runsNeeded': 'Mai ai nevoie de {n} serii pentru a coborî.',
+  'zolik.hint.runsNeeded.1': 'Mai ai nevoie de 1 serie pentru a coborî.',
+  'zolik.hint.cleanRunNeeded': 'Mai ai nevoie de o serie fără joker pentru a coborî.',
+  'zolik.hint.meldPoints': 'Combinațiile tale trebuie să valoreze {n} puncte pentru a coborî — ai {have}.',
+  'zolik.hint.downInOneTurn': 'Coboară într-o singură tură: o etalare începută trebuie terminată sau anulată înainte să arunci.',
+  'zolik.hint.layOffWhenDown': 'Poți adăuga cărți la combinații doar după ce ai coborât.',
+  'zolik.hint.discardLocked': 'Din teancul de cărți aruncate se poate lua din runda {n}.',
   'results.you': '(tu)',
 
 
@@ -649,6 +672,8 @@ export const ro: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'O combinație este un grup de trei sau patru cărți de o valoare, sau o scară de trei sau mai multe de aceeași culoare.',
   'ginrummy.rules.aceLow': 'Asul este întotdeauna mic — nu există scară de la damă la as.',
+  'ginrummy.rules.cardValues':
+    "La deadwood, asul valorează {ace}, cărțile de la 2 la 9 numărul lor, iar 10, valetul, dama și regele {face}.",
   'ginrummy.rules.knockLimit': 'Poți bate de îndată ce deadwood-ul tău este {n} sau mai mic.',
   'ginrummy.rules.oklahoma': 'Limita de bătaie a acestei mâini este dată de valoarea cărții întoarse.',
   'ginrummy.rules.gin': 'Deadwood zero înseamnă gin — cea mai bună bătaie posibilă.',
@@ -735,6 +760,8 @@ export const ro: Record<string, string> = {
   'rummytiles.rules.run': 'O scară are trei sau mai multe numere consecutive de aceeași culoare.',
   'rummytiles.rules.noWrap': '13 nu se leagă înapoi la 1.',
   'rummytiles.rules.joker': 'Un joker reprezintă orice piesă.',
+  'rummytiles.rules.tileValues':
+    "O piesă valorează numărul ei. Un joker într-o formație valorează piesa pe care o înlocuiește; unul rămas în mână costă {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Până când nu ai coborât {n} sau mai multe puncte într-o singură tură, doar din mâna ta, nu ai voie să atingi nimic din ce este deja pe masă.',
   'rummytiles.rules.turnDescription':
@@ -812,6 +839,8 @@ export const ro: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Cărțile jucătorilor se împart cu fața în sus; crupierul ține o carte acoperită până joacă toată lumea.',
   'blackjack.rules.hitStand': 'Trage câte cărți vrei, sau rămâi la ce ai.',
+  'blackjack.rules.cardValues':
+    "Cărțile de la 2 la 9 valorează numărul lor; 10, valetul, dama și regele {face}.",
   'blackjack.rules.aces': 'Un as valorează unsprezece cât timp încape, și unu când nu încape.',
   'blackjack.rules.blackjack': 'Un as cu o carte de valoare zece, pe primele două cărți, este blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack-ul plătește 3:2.',
@@ -1325,6 +1354,9 @@ export const ro: Record<string, string> = {
   'match.resume': 'Continuă de unde ai rămas',
   'match.resuming': 'Se recuperează masa…',
   'match.abandonedWaitingFor': 'Se așteaptă ca {names} să revină la masă.',
+  'match.everyoneBack': 'Toată lumea s-a întors la masă.',
+  'match.everyoneBackNextRound': 'Toată lumea s-a întors la masă. Reluarea pornește runda următoare pentru toți.',
+  'match.waitingForHostResume': 'Se așteaptă ca {name} să reia jocul.',
   'match.tableCode': 'Cod {code}',
   'match.tableCodeShare': 'Întoarce-te la masa noastră',
   'match.abandonedSendCode': 'Trimite-le un link înapoi la locul lor — funcționează pe orice dispozitiv.',
@@ -1758,6 +1790,10 @@ export const ro: Record<string, string> = {
   'canasta.unit.points': 'puncte',
   'ginrummy.unit.points': 'puncte',
   'holdem.seat.dealer': 'Împărțitor',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'S-a retras',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Eliminat',
@@ -2354,6 +2390,8 @@ export const ro: Record<string, string> = {
   'lastcard.card.drawTwo': 'Trage două',
   'lastcard.card.wild': 'Joker',
   'lastcard.card.wildDrawFour': 'Joker trage patru',
+  'lastcard.card.wildSwap': 'Joker schimb',
+  'lastcard.card.wildMayhem': 'Joker haos',
   'variation.lastcard.classic': 'Clasic',
   'err.LASTCARD_NO_MATCH': 'Cartea aceasta nu se potrivește nici la culoare, nici la număr, nici la simbol',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Un Joker trage patru este permis doar când nu ai nicio carte de culoarea în joc',
@@ -2409,7 +2447,12 @@ export const ro: Record<string, string> = {
   'lastcard.rules.section.house': 'Regulile casei',
   'lastcard.rules.stacking.twos': 'Cumul: răspunde la un Trage două cu un Trage două al tău și dă mai departe toată grămada. Cine nu poate ia totul și își pierde rândul.',
   'lastcard.rules.stacking.any': 'Cumul: răspunde la o carte de tras cu una de-a ta — un Trage două peste un Trage două, un Joker trage patru peste oricare dintre ele — și dă mai departe toată grămada. Cine nu poate ia totul și își pierde rândul.',
-  'lastcard.rules.sevens': 'Joacă un 7 și faci schimb de mână cu cel care are cele mai puține cărți.',
+  'lastcard.rules.sevens': 'Joacă un 7 și faci schimb de mână cu un jucător ales de tine.',
+  'lastcard.rules.wildSwap': 'Joker schimb ({n} în pachet): spune culoarea care urmează, apoi fă schimb de mână cu orice jucător alegi.',
+  'lastcard.rules.wildMayhem': 'Joker haos ({n} în pachet): spune culoarea care urmează, apoi toate mâinile sunt strânse, amestecate și împărțite din nou câte o carte, începând cu următorul jucător.',
+  'lastcard.prompt.swapWith': 'Cu cine faci schimb de mână?',
+  'lastcard.prompt.player': 'Jucător',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Alege un jucător cu care să faci schimb de mână',
   'lastcard.rules.zeros': 'Joacă un 0 și fiecare mână trece la următorul jucător, în sensul jocului.',
   'lastcard.remedy.stackOrTake': 'Răspunde cu o carte de tras a ta sau ia cele {n} cărți.',
   'lastcard.offer.takeStack': 'Ia-le',
@@ -2425,6 +2468,12 @@ export const ro: Record<string, string> = {
   'option.sevenZero': 'Cărțile 7 și 0',
   'choice.sevenZero.0': 'Oprit',
   'choice.sevenZero.1': 'Pornit',
+  'option.swapCards': 'Cărți Joker schimb',
+  'choice.swapCards.0': 'Oprit',
+  'choice.swapCards.1': 'Pornit',
+  'option.mayhemCards': 'Cărți Joker haos',
+  'choice.mayhemCards.0': 'Oprit',
+  'choice.mayhemCards.1': 'Pornit',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} a jucat {card}',
   'lastcard.move.playedSkip': '{player} a jucat {card} — {target} își pierde rândul',
@@ -2448,6 +2497,7 @@ export const ro: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} l-a contestat pe {target} — a fost cinstit, așa că {player} trage {n} și își pierde rândul',
   'lastcard.move.swapped': '{player} a schimbat mâna cu {target}',
   'lastcard.move.passedHands': '{player} a jucat un 0 — toate mâinile se mută mai departe',
+  'lastcard.move.mayhem': 'Haos! {player} a strâns toate mâinile, le-a amestecat și le-a împărțit din nou',
   'lastcard.move.wentOut': '{player} a terminat cărțile și primește {n}',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Punctaj',

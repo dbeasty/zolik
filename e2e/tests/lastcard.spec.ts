@@ -311,7 +311,11 @@ test.describe('last card, lowest total wins', () => {
       for (const p of o.params ?? []) action.params = { ...(action.params ?? {}), [p.name]: p.defaultChoice ?? p.choices[0].value };
       const before = latest.map((l) => l);
       sockets[i].send(JSON.stringify(action));
-      for (let k = 0; k < 200 && latest.every((l, j) => l === before[j]); k++) await new Promise((r) => setTimeout(r, 10));
+      // Every seat is sent the new state, each on its own socket. Wait for all
+      // of them: reading on after only the first has arrived, on a slower
+      // server, finds the other seats still on the frame before the move, so
+      // nobody looks able to act and the loop stops with the match running.
+      for (let k = 0; k < 500 && latest.some((l, j) => l === before[j]); k++) await new Promise((r) => setTimeout(r, 10));
     }
     for (const ws of sockets) ws.close();
 

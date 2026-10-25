@@ -177,9 +177,14 @@ export type ViewModel = {
   prompts?: Fact[];
 };
 
-export type ParamKind = 'choice' | 'int';
+/**
+ * `player` is a choice of one of the players at the table — whom a card that
+ * swaps hands trades with: each choice's value is a player id, shown as that
+ * player's name.
+ */
+export type ParamKind = 'choice' | 'int' | 'player';
 
-/** A non-card input an offer needs: a named choice, or a number in a range. */
+/** A non-card input an offer needs: a named choice, a player, or a number in a range. */
 export type ParamSpec = {
   name: string;
   kind?: ParamKind;
@@ -545,6 +550,8 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /** The one player who may bring a set-aside table back once everyone is here — its host. Absent when any seated player may. */
+  resumeHost?: string;
   /** Every seat a stand-in bot has played for at this table — their record does not count it. */
   stoodIn?: string[];
   /**
@@ -563,6 +570,8 @@ export type MatchState = {
    * A flag, never the game it came from: that game's board would show the deal.
    */
   repeatDeal?: boolean;
+  /** The guided lesson this table was dealt for; absent at an ordinary table. */
+  tutorial?: { lessonId: string };
   /** Who a rematch lobby is still holding seats for, in seat order. */
   reserved?: { playerId: string; name: string; avatar?: string }[];
   /**

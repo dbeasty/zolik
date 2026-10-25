@@ -20,6 +20,12 @@ export const et: Record<string, string> = {
   'err.DISPLACED': 'Avatud teises vahekaardis — see lõpetas sünkroonimise',
   'err.UNREACHABLE': 'Serveriga ei saa ühendust. Kontrolli oma ühendust ja proovi uuesti.',
   'err.INVALID_CREDENTIALS': 'Kasutajanimi ja parool ei sobi kokku.',
+  'err.CREDENTIALS_REQUIRED': 'Sisesta kasutajanimi ja parool.',
+  'err.PASSWORD_TOO_LONG': 'See parool on liiga pikk.',
+  'err.USERNAME_TAKEN': 'See kasutajanimi või e-posti aadress on juba kasutusel.',
+  'err.INVALID_EMAIL': 'See ei tundu e-posti aadressina.',
+  'err.CODE_INVALID': 'See kood ei kehti. Küsi uus.',
+  'err.TOO_MANY_CODES': 'Selle aadressi jaoks on küsitud liiga palju koode. Proovi varsti uuesti.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const et: Record<string, string> = {
   'zolik.rules.lead.winner': 'Kes välja läheb, alustab järgmist jagamist.',
   'zolik.rules.meldFloor.on':
     'Sinu esimene väljapanek peab kokku andma vähemalt {n} loomulikku punkti, enne kui oled väljas.',
+  'zolik.rules.meldFloor.values':
+    "Selle miinimumi hulka loetakse iga kaart nii, nagu see käes maksab, välja arvatud äss: {aceHigh} komplektis või kuninga kohal, {aceLow} kahe all. Jokker loetakse kaardiks, mida ta asendab.",
   'zolik.rules.meldFloor.off': 'Esimesel väljapanekul pole punktide alammäära.',
   'zolik.rules.cleanRun.on':
     'Vähemalt üks sinu jadadest peab olema täiesti jokkerita, enne kui sind loetakse väljas olevaks.',
@@ -119,6 +127,8 @@ export const et: Record<string, string> = {
     'Matš kestab {n} jagamist ja iga jagamine nõuab oma gruppide ja jadade kombinatsiooni.',
   'zolik.rules.contracts.static': 'Iga jagamine nõuab sama kombinatsiooni: {sets} gruppi ja {runs} jada.',
   'zolik.rules.end.afterDeals': 'Matš lõpeb {n} jagamise järel.',
+  'zolik.rules.penalty.values':
+    "Kätte jäänud kaart maksab: jokker {joker}, 10, poiss, emand või kuningas {face}, 2–9 oma numbri, ja äss {ace} — või ainult {aceLow}, kui sul on käes ka sama masti kaks või sama masti emand ja kuningas, või kui see pikendaks laual olevat rida.",
   'zolik.rules.end.atScore': 'Jagatakse edasi, kuni keegi jõuab {n} punktini — siis on läbi.',
 
   'prsi.rules.section.goal': 'Eesmärk',
@@ -178,6 +188,8 @@ export const et: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Viskepakk on kogu jagamise vältel külmutatud: saad selle võtta ainult sobitades ülemise kaardi kahe loomuliku kaardiga oma käest.',
   'canasta.rules.pileOntoMeld': 'Kui sinu poolel on laual juba pooleli kombinatsioon ülemise kaardi väärtuses, võid võtta kogu viskepaki ja lisada selle kaardi sinna juurde — paari käes pole vaja.',
   'canasta.rules.pileNoMeldCapture': 'Laual olev kombinatsioon ei saa viskepakki võtta: selle võtmiseks pead sobitama ülemise kaardi kahe kaardiga oma käest.',
+  'canasta.rules.cardValues':
+    "Kaartide väärtused: jokker {joker}, 2 {two}, äss {ace}, kuningast kaheksani {high}, seitsmest neljani {low}, must kolm {black}. Punased kolmed on boonused ega lähe kunagi kombinatsiooni väärtusse.",
   'canasta.rules.meldFloorBands':
     'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} sellest üle.',
   'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} kuni {highUpTo} ja {top} üle selle.',
@@ -307,6 +319,8 @@ export const et: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Alusta järgmist vooru',
+  'round.autoContinue': 'Alusta järgmist vooru automaatselt',
+  'round.autoContinueIn': 'Järgmine voor {seconds} s pärast',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -374,6 +388,15 @@ export const et: Record<string, string> = {
   'holdem.round.uncontested': 'Kõik teised loobusid',
   'seat.ready': 'Valmis',
   'zolik.seat.contractMet': 'Leping täidetud',
+  'zolik.hint.setsNeeded': 'Mahapanekuks on sul vaja veel {n} kolmikut.',
+  'zolik.hint.setsNeeded.1': 'Mahapanekuks on sul vaja veel 1 kolmikut.',
+  'zolik.hint.runsNeeded': 'Mahapanekuks on sul vaja veel {n} rida.',
+  'zolik.hint.runsNeeded.1': 'Mahapanekuks on sul vaja veel 1 rida.',
+  'zolik.hint.cleanRunNeeded': 'Mahapanekuks on sul vaja veel jokkerita rida.',
+  'zolik.hint.meldPoints': 'Su kombinatsioonid peavad mahapanekuks olema väärt {n} punkti — sul on {have}.',
+  'zolik.hint.downInOneTurn': 'Pane maha ühe käiguga: alustatud mahapanek tuleb enne äraviset lõpetada või tagasi võtta.',
+  'zolik.hint.layOffWhenDown': 'Kombinatsioonidele saad kaarte lisada alles siis, kui oled maha pannud.',
+  'zolik.hint.discardLocked': 'Äraviskepakist võib võtta alates ringist {n}.',
   'results.you': '(sina)',
 
 
@@ -647,6 +670,8 @@ export const et: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinatsioon on kolme või nelja sama väärtusega kaardi grupp või kolme või enama sama masti kaardi jada.',
   'ginrummy.rules.aceLow': 'Äss on alati madal — emandast ässani jada ei ole.',
+  'ginrummy.rules.cardValues':
+    "Surnud kaartides on äss {ace}, 2–9 oma numbri väärtusega ning 10, poiss, emand ja kuningas {face}.",
   'ginrummy.rules.knockLimit': 'Sa võid koputada niipea, kui sinu deadwood on {n} või vähem.',
   'ginrummy.rules.oklahoma': 'Selle jagamise koputamispiiri määrab lahtise kaardi väärtus.',
   'ginrummy.rules.gin': 'Null deadwoodi on gin — parim võimalik koputus.',
@@ -733,6 +758,8 @@ export const et: Record<string, string> = {
   'rummytiles.rules.run': 'Jada on kolm või enam järjestikust numbrit ühes värvis.',
   'rummytiles.rules.noWrap': '13 järel ei alga uuesti 1.',
   'rummytiles.rules.joker': 'Jokker esindab ükskõik millist kivi.',
+  'rummytiles.rules.tileValues':
+    "Kivi väärtus on selle number. Kombinatsioonis olev jokker on väärt kivi, mida ta asendab; kätte jäänud jokker maksab {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Kuni sa pole ühe käiguga, ainuüksi oma käest, välja pannud {n} või enam punkti, ei tohi sa puutuda midagi, mis on juba laual.',
   'rummytiles.rules.turnDescription':
@@ -809,6 +836,8 @@ export const et: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Mängijate kaardid jagatakse kuvapoolega üles; jagaja hoiab ühte kaarti kinni, kuni kõik on mänginud.',
   'blackjack.rules.hitStand': 'Võta nii palju kaarte kui soovid või jää sellele, mis sul on.',
+  'blackjack.rules.cardValues':
+    "Kaardid 2–9 on oma numbri väärtusega; 10, poiss, emand ja kuningas on {face}.",
   'blackjack.rules.aces': 'Äss loeb üksteist seni, kuni see mahub, ja muidu üks.',
   'blackjack.rules.blackjack': 'Äss koos kümne väärtusega kaardiga kahel esimesel kaardil on blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack maksab 3:2.',
@@ -1311,6 +1340,9 @@ export const et: Record<string, string> = {
   'match.resume': 'Jätka sealt, kus pooleli jäid',
   'match.resuming': 'Taastan lauda…',
   'match.abandonedWaitingFor': 'Oodatakse, et {names} tuleks laua juurde tagasi.',
+  'match.everyoneBack': 'Kõik on laua taga tagasi.',
+  'match.everyoneBackNextRound': 'Kõik on laua taga tagasi. Jätkamine alustab kõigile järgmise vooru.',
+  'match.waitingForHostResume': 'Ootame, et {name} mänguga jätkaks.',
   'match.tableCode': 'Kood {code}',
   'match.tableCodeShare': 'Tule tagasi meie lauda',
   'match.abandonedSendCode': 'Saada neile link tagasi oma kohale — see töötab igas seadmes.',
@@ -1743,6 +1775,10 @@ export const et: Record<string, string> = {
   'canasta.unit.points': 'punkti',
   'ginrummy.unit.points': 'punkti',
   'holdem.seat.dealer': 'Jagaja',
+  'holdem.seat.smallBlind': 'Väike pime',
+  'holdem.seat.bigBlind': 'Suur pime',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Loobus',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Väljas',
@@ -2335,6 +2371,8 @@ export const et: Record<string, string> = {
   'lastcard.card.drawTwo': 'Võta kaks',
   'lastcard.card.wild': 'Jokker',
   'lastcard.card.wildDrawFour': 'Jokker võta neli',
+  'lastcard.card.wildSwap': 'Jokker vahetus',
+  'lastcard.card.wildMayhem': 'Jokker kaos',
   'variation.lastcard.classic': 'Klassikaline',
   'err.LASTCARD_NO_MATCH': 'See kaart ei sobi värvi, numbri ega sümboli poolest',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Jokker võta neli on lubatud ainult siis, kui sul pole ühtegi mängus oleva värvi kaarti',
@@ -2390,7 +2428,12 @@ export const et: Record<string, string> = {
   'lastcard.rules.section.house': 'Kodureeglid',
   'lastcard.rules.stacking.twos': 'Kuhjamine: vasta kaardile Võta kaks oma Võta kaks kaardiga ja anna kogu kuhi edasi. Kes ei saa, võtab kõik ja tema käik jäetakse vahele.',
   'lastcard.rules.stacking.any': 'Kuhjamine: vasta võtukaardile oma võtukaardiga — Võta kaks Võta kahe peale, Jokker võta neli kumma tahes peale — ja anna kogu kuhi edasi. Kes ei saa, võtab kõik ja tema käik jäetakse vahele.',
-  'lastcard.rules.sevens': 'Mängi 7 ja vahetad käe mängijaga, kellel on kõige vähem kaarte.',
+  'lastcard.rules.sevens': 'Mängi 7 ja vahetad käe enda valitud mängijaga.',
+  'lastcard.rules.wildSwap': 'Jokker vahetus ({n} pakis): nimeta värv, mis järgneb, ja vaheta siis käsi enda valitud mängijaga.',
+  'lastcard.rules.wildMayhem': 'Jokker kaos ({n} pakis): nimeta värv, mis järgneb; siis kogutakse kõik käed kokku, segatakse ja jagatakse uuesti ükshaaval välja, alustades järgmisest mängijast.',
+  'lastcard.prompt.swapWith': 'Kellega käsi vahetada?',
+  'lastcard.prompt.player': 'Mängija',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Vali mängija, kellega käsi vahetada',
   'lastcard.rules.zeros': 'Mängi 0 ja iga käsi liigub mängusuunas järgmisele mängijale.',
   'lastcard.remedy.stackOrTake': 'Vasta oma võtukaardiga või võta {n} kaarti.',
   'lastcard.offer.takeStack': 'Võta need',
@@ -2406,6 +2449,12 @@ export const et: Record<string, string> = {
   'option.sevenZero': 'Seitsmed ja nullid',
   'choice.sevenZero.0': 'Väljas',
   'choice.sevenZero.1': 'Sees',
+  'option.swapCards': 'Kaardid „Jokker vahetus“',
+  'choice.swapCards.0': 'Väljas',
+  'choice.swapCards.1': 'Sees',
+  'option.mayhemCards': 'Kaardid „Jokker kaos“',
+  'choice.mayhemCards.0': 'Väljas',
+  'choice.mayhemCards.1': 'Sees',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} mängis kaardi {card}',
   'lastcard.move.playedSkip': '{player} mängis kaardi {card} — {target} jääb käigust ilma',
@@ -2429,6 +2478,7 @@ export const et: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} vaidlustas mängija {target} kaardi — see oli aus, nii et {player} võtab {n} ja jääb käigust ilma',
   'lastcard.move.swapped': '{player} vahetas käed mängijaga {target}',
   'lastcard.move.passedHands': '{player} mängis 0 — kõik käed liiguvad edasi',
+  'lastcard.move.mayhem': 'Kaos! {player} kogus kõik käed kokku, segas need ja jagas uuesti välja',
   'lastcard.move.wentOut': '{player} sai kaartidest lahti ja saab {n} punkti',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Punktiarvestus',

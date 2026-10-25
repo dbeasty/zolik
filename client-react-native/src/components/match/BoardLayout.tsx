@@ -2,6 +2,7 @@ import { useMemo, type ReactNode, type Ref } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchState, Zone } from '@/src/api/matchTypes';
+import { Attention } from '@/src/components/match/Attention';
 import { BoardSpeechProvider } from '@/src/components/match/BoardSpeech';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
@@ -52,7 +53,7 @@ type DropProps = {
   pickableGroups?: ReadonlySet<string>;
   pickedInGroup?: { groupId: string; indices: number[] } | null;
   onPickGroupCard?: (groupId: string, index: number, card: string) => void;
-  onMeldDragStart?: (groupId: string, index: number, card: string) => void;
+  onMeldDragStart?: (groupId: string, index: number, card: string) => number[] | void;
   entranceDelays?: ReadonlyMap<string, number>;
   /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
   changedGroups?: ChangeMarks;
@@ -78,6 +79,7 @@ export function BoardLayout({
   hand,
   controls,
   tableAnchor,
+  tableRing,
   onOpenScore,
   onPickBot,
   onPickStandIn,
@@ -99,6 +101,8 @@ export function BoardLayout({
    * which nobody is dealt into. See `useOpeningScroll`.
    */
   tableAnchor?: { ref: Ref<View> };
+  /** Ring the table, because the guide's current step is about it. */
+  tableRing?: boolean;
   /** Open the account behind a seat's score. See `ScoreSheet`. */
   onOpenScore?: (playerId: string) => void;
   /** The host's strength picker for a bot seat — see SeatStrip. */
@@ -229,6 +233,7 @@ export function BoardLayout({
             panelPropsFor={zonePanelProps}
             {...drops}
           />
+          <Attention active={!!tableRing} radius={10} gap={3} />
         </View>
       ) : null}
 
@@ -306,7 +311,7 @@ export function Section({
   pickableGroups?: ReadonlySet<string>;
   pickedInGroup?: { groupId: string; indices: number[] } | null;
   onPickGroupCard?: (groupId: string, index: number, card: string) => void;
-  onMeldDragStart?: (groupId: string, index: number, card: string) => void;
+  onMeldDragStart?: (groupId: string, index: number, card: string) => number[] | void;
 }) {
   if (!zones.length) return null;
 

@@ -1,4 +1,4 @@
-import { ApiError, ZolikClient, apiErrorFromResponse, socketBase } from '@/src/api/client';
+import { ApiError, COOKIE_HELD_REFRESH, ZolikClient, apiErrorFromResponse, socketBase } from '@/src/api/client';
 
 describe('apiErrorFromResponse', () => {
   it('parses a JSON refusal with code and Retry-After', () => {
@@ -153,5 +153,79 @@ describe('signing in keeps the offline pass', () => {
     const client = new ZolikClient('http://x', transportFor('/auth/email/verify') as never);
     const outcome = await client.verifyEmailCode('ada@example.com', '123456');
     expect(outcome.session).toMatchObject({ offlinePass: 'pass' });
+  });
+});
+
+describe('cookie session (web)', () => {
+  type Sent = { path: string; headers: Record<string, string>; body: Record<string, unknown>; credentials?: string };
+
+  const reply = (body: unknown) => ({
+    status: 200,
+    ok: true,
+    headers: { get: () => null },
+    text: async () => JSON.stringify(body),
+  });
+
+  /** A server in cookie mode: the refresh token never comes back in a body. */
+  function cookieClient() {
+    const sent: Sent[] = [];
+    const transport = {
+      fetch: async (
+        path: string,
+        init: { headers?: Record<string, string>; body?: string; credentials?: string },
+      ) => {
+        sent.push({
+          path,
+          headers: init.headers ?? {},
+          body: JSON.parse(init.body ?? '{}'),
+          credentials: init.credentials,
+        });
+        if (path === '/auth/guest') {
+          return reply({ accessToken: 'a0', refreshToken: '', guestId: 'g', guestKey: 'g.mac', guestName: 'G' });
+        }
+        if (path === '/auth/refresh') return reply({ accessToken: 'a1', refreshToken: '' });
+        return reply({});
+      },
+      socketUrl: (p: string) => p,
+      openSocket: () => {
+        throw new Error('unused');
+      },
+    };
+    return { client: new ZolikClient('http://x', transport as never, { cookieSession: true }), sent };
+  }
+
+  it('asks for cookies on the auth routes only', async () => {
+    const { client, sent } = cookieClient();
+    await client.guestLogin('G');
+    await client.getMe();
+    const [auth, other] = sent;
+    expect(auth.headers['X-Zolik-Session']).toBe('cookie');
+    expect(auth.credentials).toBe('include');
+    expect(other.headers['X-Zolik-Session']).toBeUndefined();
+    expect(other.credentials).toBeUndefined();
+  });
+
+  it('holds a marker, never sends it, and still renews', async () => {
+    const { client, sent } = cookieClient();
+    const s = await client.guestLogin('G');
+    expect(s.refreshToken).toBe(COOKIE_HELD_REFRESH);
+    expect(s.guestKey).toBe('g.mac');
+
+    await client.refreshTokens();
+    const refresh = sent.find((c) => c.path === '/auth/refresh')!;
+    expect(refresh.body.refreshToken).toBeUndefined();
+    expect(client.accessToken).toBe('a1');
+    expect(client.refreshToken).toBe(COOKIE_HELD_REFRESH);
+
+    await client.logout();
+    expect(sent.find((c) => c.path === '/auth/logout')!.body.refreshToken).toBeUndefined();
+  });
+
+  it('hands over a token stored before cookies, once', async () => {
+    const { client, sent } = cookieClient();
+    client.bindSession({ accessToken: 'a0', refreshToken: 'stored', userId: 'g' } as never);
+    await client.refreshTokens();
+    expect(sent[0].body.refreshToken).toBe('stored');
+    expect(client.refreshToken).toBe(COOKIE_HELD_REFRESH);
   });
 });

@@ -248,7 +248,7 @@ func TestActiveSeatMatchesTheOffers(t *testing.T) {
 				if !enabled {
 					t.Fatalf("step %d: %q is the active seat but is offered nothing", step, actor)
 				}
-				// And nobody outside the awaited set is offered anything.
+				// And nobody outside the awaited set has a move to make.
 				//
 				// This used to say "nobody else", full stop, which was true for
 				// as long as a match could only ever wait on one seat. Between
@@ -256,6 +256,14 @@ func TestActiveSeatMatchesTheOffers(t *testing.T) {
 				// the claim worth keeping is the one the bot loop relies on:
 				// the seats being waited on and the seats with something to do
 				// are the same seats.
+				//
+				// Live rather than Enabled, for the one control that is
+				// deliberately not a turn: getting up from the table is open to
+				// every seated player at a drop-in table all game long, which is
+				// what Manual means and why the bot loop skips it
+				// (module.ActionOffer.Live). Siete y Medio is where that showed
+				// up — its banker waits while everybody else stakes, and may
+				// still leave — and cash hold'em has the same shape.
 				awaited := module.AwaitedSeats(tc.mod, state, tc.players[0].ID, tc.players)
 				for _, p := range tc.players {
 					if awaits(awaited, p.ID) {
@@ -263,7 +271,7 @@ func TestActiveSeatMatchesTheOffers(t *testing.T) {
 					}
 					other, _ := tc.mod.LegalActions(state, p.ID)
 					for _, o := range other {
-						if o.Enabled {
+						if o.Live() {
 							t.Fatalf("step %d: %q is offered %q while the table waits on %v",
 								step, p.ID, o.ID, awaited)
 						}

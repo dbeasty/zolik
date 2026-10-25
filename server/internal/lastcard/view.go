@@ -29,6 +29,8 @@ const (
 	OptStacking          = "stacking"
 	OptDrawUntilPlayable = "drawUntilPlayable"
 	OptSevenZero         = "sevenZero"
+	OptSwapCards         = "swapCards"
+	OptMayhemCards       = "mayhemCards"
 )
 
 // Descriptor is Last Card's self-description.
@@ -60,6 +62,8 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptStacking:                  stackOff,
 					OptDrawUntilPlayable:         module.OptOff,
 					OptSevenZero:                 module.OptOff,
+					OptSwapCards:                 module.OptOff,
+					OptMayhemCards:               module.OptOff,
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
@@ -134,7 +138,27 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				Name:  OptSevenZero,
 				Type:  module.OptionEnumInt,
 				Label: "Sevens and zeros",
-				Help:  "A 7 swaps your hand with the shortest one; a 0 passes every hand along.",
+				Help:  "A 7 swaps your hand with a player you choose; a 0 passes every hand along.",
+				Choices: []module.OptionChoice{
+					{Value: module.OptOff, Label: "Off"},
+					{Value: module.OptOn, Label: "On"},
+				},
+			},
+			{
+				Name:  OptSwapCards,
+				Type:  module.OptionEnumInt,
+				Label: "Wild Swap cards",
+				Help:  "Two Wild Swaps join the pack: name a colour and trade hands with any player.",
+				Choices: []module.OptionChoice{
+					{Value: module.OptOff, Label: "Off"},
+					{Value: module.OptOn, Label: "On"},
+				},
+			},
+			{
+				Name:  OptMayhemCards,
+				Type:  module.OptionEnumInt,
+				Label: "Wild Mayhem cards",
+				Help:  "Two Wild Mayhems join the pack: name a colour, and every hand is gathered, shuffled and dealt out again.",
 				Choices: []module.OptionChoice{
 					{Value: module.OptOff, Label: "Off"},
 					{Value: module.OptOn, Label: "On"},
@@ -174,6 +198,8 @@ func configOf(s *GameState) module.MatchConfig {
 		OptStacking:          s.Stacking,
 		OptDrawUntilPlayable: module.BoolOpt(s.DrawUntil),
 		OptSevenZero:         module.BoolOpt(s.SevenZero),
+		OptSwapCards:         module.BoolOpt(s.SwapCards),
+		OptMayhemCards:       module.BoolOpt(s.MayhemCards),
 	}}
 }
 

@@ -15,10 +15,30 @@ func New() *Module { return &Module{} }
 
 var _ module.GameModule = (*Module)(nil)
 
-// buildDeck returns the 108-card pack. Duplicates share a code, as Canasta's
-// double deck does: two copies of the coral 7 are the same card.
-func buildDeck() []string {
-	out := make([]string, 0, 108)
+// How many of each house-rule wild a table that plays it adds to the pack.
+const (
+	swapCopies   = 2
+	mayhemCopies = 2
+)
+
+// deckSize is how many cards the pack holds at a table: 108, and the
+// house-rule wilds it plays.
+func deckSize(swap, mayhem bool) int {
+	n := 108
+	if swap {
+		n += swapCopies
+	}
+	if mayhem {
+		n += mayhemCopies
+	}
+	return n
+}
+
+// buildDeck returns the pack: the standard 108 cards, and the Wild Swaps and
+// Wild Mayhems where the table plays them. Duplicates share a code, as
+// Canasta's double deck does: two copies of the coral 7 are the same card.
+func buildDeck(swap, mayhem bool) []string {
+	out := make([]string, 0, deckSize(swap, mayhem))
 	for _, c := range colours {
 		out = append(out, c+"-0")
 		for n := 1; n <= 9; n++ {
@@ -31,6 +51,12 @@ func buildDeck() []string {
 	}
 	for i := 0; i < 4; i++ {
 		out = append(out, cardWild, cardWildDrawFour)
+	}
+	for i := 0; swap && i < swapCopies; i++ {
+		out = append(out, cardWildSwap)
+	}
+	for i := 0; mayhem && i < mayhemCopies; i++ {
+		out = append(out, cardWildMayhem)
 	}
 	return out
 }
@@ -59,6 +85,8 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		Stacking:    cfg.Opt(OptStacking, stackOff),
 		DrawUntil:   cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn,
 		SevenZero:   cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn,
+		SwapCards:   cfg.Opt(OptSwapCards, module.OptOff) == module.OptOn,
+		MayhemCards: cfg.Opt(OptMayhemCards, module.OptOff) == module.OptOn,
 		Scoring:     cfg.Opt(OptScoring, scoreWinnerTakes),
 		Scores:      map[string]int{},
 	}
@@ -79,13 +107,13 @@ func (s *GameState) deal() {
 		handSize = defaultHandSize
 	}
 	dealSeed := s.Seed + int64(s.DealNumber)*104729
-	deck := shuffle(buildDeck(), dealSeed)
+	deck := shuffle(buildDeck(s.SwapCards, s.MayhemCards), dealSeed)
 
 	s.Hands = map[string][]string{}
 	s.Direction = 1
 	s.DeclaredColour, s.DrawnCard, s.Called, s.Unannounced = "", "", "", ""
 	s.DrawFour, s.Reveal = nil, nil
-	s.BlankDraws, s.Reshuffles, s.PendingDraw = 0, 0, 0
+	s.BlankDraws, s.Reshuffles, s.PendingDraw, s.Mayhems = 0, 0, 0, 0
 
 	for i := 0; i < handSize; i++ {
 		for _, p := range s.TurnOrder {
@@ -257,6 +285,10 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 			return nil, module.Error{Code: ErrUnknownColour, Message: declared}
 		}
 	}
+	swapWith, err := s.swapTarget(playerID, card, a.Params["with"])
+	if err != nil {
+		return nil, err
+	}
 
 	// The hand as it was when the card went down, for a challenger to see.
 	before := append([]string(nil), hand...)
@@ -286,12 +318,13 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 		return append(events, s.endDeal(playerID)...), nil
 	}
 
-	// Sevens and zeros move hands — before the call is judged, because what
-	// matters is the hand the player is left holding.
-	if s.SevenZero {
-		events = append(events, s.sevenZero(playerID, card)...)
-	}
-	if len(s.Hands[playerID]) == 1 && s.CallOn {
+	// Swaps, mayhems, sevens and zeros move hands. The call is judged only
+	// where none did: it is said holding two cards, ahead of the play that
+	// leaves one, and a hand that arrives with one card could not have been
+	// called for.
+	moved := s.moveHands(playerID, card, swapWith)
+	events = append(events, moved...)
+	if len(moved) == 0 && len(s.Hands[playerID]) == 1 && s.CallOn {
 		if s.Called == playerID {
 			events = append(events, module.Event{Type: "last_card", Data: map[string]any{"playerId": playerID}})
 		} else {
@@ -688,38 +721,63 @@ func (s *GameState) drawUntilPlayable(playerID string) ([]module.Event, error) {
 	return events, nil
 }
 
-// sevenZero applies the house rule's two cards. A 7 swaps the player's hand
-// with the shortest other hand, the nearest in the direction of play taking a
-// tie — the swap a player would choose, made for them, so the rule needs no
-// way to name another seat. A 0 passes every hand to the next player in the
-// direction of play.
-func (s *GameState) sevenZero(playerID, card string) []module.Event {
-	switch faceOf(card) {
-	case "7":
-		if isWild(card) {
-			return nil
+// swapTarget is the player a card that swaps hands trades with, checked
+// before anything moves: any other player at the table. Between two players
+// there is only one, and it need not be named.
+func (s *GameState) swapTarget(playerID, card, with string) (string, error) {
+	if !s.swapsHands(card) {
+		return "", nil
+	}
+	if with == "" {
+		if len(s.TurnOrder) == 2 {
+			return s.nextPlayer(playerID), nil
 		}
-		target := ""
-		for i, p := 1, s.nextPlayer(playerID); i < len(s.TurnOrder); i, p = i+1, s.nextPlayer(p) {
-			if target == "" || len(s.Hands[p]) < len(s.Hands[target]) {
-				target = p
-			}
+		return "", module.Error{Code: ErrSwapWithWhom}
+	}
+	if with == playerID {
+		return "", module.Error{Code: ErrSwapWithWhom, Message: with}
+	}
+	for _, p := range s.TurnOrder {
+		if p == with {
+			return with, nil
 		}
-		if target == "" {
-			return nil
-		}
-		s.Hands[playerID], s.Hands[target] = s.Hands[target], s.Hands[playerID]
-		return []module.Event{{Type: "hands_swapped", Data: map[string]any{"playerId": playerID, "with": target}}}
-	case "0":
-		if isWild(card) {
-			return nil
-		}
+	}
+	return "", module.Error{Code: ErrSwapWithWhom, Message: with}
+}
+
+// moveHands applies the cards that move hands, once the card is down.
+//
+// A Wild Swap, or a 7 where sevens swap, trades the player's hand with the
+// player they named. A 0 where zeros pass sends every hand to the next player
+// in the direction of play. A Wild Mayhem gathers every hand, shuffles them
+// together and deals them out again one at a time, starting with the next
+// player — so the hands come back as near equal in size as the cards allow.
+// Every player holds a card when it goes down, so there are at least as many
+// cards as players and nobody is dealt out of the deal.
+func (s *GameState) moveHands(playerID, card, with string) []module.Event {
+	switch {
+	case s.swapsHands(card):
+		s.Hands[playerID], s.Hands[with] = s.Hands[with], s.Hands[playerID]
+		return []module.Event{{Type: "hands_swapped", Data: map[string]any{"playerId": playerID, "with": with}}}
+	case s.SevenZero && faceOf(card) == "0" && !isWild(card):
 		moved := map[string][]string{}
 		for _, p := range s.TurnOrder {
 			moved[s.nextPlayer(p)] = s.Hands[p]
 		}
 		s.Hands = moved
 		return []module.Event{{Type: "hands_passed", Data: map[string]any{"playerId": playerID}}}
+	case card == cardWildMayhem:
+		var all []string
+		for _, p := range s.TurnOrder {
+			all = append(all, s.Hands[p]...)
+			s.Hands[p] = nil
+		}
+		s.Mayhems++
+		all = shuffle(all, s.Seed+int64(s.DealNumber)*104729+int64(s.Mayhems)*15485863)
+		for i, p := 0, s.nextPlayer(playerID); i < len(all); i, p = i+1, s.nextPlayer(p) {
+			s.Hands[p] = append(s.Hands[p], all[i])
+		}
+		return []module.Event{{Type: "hands_shuffled", Data: map[string]any{"playerId": playerID}}}
 	}
 	return nil
 }

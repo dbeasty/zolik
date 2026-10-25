@@ -294,6 +294,96 @@ func TestMoveCards(t *testing.T) {
 		}
 	})
 
+	t.Run("two melds combine though no one card could move alone", func(t *testing.T) {
+		raw := table(func(s *GameState) {
+			s.Teams[0].Melds = append(s.Teams[0].Melds,
+				Meld{ID: "t0-K-2", TeamID: 0, Kind: meldSet, Rank: "K", Cards: []string{"KH", "KD", "KS"}},
+				Meld{ID: "t0-seq2", TeamID: 0, Kind: meldRun, Suit: "H", Cards: []string{"9H", "TH", "JH"}},
+			)
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		requires := func(o *module.ActionOffer, card string) []string {
+			for _, p := range o.Source.Placements {
+				if p.Card == card {
+					return p.Requires
+				}
+			}
+			t.Fatalf("%s not placed by %+v", card, o.Source)
+			return nil
+		}
+		kings := offerByID(offers, "move:t0-K-2:t0-K")
+		if kings == nil || len(kings.Source.Cards) != 0 {
+			t.Fatalf("kings offer %+v", kings)
+		}
+		if got := requires(kings, "KH"); !slices.Equal(got, []string{"KD", "KS"}) {
+			t.Fatalf("KH requires %v", got)
+		}
+		run := offerByID(offers, "move:t0-seq2:t0-seq1")
+		if run == nil {
+			t.Fatal("no offer to join the runs")
+		}
+		if got := requires(run, "JH"); len(got) != 2 {
+			t.Fatalf("JH requires %v", got)
+		}
+		// And what was offered goes through.
+		raw, code := apply(t, raw, "p1", module.Action{
+			OfferID: run.ID, Verb: VerbMoveCards, Cards: []string{"9H", "TH", "JH"}, Target: "t0-seq1",
+		})
+		if code != "" {
+			t.Fatal(code)
+		}
+		if s := mustDecode(t, raw); len(s.Teams[0].meldByID("t0-seq1").Cards) != 7 || s.Teams[0].meldByID("t0-seq2") != nil {
+			t.Fatalf("melds %+v", s.Teams[0].Melds)
+		}
+	})
+
+	t.Run("a meld with duplicate cards moves whole, every copy listed", func(t *testing.T) {
+		// The reported board: 4D 4D 4H and 4H 4H JOKER 4C, which together are
+		// six natural fours and a joker. A client checks a selection against
+		// the offer's cards as a multiset, so each copy must be listed.
+		raw := table(func(s *GameState) {
+			s.Teams[0].Melds = append(s.Teams[0].Melds,
+				Meld{ID: "t0-4", TeamID: 0, Kind: meldSet, Rank: "4", Cards: []string{"4D", "4D", "4H"}},
+				Meld{ID: "t0-4-2", TeamID: 0, Kind: meldSet, Rank: "4", Cards: []string{"4H", "4H", "JOKER1", "4C"}},
+			)
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		listed := func(o *module.ActionOffer) []string {
+			var out []string
+			if len(o.Source.Placements) > 0 {
+				for _, p := range o.Source.Placements {
+					out = append(out, p.Card)
+				}
+			} else {
+				out = append(out, o.Source.Cards...)
+			}
+			return sortedCards(out)
+		}
+		for _, tc := range []struct{ from, to string }{{"t0-4", "t0-4-2"}, {"t0-4-2", "t0-4"}} {
+			o := offerByID(offers, "move:"+tc.from+":"+tc.to)
+			if o == nil {
+				t.Fatalf("no offer %s -> %s", tc.from, tc.to)
+			}
+			whole := sortedCards(mustDecode(t, raw).Teams[0].meldByID(tc.from).Cards)
+			if got := listed(o); !slices.Equal(got, whole) {
+				t.Fatalf("%s -> %s lists %v, the meld holds %v", tc.from, tc.to, got, whole)
+			}
+			after, code := apply(t, raw, "p1", module.Action{OfferID: o.ID, Verb: VerbMoveCards, Cards: whole, Target: tc.to})
+			if code != "" {
+				t.Fatalf("%s -> %s: %s", tc.from, tc.to, code)
+			}
+			if s := mustDecode(t, after); s.Teams[0].meldByID(tc.from) != nil || len(s.Teams[0].meldByID(tc.to).Cards) != 7 {
+				t.Fatalf("melds %+v", s.Teams[0].Melds)
+			}
+		}
+	})
+
 	t.Run("offered per pair of melds", func(t *testing.T) {
 		offers, err := New().LegalActions(table(nil), "p1")
 		if err != nil {
@@ -556,5 +646,165 @@ func TestBotFinishesACanastaByMoving(t *testing.T) {
 	a, ok := bot{}.Act(raw, module.BotSeat{PlayerID: "p1", Skill: module.SkillMedium}, offers)
 	if !ok || a.Verb != VerbMoveCards || a.Target != "t0-K" || a.Cards[0] != "2C" {
 		t.Fatalf("bot chose %+v", a)
+	}
+}
+
+// A natural that reaches a dirty sequence only across a gap is offered with a
+// wild for the gap, and with the natural for it where the hand has both; a
+// wild the 2:1 ratio refuses alone is offered with a natural beside it.
+func TestLayOffAcrossAGap(t *testing.T) {
+	placement := func(o *module.ActionOffer, card string) *module.Placement {
+		for i, p := range o.Source.Placements {
+			if p.Card == card {
+				return &o.Source.Placements[i]
+			}
+		}
+		return nil
+	}
+	run := func(low *int, cards ...string) Meld {
+		return Meld{ID: "t0-seq1", TeamID: 0, Kind: meldRun, Suit: "H", Low: low, Cards: cards}
+	}
+	offerFor := func(t *testing.T, raw module.State) *module.ActionOffer {
+		t.Helper()
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := offerByID(offers, "lay_off:t0-seq1")
+		if o == nil || !o.Enabled {
+			t.Fatalf("offer %+v", o)
+		}
+		return o
+	}
+
+	t.Run("the nine with a joker for the eight", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{run(nil, "5H", "6H", "7H")}
+			s.Hands["p1"] = []string{"9H", "JOKER1", "KS", "QS"}
+		})
+		p := placement(offerFor(t, raw), "9H")
+		if p == nil || !slices.Equal(p.Requires, []string{"JOKER1"}) {
+			t.Fatalf("9H placement %+v", p)
+		}
+		raw, code := apply(t, raw, "p1", module.Action{Verb: VerbLayOff, Cards: []string{"9H", "JOKER1"}, Target: "t0-seq1"})
+		if code != "" {
+			t.Fatal(code)
+		}
+		if m := mustDecode(t, raw).Teams[0].Melds[0]; !slices.Equal(m.Cards, []string{"5H", "6H", "7H", "JOKER1", "9H"}) {
+			t.Fatalf("meld %+v", m)
+		}
+	})
+
+	t.Run("the nine with the eight or a joker", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{run(nil, "5H", "6H", "7H")}
+			s.Hands["p1"] = []string{"8H", "9H", "JOKER1", "KS", "QS"}
+		})
+		p := placement(offerFor(t, raw), "9H")
+		if p == nil || !slices.Equal(p.Requires, []string{"8H"}) ||
+			len(p.Alternatives) != 1 || !slices.Equal(p.Alternatives[0], []string{"JOKER1"}) {
+			t.Fatalf("9H placement %+v", p)
+		}
+	})
+
+	t.Run("a wild the ratio refuses alone goes on with a natural", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{run(lowAt(0), "4H", "5H", "2C", "7H")}
+			s.Hands["p1"] = []string{"8H", "JOKER1", "KS", "QS"}
+		})
+		p := placement(offerFor(t, raw), "JOKER1")
+		if p == nil || !slices.Equal(p.Requires, []string{"8H"}) {
+			t.Fatalf("joker placement %+v", p)
+		}
+	})
+
+	t.Run("a clean table's sequence is not bridged", func(t *testing.T) {
+		raw := twoHanded(func(s *GameState) {
+			r := variations["samba"]
+			s.Variation = "samba"
+			s.Rules = &r
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = []Meld{run(nil, "5H", "6H", "7H")}
+			s.Hands["p1"] = []string{"8H", "9H", "JOKER1", "KS", "QS"}
+		})
+		if p := placement(offerFor(t, raw), "9H"); p == nil || len(p.Alternatives) != 0 {
+			t.Fatalf("9H placement %+v", p)
+		}
+	})
+}
+
+// A dirty sequence may be laid with any wild in the hand standing in the gap:
+// 9H-JOKER1-JH as well as 9H-2C-JH. Before opening, the offer spends the joker
+// when the 2 would leave it short of the minimum; a wild goes only with the
+// run's naturals, so wilds alone never look like this run.
+func TestNewDirtyRunTakesAnyWild(t *testing.T) {
+	for _, opened := range []bool{false, true} {
+		raw := canastaXTable(func(s *GameState) {
+			s.Teams[0].HasMelded = opened
+			s.Teams[1].HasMelded = opened
+			s.Hands["p1"] = []string{"9H", "2C", "JOKER1", "JH", "KS", "5D", "6C", "4C", "7S", "3D", "QC"}
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var o *module.ActionOffer
+		for i := range offers {
+			if f := offers[i].Facts; offers[i].Verb == VerbLayMeld && len(f) > 0 && f[0].Value == "9H-JH" {
+				o = &offers[i]
+			}
+		}
+		if o == nil {
+			t.Fatalf("opened=%v: no 9H-JH offer", opened)
+		}
+		if !opened && !slices.Equal(o.Source.Submit, []string{"9H", "JOKER1", "JH"}) {
+			t.Fatalf("opening submit %v", o.Source.Submit)
+		}
+		byCard := map[string]module.Placement{}
+		for _, p := range o.Source.Placements {
+			byCard[p.Card] = p
+		}
+		for _, w := range []string{"2C", "JOKER1"} {
+			if p, ok := byCard[w]; !ok || !slices.Equal(p.Requires, []string{"9H", "JH"}) {
+				t.Fatalf("opened=%v: %s placement %+v in %+v", opened, w, p, o.Source.Placements)
+			}
+		}
+		if _, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"9H", "JOKER1", "JH"}}); code != "" {
+			t.Fatalf("opened=%v: 9H JOKER1 JH: %s", opened, code)
+		}
+		_, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"9H", "2C", "JH"}})
+		if want := map[bool]string{false: ErrInitialMeldNotMet, true: ""}[opened]; code != want {
+			t.Fatalf("opened=%v: 9H 2C JH: %q, want %q", opened, code, want)
+		}
+	}
+}
+
+// A hand that could lay a longer dirty sequence may still lay a shorter one:
+// 9H-JOKER1-JH with the queen of hearts kept back.
+func TestNewDirtyRunShorterThanTheHandAllows(t *testing.T) {
+	raw := canastaXTable(func(s *GameState) {
+		s.Hands["p1"] = []string{"9H", "JOKER1", "JH", "QH", "KS", "5D", "6C"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var short, long *module.ActionOffer
+	for i := range offers {
+		if f := offers[i].Facts; offers[i].Verb == VerbLayMeld && len(f) > 0 {
+			switch f[0].Value {
+			case "9H-JH":
+				short = &offers[i]
+			case "9H-QH":
+				long = &offers[i]
+			}
+		}
+	}
+	if short == nil || long == nil || short.ID == long.ID {
+		t.Fatalf("short %+v long %+v", short, long)
+	}
+	if !slices.Equal(short.Source.Submit, []string{"9H", "JOKER1", "JH"}) {
+		t.Fatalf("short submit %v", short.Source.Submit)
 	}
 }

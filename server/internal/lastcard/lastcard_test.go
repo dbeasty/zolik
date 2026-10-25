@@ -77,14 +77,20 @@ func refused(t *testing.T, raw module.State, pid string, a module.Action, code s
 	}
 }
 
-func playCard(card string) module.Action { return playAction(card) }
+func playCard(card string) module.Action {
+	a := module.Action{Verb: VerbPlay, Cards: []string{card}}
+	if isWild(card) {
+		a.Params = map[string]string{"colour": colours[0]}
+	}
+	return a
+}
 
 func playWild(card, colour string) module.Action {
 	return module.Action{Verb: VerbPlay, Cards: []string{card}, Params: map[string]string{"colour": colour}}
 }
 
 func TestDeckIs108CardsInTheRightProportions(t *testing.T) {
-	deck := buildDeck()
+	deck := buildDeck(false, false)
 	if len(deck) != 108 {
 		t.Fatalf("deck has %d cards, want 108", len(deck))
 	}

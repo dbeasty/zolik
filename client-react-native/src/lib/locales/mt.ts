@@ -20,6 +20,12 @@ export const mt: Record<string, string> = {
   'err.DISPLACED': 'Infetħet f\'tab ieħor — dan waqaf jissinkronizza',
   'err.UNREACHABLE': 'Ma nistgħux naslu mas-server. Iċċekkja l-konnessjoni tiegħek u erġa\' pprova.',
   'err.INVALID_CREDENTIALS': 'L-isem tal-utent u l-password ma jaqblux.',
+  'err.CREDENTIALS_REQUIRED': 'Daħħal isem tal-utent u password.',
+  'err.PASSWORD_TOO_LONG': 'Dik il-password twila wisq.',
+  'err.USERNAME_TAKEN': 'Dak l-isem tal-utent jew l-email diġà qed jintuża.',
+  'err.INVALID_EMAIL': 'Dan ma jidhirx bħala indirizz tal-email.',
+  'err.CODE_INVALID': 'Dak il-kodiċi mhux validu. Itlob wieħed ġdid.',
+  'err.TOO_MANY_CODES': 'Intalbu wisq kodiċijiet għal dak l-indirizz. Erġa’ pprova mhux dalwaqt.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -112,6 +118,8 @@ export const mt: Record<string, string> = {
   'zolik.rules.lead.winner': 'Min joħroġ jibda t-tqassim li jmiss.',
   'zolik.rules.meldFloor.on':
     'L-ewwel tniżżil tiegħek irid jilħaq mill-inqas {n} punti naturali qabel ma tkun niżżilt.',
+  'zolik.rules.meldFloor.values':
+    "Għal dak il-minimu kull karta tgħodd kemm tiswa f'idejk, ħlief l-as: {aceHigh} f'sett jew fuq is-sultan, {aceLow} taħt it-2. Il-joker jgħodd daqs il-karta li qed jissostitwixxi.",
   'zolik.rules.meldFloor.off': "M'hemm ebda valur minimu ta' punti fl-ewwel tniżżil tiegħek.",
   'zolik.rules.cleanRun.on':
     'Mill-inqas waħda mis-sekwenzi tiegħek trid tkun kompletament mingħajr joker qabel ma titqies li niżżilt.',
@@ -121,6 +129,8 @@ export const mt: Record<string, string> = {
     "Il-partita ddum {n} tqassimiet, u kull tqassim jitlob it-taħlita tiegħu ta' gruppi u sekwenzi.",
   'zolik.rules.contracts.static': 'Kull tqassim jitlob l-istess taħlita: {sets} gruppi u {runs} sekwenzi.',
   'zolik.rules.end.afterDeals': 'Il-partita tispiċċa wara {n} tqassimiet.',
+  'zolik.rules.penalty.values':
+    "Karta li tibqa' f'idejk tiswa: joker {joker}, 10, fanti, reġina jew sultan {face}, minn 2 sa 9 in-numru tagħha, u as {ace} — jew {aceLow} biss jekk f'idejk għandek ukoll 2 tal-istess libsa, jew ir-reġina u s-sultan tal-istess libsa, jew jekk itawwal sekwenza fuq il-mejda.",
   'zolik.rules.end.atScore': "Jibqa' jitqassam sakemm xi ħadd jilħaq {n} punti — imbagħad tispiċċa.",
 
   'prsi.rules.section.goal': 'Għan',
@@ -179,6 +189,8 @@ export const mt: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': "Il-munzell tal-iskart huwa ffriżat għad-daqqa kollha: tista' teħdu biss billi tqabbel il-karta ta' fuq ma' żewġ karti naturali minn idejk.",
   'canasta.rules.pileOntoMeld': "Jekk in-naħa tiegħek diġà għandha kombinazzjoni mhux lesta tal-valur tal-karta ta' fuq, tista' tieħu l-munzell tal-iskart kollu u żżid dik il-karta magħha — m'għandekx bżonn par f'idejk.",
   'canasta.rules.pileNoMeldCapture': "Kombinazzjoni li diġà qiegħda fuq il-mejda ma tistax tieħu l-munzell tal-iskart: biex teħdu trid tqabbel il-karta ta' fuq ma' żewġ karti minn idejk stess.",
+  'canasta.rules.cardValues':
+    "Il-valur tal-karti: joker {joker}, 2 {two}, as {ace}, mis-sultan sat-8 {high}, mis-7 sal-4 {low}, tlieta sewda {black}. It-tlietiet ħomor huma bonus u qatt ma jgħoddu għal kombinazzjoni.",
   'canasta.rules.meldFloorBands':
     "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} 'il fuq minn hekk.",
   'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} sa {highUpTo} u {top} 'il fuq minn hekk.",
@@ -312,6 +324,8 @@ export const mt: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Ibda r-rawnd li jmiss',
+  'round.autoContinue': 'Ibda r-rawnd li jmiss awtomatikament',
+  'round.autoContinueIn': 'Rawnd li jmiss f’{seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -379,6 +393,15 @@ export const mt: Record<string, string> = {
   'holdem.round.uncontested': 'Kulħadd ieħor warrab',
   'seat.ready': 'Lest',
   'zolik.seat.contractMet': 'Kuntratt milħuq',
+  'zolik.hint.setsNeeded': 'Għadek teħtieġ {n} settijiet biex tinżel.',
+  'zolik.hint.setsNeeded.1': 'Għadek teħtieġ sett ieħor biex tinżel.',
+  'zolik.hint.runsNeeded': 'Għadek teħtieġ {n} sekwenzi biex tinżel.',
+  'zolik.hint.runsNeeded.1': 'Għadek teħtieġ sekwenza oħra biex tinżel.',
+  'zolik.hint.cleanRunNeeded': 'Għadek teħtieġ sekwenza mingħajr joker biex tinżel.',
+  'zolik.hint.meldPoints': 'Il-kombinazzjonijiet tiegħek iridu jiswew {n} punt biex tinżel — għandek {have}.',
+  'zolik.hint.downInOneTurn': 'Inżel f\'dawra waħda: tqegħid li tibda jrid jitlesta, jew jitneħħa, qabel ma tarmi.',
+  'zolik.hint.layOffWhenDown': 'Tista\' żżid karti mal-kombinazzjonijiet biss wara li tinżel.',
+  'zolik.hint.discardLocked': 'Mill-munzell tal-karti mormija tista\' tieħu mir-rawnd {n}.',
   'results.you': '(int)',
 
 
@@ -653,6 +676,8 @@ export const mt: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     "Kombinazzjoni hija grupp ta' tliet jew erba' karti ta' valur wieħed, jew sekwenza ta' tlieta jew aktar tal-istess kulur.",
   'ginrummy.rules.aceLow': "L-ass dejjem baxx — m'hemmx sekwenza minn Reġina sa Ass.",
+  'ginrummy.rules.cardValues':
+    "Fid-deadwood l-as jgħodd {ace}, minn 2 sa 9 in-numru tagħhom, u l-10, il-fanti, ir-reġina u s-sultan {face}.",
   'ginrummy.rules.knockLimit': "Tista' tħabbat malli d-deadwood tiegħek ikun {n} jew inqas.",
   'ginrummy.rules.oklahoma':
     "Il-limitu tat-tħabbit ta' din l-id jiġi stabbilit mill-valur tal-karta mikxufa.",
@@ -743,6 +768,8 @@ export const mt: Record<string, string> = {
   'rummytiles.rules.run': 'Sekwenza hija tliet numri jew aktar wara xulxin tal-istess kulur.',
   'rummytiles.rules.noWrap': 'It-13 ma jerġax jibda mill-1.',
   'rummytiles.rules.joker': 'Joker jirrappreżenta kwalunkwe plakka.',
+  'rummytiles.rules.tileValues':
+    "Madum jiswa n-numru tiegħu. Joker f'kombinazzjoni jiswa l-madum li qed jissostitwixxi; joker li jibqa' f'idejk jiswa {joker}.",
   'rummytiles.rules.initialMeldDescription':
     "Sakemm ma tniżżilx {n} punti jew aktar f'dawra waħda, minn idek biss, ma tistax tmiss xejn minn dak li diġà jinsab fuq il-mejda.",
   'rummytiles.rules.turnDescription':
@@ -820,6 +847,8 @@ export const mt: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Il-karti tal-plejers jitqassmu mikxufa; id-dealer iżomm karta waħda mgħottija sakemm kulħadd ikun lagħab.',
   'blackjack.rules.hitStand': 'Iġbed kemm karti trid, jew ieqaf fuq dak li għandek.',
+  'blackjack.rules.cardValues':
+    "Minn 2 sa 9 jgħoddu n-numru tagħhom; l-10, il-fanti, ir-reġina u s-sultan jgħoddu {face}.",
   'blackjack.rules.aces': 'Ass jgħodd ħdax sakemm dak joqgħod, u wieħed meta ma joqgħodx.',
   'blackjack.rules.blackjack': "Ass ma' karta ta' valur għaxra, fl-ewwel żewġ karti, huwa blackjack.",
   'blackjack.rules.pays3to2': 'Blackjack iħallas 3:2.',
@@ -1330,6 +1359,9 @@ export const mt: Record<string, string> = {
   'match.resume': 'Kompli minn fejn waqaft',
   'match.resuming': 'Il-mejda qed tinġieb lura…',
   'match.abandonedWaitingFor': 'Qed nistennew lil {names} jerġa’ lura mal-mejda.',
+  'match.everyoneBack': 'Kulħadd reġa\' lura fuq il-mejda.',
+  'match.everyoneBackNextRound': 'Kulħadd reġa\' lura fuq il-mejda. Meta titkompla, tibda r-rawnd li jmiss għal kulħadd.',
+  'match.waitingForHostResume': 'Qed nistennew lil {name} ikompli l-logħba.',
   'match.tableCode': 'Kodiċi {code}',
   'match.tableCodeShare': "Erġa' lura għall-mejda tagħna",
   'match.abandonedSendCode': 'Ibgħatilhom link lura għal posthom — jaħdem fuq kwalunkwe apparat.',
@@ -1762,6 +1794,10 @@ export const mt: Record<string, string> = {
   'canasta.unit.points': 'punti',
   'ginrummy.unit.points': 'punti',
   'holdem.seat.dealer': 'Dealer',
+  'holdem.seat.smallBlind': 'Small blind',
+  'holdem.seat.bigBlind': 'Big blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': "Waqa'",
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Barra',
@@ -2354,6 +2390,8 @@ export const mt: Record<string, string> = {
   'lastcard.card.drawTwo': 'Iġbed Tnejn',
   'lastcard.card.wild': 'Jolly',
   'lastcard.card.wildDrawFour': 'Jolly Iġbed Erbgħa',
+  'lastcard.card.wildSwap': 'Jolly Bdil',
+  'lastcard.card.wildMayhem': 'Jolly Kaos',
   'variation.lastcard.classic': 'Klassiku',
   'err.LASTCARD_NO_MATCH': 'Dik il-karta ma taqbilx mal-kulur, man-numru jew mas-simbolu',
   'err.LASTCARD_DRAW_FOUR_HELD': 'Jolly Iġbed Erbgħa huwa permess biss meta ma jkollok l-ebda karta tal-kulur li qed jintlagħab',
@@ -2409,7 +2447,12 @@ export const mt: Record<string, string> = {
   'lastcard.rules.section.house': 'Regoli tad-dar',
   'lastcard.rules.stacking.twos': "Munzell: wieġeb Iġbed Tnejn b'Iġbed Tnejn tiegħek u għaddi l-munzell kollu lil ta' warajk. Min ma jistax, jieħu kollox u jitlef id-dawra tiegħu.",
   'lastcard.rules.stacking.any': "Munzell: wieġeb karta tal-ġbid b'waħda tiegħek — Iġbed Tnejn fuq Iġbed Tnejn, Jolly Iġbed Erbgħa fuq kwalunkwe waħda minnhom — u għaddi l-munzell kollu lil ta' warajk. Min ma jistax, jieħu kollox u jitlef id-dawra tiegħu.",
-  'lastcard.rules.sevens': "Ilgħab 7 u tpartat il-karti f'idek ma' min għandu l-inqas karti.",
+  'lastcard.rules.sevens': "Ilgħab 7 u tpartat il-karti f'idek ma' plejer li tagħżel int.",
+  'lastcard.rules.wildSwap': "Jolly Bdil ({n} fil-pakkett): semmi l-kulur li jmiss, imbagħad partat il-karti f'idek ma' kwalunkwe plejer li tagħżel.",
+  'lastcard.rules.wildMayhem': "Jolly Kaos ({n} fil-pakkett): semmi l-kulur li jmiss, imbagħad il-karti ta' kull id jinġabru, jitħawdu u jitqassmu mill-ġdid karta karta, billi tibda mill-plejer li jmiss.",
+  'lastcard.prompt.swapWith': "Ma' min tpartat il-karti?",
+  'lastcard.prompt.player': 'Plejer',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Agħżel plejer biex tpartat il-karti miegħu',
   'lastcard.rules.zeros': "Ilgħab 0 u l-karti f'id kull plejer jgħaddu lill-plejer li jmiss fid-direzzjoni tal-logħob.",
   'lastcard.remedy.stackOrTake': "Wieġeb b'karta tal-ġbid tiegħek, jew ħu l-{n} karti.",
   'lastcard.offer.takeStack': 'Ħudhom',
@@ -2425,6 +2468,12 @@ export const mt: Record<string, string> = {
   'option.sevenZero': 'Is-sebgħat u ż-żerijiet',
   'choice.sevenZero.0': 'Mitfijin',
   'choice.sevenZero.1': 'Mixgħulin',
+  'option.swapCards': 'Karti Jolly Bdil',
+  'choice.swapCards.0': 'Mitfijin',
+  'choice.swapCards.1': 'Mixgħulin',
+  'option.mayhemCards': 'Karti Jolly Kaos',
+  'choice.mayhemCards.0': 'Mitfijin',
+  'choice.mayhemCards.1': 'Mixgħulin',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': "Logħba ta' {player}: {card}",
   'lastcard.move.playedSkip': "Logħba ta' {player}: {card} — dawra mitlufa għal {target}",
@@ -2448,6 +2497,7 @@ export const mt: Record<string, string> = {
   'lastcard.move.challengeLost': "Sfida ta' {player} lil {target} — il-logħba kienet onesta, allura għal {player}: ġbid ta' {n} u dawra mitlufa",
   'lastcard.move.swapped': "Skambju ta' idejn bejn {player} u {target}",
   'lastcard.move.passedHands': "Logħba ta' {player}: 0 — kull id tgħaddi għand li jmiss",
+  'lastcard.move.mayhem': "Kaos! {player} ġabar il-karti ta' kull id, ħawwadhom u qassamhom mill-ġdid",
   'lastcard.move.wentOut': "{player}: spiċċaw il-karti — punteġġ ta' {n}",
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Punteġġ',

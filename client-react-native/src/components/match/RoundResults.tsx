@@ -34,6 +34,13 @@ type Props = {
   viewerId: string;
   /** Open the account behind one cell: that player, that round. */
   onOpenScore?: (playerId: string, round: number) => void;
+  /**
+   * Folded away while a round is being played, like any other panel. Absent
+   * between rounds and at the end, when the results are the news and are held
+   * open.
+   */
+  minimized?: boolean;
+  onToggleMinimized?: () => void;
 };
 
 export const RoundResults = memo(function RoundResults({
@@ -42,6 +49,8 @@ export const RoundResults = memo(function RoundResults({
   standings,
   viewerId,
   onOpenScore,
+  minimized,
+  onToggleMinimized,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -70,27 +79,49 @@ export const RoundResults = memo(function RoundResults({
 
   const byId = new Map(standings?.map((s) => [s.playerId, s]));
   const unit = standings?.[0]?.labelKey;
+  const foldable = !!onToggleMinimized;
+
+  // What a folded panel still says: the viewer's own standing, since that is
+  // the number a player keeps glancing up for mid-round.
+  const mine = byId.get(viewerId);
+  const lastMine = log.rounds[log.rounds.length - 1]?.scores.find((x) => x.playerId === viewerId);
+  const summary = mine || lastMine ? (
+    <Text style={styles.summary} testID="round-results-summary">
+      {label('results.you')}{' '}
+      <Text style={styles.summaryScore}>{mine ? shownScore(mine) : runningTotal(lastMine!)}</Text>
+      {unit ? ` ${label(unit)}` : ''}
+    </Text>
+  ) : undefined;
 
   return (
     <Animated.View style={arrival}>
       <Panel
         title={t('match.results')}
         subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
-        forceOpen
+        panelId={foldable ? 'results' : undefined}
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        forceOpen={!foldable}
+        summary={summary}
         testID="round-results"
         // Tinted only between rounds. At the end of a match the banner above
         // is already doing the announcing, and two tinted boxes stacked on one
         // another read as noise rather than emphasis.
         style={log.paused ? styles.paused : undefined}
       >
-        <ScrollView horizontal showsHorizontalScrollIndicator style={styles.scroller}>
-          <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator
+          style={styles.scroller}
+          contentContainerStyle={styles.scrollerContent}
+        >
+          <View style={styles.table}>
             <View style={[styles.row, styles.headRow]}>
               <Text style={[styles.cell, styles.labelCell, styles.head]}>
                 {label(log.labelKey)}
               </Text>
               {columns.map((id) => (
-                <View key={id} style={styles.cell} testID={`round-head-${id}`}>
+                <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
                   <Text
                     numberOfLines={1}
                     style={[styles.name, styles.head, id === viewerId && styles.mine]}
@@ -134,21 +165,32 @@ export const RoundResults = memo(function RoundResults({
                   </View>
                   {columns.map((id) => {
                     const s = scores.get(id);
+                    const isMine = id === viewerId;
+                    const moved = s ? (s.shown ?? s.delta) : 0;
                     const content = (
                       <>
                         <Text
                           testID={`round-${r.number}-${id}`}
-                          style={[styles.delta, took.has(id) && styles.tookIt]}
+                          style={[
+                            styles.delta,
+                            // The viewer's own column reads as theirs at a
+                            // glance: bold, and coloured by which way it went.
+                            isMine && styles.mineDelta,
+                            isMine && moved > 0 && styles.up,
+                            isMine && moved < 0 && styles.down,
+                            took.has(id) && styles.tookIt,
+                          ]}
                         >
                           {s ? formatDelta(s) : '—'}
                         </Text>
-                        {s ? <Text style={styles.total}>{runningTotal(s)}</Text> : null}
+                        {s ? <Text style={[styles.total, isMine && styles.mineTotal]}>{runningTotal(s)}</Text> : null}
                       </>
                     );
+                    const cellStyle = [styles.cell, isMine && styles.mineCol];
                     return s && onOpenScore ? (
                       <Pressable
                         key={id}
-                        style={styles.cell}
+                        style={cellStyle}
                         onPress={() => onOpenScore(id, r.number)}
                         accessibilityRole="button"
                         accessibilityHint={t('score.open')}
@@ -157,7 +199,7 @@ export const RoundResults = memo(function RoundResults({
                         {content}
                       </Pressable>
                     ) : (
-                      <View key={id} style={styles.cell}>
+                      <View key={id} style={cellStyle}>
                         {content}
                       </View>
                     );
@@ -174,8 +216,8 @@ export const RoundResults = memo(function RoundResults({
                 {columns.map((id) => {
                   const s = byId.get(id);
                   return (
-                    <View key={id} style={styles.cell}>
-                      <Text testID={`round-total-${id}`} style={styles.grand}>
+                    <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]}>
+                      <Text testID={`round-total-${id}`} style={[styles.grand, id === viewerId && styles.mineGrand]}>
                         {s ? shownScore(s) : '—'}
                       </Text>
                     </View>
@@ -253,6 +295,11 @@ function roundStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   return StyleSheet.create({
     scroller: { marginTop: 4 },
+    // The table fills the panel when the panel is wider than its columns, and
+    // scrolls sideways when it is narrower. Without this it was as wide as its
+    // columns' fixed widths and left a third of a desktop panel empty.
+    scrollerContent: { flexGrow: 1 },
+    table: { flexGrow: 1 },
     // The same tint the end-of-match banner uses, for the same reason: the
     // thing it has to beat is being mistaken for nothing having happened.
     paused: { backgroundColor: 'rgba(61, 139, 253, 0.10)', borderColor: colors.accent },
@@ -260,20 +307,30 @@ function roundStyles(m: Metrics, s: Skin) {
     row: { flexDirection: 'row', alignItems: 'flex-start' },
     headRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4 },
     totalRow: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 4, paddingTop: 6 },
-    // Fixed, not minimum. A column that grows to its widest content grows by
-    // a different amount in the head row (a name) than in the rows below it
-    // (a number), and every column after the widest name is then a few pixels
-    // out of line with its own heading — which is the one thing a table has
-    // to get right. Content too wide for the width truncates instead.
+    // Equal shares, not content-sized. A column that grows to its widest
+    // content grows by a different amount in the head row (a name) than in the
+    // rows below it (a number), and every column after the widest name is then
+    // a few pixels out of line with its own heading — which is the one thing a
+    // table has to get right. A zero basis makes every column's width depend
+    // only on the room, never on what is in it, and the minimum keeps the old
+    // width as the floor. Content too wide for the width truncates instead.
     cell: {
-      width: m.narrow ? 72 : 92,
+      flexGrow: 1,
+      flexBasis: 0,
+      minWidth: m.narrow ? 72 : 92,
       paddingVertical: 4,
       paddingHorizontal: 6,
       alignItems: 'flex-end',
     },
     // The left-hand column is wider: it carries the round's own number and
     // whatever the module said was true of it.
-    labelCell: { width: m.narrow ? 92 : 132, alignItems: 'flex-start' },
+    labelCell: {
+      flexGrow: 0,
+      flexBasis: 'auto',
+      minWidth: 0,
+      width: m.narrow ? 92 : 132,
+      alignItems: 'flex-start',
+    },
     // Numbers read down the column, so they end on the same edge; names sit
     // over the numbers they belong to and end on it too.
     name: { alignSelf: 'stretch', textAlign: 'right' },
@@ -287,5 +344,15 @@ function roundStyles(m: Metrics, s: Skin) {
     tookIt: { color: colors.gold, fontWeight: '700' },
     total: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 3) },
     grand: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
+    // The viewer's column: one tinted band from name to total, so "which of
+    // these numbers are mine" is answered before anything is read.
+    mineCol: { backgroundColor: 'rgba(212, 175, 55, 0.14)' },
+    mineDelta: { fontWeight: '700' },
+    mineTotal: { color: colors.text, fontWeight: '600' },
+    mineGrand: { color: colors.gold },
+    up: { color: colors.success },
+    down: { color: colors.danger },
+    summary: { color: colors.muted, fontSize: m.panel.bodyFont },
+    summaryScore: { color: colors.gold, fontWeight: '700' },
   });
 }

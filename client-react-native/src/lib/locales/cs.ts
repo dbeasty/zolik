@@ -20,6 +20,12 @@ export const cs: Record<string, string> = {
   'err.DISPLACED': 'Otevřeno v jiné kartě — tahle přestala synchronizovat',
   'err.UNREACHABLE': 'Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.',
   'err.INVALID_CREDENTIALS': 'Uživatelské jméno a heslo si neodpovídají.',
+  'err.CREDENTIALS_REQUIRED': 'Zadejte uživatelské jméno a heslo.',
+  'err.PASSWORD_TOO_LONG': 'Heslo je příliš dlouhé.',
+  'err.USERNAME_TAKEN': 'Toto uživatelské jméno nebo e-mail je již obsazené.',
+  'err.INVALID_EMAIL': 'Tohle nevypadá jako e-mailová adresa.',
+  'err.CODE_INVALID': 'Tento kód není platný. Vyžádejte si nový.',
+  'err.TOO_MANY_CODES': 'Pro tuto adresu bylo vyžádáno příliš mnoho kódů. Zkuste to za chvíli.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -111,6 +117,8 @@ export const cs: Record<string, string> = {
   'zolik.rules.lead.winner': 'Další kolo začíná ten, kdo se právě zbavil karet.',
   'zolik.rules.meldFloor.on':
     'Tvoje první kombinace (nebo kombinace) musí dohromady mít aspoň {n} přirozených bodů, než jsi dole.',
+  'zolik.rules.meldFloor.values':
+    "Do tohoto minima se každá karta počítá stejně jako v ruce, kromě esa: {aceHigh} v trojici nebo nad králem, {aceLow} pod dvojkou. Žolík se počítá jako karta, kterou zastupuje.",
   'zolik.rules.meldFloor.off': 'Na první kombinaci není žádná minimální bodová hranice.',
   'zolik.rules.cleanRun.on':
     'Než se počítáš jako dole, musíš mít na stole aspoň jednu postupku úplně bez žolíka.',
@@ -120,6 +128,8 @@ export const cs: Record<string, string> = {
   'zolik.rules.contracts.static':
     'Každé rozdání vyžaduje stejnou kombinaci: {sets} skupin a {runs} postupek.',
   'zolik.rules.end.afterDeals': 'Zápas končí po {n} rozdáních.',
+  'zolik.rules.penalty.values':
+    "Karta, která vám zůstane v ruce, stojí: žolík {joker}, desítka, kluk, dáma či král {face}, dvojka až devítka podle čísla a eso {ace} — nebo jen {aceLow}, pokud máte v ruce i dvojku jeho barvy, nebo dámu i krále jeho barvy, anebo by prodloužilo postupku na stole.",
   'zolik.rules.end.atScore': 'Rozdává se dál, dokud někdo nedosáhne {n} bodů — pak zápas končí.',
 
   'prsi.rules.section.goal': 'Cíl',
@@ -178,6 +188,8 @@ export const cs: Record<string, string> = {
   'canasta.rules.pileAlwaysFrozen': 'Odhazovací balíček je zamrzlý po celé rozdání: vzít si ho můžete jen tak, že k vrchní kartě přiložíte dvě přirozené karty z ruky.',
   'canasta.rules.pileOntoMeld': 'Pokud vaše strana už má na stole nedokončenou kombinaci v hodnotě vrchní karty, můžete si vzít celý odhazovací balíček a tuto kartu k ní přiložit — dvojici v ruce k tomu nepotřebujete.',
   'canasta.rules.pileNoMeldCapture': 'Kombinace ležící na stole si odhazovací balíček vzít nemůže: abyste ho získali, musíte k jeho vrchní kartě přiložit dvě karty z vlastní ruky.',
+  'canasta.rules.cardValues':
+    "Hodnoty karet: žolík {joker}, dvojka {two}, eso {ace}, král až osma {high}, sedma až čtyřka {low}, černá trojka {black}. Červené trojky jsou bonus a do hodnoty kombinace se nepočítají.",
   'canasta.rules.meldFloorBands':
     'Minimální hodnota první kombinace roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tím.',
   'canasta.rules.meldFloorBandsFive': 'Vaše první kombinace musí dosáhnout bodového minima, které roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} a {top} nad tím.',
@@ -305,6 +317,8 @@ export const cs: Record<string, string> = {
   // asking for it, and sat above "Waiting for 1" — which reads as though the
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Začít další kolo',
+  'round.autoContinue': 'Začínat další kolo automaticky',
+  'round.autoContinueIn': 'Další kolo za {seconds} s',
 
   // --- the flash that announces a round or a match ending ------------------
   //
@@ -372,6 +386,15 @@ export const cs: Record<string, string> = {
   'holdem.round.uncontested': 'Ostatní složili',
   'seat.ready': 'Připraven',
   'zolik.seat.contractMet': 'Závazek splněn',
+  'zolik.hint.setsNeeded': 'Abys byl dole, potřebuješ ještě {n} skupiny.',
+  'zolik.hint.setsNeeded.1': 'Abys byl dole, potřebuješ ještě 1 skupinu.',
+  'zolik.hint.runsNeeded': 'Abys byl dole, potřebuješ ještě {n} postupky.',
+  'zolik.hint.runsNeeded.1': 'Abys byl dole, potřebuješ ještě 1 postupku.',
+  'zolik.hint.cleanRunNeeded': 'Abys byl dole, potřebuješ ještě postupku bez žolíka.',
+  'zolik.hint.meldPoints': 'Tvé kombinace musí mít {n} bodů, abys byl dole — máš {have}.',
+  'zolik.hint.downInOneTurn': 'Vylož se v jednom tahu: rozehrané vykládání musíš před odhozením dokončit, nebo vrátit.',
+  'zolik.hint.layOffWhenDown': 'Přikládat ke kombinacím můžeš, až když jsi dole.',
+  'zolik.hint.discardLocked': 'Z odhazovacího balíčku se smí brát od kola {n}.',
   'results.you': '(ty)',
 
 
@@ -639,6 +662,8 @@ export const cs: Record<string, string> = {
   'ginrummy.rules.setsAndRuns':
     'Kombinace je trojice nebo čtveřice karet stejné hodnoty, nebo postupka tří a více karet stejné barvy.',
   'ginrummy.rules.aceLow': 'Eso je vždy nejnižší karta — postupka od Q přes K až po A neexistuje.',
+  'ginrummy.rules.cardValues':
+    "Do mrtvých karet se eso počítá za {ace}, dvojka až devítka podle čísla a desítka, kluk, dáma či král za {face}.",
   'ginrummy.rules.knockLimit': 'Klepnout můžeš, jakmile máš {n} nebo méně mrtvých bodů.',
   'ginrummy.rules.oklahoma': 'Limit pro klepnutí v tomto kole určuje hodnota otočené karty.',
   'ginrummy.rules.gin': 'Nula mrtvých bodů je gin — nejlepší možné klepnutí.',
@@ -725,6 +750,8 @@ export const cs: Record<string, string> = {
   'rummytiles.rules.run': 'Řada jsou tři a více po sobě jdoucích čísel jedné barvy.',
   'rummytiles.rules.noWrap': '13 nenavazuje zpátky na 1.',
   'rummytiles.rules.joker': 'Žolík zastupuje libovolný kámen.',
+  'rummytiles.rules.tileValues':
+    "Kostka má hodnotu svého čísla. Žolík v sestavě má hodnotu kostky, kterou zastupuje; žolík, který vám zůstane v ruce, stojí {joker}.",
   'rummytiles.rules.initialMeldDescription':
     'Dokud v jednom tahu nepoložíš {n} a více bodů výhradně z vlastní ruky, nesmíš sahat na nic, co už je na stole.',
   'rummytiles.rules.turnDescription':
@@ -801,6 +828,8 @@ export const cs: Record<string, string> = {
   'blackjack.rules.faceUp':
     'Karty hráčů se rozdávají lícem nahoru; krupiér má jednu kartu skrytou, dokud všichni nedohrají.',
   'blackjack.rules.hitStand': 'Můžeš si brát další karty, nebo zůstat stát na tom, co máš.',
+  'blackjack.rules.cardValues':
+    "Dvojka až devítka se počítá podle čísla; desítka, kluk, dáma i král za {face}.",
   'blackjack.rules.aces': 'Eso platí jedenáct, dokud se vejde, jinak jedna.',
   'blackjack.rules.blackjack': 'Eso s desítkovou kartou na prvních dvou kartách je blackjack.',
   'blackjack.rules.pays3to2': 'Blackjack se platí 3:2.',
@@ -1299,6 +1328,9 @@ export const cs: Record<string, string> = {
   'match.resume': 'Pokračovat tam, kde jsi skončil',
   'match.resuming': 'Obnovuji stůl…',
   'match.abandonedWaitingFor': 'Čeká se, až se ke stolu vrátí {names}.',
+  'match.everyoneBack': 'Všichni jsou zpátky u stolu.',
+  'match.everyoneBackNextRound': 'Všichni jsou zpátky u stolu. Pokračováním začne další kolo pro všechny.',
+  'match.waitingForHostResume': 'Čeká se, až {name} hru obnoví.',
   'match.tableCode': 'Kód {code}',
   'match.tableCodeShare': 'Vrať se k našemu stolu',
   'match.abandonedSendCode': 'Pošli jim odkaz zpět na jejich místo — funguje na jakémkoli zařízení.',
@@ -1731,6 +1763,10 @@ export const cs: Record<string, string> = {
   'canasta.unit.points': 'bodů',
   'ginrummy.unit.points': 'bodů',
   'holdem.seat.dealer': 'Rozdávající',
+  'holdem.seat.smallBlind': 'Malý blind',
+  'holdem.seat.bigBlind': 'Velký blind',
+  'holdem.seat.smallBlind.short': 'SB',
+  'holdem.seat.bigBlind.short': 'BB',
   'holdem.seat.folded': 'Složil',
   'holdem.seat.allIn': 'All in',
   'holdem.seat.out': 'Vyřazen',
@@ -2327,6 +2363,8 @@ export const cs: Record<string, string> = {
   'lastcard.card.drawTwo': 'Lízni dvě',
   'lastcard.card.wild': 'Divoká karta',
   'lastcard.card.wildDrawFour': 'Divoká + lízni čtyři',
+  'lastcard.card.wildSwap': 'Divoká + výměna',
+  'lastcard.card.wildMayhem': 'Divoká + chaos',
   'variation.lastcard.classic': 'Klasické',
   'err.LASTCARD_NO_MATCH': 'Ta karta nesedí barvou, číslem ani symbolem',
   'err.LASTCARD_DRAW_FOUR_HELD':
@@ -2383,7 +2421,12 @@ export const cs: Record<string, string> = {
   'lastcard.rules.section.house': 'Domácí pravidla',
   'lastcard.rules.stacking.twos': 'Přebíjení: na Lízni dvě odpověz vlastní Lízni dvě a pošli celou hromádku dál. Kdo nemůže, vezme si všechno a vynechá tah.',
   'lastcard.rules.stacking.any': 'Přebíjení: na líznou kartu odpověz vlastní — Lízni dvě na Lízni dvě, Divokou + lízni čtyři na kteroukoli z nich — a pošli celou hromádku dál. Kdo nemůže, vezme si všechno a vynechá tah.',
-  'lastcard.rules.sevens': 'Zahraj 7 a vyměníš si ruku s tím, kdo má nejméně karet.',
+  'lastcard.rules.sevens': 'Zahraj 7 a vyměníš si ruku s hráčem, kterého si vybereš.',
+  'lastcard.rules.wildSwap': 'Divoká + výměna ({n} v balíčku): urči barvu, která se hraje dál, a pak si vyměň ruku s libovolným hráčem.',
+  'lastcard.rules.wildMayhem': 'Divoká + chaos ({n} v balíčku): urči barvu, která se hraje dál, a pak se všechny ruce seberou, zamíchají a znovu rozdají po jedné kartě, počínaje dalším hráčem.',
+  'lastcard.prompt.swapWith': 'S kým si vyměníš ruku?',
+  'lastcard.prompt.player': 'Hráč',
+  'err.LASTCARD_SWAP_WITH_WHOM': 'Vyber hráče, se kterým si vyměníš ruku',
   'lastcard.rules.zeros': 'Zahraj 0 a každá ruka přejde k dalšímu hráči ve směru hry.',
   'lastcard.remedy.stackOrTake': 'Odpověz vlastní líznou kartou, nebo si vezmi {n} karet.',
   'lastcard.offer.takeStack': 'Vzít si je',
@@ -2399,6 +2442,12 @@ export const cs: Record<string, string> = {
   'option.sevenZero': 'Sedmičky a nuly',
   'choice.sevenZero.0': 'Ne',
   'choice.sevenZero.1': 'Ano',
+  'option.swapCards': 'Karty Divoká + výměna',
+  'choice.swapCards.0': 'Ne',
+  'choice.swapCards.1': 'Ano',
+  'option.mayhemCards': 'Karty Divoká + chaos',
+  'choice.mayhemCards.0': 'Ne',
+  'choice.mayhemCards.1': 'Ano',
   // The moves, as the strip between the board and the hand tells them.
   'lastcard.move.played': '{player} hraje {card}',
   'lastcard.move.playedSkip': '{player} hraje {card} — {target} vynechává tah',
@@ -2422,6 +2471,7 @@ export const cs: Record<string, string> = {
   'lastcard.move.challengeLost': '{player} zpochybňuje kartu od {target} — byla poctivá, takže {player} bere {n} a vynechává tah',
   'lastcard.move.swapped': '{player} si mění ruku s {target}',
   'lastcard.move.passedHands': '{player} hraje 0 — všechny ruce jdou dál',
+  'lastcard.move.mayhem': 'Chaos! {player} sbírá všechny ruce, zamíchá je a rozdá znovu',
   'lastcard.move.wentOut': '{player} se zbavuje všech karet a získává {n} bodů',
   // Scoring: winner takes the points, or lowest total wins.
   'option.scoring': 'Bodování',
