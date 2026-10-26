@@ -28,6 +28,7 @@ import okobere from './okobere.json';
 import prsi from './prsi.json';
 import rummytiles from './rummytiles.json';
 import sedma from './sedma.json';
+import sietemedio from './sietemedio.json';
 import snaps from './snaps.json';
 import tour from './tour.json';
 import zolik from './zolik.json';
@@ -51,6 +52,7 @@ export const GUIDE_TOPICS: Record<string, Topic> = {
   prsi,
   rummytiles,
   sedma,
+  sietemedio,
   snaps,
   zolik,
 };

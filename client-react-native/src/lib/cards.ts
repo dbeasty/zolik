@@ -14,7 +14,13 @@
  */
 
 import { type Colour, COLOURS, isLastCardCode, parseLastCard, SHAPE_GLYPH } from '@/src/components/cards/lastCardArt';
-import { currentDeck, GERMAN_SUIT_GLYPHS, germanIndex } from '@/src/lib/deck';
+import {
+  currentDeck,
+  GERMAN_SUIT_GLYPHS,
+  germanIndex,
+  SPANISH_SUIT_GLYPHS,
+  spanishIndex,
+} from '@/src/lib/deck';
 import { getLocale, t } from '@/src/lib/i18n';
 
 export type CardDisplay = {
@@ -118,6 +124,7 @@ export function cardText(card: string): string {
   // "QS" is the svršek of leaves, not the queen of spades — so it is named
   // the way the face on the table draws it.
   if (currentDeck() === 'german') return `${germanIndex(c.rank)}${GERMAN_SUIT_GLYPHS[c.suit] ?? ''}`;
+  if (currentDeck() === 'spanish') return `${spanishIndex(c.rank)}${SPANISH_SUIT_GLYPHS[c.suit] ?? ''}`;
   return `${c.rank}${c.suitSymbol}`;
 }
 

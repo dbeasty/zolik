@@ -9,13 +9,14 @@ import { t } from '@/src/lib/i18n';
  * Every game until Mariáš was dealt from the French pack, so a card code was
  * enough to draw a card: "QS" is the queen of spades. Mariáš and Prší are
  * dealt from the German-suited one, where the same code is the svršek of
- * leaves. The server says which pack a match uses (`MatchState.deck`), the
+ * leaves; Siete y Medio from the Spanish forty, where it is the caballo of
+ * espadas. The server says which pack a match uses (`MatchState.deck`), the
  * match and replay screens put it here, and everything that draws or names a
  * card reads it — `CardView` for the face, `cardText` for a card in a
  * sentence.
  *
- * A pack, never a game: the shell learns that a German deck exists, not that
- * Mariáš does.
+ * A pack, never a game: the shell learns that a Spanish deck exists, not that
+ * Siete y Medio does.
  */
 export type Deck = 'french' | CardDeck;
 
@@ -72,6 +73,49 @@ export function germanIndex(rank: string): string {
   }
   return rank;
 }
+
+/**
+ * A Spanish card's corner index for a rank as `parseCard` reports it: the
+ * numbers as they are, the ace as the 1 a baraja prints, and the sota, the
+ * caballo and the rey by their Spanish initials.
+ *
+ * Fixed letters rather than localised ones, which is the opposite of
+ * `germanIndex` and deliberate: a Czech player reads "Sv" on a svršek because
+ * a Czech-printed German pack prints Sv, while every baraja española ever
+ * printed says S, C and R whoever is holding it. Those three letters are part
+ * of the pack, not of the reader's language.
+ */
+export function spanishIndex(rank: string): string {
+  switch (rank) {
+    case 'A':
+      return '1';
+    case 'J':
+      return 'S';
+    case 'Q':
+      return 'C';
+    case 'K':
+      return 'R';
+  }
+  return rank;
+}
+
+/**
+ * The Spanish suits as they read inside a sentence.
+ *
+ * The French glyphs, and not for want of trying: these are the four suits the
+ * French ones descend from — copas became hearts, oros diamonds, bastos clubs,
+ * espadas spades — and the forty-card pack maps onto the same codes for
+ * exactly that reason. A coin and a cudgel have no character every platform
+ * draws, and a tofu box in a sentence about a card is worse than the French
+ * form of the same suit. The card *faces* draw the Spanish signs
+ * (`spanishArt.ts`), which is where a player looks.
+ */
+export const SPANISH_SUIT_GLYPHS: Record<string, string> = {
+  H: '♥',
+  D: '♦',
+  C: '♣',
+  S: '♠',
+};
 
 /**
  * The German suits as they read inside a sentence. There are no Unicode suit

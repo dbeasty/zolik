@@ -189,6 +189,12 @@ const GAMES = [
   { moduleId: 'zolik', label: 'Zoliky', seats: 2 },
   { moduleId: 'ginrummy', label: 'Gin Rummy', seats: 2, options: { targetScore: 100 } },
   { moduleId: 'blackjack', label: 'Blackjack', seats: 3, options: { rounds: 5, startingStack: 200 } },
+  {
+    moduleId: 'sietemedio',
+    label: 'Siete y Medio',
+    seats: 3,
+    options: { rounds: 6, startingStack: 200 },
+  },
 ];
 
 test.describe('one shell, every game', () => {
@@ -510,7 +516,7 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
     // The menu is one row per game, and no game's controls.
-    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack']) {
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack', 'sietemedio']) {
       await expect(page.getByTestId(`game-${id}`)).toBeVisible();
     }
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toHaveCount(0);

@@ -57,6 +57,7 @@ import (
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
+	"zolik/server/internal/sietemedio"
 	"zolik/server/internal/snaps"
 	"zolik/server/internal/zolikmod"
 )
@@ -94,7 +95,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%s: AI seats play %s\n", st.Game, st.Model.Title)
 		}
 	}
-	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New())
+	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New())
 
 	var rows []row
 	failed := false

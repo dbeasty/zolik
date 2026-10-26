@@ -512,7 +512,7 @@ export type MatchPlayer = {
  * is a pack of its own, with codes of its own ("C-7", "T-S", "W4"), drawn by
  * `LastCardFace`. See `src/lib/deck.ts`.
  */
-export type CardDeck = 'german' | 'lastcard';
+export type CardDeck = 'german' | 'spanish' | 'lastcard';
 
 export type MatchState = {
   type: 'match_state';

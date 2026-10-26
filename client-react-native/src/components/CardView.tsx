@@ -7,8 +7,10 @@ import { cardSpokenName } from '@/src/a11y/cardNames';
 import { CardText as Text } from '@/src/components/cards/CardText';
 import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
-import { GermanFace } from '@/src/components/cards/GermanFace';
-import { GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
+import { PackFace } from '@/src/components/cards/PackFace';
+import { PackSuit, packInk } from '@/src/components/cards/PackSuit';
+import { GERMAN_PACK } from '@/src/components/cards/germanArt';
+import { SPANISH_PACK } from '@/src/components/cards/spanishArt';
 import { LastCardFace, lastCardSetFor } from '@/src/components/cards/LastCardFace';
 import { isLastCardCode } from '@/src/components/cards/lastCardArt';
 import { TileFace } from '@/src/components/cards/TileFace';
@@ -18,7 +20,7 @@ import { PRINTED } from '@/src/cards/vector/faces';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useFourColour, useSkin } from '@/src/hooks/useSkin';
 import { isTileCode, parseCard } from '@/src/lib/cards';
-import { germanIndex, useDeck } from '@/src/lib/deck';
+import { germanIndex, spanishIndex, useDeck } from '@/src/lib/deck';
 import { isCourt } from '@/src/lib/pips';
 import { CARD_BORDER, INDEX_PADDING, type CardMetrics } from '@/src/lib/layout';
 import { fourColourSkin, germanFourColourInk } from '@/src/skins/fourColour';
@@ -366,8 +368,9 @@ export function CardView({
   const d = parseCard(card);
   // The four-colour deck is this skin with a diamond's red turned blue and a
   // club's black turned green — see `fourColourSkin`. French faces only: the
-  // German pack's index takes its own four inks below, and Last Card is
-  // four-coloured already.
+  // German pack's index takes its own four inks below, the Spanish pack is
+  // printed in four colours to begin with, and Last Card is four-coloured
+  // already.
   const tableSkin = useSkin();
   const fourColour = useFourColour();
   const skin = fourColour && deck === 'french' ? fourColourSkin(tableSkin, d.suit) : tableSkin;
@@ -435,13 +438,14 @@ export function CardView({
   // shows its own solid fill, and painting the wash over it would hide the
   // one thing those fills are for.
   /**
-   * A German-suited table (`src/lib/deck.ts`) draws the same codes from the
-   * German pack. Every skin's face style has a German counterpart: the plain
-   * index for `plain`, the full printed face for the other three, and the
-   * corner for a stacked card — so a skin still chooses *how much* of a card
-   * is drawn, and the deck chooses *which* card that is.
+   * A German- or Spanish-suited table (`src/lib/deck.ts`) draws the same codes
+   * from a pictorial pack. Every skin's face style has a pictorial
+   * counterpart: the plain index for `plain`, the full printed face for the
+   * other three, and the corner for a stacked card — so a skin still chooses
+   * *how much* of a card is drawn, and the deck chooses *which* card that is.
    */
-  const german = deck === 'german' && !d.isJoker && !tile;
+  const pictorial = (deck === 'german' || deck === 'spanish') && !d.isJoker && !tile;
+  const pack = deck === 'spanish' ? SPANISH_PACK : GERMAN_PACK;
   /**
    * Last Card's own pack: codes no other deck has, so its faces are its own
    * too. The skin still chooses how much is drawn — the plain skin and a
@@ -466,13 +470,26 @@ export function CardView({
       : lastCardSet === 'heirloom'
         ? 'heirloom'
         : 'full';
-  const germanFull = german && !stacked && !plain;
+  const pictorialFull = pictorial && !stacked && !plain;
   const washed =
     !lastCard &&
-    (rich || deluxe || vector || germanFull) && !!skin.card.faceGradient && !selected && !d.isJoker;
-  const germanLabel = german ? germanIndex(d.rank) : '';
-  const germanColor = german
-    ? (fourColour && germanFourColourInk(skin, d.suit)) || germanInk(d.suit, skin.card.red)
+    (rich || deluxe || vector || pictorialFull) &&
+    !!skin.card.faceGradient &&
+    !selected &&
+    !d.isJoker;
+  // The pack's own letters: a svršek wears whatever the reader's language
+  // calls it, a sota wears the S every baraja prints — see src/lib/deck.ts.
+  const packLabel = !pictorial
+    ? ''
+    : deck === 'spanish'
+      ? spanishIndex(d.rank)
+      : germanIndex(d.rank);
+  // The four-colour setting only has work to do on the German pack, where two
+  // of the four signs are printed in the same brown (`germanFourColourInk`).
+  // Oros, copas, espadas and bastos are already gold, red, steel and wood.
+  const packColor = pictorial
+    ? (fourColour && deck === 'german' && germanFourColourInk(skin, d.suit)) ||
+      packInk(d.suit, skin.card.red, pack)
     : '';
 
   const face = tile ? (
@@ -486,36 +503,37 @@ export function CardView({
       height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
       indexFont={metrics.card.indexFont}
     />
-  ) : german ? (
+  ) : pictorial ? (
     stacked ? (
       <View style={styles.corner}>
-        <Text style={[styles.rank, { color: germanColor }]}>{germanLabel}</Text>
-        <GermanSuit suit={d.suit} size={metrics.card.suitInlineFont} red={skin.card.red} />
+        <Text style={[styles.rank, { color: packColor }]}>{packLabel}</Text>
+        <PackSuit suit={d.suit} size={metrics.card.suitInlineFont} red={skin.card.red} pack={pack} />
       </View>
     ) : plain ? (
       <View style={styles.plainIndex}>
         <Text
           style={[
             styles.indexRank,
-            { color: germanColor },
+            { color: packColor },
             // "Sv" is two letters where the index is sized for one; "10" is
             // what it was sized for, so it keeps the full size.
-            germanLabel.length > 1 &&
+            packLabel.length > 1 &&
               d.rank !== '10' && { fontSize: Math.round(metrics.card.indexFont * 0.78) },
           ]}
         >
-          {germanLabel}
+          {packLabel}
         </Text>
-        <GermanSuit suit={d.suit} size={metrics.card.indexSuitFont} red={skin.card.red} />
+        <PackSuit suit={d.suit} size={metrics.card.indexSuitFont} red={skin.card.red} pack={pack} />
       </View>
     ) : (
-      <GermanFace
+      <PackFace
         card={d}
         width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
         height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
         ink={skin.card.ink}
         red={skin.card.red}
         stock={selected ? skin.card.selectedFace : skin.colors.cardBg}
+        pack={pack}
       />
     )
   ) : vector ? (
@@ -692,7 +710,7 @@ export function CardView({
       <View
         style={[
           styles.card,
-          (rich || deluxe || germanFull) && styles.cardRich,
+          (rich || deluxe || pictorialFull) && styles.cardRich,
           plain && styles.cardPlain,
           skin.card.shadow && styles.cardShadow,
           // Not on a selected card: its solid selection border must win, and

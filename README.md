@@ -3,10 +3,11 @@
 A card-game server that does not know which card game it is running, and two
 clients that do not either.
 
-Eight games are hosted today — Žolíky (Continental rummy), Prší (Czech Mau-Mau),
-Canasta, Poker (No-Limit Texas Hold'em), Blackjack, Gin Rummy, Rummy Tiles and
-Mariáš — and they share one runtime, one wire protocol, one screen and one
-terminal client. Adding another is a server-only change: register a module and it appears in the lobby, gets an opponent, gets a
+Sixteen games are hosted today — Žolíky (Continental rummy), Prší (Czech
+Mau-Mau), Canasta, Poker (Texas Hold'em, Five-Card Draw and Omaha), Blackjack,
+Gin Rummy, Rummy Tiles, Mariáš, Solitaire, Last Card, Šnaps, Sedma, Oko bere,
+Ferbl, Lóra and Siete y Medio (the Mexican seven and a half) — and they share
+one runtime, one wire protocol, one screen and one terminal client. Adding another is a server-only change: register a module and it appears in the lobby, gets an opponent, gets a
 scoreboard, and is playable in a browser and over SSH without either client
 being edited.
 
