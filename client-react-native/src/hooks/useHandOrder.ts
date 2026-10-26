@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { applySavedOrder, arrangeAuto, arrangeSlots, justArrived, moveSlot, type Slot } from '@/src/lib/hand';
+import { applySavedOrder, arrangeAsSent, arrangeAuto, arrangeSlots, justArrived, moveSlot, type Slot } from '@/src/lib/hand';
 import { loadHandOrder, saveHandOrder } from '@/src/lib/handOrderStore';
 
 /**
@@ -161,9 +161,17 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     setOrder((prev) => ({ ...prev, [zoneId]: moveSlot(prev[zoneId] ?? [], from, to) }));
   }, []);
 
+  // A hand the module sends sorted is put back in the module's order; any
+  // other is clustered for sets and runs.
   const arrange = useCallback((zoneId: string) => {
-    setOrder((prev) => ({ ...prev, [zoneId]: arrangeAuto(prev[zoneId] ?? []) }));
-  }, []);
+    const zone = zones.find((z) => z.id === zoneId);
+    setOrder((prev) => {
+      const slots = prev[zoneId] ?? [];
+      const arranged =
+        zone?.arrange === 'sorted' ? arrangeAsSent(slots, (zone.cards ?? []).map((c) => c.card)) : arrangeAuto(slots);
+      return { ...prev, [zoneId]: arranged };
+    });
+  }, [zones]);
 
   return { slotsFor, move, arrange, autoSelectIds };
 }

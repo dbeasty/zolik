@@ -256,6 +256,9 @@ type Zone struct {
 	// named by its CardView.By, as a trick lies on a real table — the
 	// viewer's card nearest them, the others at the seats they came from.
 	//
+	// ArrangeSorted, on a hand, is the other: the cards come in the order a
+	// player of the game holds them, and Auto-arrange restores it.
+	//
 	// Presentational, exactly as Dealer and Shared are: a client that ignores
 	// it draws the zone by its Kind and loses only the placement. It names a
 	// shape, not a game, so every trick-taking game draws its tricks the same
@@ -271,6 +274,13 @@ type Zone struct {
 // ArrangeBySeat lays a zone's cards out around the table, each toward the
 // seat in its CardView.By. See Zone.Arrange.
 const ArrangeBySeat = "bySeat"
+
+// ArrangeSorted, on a hand, says the cards are sent in the order a player of
+// this game holds them — suit by suit, ranked as the game ranks them — so a
+// client's Auto-arrange restores that order instead of clustering the hand
+// for sets and runs. It names a shape, not a game: which rank sits above
+// which is the module's to say, and it says it by the order it sends.
+const ArrangeSorted = "sorted"
 
 // Fact is a labelled value for a header or scoreboard — pre-resolved by the
 // module, rendered by the client, interpreted by neither.

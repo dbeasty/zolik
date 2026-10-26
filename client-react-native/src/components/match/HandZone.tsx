@@ -839,7 +839,7 @@ export function HandZone({
       accessory={
         onAutoArrange && slots.length > 1 ? (
           <View style={styles.accessory}>
-            <Tip text={t('a11y.board.tip.autoArrange')}>
+            <Tip text={t(zone.arrange === 'sorted' ? 'a11y.board.tip.autoArrangeSuits' : 'a11y.board.tip.autoArrange')}>
               <Pressable onPress={onAutoArrange} hitSlop={8} accessibilityRole="button" style={styles.smallTarget}>
                 <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
                   {t('a11y.board.hand.autoArrange')}

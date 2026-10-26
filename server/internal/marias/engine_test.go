@@ -366,26 +366,71 @@ func TestEveryDealIsZeroSum(t *testing.T) {
 	}
 }
 
-func TestTheOthersDoNotSeeTrumpsOrTheTalon(t *testing.T) {
-	s, c := announced(t, twelve, OfferHra)
-	s = must(t, s, c, module.Action{OfferID: OfferTalon, Verb: VerbDiscard, Cards: []string{"8C", "JD"}})
-	raw, _ := encode(s)
-	for _, p := range s.Players {
+// The trump card lies face down while the chooser announces and lays two
+// away, and is turned up for the others to answer good or bad against. The
+// talon stays the declarer's.
+func TestTheOthersSeeTrumpsOnlyWhenAskedToAnswer(t *testing.T) {
+	sees := func(s *GameState, p string) (trumps, talon bool) {
+		t.Helper()
+		raw, _ := encode(s)
 		vm, err := New().View(raw, p)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, f := range vm.Header {
-			if f.LabelKey == "marias.header.trumps" && p != c {
-				t.Errorf("%s sees trumps before the game is agreed", p)
+			if f.LabelKey == "marias.header.trumps" && f.Params["suit"] == suitKey(string(tricks.Suit(s.TrumpCard))) {
+				trumps = true
 			}
 		}
 		for _, z := range vm.Zones {
-			if z.ID == talonZoneID && len(z.Cards) > 0 && p != c {
-				t.Errorf("%s sees the talon", p)
+			if z.ID == talonZoneID && len(z.Cards) > 0 {
+				talon = true
 			}
 		}
+		return trumps, talon
 	}
+
+	s, c := announced(t, twelve, OfferHra)
+	for _, p := range s.Players {
+		if trumps, _ := sees(s, p); trumps != (p == c) {
+			t.Errorf("before the talon is laid, %s sees trumps: %v", p, trumps)
+		}
+		if card := trumpCardShown(t, s, p); card != "" {
+			t.Errorf("before the talon is laid, %s sees the trump card %s", p, card)
+		}
+	}
+	s = must(t, s, c, module.Action{OfferID: OfferTalon, Verb: VerbDiscard, Cards: []string{"8C", "JD"}})
+	if s.Phase != phaseAnswer {
+		t.Fatalf("after the talon the phase is %s, want %s", s.Phase, phaseAnswer)
+	}
+	for _, p := range s.Players {
+		trumps, talon := sees(s, p)
+		if !trumps {
+			t.Errorf("%s is asked to answer without seeing trumps", p)
+		}
+		if card := trumpCardShown(t, s, p); card != s.TrumpCard {
+			t.Errorf("%s sees trump card %q; the declarer's is %s", p, card, s.TrumpCard)
+		}
+		if talon != (p == c) {
+			t.Errorf("%s sees the talon: %v", p, talon)
+		}
+	}
+}
+
+// trumpCardShown is the card in the face-up trump card zone p sees, or "".
+func trumpCardShown(t *testing.T, s *GameState, p string) string {
+	t.Helper()
+	raw, _ := encode(s)
+	vm, err := New().View(raw, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, z := range vm.Zones {
+		if z.ID == trumpCardZoneID && len(z.Cards) == 1 {
+			return z.Cards[0].Card
+		}
+	}
+	return ""
 }
 
 // Every refusal this engine can hand a player points at a rule that table

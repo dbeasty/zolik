@@ -11,6 +11,7 @@ import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
+import { useMetrics } from '@/src/hooks/useMetrics';
 import type { ChangeMarks } from '@/src/lib/changes';
 import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
@@ -113,6 +114,7 @@ export function BoardLayout({
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
   const drops = dropProps ?? {};
+  const metrics = useMetrics();
   // Who is who and what is where, for everything below that says itself out
   // loud — see `BoardSpeech`.
   const speech = useMemo(
@@ -156,6 +158,16 @@ export function BoardLayout({
   // the zone is called.
   const arranged = onTable.filter(isSeatArranged);
   const tableZones = onTable.filter((z) => !isSeatArranged(z));
+  // The trick and the table's piles side by side where there is room: one
+  // row of cards between the seats and the hand rather than two, so the hand
+  // is still on screen while the trick is being read. The row wraps, so on a
+  // phone, where the piles would not fit beside the trick, they go under it.
+  const tableInRow = arranged.length > 0 && tableZones.length > 0;
+  // Every pile beside the next, as `Section` lays them out: a pile panel is
+  // at least 96 wide (`Panel`'s inline), plus the gap and the section's own
+  // padding. Any narrower and the piles stack, and the row is taller than
+  // the two panels it replaced.
+  const tableRowMinWidth = tableZones.length * (Math.max(96, metrics.card.compactWidth + 24) + 8) + 24;
   const seatIds = (view.seats ?? []).map((s) => s.playerId);
   // Whatever is left: an opponent zone that is not a spread — a hand revealed
   // at a showdown, or every hand at once in an open replay — or a kind this
@@ -212,27 +224,33 @@ export function BoardLayout({
             ? { role: 'region', 'aria-label': t('a11y.board.region.table') }
             : {}) as object)}
         >
-          {arranged.map((z) => (
-            <SeatArrangedZone
-              key={z.id}
-              zone={z}
-              seatIds={seatIds}
-              players={state.players}
-              viewerId={viewerId}
-              registerDrop={drops.registerDrop}
-              entranceDelays={drops.entranceDelays}
-              {...zonePanelProps(z.id)}
-            />
-          ))}
-          <Section
-            title={t('match.table')}
-            zones={tableZones}
-            compact
-            styles={styles}
-            {...zonePanelProps('section:table')}
-            panelPropsFor={zonePanelProps}
-            {...drops}
-          />
+          <View style={tableInRow ? styles.tableRow : null}>
+            {arranged.map((z) => (
+              <View key={z.id} style={tableInRow ? styles.tableRowTrick : null}>
+                <SeatArrangedZone
+                  zone={z}
+                  seatIds={seatIds}
+                  players={state.players}
+                  viewerId={viewerId}
+                  registerDrop={drops.registerDrop}
+                  entranceDelays={drops.entranceDelays}
+                  {...zonePanelProps(z.id)}
+                />
+              </View>
+            ))}
+            <View style={tableInRow ? [styles.tableRowRest, { minWidth: tableRowMinWidth }] : null}>
+              <Section
+                title={t('match.table')}
+                zones={tableZones}
+                compact
+                flush={tableInRow}
+                styles={styles}
+                {...zonePanelProps('section:table')}
+                panelPropsFor={zonePanelProps}
+                {...drops}
+              />
+            </View>
+          </View>
           <Attention active={!!tableRing} radius={10} gap={3} />
         </View>
       ) : null}
@@ -279,6 +297,7 @@ export function Section({
   aside,
   zones,
   compact,
+  flush,
   styles,
   panelId,
   minimized,
@@ -291,6 +310,8 @@ export function Section({
   aside?: ReactNode;
   zones: Zone[];
   compact?: boolean;
+  /** No space above: the row it sits in already keeps it from the panel above. */
+  flush?: boolean;
   /** The screen's own skinned styles — this helper lives outside the component that builds them. */
   styles: MatchStyles;
   panelId: string;
@@ -330,7 +351,7 @@ export function Section({
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
       testID={`section-${title.toLowerCase()}`}
-      style={styles.section}
+      style={flush ? null : styles.section}
       summary={
         <View style={styles.sectionSummary}>
           {zones.map((z, i) => (
@@ -424,6 +445,15 @@ export function matchStyles(s: Skin) {
   statusDotBad: { backgroundColor: colors.danger },
   statusExplainer: { color: colors.muted, fontSize: 12, marginTop: 4 },
   section: { marginTop: 10 },
+  // The trick beside the table's piles — see `tableInRow`. Each panel keeps
+  // its own height (flex-start), as the spreads row does below.
+  // The piles need room for two side by side (the screen adds a minWidth
+  // from the card size); short of that they wrap under the trick. Both grow
+  // to fill their line, so a wrapped trick is full width again, with room
+  // for its name tags.
+  tableRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, marginTop: 10 },
+  tableRowTrick: { flexGrow: 1 },
+  tableRowRest: { flexGrow: 1, flexBasis: 0 },
   sectionSummary: { flexDirection: 'row', flexShrink: 1, minWidth: 0 },
   sectionSummaryText: { color: colors.muted, fontSize: 12 },
   beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },

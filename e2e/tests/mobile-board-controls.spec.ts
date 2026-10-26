@@ -140,8 +140,8 @@ test('Rummy Tiles: the first-lay requirement is a hint, the turn prompt stays in
 });
 
 test('with no move above it, a long turn prompt stops short of the corner buttons', async ({ page, request }) => {
-  // Mariáš words its opening prompt at length ("Say dobrá, or take it over with
-  // a higher game"); when it is the box's first line it shares the row with the
+  // Mariáš words its opening prompt at length ("Say good to let it stand, or bad
+  // to take it over with a higher game"); when it is the box's first line it shares the row with the
   // hints, repeat and fold buttons and used to run under them.
   //
   // That needs the host to act first, before anyone has played: three seats

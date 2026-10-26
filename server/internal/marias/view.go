@@ -8,8 +8,9 @@ import (
 // The ids this module draws its zones under, shared with the offers that
 // point at them.
 const (
-	talonZoneID = "talon"
-	trickZoneID = "trick"
+	talonZoneID     = "talon"
+	trickZoneID     = "trick"
+	trumpCardZoneID = "trumpCard"
 )
 
 func handZoneID(playerID string) string { return "hand:" + playerID }
@@ -26,9 +27,9 @@ var (
 //
 // What is secret in Mariáš, and so filtered here: every other hand, the
 // chooser's unseen five, the talon (known to the declarer who laid it), and
-// the trump suit until the game is agreed — the chooser's trump card lies
-// face down until then, so the others bid against a game whose trumps they
-// do not know. At a table that plays betl and durch open, the declarer's
+// the trump suit until the talon is laid — the chooser's trump card lies
+// face down until then, and is turned up for the others to answer good or
+// bad against. At a table that plays betl and durch open, the declarer's
 // hand is everyone's once the first trick of one has been taken.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
 	return m.view(raw, viewerID, false)
@@ -47,16 +48,21 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	}
 	vm := module.ViewModel{}
 	playing := !s.Intermission.Open && s.Status == "active"
-	trumpsPublic := reveal || s.Phase == phaseFlek || s.Phase == phasePlay
+	trumpsPublic := reveal || s.Phase == phaseAnswer || s.Phase == phaseFlek || s.Phase == phasePlay
 
 	// The viewer's own hand, and the trump card marked in it for the
-	// chooser while it still lies face down.
+	// chooser while it still lies face down. Sent suit by suit in the order
+	// the contract ranks them, so Auto-arrange puts it back that way rather
+	// than clustering it for melds this game does not have.
 	if viewerID != "" && s.seat(viewerID) >= 0 {
 		z := module.Zone{
 			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
 			LabelKey: "zone.yourHand", Count: len(s.Hands[viewerID]),
+			Arrange: module.ArrangeSorted,
 		}
-		for _, c := range s.Hands[viewerID] {
+		hand := append([]string(nil), s.Hands[viewerID]...)
+		sortHandBy(hand, s.order())
+		for _, c := range hand {
 			cv := module.CardView{Card: c}
 			if playing && c == s.TrumpCard && viewerID == s.chooser() && s.Phase != phasePlay {
 				cv.BadgeKeys = []string{"marias.badge.trumpCard"}
@@ -117,6 +123,18 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			}
 		}
 		vm.Zones = append(vm.Zones, z)
+	}
+
+	// The trump card, turned face up once the others are asked to answer.
+	// It goes back into the declarer's hand, so at a real table everyone
+	// knows they hold it until it is played; it stays on show here until
+	// then. The declarer sees it too: a zone an onlooker sees that a seat
+	// does not would be a spectator knowing more than the players.
+	if playing && trumpsPublic && s.TrumpCard != "" && s.trumpGame() && hasCard(s.Hands[s.Declarer], s.TrumpCard) {
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: trumpCardZoneID, Kind: module.ZonePile, LabelKey: "marias.zone.trumpCard", Count: 1,
+			Cards: []module.CardView{{Card: s.TrumpCard}},
+		})
 	}
 
 	// The seats.

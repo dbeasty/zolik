@@ -148,7 +148,9 @@ function arrangedStyles(m: Metrics, s: Skin, seats: number) {
   // side cards: halfway down, a side card covered its corner neighbour's
   // name. So there the sides sit clear below the top row.
   const clearOfTop = ch + 18; // the corner card, and room for its name tag below it
-  const height = Math.round(noTop ? ch * 1.6 : wide ? Math.max(ch * 2.15, clearOfTop + ch) : ch * 2.15);
+  // At three seats the viewer's card is in the centre column, clear of both
+  // side cards, so it need only sit low enough to read as theirs.
+  const height = Math.round(noTop ? ch * 1.3 : wide ? Math.max(ch * 2.15, clearOfTop + ch) : ch * 2.15);
   const centreX = (width - cw) / 2;
   const middleY = noTop ? 0 : wide ? clearOfTop : (height - ch) / 2;
   const place: Record<Compass, { left: number; top: number }> = {
