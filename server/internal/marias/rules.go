@@ -130,6 +130,7 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 
 	bidding := append([]module.RuleItem{
 		module.Rule("marias.rules.bid.announce", nil),
+		module.Rule("marias.rules.bid.reveal", nil),
 		module.Rule("marias.rules.bid.takeover", nil),
 		module.Rule("marias.rules.bid.proti", nil),
 	}, flek...)

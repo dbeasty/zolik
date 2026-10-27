@@ -1,5 +1,6 @@
 import {
   applySavedOrder,
+  arrangeAsSent,
   arrangeAuto,
   arrangeSlots,
   cardsForSelection,
@@ -129,6 +130,25 @@ describe('justArrived', () => {
     const after = arrangeSlots(before, ['4C', '9S', '10D'], minter('deal'));
 
     expect(justArrived(before, after)).toEqual([]);
+  });
+});
+
+describe('arrangeAsSent', () => {
+  it("puts a hand back in the order the module sent it, not clustered by rank", () => {
+    // Mariáš: suit by suit, the ten above the king.
+    const sent = ['AH', '10H', 'KH', '7H', '10C', '8C', 'AS', '9D'];
+    const out = arrangeAsSent(slots('10C', '7H', 'AS', 'KH', '9D', '10H', 'AH', '8C'), sent).map((s) => s.card);
+
+    expect(out).toEqual(sent);
+  });
+
+  it('is a permutation of the slots handed in, duplicates and strays included', () => {
+    const held = slots('7H', 'QS', '7H', 'XX');
+
+    const out = arrangeAsSent(held, ['QS', '7H', '7H']);
+
+    expect(out.map((s) => s.card)).toEqual(['QS', '7H', '7H', 'XX']);
+    expect(out.map((s) => s.id).sort()).toEqual(held.map((s) => s.id).sort());
   });
 });
 

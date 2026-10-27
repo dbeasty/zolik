@@ -809,6 +809,11 @@ func TestAnArrangedZoneNamesItsSeats(t *testing.T) {
 						switch z.Arrange {
 						case "":
 							continue
+						case module.ArrangeSorted:
+							if z.Kind != module.ZoneHand {
+								t.Fatalf("zone %q is a %s, but only a hand is held sorted", z.ID, z.Kind)
+							}
+							continue
 						case module.ArrangeBySeat:
 						default:
 							t.Fatalf("zone %q asks for arrangement %q, which no client knows", z.ID, z.Arrange)

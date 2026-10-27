@@ -140,8 +140,10 @@ export type Zone = {
    * A shape to lay the cards out in. `bySeat` puts each card toward the seat
    * its `by` names, as a trick lies on a real table: the viewer's card
    * nearest them, the rest at the seats they came from. Names a shape, never
-   * a game — see `TrickArea`. Unknown values are ignored and the zone is
-   * drawn by its kind.
+   * a game — see `TrickArea`. `sorted`, on a hand, says the cards come in
+   * the order a player of this game holds them, and Auto-arrange restores
+   * that order rather than clustering for melds. Unknown values are ignored
+   * and the zone is drawn by its kind.
    */
   arrange?: ZoneArrange;
   /**
@@ -152,7 +154,7 @@ export type Zone = {
   fan?: number;
 };
 
-export type ZoneArrange = 'bySeat';
+export type ZoneArrange = 'bySeat' | 'sorted';
 
 /** One player as the board shows them: whose turn, and their own numbers. */
 export type Seat = {

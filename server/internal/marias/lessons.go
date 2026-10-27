@@ -52,7 +52,7 @@ func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 			module.Say("announce", "guide.marias.announce", nil, module.AnchorActionBar).
 				About("marias.rules.bid.announce", "marias.rules.deal.talon"),
 			module.Say("takeover", "guide.marias.takeover", nil, module.AnchorActionBar).
-				About("marias.rules.bid.takeover"),
+				About("marias.rules.bid.reveal", "marias.rules.bid.takeover"),
 		)
 	}
 

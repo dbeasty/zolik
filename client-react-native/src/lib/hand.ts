@@ -226,6 +226,26 @@ export function arrangeAuto(slots: Slot[]): Slot[] {
 }
 
 /**
+ * Auto-arrange for a hand the module sends already in order (`arrange:
+ * 'sorted'`): each slot goes back where its card stands in what was sent.
+ * Which rank sits above which is the game's to say — a Mariáš ten outranks
+ * its king — so the shell takes the order as given rather than working one
+ * out. Identical cards keep their relative order; a card the server did not
+ * send (none should be) stays at the end.
+ *
+ * A permutation of the slots handed in, like `arrangeAuto`.
+ */
+export function arrangeAsSent(slots: Slot[], sent: string[]): Slot[] {
+  const positions = new Map<string, number[]>();
+  sent.forEach((card, i) => positions.set(card, [...(positions.get(card) ?? []), i]));
+  const at = slots.map((s) => positions.get(s.card)?.shift() ?? sent.length);
+  return slots
+    .map((s, i) => ({ s, key: at[i], i }))
+    .sort((a, b) => a.key - b.key || a.i - b.i)
+    .map(({ s }) => s);
+}
+
+/**
  * The slot nearest a pointer, given where each one was laid out.
  *
  * Measured rather than calculated from a card width, because the fan wraps: a

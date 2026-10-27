@@ -51,7 +51,7 @@ type GameState struct {
 	// are named — and one of which they may name trumps from (z lidu).
 	Unseen []string `json:"unseen,omitempty"`
 	// TrumpCard is the card trumps were named by. Private to the chooser
-	// until the contract is agreed.
+	// until the others are asked to answer the game.
 	TrumpCard string   `json:"trumpCard,omitempty"`
 	Talon     []string `json:"talon,omitempty"`
 
@@ -433,14 +433,17 @@ func gameRank(g string) int {
 
 // sortHand orders a hand by suit, then high to low — the way a player holds
 // Mariáš cards. Display only; nothing depends on it.
-func sortHand(hand []string) {
+func sortHand(hand []string) { sortHandBy(hand, orderTrump) }
+
+// sortHandBy puts a hand suit by suit, each suit high to low by order.
+func sortHandBy(hand []string, order tricks.Order) {
 	suitOrder := map[byte]int{'H': 0, 'C': 1, 'S': 2, 'D': 3}
 	sort.SliceStable(hand, func(i, j int) bool {
 		a, b := hand[i], hand[j]
 		if tricks.Suit(a) != tricks.Suit(b) {
 			return suitOrder[tricks.Suit(a)] < suitOrder[tricks.Suit(b)]
 		}
-		return orderTrump.Beats(tricks.Rank(a), tricks.Rank(b))
+		return order.Beats(tricks.Rank(a), tricks.Rank(b))
 	})
 }
 
