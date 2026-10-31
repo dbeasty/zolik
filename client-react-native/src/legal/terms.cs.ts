@@ -12,20 +12,20 @@ import type { LegalDocument } from './types';
 export const termsCs: LegalDocument = {
   id: 'terms',
   title: 'Podmínky použití',
-  version: '2026-09-01',
+  version: '2026-10-31',
   sections: [
     {
       id: 'who',
-      heading: 'Kdo Žolíky provozuje',
+      heading: 'Kdo Jokerless provozuje',
       body: [
-        'Žolíky jsou bezplatná online karetní hra, kterou provozuje {operator} („my“). Hraním tyto podmínky přijímáš. Pokud je nepřijímáš, nehraj.',
+        'Jokerless je bezplatná karetní hra, hraná online i v aplikacích, kterou provozuje {operator} („my“). Hraním tyto podmínky přijímáš. Pokud je nepřijímáš, nehraj.',
       ],
     },
     {
       id: 'as-is',
       heading: 'Hra je poskytována, jak stojí a leží',
       body: [
-        'Neposkytujeme žádnou záruku, že Žolíky budou dostupné, bez výpadků nebo bez chyb, ani že jsou pravidla naprogramována bez omylů.',
+        'Neposkytujeme žádnou záruku, že Jokerless bude dostupný, bez výpadků nebo bez chyb, ani že jsou pravidla naprogramována bez omylů.',
         'Kteroukoli část hry můžeme kdykoli a bez předchozího upozornění změnit, pozastavit nebo ukončit a můžeme odstranit neaktivní účty.',
       ],
     },
@@ -33,7 +33,7 @@ export const termsCs: LegalDocument = {
       id: 'no-money',
       heading: 'Žádné skutečné peníze',
       body: [
-        'V Žolíkách se nesází, nic se nekupuje a nejsou v nich žádné výhry. Nejde o hazardní hru.',
+        'V Jokerless se nesází, nic se nekupuje a nejsou v nich žádné výhry. Nejde o hazardní hru.',
         'Žetony, body a pořadí jsou virtuální. Nemají žádnou peněžní hodnotu a nelze je směnit za peníze ani za nic jiného.',
       ],
     },
@@ -63,17 +63,17 @@ export const termsCs: LegalDocument = {
       id: 'liability',
       heading: 'Odpovědnost za škodu',
       body: [
-        'V nejširším rozsahu, který právo připouští, neodpovídáme za žádnou újmu vzniklou používáním Žolíků, včetně ztráty dat, ztráty postupu, ztráty času nebo nedostupnosti hry.',
+        'V nejširším rozsahu, který právo připouští, neodpovídáme za žádnou újmu vzniklou používáním Jokerless, včetně ztráty dat, ztráty postupu, ztráty času nebo nedostupnosti hry.',
         'Nic v těchto podmínkách neomezuje odpovědnost, kterou omezit nelze — zejména za újmu na životě a na zdraví, za podvod a za úmysl a hrubou nedbalost. Jsi-li spotřebitel, tvá zákonná práva tím nejsou dotčena.',
       ],
     },
     {
       id: 'source',
-      heading: 'Žolíky jsou svobodný software',
+      heading: 'Jokerless je svobodný software',
       body: [
-        'Žolíky jsou licencovány pod GNU Affero General Public License, verze 3. Můžeš je volně používat, zkoumat, šířit i měnit za podmínek, které tato licence stanoví — včetně výše uvedeného vyloučení záruk, které je stejně tak jejím zněním jako naším.',
-        'Úplný zdrojový kód verze, která tu běží, najdeš na {source}. Tento odstavec existuje kvůli článku 13 té licence: protože se k Žolíkům dostáváš po síti, a ne tak, že by sis je instaloval, musí ti být zdrojový kód nabídnut přímo tady na obrazovce, a ne jen tomu, kdo si stáhne kopii.',
-        'Pokud provozuješ upravené Žolíky a necháš na nich hrát další lidi po síti, tatáž licence po tobě žádá, abys jim svůj zdrojový kód nabídl stejným způsobem.',
+        'Jokerless je licencován pod GNU Affero General Public License, verze 3. Můžeš ho volně používat, zkoumat, šířit i měnit za podmínek, které tato licence stanoví — včetně výše uvedeného vyloučení záruk, které je stejně tak jejím zněním jako naším.',
+        'Úplný zdrojový kód verze, která tu běží, najdeš na {source}. Tento odstavec existuje kvůli článku 13 té licence: protože se Jokerless hraje po síti, musí ti být zdrojový kód nabídnut přímo tady na obrazovce, a ne jen tomu, kdo si stáhne kopii.',
+        'Pokud provozuješ upravený Jokerless a necháš na něm hrát další lidi po síti, tatáž licence po tobě žádá, abys jim svůj zdrojový kód nabídl stejným způsobem.',
       ],
     },
     {

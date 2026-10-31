@@ -73,16 +73,19 @@ async function register(): Promise<PushStatus> {
 }
 
 export const pushStatus: PushApi['pushStatus'] = async () => {
+  // A build with no EAS project can never register, so it says so before
+  // anything offers to turn notifications on: asking for the permission and
+  // then delivering nothing is a prompt the player answered for nothing.
+  if (!projectId()) return 'unavailable';
   try {
-    const status = statusOf(await Notifications.getPermissionsAsync());
-    if (status === 'granted' && !projectId()) return 'unavailable';
-    return status;
+    return statusOf(await Notifications.getPermissionsAsync());
   } catch {
     return 'unsupported';
   }
 };
 
 export const enablePush: PushApi['enablePush'] = async () => {
+  if (!projectId()) return 'unavailable';
   try {
     // The channel has to exist before Android 13 will show its prompt.
     await ensureChannel();

@@ -11,6 +11,17 @@
 #   ZOLIK_IOS_DEVICE="DavJa iPhone" scripts/build-ios.sh  build, install, launch
 #   ZOLIK_IOS_SKIP_CORE=1 …                           reuse the last core
 #   ZOLIK_IOS_TEAM=… …                                another signing team
+#   ZOLIK_IOS_STORE=1 scripts/build-ios.sh            App Store .ipa
+#   ZOLIK_IOS_STORE=1 ZOLIK_IOS_UPLOAD=1 …            …and upload it
+#
+# A store build is archived and exported for App Store Connect into
+# client-react-native/ios/build/store. It differs from a device build in what
+# the app may do: no plain-http loads (app.config.ts, ZOLIK_STORE_BUILD), and
+# a fresh native project, so nothing a dev build put in Info.plist rides
+# along. (The dev client's own Release build phase strips its Bonjour entry.) Its build number is the UTC time it was built
+# (ZOLIK_IOS_BUILD_NUMBER overrides), which only ever goes up, as App Store
+# Connect requires. Uploading needs the app record to exist in App Store
+# Connect and uses the Xcode account's credentials.
 #
 # ZOLIK_IOS_DEVICE is a name or id from `xcrun devicectl list devices`; a phone
 # the team has not seen yet is registered to it on the way. Needs Xcode signed
@@ -22,6 +33,7 @@ RN="$ROOT/client-react-native"
 # entitlement expo-notifications adds.
 TEAM="${ZOLIK_IOS_TEAM:-U763YTDQ4R}"
 DEVICE="${ZOLIK_IOS_DEVICE:-}"
+STORE="${ZOLIK_IOS_STORE:-0}"
 OUT="$RN/ios/build"
 
 export PATH="/opt/homebrew/bin:$PATH"
@@ -33,7 +45,16 @@ if [ "${ZOLIK_IOS_SKIP_CORE:-0}" != 1 ]; then
 fi
 test -d "$RN/modules/zolik-nearby/ios/Zolikcore.xcframework" || { echo "no game core; run without ZOLIK_IOS_SKIP_CORE" >&2; exit 1; }
 
-(cd "$RN" && npx expo prebuild --platform ios --no-install)
+if [ "$STORE" = 1 ]; then
+  [ -z "$DEVICE" ] || { echo "a store build is not installed on a phone; drop ZOLIK_IOS_DEVICE" >&2; exit 1; }
+  export ZOLIK_STORE_BUILD=1
+  export ZOLIK_IOS_BUILD_NUMBER="${ZOLIK_IOS_BUILD_NUMBER:-$(date -u +%Y%m%d%H%M)}"
+  echo "store build, build number $ZOLIK_IOS_BUILD_NUMBER"
+  # CI=1 so --clean does not stop to ask about uncommitted files.
+  (cd "$RN" && CI=1 npx expo prebuild --platform ios --no-install --clean)
+else
+  (cd "$RN" && npx expo prebuild --platform ios --no-install)
+fi
 (cd "$RN/ios" && pod install)
 PODS="$(cd "$RN/ios/Pods" && pwd -P)"
 
@@ -52,23 +73,68 @@ if [ -d "$JSI/.DerivedData" ] && [ "$(cat "$JSI_STAMP" 2>/dev/null)" != "$PODS" 
 fi
 
 eval "$("$ROOT/scripts/version.sh" --export)"
-if [ -n "$DEVICE" ]; then
-  DEST="platform=iOS,name=$DEVICE"
+export EXPO_PUBLIC_ZOLIK_BASE_URL=https://jokerless.com
+export EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION"
+export EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT"
+if [ "$STORE" = 1 ]; then
+  ARCHIVE="$OUT/store/Jokerless.xcarchive"
+  rm -rf "$OUT/store"
+  (
+    cd "$RN/ios"
+    xcodebuild -workspace Jokerless.xcworkspace -scheme Jokerless \
+      -configuration Release -destination generic/platform=iOS \
+      -derivedDataPath "$OUT" -archivePath "$ARCHIVE" \
+      -allowProvisioningUpdates \
+      DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+      -quiet archive
+  )
 else
-  DEST="generic/platform=iOS"
-fi
-(
-  cd "$RN/ios"
-  EXPO_PUBLIC_ZOLIK_BASE_URL=https://jokerless.com \
-    EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION" \
-    EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT" \
+  if [ -n "$DEVICE" ]; then
+    DEST="platform=iOS,name=$DEVICE"
+  else
+    DEST="generic/platform=iOS"
+  fi
+  (
+    cd "$RN/ios"
     xcodebuild -workspace Jokerless.xcworkspace -scheme Jokerless \
       -configuration Release -destination "$DEST" -derivedDataPath "$OUT" \
       -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
       DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
       -quiet build
-)
+  )
+fi
 echo "$PODS" > "$JSI_STAMP"
+
+if [ "$STORE" = 1 ]; then
+  # Export signs the archive again for distribution, with the push
+  # entitlement in its production form. "upload" sends it to App Store
+  # Connect as part of the export; "export" leaves the .ipa here.
+  DESTINATION=export
+  [ "${ZOLIK_IOS_UPLOAD:-0}" = 1 ] && DESTINATION=upload
+  cat > "$OUT/store/ExportOptions.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key><string>app-store-connect</string>
+  <key>destination</key><string>$DESTINATION</string>
+  <key>teamID</key><string>$TEAM</string>
+  <key>signingStyle</key><string>automatic</string>
+  <key>uploadSymbols</key><true/>
+  <key>manageAppVersionAndBuildNumber</key><false/>
+</dict>
+</plist>
+PLIST
+  xcodebuild -exportArchive -archivePath "$ARCHIVE" \
+    -exportOptionsPlist "$OUT/store/ExportOptions.plist" \
+    -exportPath "$OUT/store" -allowProvisioningUpdates -quiet
+  if [ "$DESTINATION" = upload ]; then
+    echo "uploaded $ZOLIK_VERSION ($ZOLIK_IOS_BUILD_NUMBER) to App Store Connect"
+  else
+    echo "ipa: $OUT/store/Jokerless.ipa ($ZOLIK_VERSION, build $ZOLIK_IOS_BUILD_NUMBER)"
+  fi
+  exit 0
+fi
 
 APP="$OUT/Build/Products/Release-iphoneos/Jokerless.app"
 echo "app: $APP ($(du -sh "$APP" | cut -f1))"
