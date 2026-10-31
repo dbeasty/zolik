@@ -99,6 +99,10 @@ type Repository interface {
 	// recently updated first, capped at limit. What the same-deal comparison
 	// reads; see Manager.SameDeal.
 	FindDealtFrom(ctx context.Context, origin bson.ObjectID, limit int) ([]models.Match, error)
+	// MatchIDsForUser lists every match, in any status, where an account
+	// holds a seat or a reserved one. What deleting the account walks; see
+	// Manager.ForgetAccount.
+	MatchIDsForUser(ctx context.Context, userID string) ([]bson.ObjectID, error)
 }
 
 // PlayerMatchFilter narrows FindForPlayer. A zero value lists every
@@ -419,6 +423,27 @@ func (r *mongoRepository) FindForPlayer(ctx context.Context, playerID string, f 
 	var out []models.Match
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+func (r *mongoRepository) MatchIDsForUser(ctx context.Context, userID string) ([]bson.ObjectID, error) {
+	cur, err := r.coll.Find(ctx,
+		bson.M{"$or": bson.A{bson.M{"players.userId": userID}, bson.M{"reserved.userId": userID}}},
+		options.Find().SetProjection(bson.M{"_id": 1}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		ID bson.ObjectID `bson:"_id"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	out := make([]bson.ObjectID, len(rows))
+	for i, row := range rows {
+		out[i] = row.ID
 	}
 	return out, nil
 }

@@ -1201,6 +1201,11 @@ export const hu: Record<string, string> = {
   'account.faceAndTable': 'Arc és az asztal kinézete',
   'account.refresh': 'Frissítés',
   'account.remove': 'Eltávolítás',
+  'account.delete': 'Fiók törlése',
+  'account.deleteConfirmTitle': 'Törlöd a fiókodat?',
+  'account.deleteConfirmBody': 'Ezzel minden eszközön törlöd a fiókodat: a belépési módjaidat, a statisztikáidat, a játékkörödet és a ponttábláidat. A lejátszott játszmák a többi játékos előzményeiben maradnak, de a neved nélkül. Ez nem vonható vissza.',
+  'account.deleteConfirm': 'Fiók törlése',
+  'account.deleteCancel': 'Mégse',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasszikus kártyajátékok, valódi emberekkel online',

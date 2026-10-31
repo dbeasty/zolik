@@ -1193,6 +1193,11 @@ export const fi: Record<string, string> = {
   'account.faceAndTable': 'Kasvot ja pöydän ulkoasu',
   'account.refresh': 'Päivitä',
   'account.remove': 'Poista',
+  'account.delete': 'Poista tili',
+  'account.deleteConfirmTitle': 'Poistetaanko tilisi?',
+  'account.deleteConfirmBody': 'Tämä poistaa tilisi kaikilta laitteilta: kirjautumistavat, tilastot, pelipiirin ja pistetaulukot. Pelaamasi pelit jäävät muiden pelaajien historiaan, mutta ilman nimeäsi. Tätä ei voi perua.',
+  'account.deleteConfirm': 'Poista tili',
+  'account.deleteCancel': 'Peruuta',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klassisia korttipelejä, pelattuna verkossa oikeiden ihmisten kanssa',

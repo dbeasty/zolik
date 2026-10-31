@@ -9,7 +9,7 @@ import type { LegalDocument } from './types';
 export const privacyCs: LegalDocument = {
   id: 'privacy',
   title: 'Zásady ochrany osobních údajů',
-  version: '2026-08-31',
+  version: '2026-10-30',
   sections: [
     {
       id: 'controller',
@@ -51,7 +51,8 @@ export const privacyCs: LegalDocument = {
       heading: 'Jak dlouho je uchováváme',
       body: [
         'Přihlašovací kódy a IP adresa uložená spolu s nimi se automaticky mažou deset minut po odeslání kódu.',
-        'Tvůj účet a tvoje výsledky uchováváme, dokud nepožádáš o jejich smazání. Napiš na {contact} a účet, přihlašovací identity k němu připojené i jeho výsledky odstraníme.',
+        'Tvůj účet a tvoje výsledky uchováváme, dokud účet nesmažeš. Můžeš to udělat přímo na obrazovce Účet, nebo napiš na {contact} a uděláme to za tebe. Smaže se účet, přihlašovací identity k němu připojené, tvoje statistiky, herní kruh, zařízení a tabulky skóre.',
+        'Odehrané hry se s účtem nemažou, protože patří i do historie ostatních hráčů. Tvoje místo v nich se přejmenuje na „Player 1“, „Player 2“ a tak dál a už nevede k tobě.',
       ],
     },
     {

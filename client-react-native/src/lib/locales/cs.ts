@@ -1179,6 +1179,11 @@ export const cs: Record<string, string> = {
   'account.faceAndTable': 'Tvář a vzhled stolu',
   'account.refresh': 'Obnovit',
   'account.remove': 'Odebrat',
+  'account.delete': 'Smazat účet',
+  'account.deleteConfirmTitle': 'Smazat tvůj účet?',
+  'account.deleteConfirmBody': 'Tím smažeš svůj účet na všech zařízeních: způsoby přihlášení, statistiky, herní kruh i tabulky skóre. Odehrané hry zůstanou v historii ostatních hráčů, jen bez tvého jména. Tohle nejde vzít zpět.',
+  'account.deleteConfirm': 'Smazat účet',
+  'account.deleteCancel': 'Zrušit',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasické karetní hry, hrané online se skutečnými lidmi',

@@ -1183,6 +1183,11 @@ export const da: Record<string, string> = {
   'account.faceAndTable': 'Ansigt og bordets udseende',
   'account.refresh': 'Opdater',
   'account.remove': 'Fjern',
+  'account.delete': 'Slet konto',
+  'account.deleteConfirmTitle': 'Vil du slette din konto?',
+  'account.deleteConfirmBody': 'Det sletter din konto på alle enheder: dine login-metoder, din statistik, din spillekreds og dine pointtavler. Spil, du har spillet, bliver i de andre spilleres historik, men uden dit navn. Kan ikke fortrydes.',
+  'account.deleteConfirm': 'Slet konto',
+  'account.deleteCancel': 'Annuller',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klassiske kortspil, spillet online med rigtige mennesker',

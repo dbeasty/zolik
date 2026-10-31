@@ -24,6 +24,9 @@ import (
 type GuestClaimStore interface {
 	Claim(ctx context.Context, guestID, userID, nodeID, when string) error
 	AccountForGuest(ctx context.Context, guestID string) (string, bool, error)
+	// ForgetAccount empties every claim an account made, for an account that
+	// is deleted, without letting anyone else claim those guest ids.
+	ForgetAccount(ctx context.Context, userID string) error
 }
 
 type claimOfflineReq struct {

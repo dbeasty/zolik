@@ -90,7 +90,7 @@ func TestAnAccountSeatIsCreditedOnlyWithItsPass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("credit: %v", err)
 	}
-	if got := out.Players[0]; got.UserID != "" || got.GuestID != AnonymousGuestID(envelope.ID.Hex(), "p1") {
+	if got := out.Players[0]; got.UserID != "" || got.GuestID != models.AnonymousGuestID(envelope.ID.Hex(), "p1") {
 		t.Fatalf("a seat with no pass was credited to user %q / guest %q", got.UserID, got.GuestID)
 	}
 

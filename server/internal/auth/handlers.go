@@ -97,6 +97,8 @@ type Handlers struct {
 	// passSeated is told about every pass this host seats somebody with, so
 	// the pass can travel with the match as the evidence for that seat.
 	passSeated func(subject, pass string)
+	// forgetters are told when an account is deleted; see deleteaccount.go.
+	forgetters []namedForgetter
 
 	publicBaseURL     string
 	allowedReturnURLs []string
@@ -220,6 +222,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// proved by the receipts the hosting nodes signed.
 	r.With(AuthMiddleware).Post("/auth/claim-offline", h.claimOffline)
 	r.With(AuthMiddleware).Get("/auth/guest-summary", h.guestSummary)
+	// Deleting the account. Only the cloud holds accounts, so only the cloud
+	// can delete one.
+	r.With(AuthMiddleware).Delete("/auth/account", h.requireIdentityAuthority(h.deleteAccount))
 
 	// Legacy username/password. Kept because the SSH/TUI client can neither
 	// open a browser nor receive mail, so it has no other way in. New accounts

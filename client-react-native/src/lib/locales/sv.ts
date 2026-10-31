@@ -1181,6 +1181,11 @@ export const sv: Record<string, string> = {
   'account.faceAndTable': 'Ansikte och bordets utseende',
   'account.refresh': 'Uppdatera',
   'account.remove': 'Ta bort',
+  'account.delete': 'Radera kontot',
+  'account.deleteConfirmTitle': 'Radera ditt konto?',
+  'account.deleteConfirmBody': 'Det raderar ditt konto på alla enheter: dina inloggningssätt, din statistik, din spelkrets och dina poängtabeller. Spel du har spelat finns kvar i de andra spelarnas historik, men utan ditt namn. Det går inte att ångra.',
+  'account.deleteConfirm': 'Radera kontot',
+  'account.deleteCancel': 'Avbryt',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klassiska kortspel, spelade online med riktiga människor',

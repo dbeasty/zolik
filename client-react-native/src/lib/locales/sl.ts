@@ -1181,6 +1181,11 @@ export const sl: Record<string, string> = {
   'account.faceAndTable': 'Obraz in videz mize',
   'account.refresh': 'Osveži',
   'account.remove': 'Odstrani',
+  'account.delete': 'Izbriši račun',
+  'account.deleteConfirmTitle': 'Želiš izbrisati svoj račun?',
+  'account.deleteConfirmBody': 'S tem izbrišeš svoj račun na vseh napravah: načine prijave, statistiko, igralni krog in tabele točk. Odigrane igre ostanejo v zgodovini drugih igralcev, vendar brez tvojega imena. Tega ni mogoče razveljaviti.',
+  'account.deleteConfirm': 'Izbriši račun',
+  'account.deleteCancel': 'Prekliči',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasične igre s kartami, igrane na spletu s pravimi ljudmi',

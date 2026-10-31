@@ -1181,6 +1181,11 @@ export const en: Record<string, string> = {
   'account.faceAndTable': 'Face and table look',
   'account.refresh': 'Refresh',
   'account.remove': 'Remove',
+  'account.delete': 'Delete account',
+  'account.deleteConfirmTitle': 'Delete your account?',
+  'account.deleteConfirmBody': "This deletes your account on every device: how you sign in, your statistics, your game circle and your score tables. Games you played stay in the other players' history, without your name. This cannot be undone.",
+  'account.deleteConfirm': 'Delete account',
+  'account.deleteCancel': 'Cancel',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   //

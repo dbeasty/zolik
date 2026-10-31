@@ -1202,6 +1202,11 @@ export const ro: Record<string, string> = {
   'account.faceAndTable': 'Chip și aspectul mesei',
   'account.refresh': 'Reîmprospătează',
   'account.remove': 'Elimină',
+  'account.delete': 'Șterge contul',
+  'account.deleteConfirmTitle': 'Îți ștergi contul?',
+  'account.deleteConfirmBody': 'Asta îți șterge contul pe toate dispozitivele: modurile de autentificare, statisticile, cercul de joc și tabelele de scor. Jocurile pe care le-ai jucat rămân în istoricul celorlalți jucători, dar fără numele tău. Nu poate fi anulat.',
+  'account.deleteConfirm': 'Șterge contul',
+  'account.deleteCancel': 'Anulează',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Jocuri clasice de cărți, jucate online cu oameni reali',

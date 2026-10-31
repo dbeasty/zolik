@@ -68,6 +68,19 @@ func (r *kdbNodeRepository) NodesForOwner(_ context.Context, ownerID string) ([]
 	return out, nil
 }
 
+func (r *kdbNodeRepository) DeleteNodesForOwner(ctx context.Context, ownerID string) error {
+	nodes, err := r.NodesForOwner(ctx, ownerID)
+	if err != nil {
+		return err
+	}
+	for _, n := range nodes {
+		if _, err := r.k.Delete(db.NSNodes, n.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GuestClaim records that a guest id turned out to be an account's.
 //
 // It is kept forever, and deliberately. A match played as a guest may be
@@ -135,4 +148,39 @@ func (c *KDBGuestClaims) AccountForGuest(_ context.Context, guestID string) (str
 		return "", false, err
 	}
 	return claim.UserID, claim.UserID != "", nil
+}
+
+// ForgetAccount empties every claim an account made, for an account that is
+// deleted. The record itself stays, with nobody in it: a match handed up
+// later under one of those guest ids then stays an anonymous guest's, and
+// the id cannot be claimed by anyone else, because it was proved once
+// already (see Claim).
+func (c *KDBGuestClaims) ForgetAccount(_ context.Context, userID string) error {
+	if userID == "" {
+		return nil
+	}
+	var claims []GuestClaim
+	err := c.k.Scan(db.NSGuestClaims, func(doc []byte) error {
+		var claim GuestClaim
+		if err := db.UnmarshalDoc(doc, &claim); err != nil {
+			return err
+		}
+		if claim.UserID == userID {
+			claims = append(claims, claim)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	for _, claim := range claims {
+		doc, err := db.MarshalDoc(GuestClaim{GuestID: claim.GuestID, ClaimedAt: claim.ClaimedAt})
+		if err != nil {
+			return err
+		}
+		if err := c.k.Put(db.NSGuestClaims, claim.GuestID, doc); err != nil {
+			return err
+		}
+	}
+	return nil
 }

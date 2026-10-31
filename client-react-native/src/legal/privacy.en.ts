@@ -20,7 +20,7 @@ import type { LegalDocument } from './types';
 export const privacyEn: LegalDocument = {
   id: 'privacy',
   title: 'Privacy Notice',
-  version: '2026-08-31',
+  version: '2026-10-30',
   sections: [
     {
       id: 'controller',
@@ -62,7 +62,8 @@ export const privacyEn: LegalDocument = {
       heading: 'How long we keep it',
       body: [
         'Sign-in codes, and the IP address stored with them, are deleted automatically ten minutes after the code is sent.',
-        'Your account and your results are kept until you ask us to delete them. Write to {contact} and we will remove the account, the sign-in identities attached to it, and its results.',
+        'Your account and your results are kept until you delete the account. You can do that yourself on the Account screen, or write to {contact} and we will do it for you. It removes the account, the sign-in identities attached to it, your statistics, your game circle, your devices and your score tables.',
+        'Games you played are not deleted with your account, because they are in the other players\' history too. Your seat in them is renamed "Player 1", "Player 2" and so on, and no longer leads to you.',
       ],
     },
     {

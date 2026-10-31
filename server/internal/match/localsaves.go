@@ -2,14 +2,11 @@ package match
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -460,10 +457,10 @@ func (s *LocalSaves) applyConsent(b *zsync.Bundle, m models.Match, rec LocalSave
 			}
 			continue
 		}
-		anon := AnonymousGuestID(m.ID.Hex(), p.ID)
+		anon := models.AnonymousGuestID(m.ID.Hex(), p.ID)
 		envelope.Players[n].UserID = ""
 		envelope.Players[n].GuestID = anon
-		envelope.Players[n].Name = "Player " + strconv.Itoa(n+1)
+		envelope.Players[n].Name = models.AnonymousSeatName(n)
 		envelope.Players[n].Avatar = ""
 		b.Seats[p.ID] = "guest:" + anon
 	}
@@ -487,14 +484,4 @@ func hostAgreed(m models.Match, rec LocalSave) bool {
 		}
 	}
 	return true
-}
-
-// AnonymousGuestID is the guest id a seat travels under when its player did
-// not agree to be named. It is derived rather than random, so handing the
-// same match up twice says the same thing, and it is the shape of a guest id
-// so the cloud stores it like any other - but no device holds a receipt for
-// it, so no account can ever claim it.
-func AnonymousGuestID(matchHex, seat string) string {
-	sum := sha256.Sum256([]byte("zolik:anonymous-seat:" + matchHex + "/" + seat))
-	return hex.EncodeToString(sum[:16])
 }

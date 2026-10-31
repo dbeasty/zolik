@@ -78,6 +78,17 @@ func (m *memSessions) DeleteByToken(_ context.Context, token string) error {
 	return nil
 }
 
+func (m *memSessions) DeleteForUser(_ context.Context, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for token, s := range m.sessions {
+		if s.UserID == userID {
+			delete(m.sessions, token)
+		}
+	}
+	return nil
+}
+
 // cachedCloudKeys is the copy of the cloud's keys a phone holds: taken while
 // the process was still the cloud, and read back afterwards from a document
 // rather than from the keyring, which is what an offline host actually has.

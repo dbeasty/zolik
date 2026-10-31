@@ -1049,6 +1049,43 @@ func (s *Service) Rekey(ctx context.Context, guestID, userID string) error {
 	return s.repo.Rekey(ctx, "guest:"+guestID, "user:"+userID)
 }
 
+// ForgetUser removes everything this package holds about a deleted account:
+// its devices, so nothing is pushed to them; its circle, both the people it
+// added and every circle it was in, so it vanishes from other people's lists
+// rather than lingering as a name nobody can invite; and its profile, which
+// gives up its friend code.
+func (s *Service) ForgetUser(ctx context.Context, userID string) error {
+	key := "user:" + userID
+	devices, err := s.repo.DevicesFor(ctx, key)
+	if err != nil {
+		return err
+	}
+	for _, d := range devices {
+		if err := s.repo.DeleteDevice(ctx, d.ID); err != nil {
+			return err
+		}
+	}
+	owned, err := s.repo.EdgesByOwner(ctx, key)
+	if err != nil {
+		return err
+	}
+	for _, e := range owned {
+		if err := s.repo.DeleteEdge(ctx, e.OwnerKey, e.MemberKey); err != nil {
+			return err
+		}
+	}
+	member, err := s.repo.EdgesByMember(ctx, key)
+	if err != nil {
+		return err
+	}
+	for _, e := range member {
+		if err := s.repo.DeleteEdge(ctx, e.OwnerKey, e.MemberKey); err != nil {
+			return err
+		}
+	}
+	return s.repo.DeleteProfile(ctx, key)
+}
+
 // gameName is a module's name in locale, then its own label, then its id.
 func (s *Service) gameName(locale, moduleID string) string {
 	if name := gameName(locale, moduleID); name != moduleID {

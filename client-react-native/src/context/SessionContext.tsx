@@ -210,6 +210,12 @@ type SessionContextValue = {
   register: (username: string, password: string, email?: string) => Promise<void>;
   logout: () => Promise<void>;
   /**
+   * Deletes the signed-in account on the server, everywhere, and signs this
+   * device out. The device's guest identity is untouched: it was never the
+   * account's.
+   */
+  deleteAccount: () => Promise<void>;
+  /**
    * The offline table this phone is hosting or sitting at, or null when
    * playing online. A page served by a phone to a browser in the room is a
    * guest at that phone's table too.
@@ -647,6 +653,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // Loaded lazily: pushDevice reads this module's storage.
     await (await import('@/src/notify/pushDevice')).unregisterDevice();
     await apiClient.logout();
+    await applySession(null);
+  }, [applySession]);
+
+  const deleteAccount = useCallback(async () => {
+    await apiClient.deleteAccount();
+    // The server forgot this device's push registration with the account, and
+    // the client no longer holds a token, so this only drops what the device
+    // remembers about it. After, not before: a deletion that fails leaves the
+    // person with their account and their notifications.
+    await (await import('@/src/notify/pushDevice')).unregisterDevice();
     await applySession(null);
   }, [applySession]);
 
@@ -1108,6 +1124,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      deleteAccount,
       offline:
         offlineTable ??
         (servedBy
@@ -1155,6 +1172,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      deleteAccount,
     ],
   );
 

@@ -583,3 +583,27 @@ func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f Pl
 	}
 	return out, nil
 }
+
+func (r *kdbRepository) MatchIDsForUser(ctx context.Context, userID string) ([]bson.ObjectID, error) {
+	var out []bson.ObjectID
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		for _, p := range m.Players {
+			if p.UserID == userID {
+				out = append(out, m.ID)
+				return nil
+			}
+		}
+		for _, res := range m.Reserved {
+			if res.UserID == userID {
+				out = append(out, m.ID)
+				return nil
+			}
+		}
+		return nil
+	})
+	return out, err
+}

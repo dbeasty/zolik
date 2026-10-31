@@ -509,6 +509,51 @@ func TestRekeyCarriesAGuestsCircleToTheirAccount(t *testing.T) {
 	}
 }
 
+func TestForgetUserTakesTheAccountOutOfEveryCircle(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	// Carol and Anna are linked both ways; Bob has Carol in his circle.
+	p, err := f.svc.Profile(ctx, carol)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.AddByFriendCode(ctx, anna, p.FriendCode); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.repo.PutEdge(ctx, Edge{ID: edgeID(KeyFor(bob), KeyFor(carol)), OwnerKey: KeyFor(bob), MemberKey: KeyFor(carol), Status: EdgeActive}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.RegisterDevice(ctx, carol, DeviceRegistration{Kind: DeviceExpo, Token: "carols-phone"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := f.svc.ForgetUser(ctx, carol.UserID); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, pair := range [][2]string{{KeyFor(anna), KeyFor(carol)}, {KeyFor(carol), KeyFor(anna)}, {KeyFor(bob), KeyFor(carol)}} {
+		if _, err := f.repo.GetEdge(ctx, pair[0], pair[1]); !errors.Is(err, ErrNotFound) {
+			t.Errorf("%s>%s survived: %v", pair[0], pair[1], err)
+		}
+	}
+	if ds, _ := f.repo.DevicesFor(ctx, KeyFor(carol)); len(ds) != 0 {
+		t.Errorf("carol's phone is still registered: %+v", ds)
+	}
+	if _, err := f.repo.GetProfile(ctx, KeyFor(carol)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("carol's profile survived: %v", err)
+	}
+	if _, err := f.repo.GetProfileByFriendCode(ctx, p.FriendCode); !errors.Is(err, ErrNotFound) {
+		t.Errorf("carol's friend code still leads somewhere: %v", err)
+	}
+	// Anna's own profile and circle are hers to keep.
+	if _, err := f.repo.GetProfile(ctx, KeyFor(anna)); err != nil {
+		t.Errorf("anna's profile went too: %v", err)
+	}
+	if err := f.svc.ForgetUser(ctx, carol.UserID); err != nil {
+		t.Errorf("a second run: %v", err)
+	}
+}
+
 func TestPushTextIsLocalised(t *testing.T) {
 	if got := text("xx", "notify.push.inviteTitle", map[string]string{"host": "Anna"}); got == "notify.push.inviteTitle" || got == "" {
 		t.Fatalf("unknown locale should fall back to English, got %q", got)

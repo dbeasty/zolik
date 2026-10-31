@@ -1211,6 +1211,11 @@ export const nl: Record<string, string> = {
   'account.faceAndTable': 'Gezicht en uiterlijk van de tafel',
   'account.refresh': 'Vernieuwen',
   'account.remove': 'Verwijderen',
+  'account.delete': 'Account verwijderen',
+  'account.deleteConfirmTitle': 'Je account verwijderen?',
+  'account.deleteConfirmBody': 'Hiermee verwijder je je account op al je apparaten: je aanmeldmethoden, je statistieken, je spelkring en je scoretabellen. Gespeelde spellen blijven in de geschiedenis van de andere spelers staan, maar zonder je naam. Dit kan niet ongedaan worden gemaakt.',
+  'account.deleteConfirm': 'Account verwijderen',
+  'account.deleteCancel': 'Annuleren',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klassieke kaartspellen, online gespeeld met echte mensen',

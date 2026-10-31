@@ -1207,6 +1207,11 @@ export const mt: Record<string, string> = {
   'account.faceAndTable': 'Wiċċ u dehra tal-mejda',
   'account.refresh': 'Aġġorna',
   'account.remove': 'Neħħi',
+  'account.delete': 'Ħassar il-kont',
+  'account.deleteConfirmTitle': 'Trid tħassar il-kont tiegħek?',
+  'account.deleteConfirmBody': "Dan iħassar il-kont tiegħek fuq kull apparat: il-modi kif tidħol, l-istatistika, iċ-ċirku tal-logħob u t-tabelli tal-iskor tiegħek. Il-logħbiet li lgħabt jibqgħu fl-istorja tal-plejers l-oħra, iżda mingħajr ismek. Ma jistax jitreġġa' lura.",
+  'account.deleteConfirm': 'Ħassar il-kont',
+  'account.deleteCancel': 'Ikkanċella',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Logħob tal-karti klassiku, imlogħob online ma\' nies veri',

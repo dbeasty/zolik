@@ -1198,6 +1198,11 @@ export const it: Record<string, string> = {
   'account.faceAndTable': 'Faccia e aspetto del tavolo',
   'account.refresh': 'Aggiorna',
   'account.remove': 'Rimuovi',
+  'account.delete': 'Elimina account',
+  'account.deleteConfirmTitle': 'Eliminare il tuo account?',
+  'account.deleteConfirmBody': 'Questo elimina il tuo account su tutti i dispositivi: i modi di accesso, le statistiche, la cerchia di gioco e le tabelle punteggi. Le partite che hai giocato restano nella cronologia degli altri giocatori, ma senza il tuo nome. Non si può annullare.',
+  'account.deleteConfirm': 'Elimina account',
+  'account.deleteCancel': 'Annulla',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Giochi di carte classici, giocati online con persone vere',

@@ -69,6 +69,9 @@ type NodeRepository interface {
 	FindNode(ctx context.Context, id string) (Node, error)
 	// NodesForOwner lists an account's nodes, oldest enrolment first.
 	NodesForOwner(ctx context.Context, ownerID string) ([]Node, error)
+	// DeleteNodesForOwner forgets every node an account enrolled, for an
+	// account that is deleted: a node nobody owns has nobody to sync for.
+	DeleteNodesForOwner(ctx context.Context, ownerID string) error
 }
 
 // MemoryNodeRepository is the stand-in NodeRepository.
@@ -98,6 +101,17 @@ func (r *MemoryNodeRepository) FindNode(_ context.Context, id string) (Node, err
 		return Node{}, ErrNotFound
 	}
 	return n, nil
+}
+
+func (r *MemoryNodeRepository) DeleteNodesForOwner(_ context.Context, ownerID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for id, n := range r.nodes {
+		if n.OwnerID == ownerID {
+			delete(r.nodes, id)
+		}
+	}
+	return nil
 }
 
 func (r *MemoryNodeRepository) NodesForOwner(_ context.Context, ownerID string) ([]Node, error) {

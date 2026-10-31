@@ -1223,6 +1223,11 @@ export const el: Record<string, string> = {
   'account.faceAndTable': 'Πρόσωπο και όψη τραπεζιού',
   'account.refresh': 'Ανανέωση',
   'account.remove': 'Αφαίρεση',
+  'account.delete': 'Διαγραφή λογαριασμού',
+  'account.deleteConfirmTitle': 'Να διαγραφεί ο λογαριασμός σου;',
+  'account.deleteConfirmBody': 'Ο λογαριασμός σου διαγράφεται σε όλες τις συσκευές: οι τρόποι σύνδεσης, τα στατιστικά, ο κύκλος παιχνιδιού και οι πίνακες σκορ σου. Οι παρτίδες που έπαιξες μένουν στο ιστορικό των άλλων παικτών, χωρίς το όνομά σου. Δεν αναιρείται.',
+  'account.deleteConfirm': 'Διαγραφή λογαριασμού',
+  'account.deleteCancel': 'Άκυρο',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Κλασικά παιχνίδια με χαρτιά, online με πραγματικούς ανθρώπους',
