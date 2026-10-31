@@ -96,8 +96,10 @@ CONFIG=release ZOLIK_MACOS_DEVELOPER_ID=1 scripts/build-macos.sh
 It needs the Limidus Corp "Developer ID Application" certificate in the
 keychain, which only the team's Account Holder can create (Xcode → Settings
 → Accounts → Manage Certificates), and notary credentials stored once with
-`xcrun notarytool store-credentials jokerless-notary`. The result is stapled
-and zipped as `client-macos/build/Jokerless-<version>.zip`, ready to download.
+`xcrun notarytool store-credentials jokerless-notary`. The app is notarized
+and stapled, then put on a disk image, `client-macos/build/Jokerless-<version>.dmg`,
+with a link to Applications to drag it onto. The image is signed, notarized and
+stapled too, ready to download. It runs on Apple silicon and Intel Macs.
 
 A debug build can be pointed at a local server with `ZOLIK_BASE_URL`, and
 keeps its state in `ZOLIK_DATA_DIR` if set.
