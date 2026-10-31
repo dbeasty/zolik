@@ -36,9 +36,16 @@ function withZolikcoreRepository(config) {
 // that is not listed.
 function withLocalNetwork(config) {
   return withInfoPlist(config, (cfg) => {
-    cfg.modResults.NSLocalNetworkUsageDescription =
-      cfg.modResults.NSLocalNetworkUsageDescription ??
-      'Jokerless looks for card tables on this network so you can play with the people around you, with no internet needed.';
+    // Ours replaces the dev launcher's, which expo-dev-client writes when it
+    // gets here first. Its sentence is about finding Metro, and its Release
+    // build phase deletes any description carrying it — a store build then
+    // shipped with no local network description at all, which App Review
+    // refuses for an app that uses the local network.
+    const description = cfg.modResults.NSLocalNetworkUsageDescription;
+    if (!description || description.includes('Expo Dev Launcher')) {
+      cfg.modResults.NSLocalNetworkUsageDescription =
+        'Jokerless looks for card tables on this network so you can play with the people around you, with no internet needed.';
+    }
     // Bluetooth, for tables with no network at all. The phones never pair,
     // so this is the only prompt a player sees for it.
     cfg.modResults.NSBluetoothAlwaysUsageDescription =

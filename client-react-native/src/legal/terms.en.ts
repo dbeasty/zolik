@@ -17,20 +17,20 @@ import type { LegalDocument } from './types';
 export const termsEn: LegalDocument = {
   id: 'terms',
   title: 'Terms of Use',
-  version: '2026-09-01',
+  version: '2026-10-31',
   sections: [
     {
       id: 'who',
-      heading: 'Who runs Žolíky',
+      heading: 'Who runs Jokerless',
       body: [
-        'Žolíky is a free online card game operated by {operator} ("we", "us"). By playing you accept these terms. If you do not accept them, do not play.',
+        'Jokerless is a free card game, played online and in its apps, operated by {operator} ("we", "us"). By playing you accept these terms. If you do not accept them, do not play.',
       ],
     },
     {
       id: 'as-is',
       heading: 'The game is provided as is',
       body: [
-        'We give no warranty that Žolíky will be available, uninterrupted, or free of errors, or that its rules are implemented without mistakes.',
+        'We give no warranty that Jokerless will be available, uninterrupted, or free of errors, or that its rules are implemented without mistakes.',
         'We may change, suspend, or discontinue any part of the game, and may remove inactive accounts, at any time and without notice.',
       ],
     },
@@ -38,7 +38,7 @@ export const termsEn: LegalDocument = {
       id: 'no-money',
       heading: 'No real money',
       body: [
-        'Žolíky involves no wagering, no purchases, and no prizes. It is not a gambling service.',
+        'Jokerless involves no wagering, no purchases, and no prizes. It is not a gambling service.',
         'Chips, scores, and standings are virtual. They have no monetary value and cannot be exchanged for money or for anything else.',
       ],
     },
@@ -68,17 +68,17 @@ export const termsEn: LegalDocument = {
       id: 'liability',
       heading: 'Liability',
       body: [
-        'To the fullest extent permitted by law, we are not liable for any loss or damage arising from your use of Žolíky, including lost data, lost progress, lost time, or the game being unavailable.',
+        'To the fullest extent permitted by law, we are not liable for any loss or damage arising from your use of Jokerless, including lost data, lost progress, lost time, or the game being unavailable.',
         'Nothing in these terms limits liability that cannot lawfully be limited — including liability for death or personal injury caused by negligence, for fraud, or for intent and gross negligence. If you are a consumer, your mandatory statutory rights are unaffected.',
       ],
     },
     {
       id: 'source',
-      heading: 'Žolíky is free software',
+      heading: 'Jokerless is free software',
       body: [
-        'Žolíky is licensed under the GNU Affero General Public License, version 3. You are free to use it, study it, share it, and change it, on the terms that licence sets out — including the warranty disclaimer above, which is its wording as much as ours.',
-        'The complete source of the version running here is at {source}. Section 13 of that licence is why this paragraph exists: because you reach Žolíky over a network rather than by installing it, the source has to be offered to you here, on the screen, and not only to whoever downloads a copy.',
-        'If you run a modified Žolíky and let other people play it over a network, that licence requires you to offer them your source in the same way.',
+        'Jokerless is licensed under the GNU Affero General Public License, version 3. You are free to use it, study it, share it, and change it, on the terms that licence sets out — including the warranty disclaimer above, which is its wording as much as ours.',
+        'The complete source of the version running here is at {source}. Section 13 of that licence is why this paragraph exists: because Jokerless is played over a network, the source has to be offered to you here, on the screen, and not only to whoever downloads a copy.',
+        'If you run a modified Jokerless and let other people play it over a network, that licence requires you to offer them your source in the same way.',
       ],
     },
     {

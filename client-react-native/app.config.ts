@@ -46,7 +46,10 @@ function buildCommit(): string {
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const version = releaseVersion();
-  const production = process.env.EAS_BUILD_PROFILE === 'production';
+  // A store build: EAS's production profile, or scripts/build-ios.sh's store
+  // mode, which builds on this Mac rather than on an EAS worker.
+  const production =
+    process.env.EAS_BUILD_PROFILE === 'production' || process.env.ZOLIK_STORE_BUILD === '1';
 
   return {
     ...config,
@@ -60,6 +63,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...config.ios,
       bundleIdentifier: APP_ID,
+      // Every upload to App Store Connect needs a higher build number than
+      // the last for its version. EAS keeps the count itself (eas.json's
+      // appVersionSource); a local store build passes one in.
+      ...(process.env.ZOLIK_IOS_BUILD_NUMBER ? { buildNumber: process.env.ZOLIK_IOS_BUILD_NUMBER } : {}),
       infoPlist: {
         ...config.ios?.infoPlist,
         // Arbitrary loads are for pointing a dev build at a LAN server over

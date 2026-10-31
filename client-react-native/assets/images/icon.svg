@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#243247"/>
+      <stop offset="1" stop-color="#0f1720"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8cc4ff"/>
+      <stop offset="1" stop-color="#4f8fdc"/>
+    </linearGradient>
+    <pattern id="weave" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="36" height="36" fill="none"/>
+      <path d="M0 18 H36 M18 0 V36" stroke="#ffffff" stroke-opacity="0.22" stroke-width="5"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(512 560)">
+    <!-- left card back -->
+    <g transform="rotate(-18) translate(-40 0)" filter="url(#shadow)">
+      <rect x="-190" y="-270" width="380" height="540" rx="40" fill="url(#back)"/>
+      <rect x="-190" y="-270" width="380" height="540" rx="40" fill="url(#weave)"/>
+      <rect x="-166" y="-246" width="332" height="492" rx="26" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="8"/>
+    </g>
+    <!-- right card back -->
+    <g transform="rotate(18) translate(40 0)" filter="url(#shadow)">
+      <rect x="-190" y="-270" width="380" height="540" rx="40" fill="url(#back)"/>
+      <rect x="-190" y="-270" width="380" height="540" rx="40" fill="url(#weave)"/>
+      <rect x="-166" y="-246" width="332" height="492" rx="26" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="8"/>
+    </g>
+    <!-- front card: the ace of spades -->
+    <g filter="url(#shadow)">
+      <rect x="-190" y="-290" width="380" height="540" rx="40" fill="#fbfbf8"/>
+      <g transform="translate(0 0) scale(0.92)" fill="#111827">
+        <path d="M0,-150 C55,-85 150,-35 150,40 C150,100 92,128 42,98 C50,138 68,166 92,188 L-92,188 C-68,166 -50,138 -42,98 C-92,128 -150,100 -150,40 C-150,-35 -55,-85 0,-150 Z"/>
+      </g>
+      <text x="-150" y="-205" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="700" font-size="76" fill="#111827" text-anchor="middle">A</text>
+    </g>
+  </g>
+</svg>
