@@ -48,7 +48,8 @@ function NotSeated() {
   const { session, playOffline, joinNearby, joinBluetooth } = useSession();
   // A QR code from a host's screen opens the app here with the address in
   // `h`. It is shown, not joined: the player decides with one more tap.
-  const { h } = useLocalSearchParams<{ h?: string }>();
+  // A game's own page sends `moduleId`, and gets the player back once seated.
+  const { h, moduleId } = useLocalSearchParams<{ h?: string; moduleId?: string }>();
   const [name, setName] = useState(() => session?.username ?? guestNameFor());
   const named = useRef(false);
   const [address, setAddress] = useState(h ?? '');
@@ -94,7 +95,7 @@ function NotSeated() {
     setError('');
     try {
       await action();
-      router.dismissTo('/');
+      router.dismissTo(moduleId ? `/lobby/games?moduleId=${encodeURIComponent(moduleId)}` : '/');
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       if (e instanceof NearbyVersionError) setError(t('offline.versionMismatch'));

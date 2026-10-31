@@ -419,7 +419,13 @@ func (m *Manager) Hub() *ws.Hub     { return m.hub }
 
 // Create opens a lobby for a module.
 func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player) (models.Match, error) {
-	return m.create(ctx, moduleID, cfg, host, "")
+	return m.create(ctx, moduleID, cfg, host, "", false)
+}
+
+// CreateListed opens a lobby anybody can find on the game's page, not only
+// the people its code is sent to. See models.Match.Listed.
+func (m *Manager) CreateListed(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player) (models.Match, error) {
+	return m.create(ctx, moduleID, cfg, host, "", true)
 }
 
 // CreateLesson opens a lobby dealt for a guided lesson: the lesson's seed, and
@@ -429,10 +435,10 @@ func (m *Manager) CreateLesson(ctx context.Context, moduleID string, cfg module.
 	if lessonID == "" {
 		return models.Match{}, module.Error{Code: "UNKNOWN_LESSON"}
 	}
-	return m.create(ctx, moduleID, cfg, host, lessonID)
+	return m.create(ctx, moduleID, cfg, host, lessonID, false)
 }
 
-func (m *Manager) create(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player, lessonID string) (models.Match, error) {
+func (m *Manager) create(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player, lessonID string, listed bool) (models.Match, error) {
 	mod := m.registry.Get(moduleID)
 	if mod == nil {
 		return models.Match{}, module.Error{Code: "UNKNOWN_MODULE", Message: moduleID}
@@ -473,7 +479,11 @@ func (m *Manager) create(ctx context.Context, moduleID string, cfg module.MatchC
 		JoinCode:  randomJoinCode(6),
 		Seed:      seed,
 		Tutorial:  tutorial,
+		Listed:    listed,
 		CreatedAt: time.Now().UTC(),
+		// Set here, not left to the first write, so a listed lobby is found
+		// the moment it exists rather than after its first renewal.
+		UpdatedAt: time.Now().UTC(),
 	}
 	created, err := m.repo.Insert(ctx, match)
 	if err != nil {

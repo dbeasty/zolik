@@ -10,8 +10,9 @@ export async function openGame(page: Page, moduleId: string) {
 }
 
 /**
- * Go from a game's page to its settings, the way a player does: "Play against
- * bots" (the default) or "Open a table". Every setting is on that screen, open;
+ * Go from a game's page to its settings, the way a player does: the Settings
+ * link beside Play now (the default — Play now itself deals at once, with no
+ * settings screen) or "Open a table". Every setting is on that screen, open;
  * the button that starts the game is `deal-me-in-<id>` or `open-table-<id>` —
  * see `playAgainstBots` and `openTableFor`.
  *
@@ -20,7 +21,7 @@ export async function openGame(page: Page, moduleId: string) {
 export async function openGameSetup(page: Page, moduleId: string, mode: 'bots' | 'table' = 'bots') {
   const start = page.getByTestId(mode === 'bots' ? `deal-me-in-${moduleId}` : `open-table-${moduleId}`);
   if (await start.isVisible()) return;
-  await page.getByTestId(mode === 'bots' ? `play-bots-${moduleId}` : `play-friends-${moduleId}`).click();
+  await page.getByTestId(mode === 'bots' ? `play-settings-${moduleId}` : `play-friends-${moduleId}`).click();
   await expect(start).toBeVisible({ timeout: 30_000 });
 }
 

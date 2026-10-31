@@ -40,6 +40,9 @@ type MatchStateMsg struct {
 	// showing the code, which is all it ever had.
 	InviteURL string `json:"inviteUrl,omitempty"`
 	HostID    string `json:"hostId,omitempty"`
+	// Listed is whether the host has this lobby on its game's page for anybody
+	// to join, so their lobby screen can show it and keep it renewed.
+	Listed bool `json:"listed,omitempty"`
 	// Options is what the lobby chose, echoed back so a client can offer the
 	// same table again without remembering how this one was set up — the
 	// numbers are already the module's own vocabulary, so passing them on
@@ -291,6 +294,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		JoinCode:        match.JoinCode,
 		InviteURL:       m.InviteURL(match.JoinCode),
 		HostID:          match.HostID,
+		Listed:          match.Listed,
 		WinnerID:        match.WinnerID,
 		Winners:         match.Winners,
 		SuspendedPlayer: match.SuspendedPlayer,

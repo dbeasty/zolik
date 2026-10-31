@@ -13,6 +13,7 @@ import { LearnButton } from '@/src/guide/LearnButton';
 import { useLocale } from '@/src/hooks/useLocale';
 import { formatApiError } from '@/src/lib/apiError';
 import { choiceLabel, moduleLabel, optionHelp, optionLabel, variationLabel } from '@/src/lib/gameLabels';
+import { botChoices, botCount, dealWithBots, resolveSetup } from '@/src/lib/dealSetup';
 import { loadGameSetup, saveGameSetup } from '@/src/lib/gameSetupStore';
 import { t } from '@/src/lib/i18n';
 import { factText } from '@/src/lib/labels';
@@ -68,27 +69,11 @@ export default function GameSetupScreen() {
         }
         const saved = await loadGameSetup(m.id);
         if (cancelled) return;
-        // Only trust a saved pick that still matches this module's current
-        // descriptor: a variation or option the server has since renamed or
-        // dropped falls back to the module's own default rather than
-        // resurrecting a stale choice.
-        const savedVariation =
-          saved?.variation && m.variations?.some((x) => x.id === saved.variation)
-            ? saved.variation
-            : undefined;
-        const variationId = savedVariation ?? m.variations?.[0]?.id;
-        const spec = m.variations?.find((x) => x.id === variationId);
-        const o: Record<string, number> = { ...(spec?.defaults ?? {}) };
-        for (const opt of m.options ?? []) {
-          // A saved value the option no longer offers is as stale as a
-          // dropped option: "AI" saved against a game that has since stopped
-          // offering it would otherwise be sent back and refused.
-          const v = saved?.options?.[opt.name];
-          if (v !== undefined && (opt.choices ?? []).some((c) => c.value === v)) o[opt.name] = v;
-        }
-        setVariation(variationId);
-        setOptions(o);
-        setBots(saved?.bots);
+        // The same reading of last time's setup that Play now deals with.
+        const resolved = resolveSetup(m, saved);
+        setVariation(resolved.variation);
+        setOptions(resolved.options);
+        setBots(resolved.bots);
         setMod(m);
       } catch (e) {
         if (!cancelled) setError(formatApiError(e));
@@ -122,23 +107,16 @@ export default function GameSetupScreen() {
       // Remembered for next time regardless of how the match turns out — it
       // is a preference about this screen, not a fact about the match.
       await saveGameSetup(mod.id, { variation, options, bots });
-      const { matchId } = await client.createMatch(mod.id, variation, options);
 
       if (mode === 'table') {
         // Open the table and let the host fill it: invite someone out of the
         // waiting room, add bots, then deal.
+        const { matchId } = await client.createMatch(mod.id, variation, options);
         router.replace(`/lobby/table?matchId=${encodeURIComponent(matchId)}`);
         return;
       }
 
-      // As many bots as asked for, clamped to the seats this module has. The
-      // screen does not know what a legal table is for any game — the
-      // descriptor does, and the clamp is the only thing reading it.
-      const seats = botCount(mod, bots);
-      for (let i = 0; i < seats; i++) {
-        await client.addBot(matchId);
-      }
-      await client.startMatch(matchId);
+      const matchId = await dealWithBots(client, mod, { variation, options, bots });
       router.replace(`/match/${matchId}`);
     } catch (e) {
       setStartError(formatApiError(e));
@@ -316,33 +294,6 @@ export default function GameSetupScreen() {
       </View>
     </Screen>
   );
-}
-
-/**
- * The bot counts a module can be opened with: enough to reach its minimum
- * table at the low end, one short of its maximum at the high end — because
- * one of the seats is the host's. A one-seat game has exactly one answer:
- * none.
- */
-function botChoices(mod: MatchModule): number[] {
-  if (mod.maxPlayers <= 1) return [0];
-  const out: number[] = [];
-  for (let n = Math.max(1, mod.minPlayers - 1); n <= Math.max(1, mod.maxPlayers - 1); n++) {
-    out.push(n);
-  }
-  return out;
-}
-
-/**
- * How many bots to seat: what the host picked, clamped to the range above.
- * A clamp rather than a plain read, so a count left over from a game whose
- * range has since moved can never post a seat the server is going to refuse.
- */
-function botCount(mod: MatchModule, picked?: number): number {
-  const choices = botChoices(mod);
-  const lo = choices[0];
-  const hi = choices[choices.length - 1];
-  return Math.min(hi, Math.max(lo, picked ?? lo));
 }
 
 const styles = StyleSheet.create({

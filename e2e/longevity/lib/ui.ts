@@ -63,7 +63,8 @@ async function openGame(page: Page, moduleId: string): Promise<void> {
  */
 export async function startAgainstBots(page: Page, moduleId: string, rng: () => number): Promise<void> {
   await openGame(page, moduleId);
-  await page.getByTestId(`play-bots-${moduleId}`).click();
+  // The Settings link, not Play now: Play now deals at once, with no pills.
+  await page.getByTestId(`play-settings-${moduleId}`).click();
   await page.getByTestId(`deal-me-in-${moduleId}`).waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
   const pills = await page
     .locator(`[data-testid^="bots-${moduleId}-"]`)

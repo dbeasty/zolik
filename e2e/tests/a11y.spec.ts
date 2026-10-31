@@ -73,7 +73,7 @@ test.describe('axe: screens outside a match', () => {
 
   test('game setup has no serious violations', async ({ page }) => {
     await openGame(page, 'zolik');
-    await page.getByTestId('play-bots-zolik').click();
+    await page.getByTestId('play-settings-zolik').click();
     await expect(page.getByTestId('deal-me-in-zolik')).toBeVisible({ timeout: 30_000 });
     await scan(page, 'setup');
   });

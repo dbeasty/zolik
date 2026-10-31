@@ -516,6 +516,18 @@ export type MatchPlayer = {
  */
 export type CardDeck = 'german' | 'spanish' | 'lastcard';
 
+/** A lobby its host opened to anybody, as `GET /matches/open` lists it. */
+export type OpenTable = {
+  matchId: string;
+  joinCode: string;
+  variation?: string;
+  hostName: string;
+  hostId: string;
+  hostAvatar?: string;
+  seated: number;
+  seats: number;
+};
+
 export type MatchState = {
   type: 'match_state';
   matchId: string;
@@ -535,6 +547,8 @@ export type MatchState = {
    */
   inviteUrl?: string;
   hostId?: string;
+  /** The host has this lobby on its game's page for anybody to join. */
+  listed?: boolean;
   winnerId?: string;
   winners?: string[];
   suspendedPlayer?: string;

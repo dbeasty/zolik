@@ -1,12 +1,11 @@
 import * as Linking from 'expo-linking';
 import { router, useIsFocused, type Href } from 'expo-router';
-import { useEffect, useId, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PressableStateCallbackType } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { FormError } from '@/src/a11y/Field';
-import { domId, heading, invalidWhen } from '@/src/a11y/props';
+import { heading } from '@/src/a11y/props';
 import type { MatchModule, StoredTable } from '@/src/api/matchTypes';
 import { BuildFooter } from '@/src/components/BuildFooter';
 import { useOrderedModules } from '@/src/components/GameButtons';
@@ -26,7 +25,6 @@ import { useWide } from '@/src/hooks/useWide';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
 import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
-import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { hasSeenIntro } from '@/src/lib/introStore';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
@@ -72,6 +70,9 @@ function MenuButton({
  * player opens the app to answer, "what shall I play?", and the two things
  * worth knowing while answering it, which ride on each game's row: a table of
  * it waiting for you, and people waiting to play it.
+ *
+ * The ways into a game — open a table, play bots, play offline, join a table by
+ * its code or link — are on each game's page, not here.
  */
 export default function MainMenu() {
   const { session, loading, offline, servedByTable } = useSession();
@@ -96,10 +97,12 @@ export default function MainMenu() {
 
   const below = (
     <View style={{ marginTop: 16 }}>
-      {/* Only where the app carries its own server: iOS and Android, not
-          the web build or Expo Go. Offered to everyone, signed in or not,
-          because the point is that it needs nothing from the internet. */}
-      {nearbyAvailable ? (
+      {/* Only where the app carries its own server: iOS, Android and the Mac
+          app, not the web build or Expo Go. With a session it is on each
+          game's page; here only for somebody without one, for whom it is a
+          way in that needs nothing from the internet, and for somebody at an
+          offline table, for whom it is the room's controls and the way back. */}
+      {nearbyAvailable && (!session || offline) ? (
         <MenuButton
           label={offline ? t('offline.title') : t('home.playOffline')}
           secondary
@@ -148,7 +151,6 @@ export default function MainMenu() {
         <>
           <WaitingInvitesCard />
           <GameRows tables={tables} columns={2} />
-          {session ? <TableCodeJoin /> : null}
           {below}
         </>
       )}
@@ -165,7 +167,7 @@ export default function MainMenu() {
 
 /**
  * What a wide window has room for beside the games: invites that are waiting,
- * the tables that need you, how the last few ended, and the code box. All of it
+ * the tables that need you, and how the last few ended. All of it
  * is a copy of something the narrow layout reaches by a tap — the account menu
  * or a game's own page — never information that exists only here.
  */
@@ -215,7 +217,6 @@ function SidePanel({
           </View>
         </>
       ) : null}
-      <TableCodeJoin />
     </View>
   );
 }
@@ -386,67 +387,6 @@ function AvailabilityStrip({ modules }: { modules: MatchModule[] }) {
 }
 
 /**
- * A table somebody else opened, by its code — or by the whole link, pasted,
- * because pasting the thing you were sent is the obvious move. `/join/<code>`
- * does the rest, exactly as it does for a link that was tapped.
- */
-function TableCodeJoin() {
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-  const id = useId();
-  const labelId = domId('table-code-label', id);
-  const errorId = domId('table-code-error', id);
-  const join = () => {
-    const trimmed = codeFromInviteInput(code);
-    if (!trimmed) {
-      setError(t('lobby.join.needCode'));
-      return;
-    }
-    setError('');
-    setCode('');
-    router.push(`/join/${encodeURIComponent(trimmed)}` as Href);
-  };
-  return (
-    <View style={{ marginTop: 16 }}>
-      {/* A visible name for the box: its placeholder goes the moment a
-          player starts typing (or pasting). */}
-      <Text nativeID={labelId} style={styles.codeLabel}>
-        {t('nav.join')}
-      </Text>
-      <View style={styles.codeRow}>
-        <TextInput
-          testID="table-code-input"
-          accessibilityLabel={t('nav.join')}
-          aria-labelledby={labelId}
-          {...invalidWhen(error, errorId)}
-          value={code}
-          onChangeText={(v) => {
-            setCode(v);
-            if (error) setError('');
-          }}
-          onSubmitEditing={join}
-          placeholder={t('lobby.join.placeholder')}
-          placeholderTextColor={colors.muted}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          style={[shared.input, styles.codeInput]}
-        />
-        <Pressable
-          testID="table-code-join"
-          accessibilityRole="button"
-          aria-label={t('a11y.home.joinCode')}
-          onPress={join}
-          style={[shared.button, shared.buttonSecondary, styles.codeButton]}
-        >
-          <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('picker.join')}</Text>
-        </Pressable>
-      </View>
-      {error ? <FormError id={errorId} message={error} /> : null}
-    </View>
-  );
-}
-
-/**
  * Whether this device has cleared the first-run intro, or never needed to
  * see it fetched at all.
  *
@@ -600,10 +540,6 @@ const styles = StyleSheet.create({
   resumeText: { color: colors.accentButton, fontWeight: '700', fontSize: 13 },
   strip: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
   stripStop: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
-  codeRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  codeLabel: { color: colors.muted, fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  codeInput: { flex: 1, marginBottom: 0 },
-  codeButton: { marginBottom: 0, paddingVertical: 12 },
 });
 
 /**

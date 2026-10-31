@@ -81,6 +81,11 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// without one it is the spectator view.
 	r.With(optionalMatchAuth).Get("/matches/{id}", h.getMatch)
 	r.With(auth.AuthMiddleware).Post("/matches", h.createMatch)
+	// One game's lobbies their hosts opened to anybody, for its page to offer.
+	// Static, so chi matches it ahead of /matches/{id}.
+	r.With(auth.AuthMiddleware).Get("/matches/open", h.openTables)
+	// The host listing their lobby, renewing the listing, or withdrawing it.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/listed", h.setListed)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/join", h.joinMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
 	// Bringing a swept-up table back. Separate from start, which allocates a
@@ -358,6 +363,9 @@ type createMatchReq struct {
 	// seed, and a mark that keeps the table out of statistics and out of the
 	// host's games. See module.LessonProvider.
 	LessonID string `json:"lessonId,omitempty"`
+	// Listed lets anybody find the lobby on the game's page. See
+	// models.Match.Listed.
+	Listed bool `json:"listed,omitempty"`
 }
 
 // joinMatchReq is everything a player brings to a seat they are taking. Only
@@ -401,6 +409,8 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 	var err error
 	if body.LessonID != "" {
 		m, err = h.manager.CreateLesson(req.Context(), body.ModuleID, cfg, host, body.LessonID)
+	} else if body.Listed {
+		m, err = h.manager.CreateListed(req.Context(), body.ModuleID, cfg, host)
 	} else {
 		m, err = h.manager.Create(req.Context(), body.ModuleID, cfg, host)
 	}
@@ -416,6 +426,48 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 		resp["inviteUrl"] = link
 	}
 	writeJSON(w, resp)
+}
+
+func (h *Handlers) openTables(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	moduleID := req.URL.Query().Get("moduleId")
+	if moduleID == "" {
+		http.Error(w, "moduleId is required", http.StatusBadRequest)
+		return
+	}
+	tables, err := h.manager.OpenTables(req.Context(), moduleID, uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"tables": tables})
+}
+
+type setListedReq struct {
+	Listed bool `json:"listed"`
+}
+
+func (h *Handlers) setListed(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body setListedReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "listed is required", http.StatusBadRequest)
+		return
+	}
+	m, err := h.manager.SetListed(req.Context(), chi.URLParam(req, "id"), uc.UserID, body.Listed)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "listed": m.Listed})
 }
 
 func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
