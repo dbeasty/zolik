@@ -114,6 +114,12 @@ type Match struct {
 	// SeatOrder is the finished table's order, which a rematch keeps: whoever
 	// sits down late is put back where they sat, not at the end.
 	SeatOrder []string `bson:"seatOrder,omitempty" json:"-"`
+	// Listed is the host letting anybody find this lobby on the game's page,
+	// not only the people they sent its code to. Off unless asked for: a
+	// table opened for friends stays theirs. A listing lasts only as long as
+	// the host's lobby screen keeps renewing it (see Manager.OpenTables), so
+	// a host who walked away stops being offered to strangers.
+	Listed bool `bson:"listed,omitempty" json:"listed,omitempty"`
 
 	// Tutorial marks a table dealt for a guided lesson. It is a real match —
 	// real engine, real bots — that keeps out of everything a played game

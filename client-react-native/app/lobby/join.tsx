@@ -12,6 +12,7 @@ import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { formatApiError } from '@/src/lib/apiError';
 import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
+import { moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
@@ -108,7 +109,7 @@ export default function JoinMatchScreen() {
     <Screen title={t('lobby.join.waitingTitle')} scroll>
       <Text testID="lobby-joined" style={shared.status}>
         {state?.moduleId
-          ? t('lobby.join.joinedGame', { game: state.moduleId })
+          ? t('lobby.join.joinedGame', { game: moduleName(state.moduleId) })
           : t('lobby.join.joinedTable')}
       </Text>
       {error ? <FormError message={error} /> : null}

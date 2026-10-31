@@ -1,7 +1,7 @@
 import { WEB_COOKIE_SESSION, ZOLIK_BASE_URL } from '@/src/config';
 import type { GuideLesson } from '@/src/guide/types';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
-import type { DealResult, MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
+import type { DealResult, MatchAction, MatchModule, MatchState, ModuleRules, OpenTable, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -612,6 +612,22 @@ export class ZolikClient {
       { moduleId, variation, options, avatar: this.avatarId, ...(lessonId ? { lessonId } : {}) },
       true,
     );
+  }
+
+  /** One game's lobbies their hosts opened to anybody, each with the code
+   *  that seats the caller. Never the caller's own table. */
+  async openTables(moduleId: string): Promise<OpenTable[]> {
+    const data = await this.get<{ tables: OpenTable[] }>(
+      `/matches/open?moduleId=${encodeURIComponent(moduleId)}`,
+      true,
+    );
+    return data.tables ?? [];
+  }
+
+  /** Lists the host's lobby on its game's page, renews the listing, or
+   *  withdraws it. A listing lapses unless renewed; see `ListedCard`. */
+  async setListed(idOrCode: string, listed: boolean): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(idOrCode)}/listed`, { listed }, true);
   }
 
   /** Joins by match id or by the short code a host reads out. */

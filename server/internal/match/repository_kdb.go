@@ -507,6 +507,30 @@ func (r *kdbRepository) FindStranded(ctx context.Context, idleBefore time.Time, 
 	return out, nil
 }
 
+// FindOpen scans the index for one game's listed lobbies renewed since since.
+func (r *kdbRepository) FindOpen(ctx context.Context, moduleID string, since time.Time, limit int) ([]models.Match, error) {
+	var out []models.Match
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		if m.Status != "lobby" || !m.Listed || m.ModuleID != moduleID || m.UpdatedAt.Before(since) {
+			return nil
+		}
+		out = append(out, m)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
 // FindDealtFrom scans for the completed matches dealt with origin's deal — a
 // scan, as every cross-match read on this backend is.
 func (r *kdbRepository) FindDealtFrom(ctx context.Context, origin bson.ObjectID, limit int) ([]models.Match, error) {

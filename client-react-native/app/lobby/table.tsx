@@ -17,6 +17,7 @@ import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { ListedCard } from '@/src/notify/ListedCard';
 import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useLocale } from '@/src/hooks/useLocale';
@@ -280,6 +281,11 @@ export default function TableScreen() {
             phone. */}
         {isHost && !offline && state?.status === 'lobby' ? (
           <NotifyCircleCard matchId={state.matchId || id} />
+        ) : null}
+        {/* Strangers too, if the host says so: the table goes on its game's
+            page for as long as this screen is open. */}
+        {isHost && !offline && state?.status === 'lobby' ? (
+          <ListedCard matchId={state.matchId || id} listed={!!state.listed} onChange={poll} />
         ) : null}
 
         <Text style={[shared.status, { marginTop: 12 }]} {...heading(3)}>

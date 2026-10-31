@@ -10,6 +10,7 @@ import { formatApiError } from '@/src/lib/apiError';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
+import { moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
@@ -126,7 +127,7 @@ export default function JoinByLinkScreen() {
     <Screen title={t('nav.joining')} scroll>
       <ActivityIndicator aria-label={t('a11y.loading')} testID="invite-joining" />
       <Text style={[shared.status, { marginTop: 12 }]}>
-        {table?.moduleId ? t('join.takingSeatAt', { game: table.moduleId }) : t('join.takingSeat')}
+        {table?.moduleId ? t('join.takingSeatAt', { game: moduleName(table.moduleId) }) : t('join.takingSeat')}
       </Text>
     </Screen>
   );

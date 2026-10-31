@@ -22,18 +22,21 @@ import { storage } from '@/src/context/SessionContext';
  * - `nearby`: show a banner for tables other phones in the room are hosting.
  * - `announce`: tell my circle when I open a table online.
  * - `tellNearby`: let the room in (Wi-Fi) as soon as I host an offline table.
+ * - `listTables`: put a table I open on its game's page for anybody to join.
  */
-export type DeviceFlag = 'nearby' | 'announce' | 'tellNearby';
+export type DeviceFlag = 'nearby' | 'announce' | 'tellNearby' | 'listTables';
 
 const KEYS: Record<DeviceFlag, string> = {
   nearby: 'zolik_notify_nearby',
   announce: 'zolik_notify_announce',
   tellNearby: 'zolik_notify_tell_nearby',
+  listTables: 'zolik_list_tables',
 };
 
 /** All on until the player says otherwise: the point of the feature is that
- *  nobody has to go and find it. */
-const DEFAULTS: Record<DeviceFlag, boolean> = { nearby: true, announce: true, tellNearby: true };
+ *  nobody has to go and find it. Except listing a table for strangers, which
+ *  is a host's choice to make — a table opened for friends stays theirs. */
+const DEFAULTS: Record<DeviceFlag, boolean> = { nearby: true, announce: true, tellNearby: true, listTables: false };
 
 const cache: Partial<Record<DeviceFlag, boolean>> = {};
 const listeners = new Set<() => void>();

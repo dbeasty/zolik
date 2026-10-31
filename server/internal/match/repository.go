@@ -103,6 +103,10 @@ type Repository interface {
 	// holds a seat or a reserved one. What deleting the account walks; see
 	// Manager.ForgetAccount.
 	MatchIDsForUser(ctx context.Context, userID string) ([]bson.ObjectID, error)
+	// FindOpen lists one game's listed lobbies written no earlier than since,
+	// most recently renewed first, capped at limit. Candidates only: whether
+	// a seat is still free is the Manager's question. See Manager.OpenTables.
+	FindOpen(ctx context.Context, moduleID string, since time.Time, limit int) ([]models.Match, error)
 }
 
 // PlayerMatchFilter narrows FindForPlayer. A zero value lists every
@@ -373,6 +377,22 @@ func (r *mongoRepository) FindStranded(ctx context.Context, idleBefore time.Time
 			bson.M{"updatedAt": bson.M{"$exists": false}, "createdAt": bson.M{"$lte": idleBefore}},
 		}},
 		options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "updatedAt", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Match
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// FindOpen lists one game's listed lobbies renewed since since.
+func (r *mongoRepository) FindOpen(ctx context.Context, moduleID string, since time.Time, limit int) ([]models.Match, error) {
+	cur, err := r.coll.Find(ctx,
+		bson.M{"status": "lobby", "listed": true, "moduleId": moduleID, "updatedAt": bson.M{"$gte": since}},
+		options.Find().SetSort(bson.D{{Key: "updatedAt", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(int64(limit)),
 	)
 	if err != nil {
 		return nil, err
