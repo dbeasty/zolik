@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Platform, ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { heading } from '@/src/a11y/props';
@@ -40,9 +40,14 @@ export function Screen({ title, subtitle, children, scroll, wide }: Props) {
     body
   );
   return (
-    <SafeAreaView style={shared.screen} edges={edges}>
+    <SafeAreaView style={scroll ? [shared.screen, styles.scrollScreen] : shared.screen} edges={edges}>
       {scroll ? (
         <ScrollView
+          // The screen's side margin belongs inside the scrolled content, not
+          // around the scroller: iOS draws its scroll bar just inside the
+          // scroller's edge, and with the margin outside, that edge was the
+          // edge of every full-width button, so the bar ran over them.
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           // A Tab stop on the web, so the arrow keys and Page Down scroll a
           // screen of prose — the rules, a legal notice — that has no control
@@ -58,3 +63,11 @@ export function Screen({ title, subtitle, children, scroll, wide }: Props) {
     </SafeAreaView>
   );
 }
+
+/** The screen's own side margin (`shared.screen`), moved inside the scroller. */
+const GUTTER = StyleSheet.flatten(shared.screen).padding;
+
+const styles = StyleSheet.create({
+  scrollScreen: { paddingHorizontal: 0 },
+  scrollContent: { paddingHorizontal: GUTTER },
+});
