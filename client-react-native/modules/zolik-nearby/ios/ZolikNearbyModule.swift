@@ -40,8 +40,15 @@ public class ZolikNearbyModule: Module {
       self.grace.enterBackground()
     }
 
+    // iOS takes a suspended app's listening sockets back, and the host's own
+    // listener with them: bring it back before the app asks it for anything,
+    // or a table left open behind another app answers nothing on return.
     OnAppEntersForeground {
       self.grace.enterForeground()
+      var error: NSError?
+      if !ZolikcoreRevive(&error), let error {
+        NSLog("zolik-nearby: reviving the host failed: %@", error.localizedDescription)
+      }
     }
 
     // The words of the notification a host phone shows when somebody sits
