@@ -12,13 +12,14 @@
 #   ZOLIK_MACOS_SKIP_WEB=1 …               reuse the last web export
 #   ZOLIK_MACOS_SKIP_CORE=1 …              reuse the last core
 #   CONFIG=release ZOLIK_MACOS_DEVELOPER_ID=1 scripts/build-macos.sh
-#                                          signed for any Mac, and notarized
+#                                          signed for any Mac, notarized, as a .dmg
 #
 # A plain build is ad hoc signed and opens only on the Mac that built it.
 # ZOLIK_MACOS_DEVELOPER_ID=1 signs with the team's Developer ID Application
 # certificate instead, under the hardened runtime, sends the app to Apple's
-# notary service, staples the ticket and zips the result for download as
-# build/Jokerless-<version>.zip. Notarizing uses credentials stored once with
+# notary service and staples the ticket, then puts it on a disk image for
+# download, build/Jokerless-<version>.dmg, which is signed, notarized and
+# stapled in turn. Notarizing uses credentials stored once with
 #   xcrun notarytool store-credentials jokerless-notary
 # (ZOLIK_MACOS_NOTARY_PROFILE names another profile).
 #
@@ -115,15 +116,41 @@ fi
 codesign --force --sign "$SIGN_ID" --options runtime --timestamp \
   --entitlements "$MAC/Resources/Jokerless.entitlements" "$APP"
 codesign --verify --strict --deep "$APP"
+# The notary service takes an app only inside an archive; the zip is just the
+# envelope.
 ZIP="$OUT/Jokerless-$ZOLIK_VERSION.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
-# The stapled ticket lets the app open the first time without asking Apple.
-# The zip is rebuilt so the download carries it.
-xcrun stapler staple "$APP"
 rm -f "$ZIP"
-ditto -c -k --keepParent "$APP" "$ZIP"
+# The stapled ticket lets the app open the first time without asking Apple,
+# including after it has been dragged out of the disk image.
+xcrun stapler staple "$APP"
 spctl --assess --type execute --verbose "$APP"
+
+# The disk image: the app beside a link to /Applications, so installing is
+# one drag, and the app's icon on the mounted volume.
+DMG="$OUT/Jokerless-$ZOLIK_VERSION.dmg"
+STAGE="$OUT/dmg"
+RW="$OUT/dmg-rw.dmg"
+MNT="$OUT/dmg-mount"
+rm -rf "$STAGE" "$RW" "$MNT" "$DMG"
+mkdir -p "$STAGE" "$MNT"
+ditto "$APP" "$STAGE/Jokerless.app"
+ln -s /Applications "$STAGE/Applications"
+cp "$APP/Contents/Resources/AppIcon.icns" "$STAGE/.VolumeIcon.icns"
+hdiutil create -quiet -volname Jokerless -srcfolder "$STAGE" -fs HFS+ -format UDRW "$RW"
+# The volume shows .VolumeIcon.icns only once its root is flagged as having a
+# custom icon, which needs the image mounted read-write. Mounted out of sight,
+# so the build does not open a Finder window.
+hdiutil attach -quiet -nobrowse -noautoopen -mountpoint "$MNT" "$RW"
+SetFile -a C "$MNT"
+hdiutil detach -quiet "$MNT"
+hdiutil convert -quiet "$RW" -format ULFO -o "$DMG"
+rm -rf "$STAGE" "$RW" "$MNT"
+codesign --force --sign "$SIGN_ID" --timestamp "$DMG"
+xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+xcrun stapler staple "$DMG"
+spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 echo "app: $APP ($(du -sh "$APP" | cut -f1)), signed by $SIGN_ID and notarized"
-echo "download: $ZIP ($(du -sh "$ZIP" | cut -f1))"
+echo "download: $DMG ($(du -sh "$DMG" | cut -f1))"
