@@ -25,6 +25,7 @@ the app record below to exist first, and Xcode signed in to the team.
 | Subtitle (30) | Card games with friends & bots |
 | Bundle ID | com.jokerless.app |
 | SKU | jokerless-ios |
+| Apple ID | 6829145538 (created 2026-10-30, iOS only) |
 | Primary language | English (U.S.) |
 | Primary category | Games › Card |
 | Secondary category | Games › Board |
