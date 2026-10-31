@@ -373,7 +373,10 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           </Text>
         ))}
 
-        {/* Turn is a pushed fact, not something worked out from offers. */}
+        {/* Turn is a pushed fact, not something worked out from offers.
+            Every seat keeps the line's room, drawn only on the seat to play:
+            a line that came and went with the turn made the whole strip
+            grow and shrink each move, and the board under it jumped. */}
         {seat.active ? (
           <View style={styles.turnRow}>
             <TurnPulse color={skin.colors.accent} />
@@ -381,7 +384,16 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {t('match.toPlay')}
             </Text>
           </View>
-        ) : null}
+        ) : (
+          <View
+            style={[styles.turnRow, styles.turnRowIdle]}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            {...((Platform.OS === 'web' ? { 'aria-hidden': true } : {}) as object)}
+          >
+            <Text style={styles.turn}>{t('match.toPlay')}</Text>
+          </View>
+        )}
 
         {/* Who this seat plays with. On the viewer's partner it is the
             shorter, plainer sentence — "Your team" says the one thing that
@@ -772,7 +784,9 @@ function seatStyles(m: Metrics, s: Skin) {
     seatShared: { flexGrow: 1, flexBasis: 0 },
     // The seat on turn is outlined rather than filled: a filled highlight on a
     // small tile competes with the cards, which are what a player is looking at.
-    active: { borderColor: colors.accent, borderWidth: 2 },
+    // The thicker border takes its pixel from the padding, so the tile stays
+    // the size it was and nothing around it moves when the turn passes.
+    active: { borderColor: colors.accent, borderWidth: 2, padding: 7 },
     // The seat on turn sits a little proud of the felt. Three pixels and a
     // deeper shadow, which is as much as a tile can rise before the row it is
     // in starts to look ragged.
@@ -792,6 +806,9 @@ function seatStyles(m: Metrics, s: Skin) {
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     nameCrowded: { marginTop: 4 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+    // The room "to play" takes on a seat that is not, kept so turns never
+    // change a tile's height.
+    turnRowIdle: { opacity: 0 },
     name: { color: colors.text, fontWeight: '700', fontSize: m.panel.bodyFont + 1, flexShrink: 1 },
     rank: {
       color: colors.onAccent,

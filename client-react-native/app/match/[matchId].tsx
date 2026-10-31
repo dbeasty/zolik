@@ -85,6 +85,7 @@ import {
   type BoardLike,
   type FlightPlan,
 } from '@/src/lib/flights';
+import { useNoShrink } from '@/src/hooks/useNoShrink';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { lastCardColourOfKey } from '@/src/lib/cards';
 import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection } from '@/src/lib/hand';
@@ -695,6 +696,11 @@ function MatchScreen() {
   // so a target sliding under a held pointer does not restart the dwell below.
   const scrolling = useRef(false);
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  // The board never gets shorter within a deal, so a turn line going away
+  // under the piles cannot pull them down the screen — see useNoShrink.
+  const boardNoShrink = useNoShrink(
+    `${windowWidth}x${windowHeight}:${state?.status}:${state?.rounds?.rounds.length ?? 0}`,
+  );
   const dragging = drag !== null;
   useEffect(() => {
     if (!dragging) {
@@ -2211,7 +2217,12 @@ function MatchScreen() {
         // runs to both edges (it is drawn behind everything) while the board
         // itself stops at a table's width — without this, a player's hand and
         // the draw pile end up at opposite ends of a metre of glass.
-        contentContainerStyle={[styles.body, { maxWidth: metrics.maxWidth, width: '100%', alignSelf: 'center' }]}
+        contentContainerStyle={[
+          styles.body,
+          { maxWidth: metrics.maxWidth, width: '100%', alignSelf: 'center' },
+          boardNoShrink.style,
+        ]}
+        onContentSizeChange={boardNoShrink.onContentSizeChange}
         testID="match-screen"
         {...ending.scrollProps}
         // Last, and deliberately: the spread above carries an `onScroll` of
