@@ -435,6 +435,19 @@ func (r *kdbRepository) UpsertPlayerStats(ctx context.Context, ps PlayerStats) e
 	return r.k.Put(db.UserReadOnlyNS(hex), playerStatsKey, mirrored)
 }
 
+func (r *kdbRepository) DeletePlayerStats(ctx context.Context, key string) error {
+	if _, err := r.k.Delete(db.NSPlayerStats, key); err != nil {
+		return err
+	}
+	// And the copy UpsertPlayerStats left for the account's devices.
+	if hex, ok := strings.CutPrefix(key, "user:"); ok && hex != "" {
+		if _, err := r.k.Delete(db.UserReadOnlyNS(hex), playerStatsKey); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *kdbRepository) Leaderboard(ctx context.Context, q LeaderboardQuery) ([]LeaderboardRow, error) {
 	kind := q.Kind
 	if kind == "" {

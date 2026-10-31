@@ -1202,6 +1202,11 @@ export const pt: Record<string, string> = {
   'account.faceAndTable': 'Cara e aspeto da mesa',
   'account.refresh': 'Atualizar',
   'account.remove': 'Remover',
+  'account.delete': 'Eliminar conta',
+  'account.deleteConfirmTitle': 'Eliminar a tua conta?',
+  'account.deleteConfirmBody': 'Isto elimina a tua conta em todos os dispositivos: as formas de iniciar sessão, as estatísticas, o círculo de jogo e as tabelas de pontos. Os jogos que jogaste ficam no histórico dos outros jogadores, mas sem o teu nome. Não pode ser desfeito.',
+  'account.deleteConfirm': 'Eliminar conta',
+  'account.deleteCancel': 'Cancelar',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Jogos de cartas clássicos, jogados online com pessoas reais',

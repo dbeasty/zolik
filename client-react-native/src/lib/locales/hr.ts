@@ -1186,6 +1186,11 @@ export const hr: Record<string, string> = {
   'account.faceAndTable': 'Lice i izgled stola',
   'account.refresh': 'Osvježi',
   'account.remove': 'Ukloni',
+  'account.delete': 'Izbriši račun',
+  'account.deleteConfirmTitle': 'Izbrisati tvoj račun?',
+  'account.deleteConfirmBody': 'Time se tvoj račun briše na svim uređajima: načini prijave, statistika, krug igrača i tablice bodova. Odigrane igre ostaju u povijesti ostalih igrača, ali bez tvog imena. Ovo se ne može poništiti.',
+  'account.deleteConfirm': 'Izbriši račun',
+  'account.deleteCancel': 'Odustani',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasične kartaške igre, igrane online sa stvarnim ljudima',

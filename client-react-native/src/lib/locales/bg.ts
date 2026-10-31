@@ -1198,6 +1198,11 @@ export const bg: Record<string, string> = {
   'account.faceAndTable': 'Лице и вид на масата',
   'account.refresh': 'Опресни',
   'account.remove': 'Премахни',
+  'account.delete': 'Изтрий акаунта',
+  'account.deleteConfirmTitle': 'Да изтрием ли акаунта ти?',
+  'account.deleteConfirmBody': 'Това изтрива акаунта ти на всички устройства: начините за вход, статистиката, игралния кръг и таблиците с точки. Изиграните игри остават в историята на другите играчи, но без името ти. Това не може да се върне.',
+  'account.deleteConfirm': 'Изтрий акаунта',
+  'account.deleteCancel': 'Отказ',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Класически карти игри, играни онлайн с истински хора',

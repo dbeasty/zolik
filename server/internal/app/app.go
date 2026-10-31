@@ -405,6 +405,7 @@ func New(cfg Config) (*App, error) {
 		botSettings: r.bots,
 	}
 	loadHardModels(ctx, r.bots)
+	app.wireAccountDeletion()
 
 	// Opened here rather than in Start so that every namespace this process
 	// opens afterwards is hooked into the node from the first one: a
@@ -441,6 +442,26 @@ func (c claimChain) ClaimGuestHistory(ctx context.Context, guestID, userID, user
 		log.Printf("notify: carrying guest %s circle to %s: %v", guestID, userID, err)
 	}
 	return n, nil
+}
+
+// wireAccountDeletion tells the auth handlers who else holds something about
+// an account, so deleting one reaches all of it. The account's own records —
+// its identities, sessions and the account itself — are auth's, and go last.
+func (a *App) wireAccountDeletion() {
+	// The manager is built on first use, and this runs before that.
+	a.auth.AddAccountForgetter("matches", auth.AccountForgetterFunc(func(ctx context.Context, userID string) error {
+		return a.matchManager().ForgetAccount(ctx, userID)
+	}))
+	a.auth.AddAccountForgetter("stats", auth.AccountForgetterFunc(stats.NewClaimer(a.statsRepo).ForgetUser))
+	a.auth.AddAccountForgetter("circle", auth.AccountForgetterFunc(a.notify.ForgetUser))
+	a.auth.AddAccountForgetter("scorepads", auth.AccountForgetterFunc(a.scoringRepo.DeleteForOwner))
+	if a.kdb != nil {
+		// Last: the steps above drop their own copies there, and this takes
+		// whatever is left in the account's namespaces.
+		a.auth.AddAccountForgetter("account namespaces", auth.AccountForgetterFunc(func(_ context.Context, userID string) error {
+			return db.KDBClearUserData(a.kdb, userID)
+		}))
+	}
 }
 
 // pushSenders builds the push services the configuration allows. Anything

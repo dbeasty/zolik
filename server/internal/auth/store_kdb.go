@@ -248,6 +248,10 @@ func (s *kdbStore) UpdateUser(ctx context.Context, id bson.ObjectID, set bson.M)
 	return db.KDBUpdateUserFields(s.k, id, set)
 }
 
+func (s *kdbStore) DeleteUser(ctx context.Context, id bson.ObjectID) error {
+	return db.KDBDeleteUser(s.k, id)
+}
+
 // --- one-time login codes ---
 
 func (s *kdbStore) InsertLoginCode(ctx context.Context, c models.LoginCode) error {

@@ -1185,6 +1185,11 @@ export const sk: Record<string, string> = {
   'account.faceAndTable': 'Tvár a vzhľad stola',
   'account.refresh': 'Obnoviť',
   'account.remove': 'Odobrať',
+  'account.delete': 'Zmazať účet',
+  'account.deleteConfirmTitle': 'Zmazať tvoj účet?',
+  'account.deleteConfirmBody': 'Tým zmažeš svoj účet na všetkých zariadeniach: spôsoby prihlásenia, štatistiky, herný kruh aj tabuľky skóre. Odohrané hry zostanú v histórii ostatných hráčov, len bez tvojho mena. Toto sa nedá vrátiť späť.',
+  'account.deleteConfirm': 'Zmazať účet',
+  'account.deleteCancel': 'Zrušiť',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasické kartové hry, hrané online so skutočnými ľuďmi',

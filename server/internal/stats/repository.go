@@ -65,6 +65,9 @@ type Repository interface {
 	// UpsertPlayerStats writes a subject's lifetime record, creating it on
 	// first use.
 	UpsertPlayerStats(ctx context.Context, ps PlayerStats) error
+	// DeletePlayerStats removes a subject's lifetime record, for an account
+	// that is deleted. Deleting one that does not exist is not an error.
+	DeletePlayerStats(ctx context.Context, key string) error
 	Leaderboard(ctx context.Context, q LeaderboardQuery) ([]LeaderboardRow, error)
 }
 
@@ -268,6 +271,11 @@ func (r *mongoRepository) UpsertPlayerStats(ctx context.Context, ps PlayerStats)
 		ps,
 		options.Replace().SetUpsert(true),
 	)
+	return err
+}
+
+func (r *mongoRepository) DeletePlayerStats(ctx context.Context, key string) error {
+	_, err := r.players.DeleteOne(ctx, bson.M{"subjectKey": key})
 	return err
 }
 

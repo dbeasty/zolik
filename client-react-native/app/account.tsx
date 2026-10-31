@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FormError } from '@/src/a11y/Field';
 import { heading } from '@/src/a11y/props';
+import { Sheet } from '@/src/a11y/Sheet';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, claimedMessage, orderProviders, providerButtonLabel } from '@/src/lib/auth';
@@ -13,8 +14,9 @@ import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
 /**
- * The account screen: which sign-in methods are attached, and the chance to
- * add more or to claim a device's leftover guest history.
+ * The account screen: which sign-in methods are attached, the chance to add
+ * more or to claim a device's leftover guest history, and deleting the
+ * account.
  *
  * Every action here goes through SessionContext so the in-memory session and
  * SecureStore stay in step with whatever the server just did — this screen
@@ -32,12 +34,14 @@ export default function AccountScreen() {
     unlinkProvider,
     claimGuestHistory,
     refreshAccount,
+    deleteAccount,
     guestKey,
   } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
   const [guestLinkShared, setGuestLinkShared] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   if (loading) {
     return (
@@ -223,6 +227,85 @@ export default function AccountScreen() {
       <Pressable role="button" style={{ marginTop: 16 }} onPress={() => refreshAccount()}>
         <Text style={shared.status}>{t('account.refresh')}</Text>
       </Pressable>
+
+      {/* Last on the screen and asked twice: the one thing here that cannot
+          be taken back. */}
+      <Pressable
+        role="button"
+        testID="account-delete"
+        aria-busy={busy === 'delete'}
+        style={{ marginTop: 32 }}
+        onPress={() => setConfirmingDelete(true)}
+        disabled={busy !== null}
+      >
+        <Text style={shared.error}>{busy === 'delete' ? '…' : t('account.delete')}</Text>
+      </Pressable>
+
+      <Sheet
+        visible={confirmingDelete}
+        onClose={() => setConfirmingDelete(false)}
+        label={t('account.deleteConfirmTitle')}
+        backdropStyle={modalStyles.backdrop}
+        style={modalStyles.sheet}
+        backdropTestID="account-delete-backdrop"
+        testID="account-delete-confirm"
+      >
+        <Text style={modalStyles.title} {...heading(2)}>
+          {t('account.deleteConfirmTitle')}
+        </Text>
+        <Text style={modalStyles.body}>{t('account.deleteConfirmBody')}</Text>
+        <View style={modalStyles.actions}>
+          {/* Cancel first, so the focus a dialog opens on is the harmless
+              answer. */}
+          <Pressable
+            testID="account-delete-cancel"
+            role="button"
+            onPress={() => setConfirmingDelete(false)}
+            style={[shared.button, shared.buttonSecondary, modalStyles.actionButton]}
+          >
+            <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('account.deleteCancel')}</Text>
+          </Pressable>
+          <Pressable
+            testID="account-delete-yes"
+            role="button"
+            onPress={() => {
+              setConfirmingDelete(false);
+              void run('delete', async () => {
+                await deleteAccount();
+                // Every other screen was about the account that is gone.
+                router.dismissTo('/');
+              });
+            }}
+            style={[shared.button, modalStyles.dangerButton, modalStyles.actionButton]}
+          >
+            <Text style={shared.buttonText}>{t('account.deleteConfirm')}</Text>
+          </Pressable>
+        </View>
+      </Sheet>
     </Screen>
   );
 }
+
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  sheet: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 20,
+  },
+  title: { color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  body: { color: colors.muted, fontSize: 14, marginBottom: 16 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
+  actionButton: { flexGrow: 0, marginBottom: 0 },
+  dangerButton: { backgroundColor: colors.danger },
+});

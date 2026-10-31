@@ -26,6 +26,9 @@ type SessionRepository interface {
 	// to until, instead of deleting it outright. See Session.ReplacedBy.
 	Retire(ctx context.Context, token, replacedBy string, until time.Time) error
 	DeleteByToken(ctx context.Context, token string) error
+	// DeleteForUser ends every session an account holds, on every device,
+	// for an account that is deleted.
+	DeleteForUser(ctx context.Context, userID string) error
 }
 
 type mongoSessionRepository struct {
@@ -83,5 +86,13 @@ func (r *mongoSessionRepository) Retire(ctx context.Context, token, replacedBy s
 
 func (r *mongoSessionRepository) DeleteByToken(ctx context.Context, token string) error {
 	_, err := r.coll.DeleteOne(ctx, bson.M{"token": token})
+	return err
+}
+
+func (r *mongoSessionRepository) DeleteForUser(ctx context.Context, userID string) error {
+	if userID == "" {
+		return nil
+	}
+	_, err := r.coll.DeleteMany(ctx, bson.M{"userId": userID})
 	return err
 }

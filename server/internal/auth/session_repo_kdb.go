@@ -106,3 +106,29 @@ func (r *kdbSessionRepository) DeleteByToken(ctx context.Context, token string) 
 	_, err := r.k.Delete(db.NSSessions, token)
 	return err
 }
+
+func (r *kdbSessionRepository) DeleteForUser(ctx context.Context, userID string) error {
+	if userID == "" {
+		return nil
+	}
+	var tokens []string
+	err := r.k.Scan(db.NSSessions, func(doc []byte) error {
+		var s models.Session
+		if err := db.UnmarshalDoc(doc, &s); err != nil {
+			return err
+		}
+		if s.UserID == userID {
+			tokens = append(tokens, s.Token)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	for _, token := range tokens {
+		if _, err := r.k.Delete(db.NSSessions, token); err != nil {
+			return err
+		}
+	}
+	return nil
+}

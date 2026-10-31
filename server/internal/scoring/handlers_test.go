@@ -63,6 +63,14 @@ func (m *memRepo) Replace(_ context.Context, s ScoringSession) error {
 	m.s[s.ID] = s
 	return nil
 }
+func (m *memRepo) DeleteForOwner(_ context.Context, userID string) error {
+	for id, s := range m.s {
+		if s.OwnerUser == userID {
+			delete(m.s, id)
+		}
+	}
+	return nil
+}
 
 func scorepad(t *testing.T) (http.Handler, *memRepo) {
 	t.Helper()

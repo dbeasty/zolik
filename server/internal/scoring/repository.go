@@ -23,6 +23,10 @@ type Repository interface {
 	// session that does not exist is not an error the handlers care to
 	// distinguish; it simply writes nothing.
 	Replace(ctx context.Context, s ScoringSession) error
+	// DeleteForOwner removes every scorepad an account made, for an account
+	// that is deleted. A pad nobody signed in to make has no owner and is
+	// never touched.
+	DeleteForOwner(ctx context.Context, userID string) error
 }
 
 type mongoRepository struct {
@@ -51,5 +55,13 @@ func (r *mongoRepository) FindByID(ctx context.Context, id bson.ObjectID) (Scori
 
 func (r *mongoRepository) Replace(ctx context.Context, s ScoringSession) error {
 	_, err := r.coll.ReplaceOne(ctx, bson.M{"_id": s.ID}, s, options.Replace().SetUpsert(false))
+	return err
+}
+
+func (r *mongoRepository) DeleteForOwner(ctx context.Context, userID string) error {
+	if userID == "" {
+		return nil
+	}
+	_, err := r.coll.DeleteMany(ctx, bson.M{"ownerUser": userID})
 	return err
 }

@@ -60,6 +60,10 @@ type Store interface {
 	UsernameTaken(ctx context.Context, username string) (bool, error)
 	InsertUser(ctx context.Context, u models.User) (models.User, error)
 	UpdateUser(ctx context.Context, id bson.ObjectID, set bson.M) error
+	// DeleteUser removes an account, giving up its username and email so
+	// they can be taken again. Deleting one that is already gone is not an
+	// error.
+	DeleteUser(ctx context.Context, id bson.ObjectID) error
 
 	// --- one-time login codes ---
 
@@ -249,6 +253,11 @@ func (s *mongoStore) UpdateUser(ctx context.Context, id bson.ObjectID, set bson.
 		return nil
 	}
 	_, err := s.users.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": set})
+	return err
+}
+
+func (s *mongoStore) DeleteUser(ctx context.Context, id bson.ObjectID) error {
+	_, err := s.users.DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 

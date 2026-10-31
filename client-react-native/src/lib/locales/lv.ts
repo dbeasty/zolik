@@ -1185,6 +1185,11 @@ export const lv: Record<string, string> = {
   'account.faceAndTable': 'Seja un galda izskats',
   'account.refresh': 'Atsvaidzināt',
   'account.remove': 'Noņemt',
+  'account.delete': 'Dzēst kontu',
+  'account.deleteConfirmTitle': 'Dzēst tavu kontu?',
+  'account.deleteConfirmBody': 'Tas dzēš tavu kontu visās ierīcēs: pierakstīšanās veidus, statistiku, spēļu loku un punktu tabulas. Nospēlētās spēles paliek citu spēlētāju vēsturē, bet bez tava vārda. To nevar atsaukt.',
+  'account.deleteConfirm': 'Dzēst kontu',
+  'account.deleteCancel': 'Atcelt',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasiskas kāršu spēles, spēlētas tiešsaistē ar īstiem cilvēkiem',

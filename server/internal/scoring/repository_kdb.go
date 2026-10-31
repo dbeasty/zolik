@@ -87,3 +87,36 @@ func (r *kdbRepository) Replace(ctx context.Context, s ScoringSession) error {
 		return db.MirrorUserDoc(tx, owner, scoringKey(s.ID.Hex()), db.KindScoring, doc)
 	})
 }
+
+func (r *kdbRepository) DeleteForOwner(ctx context.Context, userID string) error {
+	if userID == "" {
+		return nil
+	}
+	var ids []string
+	err := r.k.Scan(db.NSScoring, func(doc []byte) error {
+		var s ScoringSession
+		if err := db.UnmarshalDoc(doc, &s); err != nil {
+			return err
+		}
+		if s.OwnerUser == userID {
+			ids = append(ids, s.ID.Hex())
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	owner := "user:" + userID
+	namespaces := append([]string{db.NSScoring}, db.UserNamespacesOf(owner)...)
+	for _, id := range ids {
+		err := r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
+			tx.Delete(db.NSScoring, id)
+			db.DropUserDoc(tx, owner, scoringKey(id))
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

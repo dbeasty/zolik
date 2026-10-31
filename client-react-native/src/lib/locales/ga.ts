@@ -1217,6 +1217,11 @@ export const ga: Record<string, string> = {
   'account.faceAndTable': 'Aghaidh agus cuma an bhoird',
   'account.refresh': 'Athnuaigh',
   'account.remove': 'Bain',
+  'account.delete': 'Scrios an cuntas',
+  'account.deleteConfirmTitle': 'An bhfuil tú ag iarraidh do chuntas a scriosadh?',
+  'account.deleteConfirmBody': "Scriostar do chuntas ar gach gléas leis seo: na bealaí a shíníonn tú isteach, do staitisticí, do chiorcal cluiche agus do tháblaí scór. Fanann na cluichí a d'imir tú i stair na n-imreoirí eile, ach gan d'ainm. Ní féidir é seo a chur ar ceal.",
+  'account.deleteConfirm': 'Scrios an cuntas',
+  'account.deleteCancel': 'Cealaigh',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Cluichí cártaí clasaiceacha, imeartha ar líne le daoine fíor',

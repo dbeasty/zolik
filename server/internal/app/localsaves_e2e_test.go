@@ -199,7 +199,7 @@ func TestALocalGameReachesTheCloudOnlyWithItsPlayersConsent(t *testing.T) {
 		t.Errorf("carol said no, and her name reached the cloud")
 	}
 	anon, ok := byName["Player 3"]
-	if !ok || anon.UserID != "" || anon.GuestID != match.AnonymousGuestID(matchID, carolSeat) {
+	if !ok || anon.UserID != "" || anon.GuestID != models.AnonymousGuestID(matchID, carolSeat) {
 		t.Errorf("carol's seat arrived as %+v, want an anonymous Player 3", anon)
 	}
 

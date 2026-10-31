@@ -1190,6 +1190,11 @@ export const et: Record<string, string> = {
   'account.faceAndTable': 'Nägu ja laua välimus',
   'account.refresh': 'Värskenda',
   'account.remove': 'Eemalda',
+  'account.delete': 'Kustuta konto',
+  'account.deleteConfirmTitle': 'Kas kustutada sinu konto?',
+  'account.deleteConfirmBody': 'See kustutab sinu konto kõigis seadmetes: sisselogimisviisid, statistika, mänguringi ja punktitabelid. Mängitud mängud jäävad teiste mängijate ajalukku, kuid ilma sinu nimeta. Seda ei saa tagasi võtta.',
+  'account.deleteConfirm': 'Kustuta konto',
+  'account.deleteCancel': 'Loobu',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klassikalised kaardimängud, mängitud veebis päris inimestega',

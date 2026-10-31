@@ -291,7 +291,7 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, b zsync.Bu
 		subject, ok := seats[p.ID]
 		if !ok {
 			if !p.IsAI {
-				out.Players[n].GuestID = AnonymousGuestID(envelope.ID.Hex(), p.ID)
+				out.Players[n].GuestID = models.AnonymousGuestID(envelope.ID.Hex(), p.ID)
 			}
 			continue
 		}
@@ -312,7 +312,7 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, b zsync.Bu
 			// with the seat, and never on the hosting node's say-so alone.
 			if err := i.checkPass(ctx, b, p.ID, user, playedAt); err != nil {
 				log.Printf("match=%s: seat %s is not credited to an account: %v", envelope.ID.Hex(), p.ID, err)
-				out.Players[n].GuestID = AnonymousGuestID(envelope.ID.Hex(), p.ID)
+				out.Players[n].GuestID = models.AnonymousGuestID(envelope.ID.Hex(), p.ID)
 				continue
 			}
 		}

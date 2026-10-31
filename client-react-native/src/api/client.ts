@@ -403,6 +403,17 @@ export class ZolikClient {
     await this.request('DELETE', `/auth/identities/${encodeURIComponent(provider)}`, undefined, true);
   }
 
+  /**
+   * Deletes the signed-in account on the server. Its sessions end there on
+   * every device, so the tokens this client holds are dropped too.
+   */
+  async deleteAccount(): Promise<void> {
+    await this.request('DELETE', '/auth/account', undefined, true);
+    this.accessToken = '';
+    this.refreshToken = '';
+    this.userId = '';
+  }
+
   async register(username: string, password: string, email?: string): Promise<PlayerSession> {
     const data = await this.post<{
       accessToken: string;

@@ -1187,6 +1187,11 @@ export const lt: Record<string, string> = {
   'account.faceAndTable': 'Veidas ir stalo išvaizda',
   'account.refresh': 'Atnaujinti',
   'account.remove': 'Pašalinti',
+  'account.delete': 'Ištrinti paskyrą',
+  'account.deleteConfirmTitle': 'Ištrinti tavo paskyrą?',
+  'account.deleteConfirmBody': 'Tai ištrins tavo paskyrą visuose įrenginiuose: prisijungimo būdus, statistiką, žaidimų ratą ir taškų lenteles. Sužaisti žaidimai liks kitų žaidėjų istorijoje, bet be tavo vardo. Šio veiksmo atšaukti negalima.',
+  'account.deleteConfirm': 'Ištrinti paskyrą',
+  'account.deleteCancel': 'Atšaukti',
 
   // --- the first-run intro screen (app/intro.tsx) ---------------------------
   'intro.tagline': 'Klasikiniai kortų žaidimai, žaidžiami internetu su tikrais žmonėmis',
