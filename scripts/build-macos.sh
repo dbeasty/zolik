@@ -11,6 +11,16 @@
 #   CONFIG=release scripts/build-macos.sh  release build
 #   ZOLIK_MACOS_SKIP_WEB=1 …               reuse the last web export
 #   ZOLIK_MACOS_SKIP_CORE=1 …              reuse the last core
+#   CONFIG=release ZOLIK_MACOS_DEVELOPER_ID=1 scripts/build-macos.sh
+#                                          signed for any Mac, and notarized
+#
+# A plain build is ad hoc signed and opens only on the Mac that built it.
+# ZOLIK_MACOS_DEVELOPER_ID=1 signs with the team's Developer ID Application
+# certificate instead, under the hardened runtime, sends the app to Apple's
+# notary service, staples the ticket and zips the result for download as
+# build/Jokerless-<version>.zip. Notarizing uses credentials stored once with
+#   xcrun notarytool store-credentials jokerless-notary
+# (ZOLIK_MACOS_NOTARY_PROFILE names another profile).
 #
 # Needs Xcode, gomobile (see build-mobile-core.sh) and the ../kdb checkout.
 set -eu
@@ -18,7 +28,19 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 MAC="$ROOT/client-macos"
 OUT="$MAC/build"
 CONFIG="${CONFIG:-debug}"
+DEVELOPER_ID="${ZOLIK_MACOS_DEVELOPER_ID:-0}"
+NOTARY_PROFILE="${ZOLIK_MACOS_NOTARY_PROFILE:-jokerless-notary}"
 mkdir -p "$OUT"
+
+if [ "$DEVELOPER_ID" = 1 ]; then
+  # A debug build carries the e2e control folder; it must never leave this Mac.
+  [ "$CONFIG" = release ] || { echo "a Developer ID build must be CONFIG=release" >&2; exit 1; }
+  SIGN_ID=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)
+  [ -n "$SIGN_ID" ] || { echo "no Developer ID Application certificate in the keychain" >&2; exit 1; }
+  # Checked before the long build rather than after it.
+  xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null ||
+    { echo "no notary credentials: xcrun notarytool store-credentials $NOTARY_PROFILE" >&2; exit 1; }
+fi
 
 eval "$("$ROOT/scripts/version.sh" --export)"
 
@@ -78,7 +100,26 @@ iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET"
 sed -e "s/__VERSION__/$ZOLIK_VERSION/g" -e "s/__COMMIT__/$ZOLIK_COMMIT/g" \
   "$MAC/Resources/Info.plist" > "$APP/Contents/Info.plist"
-# Ad hoc signing is enough to run here; a release is signed and notarized
-# with the team's certificate instead.
-codesign --force --sign - --entitlements "$MAC/Resources/Jokerless.entitlements" "$APP" >/dev/null
-echo "app: $APP ($(du -sh "$APP" | cut -f1))"
+if [ "$DEVELOPER_ID" != 1 ]; then
+  # Ad hoc signing is enough to run here.
+  codesign --force --sign - --entitlements "$MAC/Resources/Jokerless.entitlements" "$APP" >/dev/null
+  echo "app: $APP ($(du -sh "$APP" | cut -f1))"
+  exit 0
+fi
+
+# The notary service accepts only the hardened runtime with a secure timestamp.
+codesign --force --sign "$SIGN_ID" --options runtime --timestamp \
+  --entitlements "$MAC/Resources/Jokerless.entitlements" "$APP"
+codesign --verify --strict --deep "$APP"
+ZIP="$OUT/Jokerless-$ZOLIK_VERSION.zip"
+rm -f "$ZIP"
+ditto -c -k --keepParent "$APP" "$ZIP"
+xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
+# The stapled ticket lets the app open the first time without asking Apple.
+# The zip is rebuilt so the download carries it.
+xcrun stapler staple "$APP"
+rm -f "$ZIP"
+ditto -c -k --keepParent "$APP" "$ZIP"
+spctl --assess --type execute --verbose "$APP"
+echo "app: $APP ($(du -sh "$APP" | cut -f1)), signed by $SIGN_ID and notarized"
+echo "download: $ZIP ($(du -sh "$ZIP" | cut -f1))"

@@ -86,6 +86,19 @@ The script exports the web client, builds the core with gomobile
 ad hoc signed `.app`. `ZOLIK_MACOS_SKIP_WEB=1` / `ZOLIK_MACOS_SKIP_CORE=1`
 reuse the previous web export or core.
 
+That `.app` opens only on the Mac that built it. A copy for other Macs is
+signed with the team's Developer ID certificate and notarized by Apple:
+
+```bash
+CONFIG=release ZOLIK_MACOS_DEVELOPER_ID=1 scripts/build-macos.sh
+```
+
+It needs the Limidus Corp "Developer ID Application" certificate in the
+keychain, which only the team's Account Holder can create (Xcode → Settings
+→ Accounts → Manage Certificates), and notary credentials stored once with
+`xcrun notarytool store-credentials jokerless-notary`. The result is stapled
+and zipped as `client-macos/build/Jokerless-<version>.zip`, ready to download.
+
 A debug build can be pointed at a local server with `ZOLIK_BASE_URL`, and
 keeps its state in `ZOLIK_DATA_DIR` if set.
 
@@ -121,5 +134,5 @@ declares no Bluetooth use; a Jokerless opened from Finder is unaffected.)
   radio on, advertising) is covered by the opt-in step above.
 - Signing in with an outside provider (Google and the like) opens the browser
   but does not come back to the app: it needs a `jokerless://` callback.
-- Mac App Store packaging: sandbox, team signing, notarization, Sparkle for
-  the direct download.
+- Mac App Store packaging (sandbox, App Store signing) and Sparkle updates
+  for the direct download.
