@@ -8,7 +8,7 @@
 #   3. the Swift shell, linked against both, and the .app bundle around it.
 #
 #   scripts/build-macos.sh                 everything, debug build
-#   CONFIG=release scripts/build-macos.sh  release build
+#   CONFIG=release scripts/build-macos.sh  release build (Apple silicon + Intel)
 #   ZOLIK_MACOS_SKIP_WEB=1 …               reuse the last web export
 #   ZOLIK_MACOS_SKIP_CORE=1 …              reuse the last core
 #   CONFIG=release ZOLIK_MACOS_DEVELOPER_ID=1 scripts/build-macos.sh
@@ -74,11 +74,15 @@ if [ "${ZOLIK_MACOS_SKIP_CORE:-0}" != 1 ]; then
   echo "core: $(du -sh "$OUT/Zolikcore.xcframework" | cut -f1)"
 fi
 
-BIN="$(cd "$MAC" && swift build -c "$CONFIG" --show-bin-path)/Jokerless"
+# A release build is what gets downloaded, so it runs on Intel Macs too (the
+# core is already built for both). A debug build stays native, for speed.
+ARCHS=""
+[ "$CONFIG" != release ] || ARCHS="--arch arm64 --arch x86_64"
+BIN="$(cd "$MAC" && swift build -c "$CONFIG" $ARCHS --show-bin-path)/Jokerless"
 # SwiftPM does not notice a rebuilt xcframework, so the binary is always
 # relinked rather than left holding the previous core.
 rm -f "$BIN"
-(cd "$MAC" && swift build -c "$CONFIG" --product Jokerless)
+(cd "$MAC" && swift build -c "$CONFIG" $ARCHS --product Jokerless)
 
 APP="$OUT/Jokerless.app"
 rm -rf "$APP"
