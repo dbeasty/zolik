@@ -73,7 +73,7 @@ export default function LoginScreen() {
 
       <Pressable
         role="button"
-        style={shared.buttonSecondary}
+        style={[shared.button, shared.buttonSecondary]}
         onPress={() => router.push('/auth/email')}
         disabled={busyProvider !== null}
       >
