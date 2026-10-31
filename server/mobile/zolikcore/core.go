@@ -53,6 +53,9 @@ const ProtocolVersion = 1
 
 // Host is one running embedded server. A process has at most one: see Start.
 type Host struct {
+	// dataDir is where the host keeps its database, kept so a host iOS has
+	// stopped can be brought back on it (see Revive).
+	dataDir    string
 	app        *app.App
 	handler    http.Handler
 	cloudKeys  *auth.JWKSCache
@@ -118,6 +121,11 @@ func Start(dataDir string) (*Host, error) {
 func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, error) {
 	mu.Lock()
 	defer mu.Unlock()
+	if current != nil && current.dead() {
+		if _, err := reviveLocked(); err != nil {
+			return nil, err
+		}
+	}
 	want := strings.TrimSpace(userHex)
 	if current != nil {
 		switch {
@@ -142,6 +150,52 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 			return nil, fmt.Errorf("a host is already running for %s", describeAccount(current.userHex))
 		}
 	}
+	return startLocked(dataDir, nodeCredential, userHex, cloudBaseURL, 0)
+}
+
+// Revive brings the host back if iOS has taken its listener away.
+//
+// A suspended app's listening sockets are reclaimed by the system, and the
+// host's accept loop ends with them while the app still holds the host: every
+// request the app then makes to it fails with "Could not connect to the
+// server". The app calls this on coming back to the foreground, and Start does
+// the same check, so a table in progress picks up where it was. A host that is
+// still serving is left alone.
+func Revive() error {
+	mu.Lock()
+	defer mu.Unlock()
+	if current == nil || !current.dead() {
+		return nil
+	}
+	_, err := reviveLocked()
+	return err
+}
+
+// reviveLocked replaces a dead host with a fresh one for the same account, on
+// the same loopback port where it can get it, since that port is the address
+// the app's client already holds. The tables are on disk and come back with it.
+func reviveLocked() (*Host, error) {
+	old := current
+	port := old.Port()
+	log.Printf("zolikcore: host %s stopped serving; restarting it on port %d", old.instanceID, port)
+	old.stopLocked()
+	return startLocked(old.dataDir, old.nodeCredential, old.userHex, old.cloudBaseURL, port)
+}
+
+// dead reports whether the host's accept loop has ended without anybody
+// stopping it.
+func (h *Host) dead() bool {
+	select {
+	case <-h.done:
+		return true
+	default:
+		return false
+	}
+}
+
+// startLocked brings a host up with the package lock held. port asks for that
+// loopback port, falling back to any free one; 0 means any.
+func startLocked(dataDir, nodeCredential, userHex, cloudBaseURL string, port int) (*Host, error) {
 	if dataDir == "" {
 		return nil, errors.New("dataDir is required")
 	}
@@ -164,7 +218,7 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 		return nil, fmt.Errorf("init: %w", err)
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := listenLoopback(port)
 	if err != nil {
 		_ = a.Close(context.Background())
 		return nil, err
@@ -216,6 +270,7 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 	own.ConnContext = func(ctx context.Context, _ net.Conn) context.Context { return app.MarkLoopback(ctx) }
 
 	h := &Host{
+		dataDir:    dataDir,
 		app:        a,
 		handler:    r,
 		cloudKeys:  cloudKeys,
@@ -533,4 +588,15 @@ func (h *Host) SetThermalPressure(level int) {
 		return
 	}
 	h.app.SetThermalPressure(level)
+}
+
+// listenLoopback listens on 127.0.0.1:port, or on any free port when that one
+// is taken or port is 0.
+func listenLoopback(port int) (net.Listener, error) {
+	if port > 0 {
+		if ln, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port)); err == nil {
+			return ln, nil
+		}
+	}
+	return net.Listen("tcp", "127.0.0.1:0")
 }

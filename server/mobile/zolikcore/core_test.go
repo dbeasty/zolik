@@ -471,3 +471,60 @@ func TestTheHostPhoneIsToldWhenSomebodySitsDown(t *testing.T) {
 	case <-time.After(300 * time.Millisecond):
 	}
 }
+
+// iOS takes listening sockets back from an app it suspends, and the host's
+// accept loop ends while the app still holds it. The next Start (the Play
+// offline button) used to hand back that dead host, and the app's own fetch
+// to it failed with "Could not connect to the server". A dead host is now
+// brought back on the port the app already knows, with the same identity.
+func TestAHostWhoseListenerIOSReclaimedComesBack(t *testing.T) {
+	dir := t.TempDir()
+	h := startHost(t, dir)
+	base, id := h.BaseURL(), h.InstanceID()
+
+	reclaim(t, h)
+
+	again, err := Start(dir)
+	if err != nil {
+		t.Fatalf("Start after the listener was reclaimed: %v", err)
+	}
+	t.Cleanup(again.Stop)
+	if again == h {
+		t.Fatal("Start handed back the host whose listener is gone")
+	}
+	if again.BaseURL() != base {
+		t.Errorf("the host came back on %s, want the address the app holds, %s", again.BaseURL(), base)
+	}
+	if again.InstanceID() != id {
+		t.Errorf("instance id changed: %s → %s", id, again.InstanceID())
+	}
+	postJSON[map[string]any](t, again, "/auth/guest", "", map[string]any{"guestName": "Back"}, http.StatusOK)
+
+	// Coming back to the foreground does the same without anybody tapping.
+	reclaim(t, again)
+	if err := Revive(); err != nil {
+		t.Fatalf("Revive: %v", err)
+	}
+	revived := Current()
+	if revived == nil || revived == again || revived.BaseURL() != base {
+		t.Fatalf("Revive left %v, want a new host on %s", revived, base)
+	}
+	postJSON[map[string]any](t, revived, "/auth/guest", "", map[string]any{"guestName": "Again"}, http.StatusOK)
+
+	// And a host that is fine is left alone.
+	if err := Revive(); err != nil || Current() != revived {
+		t.Fatalf("Revive restarted a healthy host (err %v)", err)
+	}
+}
+
+// reclaim closes the host's loopback listener out from under it, the way iOS
+// does to a suspended app, and waits for its accept loop to notice.
+func reclaim(t *testing.T, h *Host) {
+	t.Helper()
+	_ = h.ln.Close()
+	select {
+	case <-h.done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the host kept serving after its listener closed")
+	}
+}
