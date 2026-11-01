@@ -66,10 +66,12 @@ export function SettleIn({ kind = 'settle', delay = 0, style, children }: Props)
     kind === 'flip'
       ? {
           opacity: progress.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 1, 1] }),
-          transform: [
-            { perspective: 600 },
-            { rotateY: progress.interpolate({ inputRange: [0, 1], outputRange: ['70deg', '0deg'] }) },
-          ],
+          // The swing drawn flat: a card turned 70° about its vertical edge
+          // shows cos 70° ≈ a third of its width, so it opens out from that.
+          // It was a real `rotateY` under a `perspective`, and on iOS a 3D
+          // layer on the pile blanked the table beside it — the stock cut in
+          // half — for as long as the turn lasted, after every card played.
+          transform: [{ scaleX: progress.interpolate({ inputRange: [0, 1], outputRange: [0.34, 1] }) }],
         }
       : kind === 'deal'
         ? {
