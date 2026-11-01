@@ -71,6 +71,20 @@ export const dropArmed = classic.dropArmed;
  */
 export const dragLayer = { zIndex: 100 } as const;
 
+/**
+ * Whether the hand goes up onto `dragLayer` for the drag in flight: only when
+ * the card came out of the hand.
+ *
+ * A card carried off a meld or the table is not inside the hand, so raising
+ * the hand does nothing for it — and on iOS a zIndex that changes mid-gesture
+ * reorders the board's native views, taking the melds below the hand out of
+ * the window and putting them back. That cancels the touch carrying the card:
+ * a wild dragged from one meld to another was let go a few frames in.
+ */
+export function handOnDragLayer(drag: { fromMeld?: string; fromTable?: boolean } | null): boolean {
+  return !!drag && !drag.fromMeld && !drag.fromTable;
+}
+
 export const shared = StyleSheet.create({
   screen: {
     flex: 1,
