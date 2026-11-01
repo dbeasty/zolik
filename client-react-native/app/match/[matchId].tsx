@@ -116,7 +116,7 @@ import {
   type PlayOption,
 } from '@/src/lib/boardSpeech';
 import { turnStep, isLive } from '@/src/lib/turnStep';
-import { dragLayer } from '@/src/theme';
+import { dragLayer, handOnDragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
 import { SameDeal } from '@/src/components/match/SameDeal';
 import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
@@ -2039,14 +2039,15 @@ function MatchScreen() {
   // being carried is drawn over the melds and the opponents below it rather
   // than sliced in half by the first panel edge it crosses. The hand keeps
   // hold of the card it is carrying (moving its node would lose the gesture),
-  // so lifting the card means lifting the hand — see `dragLayer`.
+  // so lifting the card means lifting the hand — see `dragLayer`. Only for a
+  // card out of the hand, though: see `handOnDragLayer`.
   // Whether the hint may say a card goes "onto the board" — true only while
   // some offer would take one dropped there. Read from the offers, never the
   // game: a game whose cards only ever leave through a button gets a hint
   // about rearranging and nothing more.
   const canDropOnBoard = someOfferDroppable(state.legalActions);
   const handPanel = (
-  <View style={[styles.mine, !!drag && dragLayer]} {...opening.anchor('hand')}>
+  <View style={[styles.mine, handOnDragLayer(drag) && dragLayer]} {...opening.anchor('hand')}>
     {myHands.map((z) => (
       <HandZone
         key={z.id}

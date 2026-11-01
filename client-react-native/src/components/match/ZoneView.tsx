@@ -235,10 +235,16 @@ export function ZoneView({
   // A run being carried off a group or a pile by hand: which, from where in
   // it, and how far it has travelled. Drawn by moving those cards and nothing
   // else, so no box anything is measured against moves with them.
+  //
+  // Raised over its neighbours with zIndex on the web only. On iOS a zIndex
+  // that changes mid-gesture reorders the native views, taking the card's view
+  // out of the window and back, and that cancels the touch carrying it — the
+  // card was let go a few frames into the drag. Native raises a meld before
+  // any touch instead, when it is opened to pick from (`styles.carrying`).
   const [carry, setCarry] = useState<{ where: string; from: number; only?: number[]; dx: number; dy: number } | null>(null);
   const carriedStyle = (where: string, index: number) =>
     carry && carry.where === where && (carry.only ? carry.only.includes(index) : index >= carry.from)
-      ? { transform: [{ translateX: carry.dx }, { translateY: carry.dy }], zIndex: 50 }
+      ? { transform: [{ translateX: carry.dx }, { translateY: carry.dy }], ...(Platform.OS === 'web' ? { zIndex: 50 } : null) }
       : null;
   /** A card wrapped so it can be pressed or dragged, when an offer lifts it. */
   const lift = (where: string, card: string, index: number, child: ReactNode, spoken?: string) =>
@@ -593,7 +599,7 @@ export function ZoneView({
                 style={[
                   styles.group,
                   wide && styles.wideGroup,
-                  carry?.where === g.id && styles.carrying,
+                  (Platform.OS === 'web' ? carry?.where === g.id : cardsPickable) && styles.carrying,
                   !!mark && styles.changed,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
@@ -667,6 +673,13 @@ export function ZoneView({
                       return (
                       <View
                         key={`${g.id}-${c}-${i}`}
+                        // Never flattened away. An open meld's card has no
+                        // style of its own here until it is carried, and the
+                        // first frame of the carry's transform used to create
+                        // this view on iOS and move the card into it — which
+                        // cancelled the touch carrying it a few frames in.
+                        collapsable={false}
+                        testID={`group-card-${g.id}-${i}`}
                         style={[
                           (j > 0 || hidden > 0) && !groupOpen && (indices ? styles.indexGap : styles.stackedOverlap),
                           carriedStyle(g.id, i),
@@ -1069,7 +1082,8 @@ function zoneStyles(m: Metrics, s: Skin) {
       alignItems: 'center',
       minHeight: stackedCardBox(m) + 12,
     },
-    // Raised over its neighbours while a run is being carried out of it.
+    // Raised over its neighbours while a run is being carried out of it — or,
+    // on native, for as long as it is open to pick from (see `carriedStyle`).
     carrying: { zIndex: 50 },
     emptySlot: {
       marginTop: 6,
