@@ -210,7 +210,6 @@ function FlightCard({
         // neither pops into the air nor doubles the one the board shows.
         opacity: progress.interpolate({ inputRange: [0, 0.12, 0.85, 1], outputRange: [0, 1, 1, 0] }),
         transform: [
-          { perspective: 800 },
           { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, dx] }) },
           {
             translateY: progress.interpolate({
@@ -225,8 +224,10 @@ function FlightCard({
           { scale: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.08, 1] }) },
           { rotateZ: progress.interpolate({ inputRange: [0, 1], outputRange: [dx >= 0 ? '-4deg' : '4deg', '2deg'] }) },
           // A slight turn around the vertical edge, the peel of a card
-          // leaving one place for another.
-          { rotateY: progress.interpolate({ inputRange: [0, 1], outputRange: ['18deg', '0deg'] }) },
+          // leaving one place for another — drawn flat, as a narrowing
+          // (cos 18° ≈ 0.95), for the reason SettleIn's flip is: a 3D layer
+          // over the board blanks the piles under it on iOS.
+          { scaleX: progress.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) },
         ],
       }}
     >
