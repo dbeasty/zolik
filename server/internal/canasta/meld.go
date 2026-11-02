@@ -570,7 +570,7 @@ func runCandidates(r ruleset, hand []string, t *Team) []candidate {
 				if len(chunk) > canastaSize {
 					chunk = chunk[len(chunk)-canastaSize:]
 				}
-				if validateRun(r, chunk) == nil && !runOverlapsTable(t, s, chunk) {
+				if validateRun(r, chunk) == nil && !runOverlapsTable(r, t, s, chunk) {
 					out = append(out, candidate{
 						Kind: meldRun, Suit: s,
 						Cards: sortRun(chunk), Value: handValue(chunk),
@@ -595,13 +595,19 @@ func runCandidates(r ruleset, hand []string, t *Team) []candidate {
 // runOverlapsTable keeps a candidate from proposing cards that belong on a
 // sequence the side already has — that is a lay-off, and offering it as a new
 // meld would put two controls on screen for one move.
-func runOverlapsTable(t *Team, suit string, block []string) bool {
+//
+// Only a sequence that can still take cards. A samba is closed at seven, so
+// nothing is a lay-off onto it, and treating it as one hid every new run near
+// it: a side holding a dirty samba 5-J of diamonds was never offered 10-J-Q-K
+// of diamonds as a meld of its own (game 6acfab5092dfcbeb5307225b), although
+// two runs in one suit are two melds and the engine lays it.
+func runOverlapsTable(r ruleset, t *Team, suit string, block []string) bool {
 	if t == nil {
 		return false
 	}
 	for i := range t.Melds {
 		m := &t.Melds[i]
-		if m.kind() != meldRun || m.Suit != suit {
+		if m.kind() != meldRun || m.Suit != suit || m.closed(r) {
 			continue
 		}
 		low, high := m.span()

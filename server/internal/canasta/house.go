@@ -871,7 +871,7 @@ func dirtyRunCandidates(r ruleset, hand []string, t *Team) []candidate {
 					continue
 				}
 				key := s + runRanks[low] + strconv.Itoa(len(arranged))
-				if seen[key] || runOverlapsTable(t, s, cards) {
+				if seen[key] || runOverlapsTable(r, t, s, cards) {
 					continue
 				}
 				seen[key] = true
