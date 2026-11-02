@@ -140,6 +140,27 @@ func TestRunCandidates(t *testing.T) {
 		}
 	})
 
+	t.Run("a closed samba does not swallow a new run beside it", func(t *testing.T) {
+		// Game 6acfab5092dfcbeb5307225b: the side's dirty samba 5-J of
+		// diamonds can take no more cards, so 10-J-Q-K of diamonds is a meld of
+		// its own and has to be offered as one.
+		r := variations["canastax"]
+		samba, low, err := arrangeRun(r, nil, 0, []string{"5D", "6D", "2H", "8D", "9D", "TD", "JD"}, noLow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := Meld{ID: "t0-seq1", Kind: meldRun, Suit: "D"}
+		m.setRun(samba, low)
+		team := &Team{HasMelded: true, Melds: []Meld{m}}
+		got := runCandidates(r, []string{"TD", "JD", "QD", "KD", "4S"}, team)
+		if len(got) != 1 || strings.Join(got[0].Cards, " ") != "TD JD QD KD" {
+			t.Errorf("got %v, want the run TD JD QD KD offered beside the closed samba", got)
+		}
+		if got := dirtyRunCandidates(r, []string{"TD", "QD", "KD", "2C", "4S"}, team); len(got) == 0 {
+			t.Errorf("no dirty run offered for TD 2C QD KD beside the closed samba")
+		}
+	})
+
 	t.Run("nothing is offered where the variation has no sequences", func(t *testing.T) {
 		hand := []string{"4H", "5H", "6H", "7H"}
 		if got := runCandidates(variations["classic"], hand, &Team{}); len(got) != 0 {
