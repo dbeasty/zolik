@@ -13,6 +13,9 @@ import AppKit
 enum MenuBuilder {
   /// Tags of View's show/hide items, whose titles follow what is showing.
   static let viewTags: [Int: String] = [101: "hand", 102: "table", 103: "log"]
+  /// Tags of View › Layout's items: a preset of the board's, or going back
+  /// to the default. The page's own names for them (`boardArrangement.ts`).
+  static let layoutTags: [Int: String] = [301: "stacked", 302: "beside", 303: "side", 304: "reset"]
   /// Help's legal items are rebuilt from the page; they carry this tag.
   static let legalTag = 200
 
@@ -60,6 +63,24 @@ enum MenuBuilder {
       part.tag = tag
       view.addItem(part)
     }
+    // Layout › one column or two, as the board's own Layout sheet offers;
+    // moving a single panel stays in that sheet, which can show where it goes.
+    let layout = NSMenu(title: "Layout")
+    for (tag, key, title) in [
+      (301, "layoutStacked", "Stacked"), (302, "layoutBeside", "Table beside hand"), (303, "layoutSide", "Side column"),
+    ] {
+      let preset = item(key, title, #selector(AppDelegate.chooseLayout(_:)), "", target)
+      preset.tag = tag
+      layout.addItem(preset)
+    }
+    layout.addItem(.separator())
+    let reset = item("layoutReset", "Reset Layout", #selector(AppDelegate.chooseLayout(_:)), "", target)
+    reset.tag = 304
+    layout.addItem(reset)
+    let layoutHolder = NSMenuItem(title: "Layout", action: nil, keyEquivalent: "")
+    layoutHolder.identifier = NSUserInterfaceItemIdentifier("menu.layout")
+    layoutHolder.submenu = layout
+    view.addItem(layoutHolder)
     view.addItem(.separator())
     // Both ways, always: whatever Back leaves, Forward returns to.
     view.addItem(item("back", "Back", #selector(AppDelegate.goBack(_:)), "[", target))

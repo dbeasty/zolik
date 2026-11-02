@@ -160,5 +160,11 @@ function menuLabels(): Record<string, string> {
   labels.stats = t('nav.stats');
   labels.startOffline = t('offline.start');
   labels.backOnline = t('offline.backOnline');
+  // View › Layout, in the board's own words for it.
+  labels.layout = t('match.layout.button');
+  labels.layoutStacked = t('match.layout.preset.stacked');
+  labels.layoutBeside = t('match.layout.preset.beside');
+  labels.layoutSide = t('match.layout.preset.side');
+  labels.layoutReset = t('match.layout.reset');
   return labels;
 }

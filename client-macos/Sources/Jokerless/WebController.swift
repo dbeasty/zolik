@@ -161,6 +161,12 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     webView.evaluateJavaScript("window.__zolikView && window.__zolikView(\(quoted)[0])")
   }
 
+  /// View › Layout: a preset of the board's ("stacked", "beside", "side") or "reset".
+  func layout(_ command: String) {
+    let quoted = (try? JSONSerialization.data(withJSONObject: [command])).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+    webView.evaluateJavaScript("window.__zolikLayout && window.__zolikLayout(\(quoted)[0])")
+  }
+
   /// Runs one of the page's own commands (DesktopMenuBridge): "signOut", "back".
   func command(_ name: String) {
     let quoted = (try? JSONSerialization.data(withJSONObject: [name])).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"

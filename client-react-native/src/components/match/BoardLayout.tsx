@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode, type Ref } from 'react';
+import { Fragment, useEffect, useMemo, type ReactNode, type Ref } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchState, Zone } from '@/src/api/matchTypes';
@@ -15,6 +15,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import type { ChangeMarks } from '@/src/lib/changes';
 import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside, stretchesInRow, zoneDropLive } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
+import { columnsToDraw, preset as presetArrangement, type Arrangement, type RegionId } from '@/src/lib/boardArrangement';
 import { isSeatArranged } from '@/src/lib/seatArrangement';
 import { partnersOf, sideMembers, spreadAreas } from '@/src/lib/sides';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -80,6 +81,10 @@ export function BoardLayout({
   dropProps,
   hand,
   controls,
+  results,
+  arrangement,
+  roomForTwo,
+  onDrawn,
   tableAnchor,
   tableRing,
   onOpenScore,
@@ -97,6 +102,18 @@ export function BoardLayout({
   hand?: ReactNode;
   /** Drawn directly under the hand: the offer bar, where there is one. */
   controls?: ReactNode;
+  /** What the round or the match came to, where the screen has it to show. Placed like any other region. */
+  results?: ReactNode;
+  /** Where each region goes — see `boardArrangement.ts`. Absent is the single column every board had before. */
+  arrangement?: Arrangement;
+  /** The board is wide enough for two columns — see `TWO_COLUMN_MIN_WIDTH`. */
+  roomForTwo?: boolean;
+  /**
+   * Which regions this board has, and how many columns it came out as — for a
+   * screen that sizes the board to the columns, and offers to move only the
+   * regions there are. Called when either changes.
+   */
+  onDrawn?: (drawn: { present: ReadonlySet<RegionId>; columns: number }) => void;
   /**
    * A hold on the head of the play, for a screen that scrolls to it — the
    * table is where the game starts on the page, and the hand and controls
@@ -256,8 +273,17 @@ export function BoardLayout({
       </View>
     ) : null;
 
-  return (
-    <BoardSpeechProvider value={speech}>
+  // Each region of the board, drawn once and placed by the arrangement. A
+  // region with nothing to draw is null, and is left out of the arrangement's
+  // count of what is there — see `columnsToDraw`.
+  const statusLines = (view.status ?? []).map((f, i) => (
+    <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
+      {factText(f, state.players)}
+    </Text>
+  ));
+  const regions: Record<RegionId, ReactNode> = {
+    results: results ?? null,
+    seats: (
       <SeatStrip
         seats={view.seats ?? []}
         players={state.players}
@@ -267,87 +293,111 @@ export function BoardLayout({
         onOpenScore={onOpenScore}
         onPickBot={onPickBot}
         onPickStandIn={onPickStandIn}
-        onEditMe={onEditMe}
         {...zonePanelProps('seats')}
       />
-
-
-      {/* The piles and stacks everyone draws from and discards to, and the
-          cards everyone plays against, directly above the hand and buttons. */}
-      {tableZones.length > 0 || arranged.length > 0 ? (
-        <View
-          {...tableAnchor}
-          // The table is one of the board's regions — see `Panel`'s `region`.
-          // Here rather than on the section, because a trick laid out by seat
-          // sits beside the section and is just as much the table.
-          {...((Platform.OS === 'web'
-            ? { role: 'region', 'aria-label': t('a11y.board.region.table') }
-            : {}) as object)}
-        >
-          <View style={tableInRow ? styles.tableRow : null}>
+    ),
+    // The piles and stacks everyone draws from and discards to, and the cards
+    // everyone plays against — and under them what just happened, and what
+    // the table is waiting on this viewer for, between the cards everyone
+    // plays to and the hand they play from, where the eye goes on the way
+    // down. The announcements travel with the table because they are about it.
+    table: (
+      <>
+        {tableZones.length > 0 || arranged.length > 0 ? (
+          <View
+            {...tableAnchor}
+            // The table is one of the board's regions — see `Panel`'s `region`.
+            // Here rather than on the section, because a trick laid out by seat
+            // sits beside the section and is just as much the table.
+            {...((Platform.OS === 'web'
+              ? { role: 'region', 'aria-label': t('a11y.board.region.table') }
+              : {}) as object)}
+          >
             {arranged.map((z) => (
-              <View key={z.id} style={tableInRow ? styles.tableRowTrick : null}>
-                <SeatArrangedZone
-                  zone={z}
-                  seatIds={seatIds}
-                  players={state.players}
-                  viewerId={viewerId}
-                  registerDrop={drops.registerDrop}
-                  entranceDelays={drops.entranceDelays}
-                  {...zonePanelProps(z.id)}
-                />
-              </View>
-            ))}
-            <View style={tableInRow ? [styles.tableRowRest, { minWidth: tableRowMinWidth }] : null}>
-              <Section
-                title={t('match.table')}
-                zones={tableZones}
-                compact
-                flush={tableInRow}
-                styles={styles}
-                {...zonePanelProps('section:table')}
-                panelPropsFor={zonePanelProps}
-                {...drops}
+              <SeatArrangedZone
+                key={z.id}
+                zone={z}
+                seatIds={seatIds}
+                players={state.players}
+                viewerId={viewerId}
+                registerDrop={drops.registerDrop}
+                entranceDelays={drops.entranceDelays}
+                {...zonePanelProps(z.id)}
               />
-            </View>
+            ))}
+            <Section
+              title={t('match.table')}
+              zones={tableZones}
+              compact
+              styles={styles}
+              {...zonePanelProps('section:table')}
+              panelPropsFor={zonePanelProps}
+              {...drops}
+            />
+            <Attention active={!!tableRing} radius={10} gap={3} />
           </View>
-          <Attention active={!!tableRing} radius={10} gap={3} />
+        ) : null}
+        <MoveAnnouncements
+          moves={state.recentMoves ?? []}
+          prompts={view.prompts ?? []}
+          standing={(view.header ?? []).filter((f) => f.standing)}
+          players={state.players}
+          viewerId={viewerId}
+        />
+      </>
+    ),
+    hand:
+      hand || controls ? (
+        <>
+          {hand}
+          {controls}
+        </>
+      ) : null,
+    spreads: spreadsRow,
+    opponents:
+      otherZones.length || statusLines.length ? (
+        <>
+          <Section
+            title={t('match.opponents')}
+            zones={otherZones}
+            compact
+            styles={styles}
+            {...zonePanelProps('section:opponents')}
+            panelPropsFor={zonePanelProps}
+            {...drops}
+          />
+          {statusLines}
+        </>
+      ) : null,
+  };
+  const present = new Set((Object.keys(regions) as RegionId[]).filter((r) => regions[r] != null));
+  const drawn = columnsToDraw(arrangement ?? presetArrangement('stacked', holdsHand), !!roomForTwo, present, holdsHand);
+  const drawnKey = `${[...present].sort().join(',')}|${drawn.columns.length}`;
+  useEffect(() => {
+    onDrawn?.({ present, columns: drawn.columns.length });
+    // Keyed on what was drawn, not on the set, which is new every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawnKey]);
+
+  return (
+    <BoardSpeechProvider value={speech}>
+      {drawn.columns.length === 1 ? (
+        drawn.columns[0]!.map((r) => <Fragment key={r}>{regions[r]}</Fragment>)
+      ) : (
+        <View style={styles.boardColumns} testID="board-columns">
+          {drawn.columns.map((col, i) => (
+            <View
+              key={i}
+              testID={`board-column-${i}`}
+              style={[styles.boardColumn, { flex: i === 0 ? drawn.split : 1 - drawn.split }]}
+            >
+              {col.map((r) => (
+                <Fragment key={r}>{regions[r]}</Fragment>
+              ))}
+            </View>
+          ))}
         </View>
-      ) : null}
-
-      {/* What just happened, and what the table is waiting on this viewer
-          for — between the cards everyone plays to and the hand they play
-          from, where the eye goes on the way down. */}
-      <MoveAnnouncements
-        moves={state.recentMoves ?? []}
-        prompts={view.prompts ?? []}
-        standing={(view.header ?? []).filter((f) => f.standing)}
-        players={state.players}
-        viewerId={viewerId}
-      />
-
-      {holdsHand ? null : spreadsRow}
-
-      {hand}
-      {controls}
-
-      {holdsHand ? spreadsRow : null}
-
-      <Section
-        title={t('match.opponents')}
-        zones={otherZones}
-        compact
-        styles={styles}
-        {...zonePanelProps('section:opponents')}
-        panelPropsFor={zonePanelProps}
-        {...drops}
-      />
-
-      {(view.status ?? []).map((f, i) => (
-        <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
-          {factText(f, state.players)}
-        </Text>
-      ))}
+      )}
     </BoardSpeechProvider>
   );
 }
@@ -482,6 +532,12 @@ export function matchStyles(s: Skin) {
   },
   tableCodeText: { color: colors.accent, fontSize: 11, fontWeight: '700' },
   body: { paddingBottom: 40, gap: 4 },
+  // Two columns of regions side by side on a wide board — see
+  // `boardArrangement.ts`. Each column is its own stack with the body's gap,
+  // and may shrink below its contents' natural width: the hand measures the
+  // width it is given rather than assuming the whole board's.
+  boardColumns: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  boardColumn: { gap: 4, minWidth: 0, flexBasis: 0 },
   // The settlement and its record, grouped so the block a stopped table has to
   // put in front of the player can be measured as one. Spaced like the body,
   // which is what was between them before they were grouped.
