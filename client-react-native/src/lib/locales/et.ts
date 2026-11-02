@@ -1410,6 +1410,8 @@ export const et: Record<string, string> = {
   'match.layout.move.right': 'Vii {region} paremasse veergu',
   'match.layout.reset': 'Lähtesta paigutus',
   'match.layout.done': 'Valmis',
+  'match.focus.only': 'Näidatakse ainult: {region}',
+  'match.focus.restore': 'Kogu laud',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(sina)',
   'match.side.yours': 'Sinu pool',
@@ -3232,6 +3234,8 @@ export const et: Record<string, string> = {
   'a11y.board.param.max': '{name}: maksimum, {max}',
   'a11y.board.panel.show': 'Näita: {title}',
   'a11y.board.panel.minimize': 'Minimeeri: {title}',
+  'a11y.board.panel.maximize': 'Maksimeeri: {title}',
+  'a11y.board.panel.restore': 'Näita kogu lauda',
   'a11y.board.zone.showAll': 'Näita kõike: {zone}',
   'a11y.board.zone.hideRest': 'Peida ülejäänud: {zone}',
   'a11y.board.pile.top': '{pile}, pealmine kaart {card}, {cards}',

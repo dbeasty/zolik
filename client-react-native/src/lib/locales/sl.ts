@@ -1400,6 +1400,8 @@ export const sl: Record<string, string> = {
   'match.layout.move.right': 'Premakni {region} v desni stolpec',
   'match.layout.reset': 'Ponastavi postavitev',
   'match.layout.done': 'Končano',
+  'match.focus.only': 'Prikazano samo: {region}',
+  'match.focus.restore': 'Cela miza',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(ti)',
   'match.side.yours': 'Tvoja stran',
@@ -3227,6 +3229,8 @@ export const sl: Record<string, string> = {
   'a11y.board.param.max': '{name}: največ, {max}',
   'a11y.board.panel.show': 'Prikaži: {title}',
   'a11y.board.panel.minimize': 'Pomanjšaj: {title}',
+  'a11y.board.panel.maximize': 'Povečaj: {title}',
+  'a11y.board.panel.restore': 'Prikaži celo mizo',
   'a11y.board.zone.showAll': 'Prikaži vse: {zone}',
   'a11y.board.zone.hideRest': 'Skrij preostalo: {zone}',
   'a11y.board.pile.top': '{pile}, na vrhu {card}, {cards}',

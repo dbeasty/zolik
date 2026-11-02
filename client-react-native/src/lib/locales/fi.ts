@@ -1416,6 +1416,8 @@ export const fi: Record<string, string> = {
   'match.layout.move.right': 'Siirrä {region} oikeaan sarakkeeseen',
   'match.layout.reset': 'Palauta asettelu',
   'match.layout.done': 'Valmis',
+  'match.focus.only': 'Näytetään vain: {region}',
+  'match.focus.restore': 'Koko pöytä',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(sinä)',
   'match.side.yours': 'Sinun puolesi',
@@ -3238,6 +3240,8 @@ export const fi: Record<string, string> = {
   'a11y.board.param.max': '{name}: enimmäismäärä, {max}',
   'a11y.board.panel.show': 'Näytä: {title}',
   'a11y.board.panel.minimize': 'Pienennä: {title}',
+  'a11y.board.panel.maximize': 'Suurenna: {title}',
+  'a11y.board.panel.restore': 'Näytä koko pöytä',
   'a11y.board.zone.showAll': 'Näytä kaikki: {zone}',
   'a11y.board.zone.hideRest': 'Piilota loput: {zone}',
   'a11y.board.pile.top': '{pile}, päällimmäinen kortti {card}, {cards}',

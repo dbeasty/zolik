@@ -1423,6 +1423,8 @@ export const hu: Record<string, string> = {
   'match.layout.move.right': '{region} a jobb oszlopba',
   'match.layout.reset': 'Elrendezés visszaállítása',
   'match.layout.done': 'Kész',
+  'match.focus.only': 'Csak ez látszik: {region}',
+  'match.focus.restore': 'Egész asztal',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(te)',
   'match.side.yours': 'A te oldalad',
@@ -3251,6 +3253,8 @@ export const hu: Record<string, string> = {
   'a11y.board.param.max': '{name}: a legtöbb, {max}',
   'a11y.board.panel.show': 'Megjelenítés: {title}',
   'a11y.board.panel.minimize': 'Kis méret: {title}',
+  'a11y.board.panel.maximize': 'Teljes méret: {title}',
+  'a11y.board.panel.restore': 'Az egész asztal mutatása',
   'a11y.board.zone.showAll': 'Minden megjelenítése: {zone}',
   'a11y.board.zone.hideRest': 'A többi elrejtése: {zone}',
   'a11y.board.pile.top': '{pile}, felső lap: {card}, {cards}',

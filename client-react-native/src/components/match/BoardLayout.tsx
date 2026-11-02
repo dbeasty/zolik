@@ -1,11 +1,12 @@
-import { Fragment, useEffect, useMemo, type ReactNode, type Ref } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, type ReactNode, type Ref } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchState, Zone } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardSpeechProvider } from '@/src/components/match/BoardSpeech';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
+import { RegionFocusProvider } from '@/src/components/match/RegionFocus';
 import { MoveAnnouncements } from '@/src/components/match/MoveAnnouncements';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
@@ -84,6 +85,8 @@ export function BoardLayout({
   results,
   arrangement,
   roomForTwo,
+  focused,
+  onFocus,
   onDrawn,
   tableAnchor,
   tableRing,
@@ -108,6 +111,13 @@ export function BoardLayout({
   arrangement?: Arrangement;
   /** The board is wide enough for two columns — see `TWO_COLUMN_MIN_WIDTH`. */
   roomForTwo?: boolean;
+  /** The region the player maximized, drawn alone. */
+  focused?: RegionId | null;
+  /**
+   * Maximize a region, or (null) give the whole board back. Absent, no panel
+   * offers to — a replay is read as the whole table.
+   */
+  onFocus?: (region: RegionId | null) => void;
   /**
    * Which regions this board has, and how many columns it came out as — for a
    * screen that sizes the board to the columns, and offers to move only the
@@ -346,11 +356,13 @@ export function BoardLayout({
         />
       </>
     ),
+    // The buttons travel with the hand, but are not what a player maximizes:
+    // the hand's own panel offers that, for both.
     hand:
       hand || controls ? (
         <>
           {hand}
-          {controls}
+          <RegionFocusProvider value={null}>{controls}</RegionFocusProvider>
         </>
       ) : null,
     spreads: spreadsRow,
@@ -371,7 +383,27 @@ export function BoardLayout({
       ) : null,
   };
   const present = new Set((Object.keys(regions) as RegionId[]).filter((r) => regions[r] != null));
-  const drawn = columnsToDraw(arrangement ?? presetArrangement('stacked', holdsHand), !!roomForTwo, present, holdsHand);
+  const drawn = columnsToDraw(
+    arrangement ?? presetArrangement('stacked', holdsHand),
+    !!roomForTwo,
+    present,
+    holdsHand,
+    focused,
+  );
+  // Each region told which it is, so the panel at its head can offer to fill
+  // the board with it — see `RegionFocus`.
+  const shown = drawn.columns.length === 1 && drawn.columns[0]!.length === 1 ? drawn.columns[0]![0] : null;
+  const focusedNow = focused && shown === focused ? focused : null;
+  const place = (r: RegionId) => (
+    <RegionFocusProvider
+      key={r}
+      value={
+        onFocus ? { region: r, focused: focusedNow === r, toggle: () => onFocus(focusedNow === r ? null : r) } : null
+      }
+    >
+      {regions[r]}
+    </RegionFocusProvider>
+  );
   const drawnKey = `${[...present].sort().join(',')}|${drawn.columns.length}`;
   useEffect(() => {
     onDrawn?.({ present, columns: drawn.columns.length });
@@ -382,7 +414,25 @@ export function BoardLayout({
   return (
     <BoardSpeechProvider value={speech}>
       {drawn.columns.length === 1 ? (
-        drawn.columns[0]!.map((r) => <Fragment key={r}>{regions[r]}</Fragment>)
+        <>
+          {focusedNow && onFocus ? (
+            <View style={styles.focusBar} testID="board-focus-bar">
+              <Text style={styles.focusBarText} numberOfLines={1}>
+                {t('match.focus.only', { region: t(`match.layout.region.${focusedNow}`) })}
+              </Text>
+              <Pressable
+                testID="board-focus-restore"
+                accessibilityRole="button"
+                onPress={() => onFocus(null)}
+                hitSlop={8}
+                style={styles.focusBarButton}
+              >
+                <Text style={styles.focusBarButtonText}>⤡ {t('match.focus.restore')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {drawn.columns[0]!.map(place)}
+        </>
       ) : (
         <View style={styles.boardColumns} testID="board-columns">
           {drawn.columns.map((col, i) => (
@@ -391,9 +441,7 @@ export function BoardLayout({
               testID={`board-column-${i}`}
               style={[styles.boardColumn, { flex: i === 0 ? drawn.split : 1 - drawn.split }]}
             >
-              {col.map((r) => (
-                <Fragment key={r}>{regions[r]}</Fragment>
-              ))}
+              {col.map(place)}
             </View>
           ))}
         </View>
@@ -538,6 +586,23 @@ export function matchStyles(s: Skin) {
   // width it is given rather than assuming the whole board's.
   boardColumns: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
   boardColumn: { gap: 4, minWidth: 0, flexBasis: 0 },
+  // Over a region the player maximized: what is showing, and the way back to
+  // the whole board, where the eye lands rather than on one panel's corner.
+  focusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  focusBarText: { color: colors.muted, fontSize: 12, flexShrink: 1 },
+  focusBarButton: { minHeight: 24, justifyContent: 'center' },
+  focusBarButtonText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
   // The settlement and its record, grouped so the block a stopped table has to
   // put in front of the player can be measured as one. Spaced like the body,
   // which is what was between them before they were grouped.

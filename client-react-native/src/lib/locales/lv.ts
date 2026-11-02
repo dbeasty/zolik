@@ -1406,6 +1406,8 @@ export const lv: Record<string, string> = {
   'match.layout.move.right': 'Pārvietot {region} uz labo kolonnu',
   'match.layout.reset': 'Atiestatīt izkārtojumu',
   'match.layout.done': 'Gatavs',
+  'match.focus.only': 'Redzams tikai: {region}',
+  'match.focus.restore': 'Viss galds',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(tu)',
   'match.side.yours': 'Jūsu puse',
@@ -3228,6 +3230,8 @@ export const lv: Record<string, string> = {
   'a11y.board.param.max': '{name}: maksimums, {max}',
   'a11y.board.panel.show': 'Rādīt: {title}',
   'a11y.board.panel.minimize': 'Minimizēt: {title}',
+  'a11y.board.panel.maximize': 'Maksimizēt: {title}',
+  'a11y.board.panel.restore': 'Rādīt visu galdu',
   'a11y.board.zone.showAll': 'Rādīt visu: {zone}',
   'a11y.board.zone.hideRest': 'Paslēpt pārējo: {zone}',
   'a11y.board.pile.top': '{pile}, augšējā kārts {card}, {cards}',

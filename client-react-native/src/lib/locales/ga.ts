@@ -1441,6 +1441,8 @@ export const ga: Record<string, string> = {
   'match.layout.move.right': 'Bog {region} go dtí an colún ar dheis',
   'match.layout.reset': 'Athshocraigh an leagan amach',
   'match.layout.done': 'Déanta',
+  'match.focus.only': 'Ag taispeáint: {region} amháin',
+  'match.focus.restore': 'An bord ar fad',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(tusa)',
   'match.side.yours': 'Do thaobh',
@@ -3263,6 +3265,8 @@ export const ga: Record<string, string> = {
   'a11y.board.param.max': '{name}: an méid is mó, {max}',
   'a11y.board.panel.show': 'Taispeáin: {title}',
   'a11y.board.panel.minimize': 'Íoslaghdaigh: {title}',
+  'a11y.board.panel.maximize': 'Uasmhéadaigh: {title}',
+  'a11y.board.panel.restore': 'Taispeáin an bord ar fad',
   'a11y.board.zone.showAll': 'Taispeáin gach rud: {zone}',
   'a11y.board.zone.hideRest': 'Folaigh an chuid eile: {zone}',
   'a11y.board.pile.top': '{pile}, an cárta barr {card}, {cards}',

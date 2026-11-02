@@ -128,6 +128,8 @@ import { SaveGamePrompt } from '@/src/components/match/SaveGamePrompt';
 import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { useDesktopMatchView } from '@/src/desktop/useDesktopMatchView';
+import { useDesktopChrome } from '@/src/hooks/useHydrated';
+import { AccountMenu } from '@/src/components/AccountMenu';
 import { seatIsShareable } from '@/src/desktop/seat';
 import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
@@ -352,6 +354,13 @@ function MatchScreen() {
   // table only while there are two columns to fill.
   const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'));
   const [layoutOpen, setLayoutOpen] = useState(false);
+  // One region filling the board — the ⤢ on the panel at its head. A look
+  // for now rather than a preference: it is not stored, and a different
+  // match starts with the whole board.
+  const [focused, setFocused] = useState<RegionId | null>(null);
+  useEffect(() => setFocused(null), [matchId]);
+  // The Mac app draws no navigation bar, so Layout stays on the board there.
+  const desktopChrome = useDesktopChrome();
   const [drawn, setDrawn] = useState<{ present: ReadonlySet<RegionId>; columns: number }>(() => ({
     present: new Set(),
     columns: 1,
@@ -1607,6 +1616,9 @@ function MatchScreen() {
         clearSelection();
         setPendingGroupKey(null);
         setTablePick(null);
+      } else if (focused) {
+        // Nothing picked up to put down: the whole board back.
+        setFocused(null);
       }
       return;
     }
@@ -2148,6 +2160,26 @@ function MatchScreen() {
   </View>
   );
 
+  // Where the board's panels go — one column, or two on a wide screen. A
+  // preference about this game's look on this device, like the skin. In the
+  // navigation bar, beside the account menu: on the board's own header line
+  // it scrolled away with the rest of the top of the board the moment the
+  // screen scrolled to the hand, and nobody found it.
+  const layoutButton = (
+    <Tip text={t('match.layout.tip')}>
+      <Pressable
+        testID="layout-open"
+        onPress={() => setLayoutOpen(true)}
+        hitSlop={8}
+        style={[styles.tableCode, { marginRight: 10 }]}
+        accessibilityRole="button"
+        accessibilityLabel={t('match.layout.title')}
+      >
+        <Text style={styles.tableCodeText}>▦ {t('match.layout.button')}</Text>
+      </Pressable>
+    </Tip>
+  );
+
   const screen = (
     <View
       style={styles.root}
@@ -2177,6 +2209,14 @@ function MatchScreen() {
           // browser tab says.
           title: t('nav.match'),
           headerTintColor: skin.colors.text,
+          headerRight: desktopChrome
+            ? undefined
+            : () => (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {layoutButton}
+                  <AccountMenu />
+                </View>
+              ),
           // The join code rides in the bar too, for the same reason the
           // status does: the board scrolls to the hand on arrival, and a code
           // at the top of the board would be gone before anyone looked for it.
@@ -2330,21 +2370,10 @@ function MatchScreen() {
               module knows it exists. */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <SoundToggle />
-          {/* Where the board's panels go — one column, or two on a wide
-              screen. A preference about this game's look on this device,
-              like the skin beside it. */}
-          <Tip text={t('match.layout.tip')}>
-            <Pressable
-              testID="layout-open"
-              onPress={() => setLayoutOpen(true)}
-              hitSlop={8}
-              style={[styles.skinToggle, { marginRight: 6 }]}
-              accessibilityRole="button"
-              accessibilityLabel={t('match.layout.title')}
-            >
-              <Text style={styles.skinToggleText}>▦ {t('match.layout.button')}</Text>
-            </Pressable>
-          </Tip>
+          {/* Layout lives in the navigation bar, which stays put while the
+              board scrolls to the hand — except in the Mac app, which has
+              no bar. */}
+          {desktopChrome ? layoutButton : null}
           <Tip text={t('a11y.board.tip.skin')}>
             <Pressable
               testID="skin-toggle"
@@ -2619,6 +2648,8 @@ function MatchScreen() {
           }
           arrangement={board.arrangement}
           roomForTwo={windowWidth >= TWO_COLUMN_MIN_WIDTH}
+          focused={focused}
+          onFocus={setFocused}
           onDrawn={setDrawn}
           viewerId={viewerId}
           styles={styles}

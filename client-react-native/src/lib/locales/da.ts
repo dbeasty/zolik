@@ -1404,6 +1404,8 @@ export const da: Record<string, string> = {
   'match.layout.move.right': 'Flyt {region} til højre kolonne',
   'match.layout.reset': 'Nulstil layout',
   'match.layout.done': 'Færdig',
+  'match.focus.only': 'Viser kun {region}',
+  'match.focus.restore': 'Hele bordet',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(dig)',
   'match.side.yours': 'Din side',
@@ -3230,6 +3232,8 @@ export const da: Record<string, string> = {
   'a11y.board.param.max': '{name}: maksimum, {max}',
   'a11y.board.panel.show': 'Vis {title}',
   'a11y.board.panel.minimize': 'Minimer {title}',
+  'a11y.board.panel.maximize': 'Maksimer {title}',
+  'a11y.board.panel.restore': 'Vis hele bordet',
   'a11y.board.zone.showAll': 'Vis hele {zone}',
   'a11y.board.zone.hideRest': 'Skjul resten af {zone}',
   'a11y.board.pile.top': '{pile}, øverste kort {card}, {cards}',

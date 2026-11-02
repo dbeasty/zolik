@@ -1412,6 +1412,8 @@ export const pl: Record<string, string> = {
   'match.layout.move.right': 'Przenieś {region} do prawej kolumny',
   'match.layout.reset': 'Przywróć układ',
   'match.layout.done': 'Gotowe',
+  'match.focus.only': 'Widoczne tylko: {region}',
+  'match.focus.restore': 'Cały stół',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(ty)',
   'match.side.yours': 'Twoja strona',
@@ -3239,6 +3241,8 @@ export const pl: Record<string, string> = {
   'a11y.board.param.max': '{name}: maksimum, {max}',
   'a11y.board.panel.show': 'Pokaż: {title}',
   'a11y.board.panel.minimize': 'Zwiń: {title}',
+  'a11y.board.panel.maximize': 'Rozwiń na cały stół: {title}',
+  'a11y.board.panel.restore': 'Pokaż cały stół',
   'a11y.board.zone.showAll': 'Pokaż wszystko: {zone}',
   'a11y.board.zone.hideRest': 'Ukryj resztę: {zone}',
   'a11y.board.pile.top': '{pile}, na wierzchu {card}, {cards}',
