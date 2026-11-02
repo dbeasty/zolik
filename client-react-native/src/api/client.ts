@@ -677,6 +677,18 @@ export class ZolikClient {
     );
   }
 
+  /**
+   * Change the caller's own name or face at a table, before the deal or
+   * during it. A field left out is left as it is; a name somebody else there
+   * goes by is refused with NAME_TAKEN.
+   */
+  async setSeatLook(
+    idOrCode: string,
+    look: { name?: string; avatar?: string },
+  ): Promise<{ playerId: string; name: string; avatar?: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/look`, look, true);
+  }
+
   async setBotSkill(
     idOrCode: string,
     playerId: string,

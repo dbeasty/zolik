@@ -84,6 +84,7 @@ export function BoardLayout({
   onOpenScore,
   onPickBot,
   onPickStandIn,
+  onEditMe,
 }: {
   state: MatchState;
   viewerId: string;
@@ -110,6 +111,8 @@ export function BoardLayout({
   onPickBot?: (bot: { id: string; name: string; skill?: string }) => void;
   /** See SeatStrip's onPickStandIn. */
   onPickStandIn?: (seat: { id: string; name: string; skill?: string; on: boolean }) => void;
+  /** See SeatStrip's onEditMe. */
+  onEditMe?: () => void;
 }) {
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
@@ -208,6 +211,7 @@ export function BoardLayout({
         onOpenScore={onOpenScore}
         onPickBot={onPickBot}
         onPickStandIn={onPickStandIn}
+        onEditMe={onEditMe}
         {...zonePanelProps('seats')}
       />
 

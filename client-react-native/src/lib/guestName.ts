@@ -83,3 +83,31 @@ export function guestNameFor(seed?: string | null): string {
   const noun = NOUNS[Math.floor(n / ADJECTIVES.length) % NOUNS.length]!;
   return `${adjective} ${noun}`;
 }
+
+/**
+ * Names to offer somebody renaming themselves at a table: up to `count` from
+ * the roster, none of which anybody else there already goes by.
+ *
+ * Drawn rather than listed in order, so asking again offers a different
+ * handful — 4096 names is a roster to sample, not one to scroll. The check
+ * ignores case because the server's does (NAME_TAKEN): "lucky fox" across the
+ * table is the same name to anyone reading the seats.
+ */
+export function guestNameChoices(
+  taken: readonly string[],
+  count: number,
+  random: () => number = Math.random,
+): string[] {
+  const avoid = new Set(taken.map((n) => n.toLocaleLowerCase()));
+  const out: string[] = [];
+  // Bounded, so a table that had somehow taken the whole roster ends the loop
+  // with fewer names rather than never.
+  for (let tries = 0; out.length < count && tries < count * 20; tries++) {
+    const name = guestNameFor(String(Math.floor(random() * 2 ** 32)));
+    const key = name.toLocaleLowerCase();
+    if (avoid.has(key)) continue;
+    avoid.add(key);
+    out.push(name);
+  }
+  return out;
+}
