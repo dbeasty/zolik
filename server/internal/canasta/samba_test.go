@@ -1,6 +1,7 @@
 package canasta
 
 import (
+	"strings"
 	"testing"
 
 	"zolik/server/internal/module"
@@ -736,5 +737,55 @@ func TestSambaLayOffOffersCardsThatNeedCompany(t *testing.T) {
 				t.Errorf("cards needing company = %v, want %v", got, tc.want.requires)
 			}
 		})
+	}
+}
+
+// A hand holding 4S-8S may lay 5S-8S and keep the four for a meld of fours.
+// The run offer was the whole block or nothing, so it could not.
+func TestSambaOffersTheRunsInsideABlock(t *testing.T) {
+	table := sambaTable(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"4S", "5S", "6S", "7S", "8S", "4C", "4D", "KC"}
+		s.Teams[0].HasMelded = true
+	})
+	offers, err := New().LegalActions(table, "p1")
+	if err != nil {
+		t.Fatalf("offers: %v", err)
+	}
+	byID := map[string]module.ActionOffer{}
+	for _, o := range offers {
+		byID[o.ID] = o
+	}
+	want := map[string][]string{
+		"lay_meld:run:S4":   {"4S", "5S", "6S", "7S", "8S"},
+		"lay_meld:run:S5-8": {"5S", "6S", "7S", "8S"},
+		"lay_meld:run:S4-7": {"4S", "5S", "6S", "7S"},
+		"lay_meld:run:S6-8": {"6S", "7S", "8S"},
+		"lay_meld:run:S5-7": {"5S", "6S", "7S"},
+		"lay_meld:run:S4-6": {"4S", "5S", "6S"},
+	}
+	for id, cards := range want {
+		o, ok := byID[id]
+		if !ok || !o.Enabled || o.Source == nil {
+			t.Errorf("no enabled %s among %s", id, module.DescribeOffers(offers))
+			continue
+		}
+		if !sameCards(sortedCards(o.Source.Cards), sortedCards(cards)) ||
+			o.Source.MinCards != len(cards) || o.Source.MaxCards != len(cards) {
+			t.Errorf("%s = %v (%d-%d), want exactly %v", id, o.Source.Cards, o.Source.MinCards, o.Source.MaxCards, cards)
+		}
+		if _, code := apply(t, table, "p1", module.Action{OfferID: id, Verb: VerbLayMeld, Cards: cards}); code != "" {
+			t.Errorf("%s refused: %s", id, code)
+		}
+	}
+	// The whole block is still the first run on offer, so a press or a bot
+	// with no choice made lays the longest.
+	for _, o := range offers {
+		if o.Verb == VerbLayMeld && strings.HasPrefix(o.ID, "lay_meld:run:") {
+			if o.ID != "lay_meld:run:S4" {
+				t.Errorf("first run offer = %s, want lay_meld:run:S4", o.ID)
+			}
+			break
+		}
 	}
 }

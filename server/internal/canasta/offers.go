@@ -16,7 +16,8 @@ const (
 	// "take_pile:meld:<meldId>".
 	OfferTakePile = "take_pile"
 	// OfferLayMeld is likewise the placeholder; live candidates are
-	// "lay_meld:<rank>", or "lay_meld:run:<suit><low>" for a sequence.
+	// "lay_meld:<rank>", or "lay_meld:run:<suit><low>" for a sequence, and
+	// "lay_meld:run:<suit><low>-<high>" for a shorter one inside it.
 	OfferLayMeld = "lay_meld"
 	// OfferTakeTop is Samba's one-card capture; live ones are
 	// "take_top:<meldId>".
@@ -229,12 +230,20 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// Sequences are enumerated the same way groups are, and can be, because a
 	// run takes no wilds: it is the maximal block of consecutive ranks in a
 	// suit rather than a shape somebody composes (docs/samba-plan.md §3.3).
-	candidates = append(candidates, runCandidates(r, hand, t)...)
+	runs := runCandidates(r, hand, t)
+	candidates = append(candidates, runs...)
+	// And every shorter run inside one, after all the whole blocks so a press
+	// with nothing chosen still lays the longest.
+	var windows []candidate
+	for _, c := range runs {
+		windows = append(windows, runWindows(c)...)
+	}
 	// CanastaX's: sequences bridged by wilds, and the meld of 2s.
 	candidates = append(candidates, dirtyRunCandidates(r, hand, t)...)
 	if wc := wildMeldCandidate(r, hand, t); wc != nil {
 		candidates = append(candidates, *wc)
 	}
+	candidates = append(candidates, windows...)
 	for _, c := range candidates {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
