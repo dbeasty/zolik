@@ -1424,6 +1424,8 @@ export const ro: Record<string, string> = {
   'match.layout.move.right': 'Mută {region} în coloana dreaptă',
   'match.layout.reset': 'Resetează aranjarea',
   'match.layout.done': 'Gata',
+  'match.focus.only': 'Se vede doar: {region}',
+  'match.focus.restore': 'Toată masa',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(tu)',
   'match.side.yours': 'Echipa ta',
@@ -3251,6 +3253,8 @@ export const ro: Record<string, string> = {
   'a11y.board.param.max': '{name}: maximul, {max}',
   'a11y.board.panel.show': 'Arată {title}',
   'a11y.board.panel.minimize': 'Minimizează {title}',
+  'a11y.board.panel.maximize': 'Maximizează {title}',
+  'a11y.board.panel.restore': 'Arată toată masa',
   'a11y.board.zone.showAll': 'Arată tot din {zone}',
   'a11y.board.zone.hideRest': 'Ascunde restul din {zone}',
   'a11y.board.pile.top': '{pile}, cartea de sus {card}, {cards}',

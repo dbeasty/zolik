@@ -79,4 +79,15 @@ describe('boardArrangement', () => {
     const a = move(preset('stacked', true), 'hand', 'up', ALL);
     expect(columnsToDraw(a, false, ALL, true).columns[0]).toEqual(a.columns[0]);
   });
+
+  it('a maximized region is drawn alone, in any arrangement, until the game stops drawing it', () => {
+    for (const p of PRESETS) {
+      expect(columnsToDraw(preset(p, true), true, ALL, true, 'hand')).toEqual({ columns: [['hand']], split: 1 });
+    }
+    // The round's results went away under it: the whole board again.
+    const dealt = new Set<RegionId>(['seats', 'table', 'hand']);
+    expect(columnsToDraw(preset('stacked', true), true, dealt, true, 'results').columns).toEqual([
+      ['seats', 'table', 'hand'],
+    ]);
+  });
 });

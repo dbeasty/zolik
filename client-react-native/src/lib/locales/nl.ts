@@ -1432,6 +1432,8 @@ export const nl: Record<string, string> = {
   'match.layout.move.right': '{region} naar de rechterkolom',
   'match.layout.reset': 'Indeling herstellen',
   'match.layout.done': 'Klaar',
+  'match.focus.only': 'Alleen zichtbaar: {region}',
+  'match.focus.restore': 'Hele tafel',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(jij)',
   'match.side.yours': 'Jouw kant',
@@ -3258,6 +3260,8 @@ export const nl: Record<string, string> = {
   'a11y.board.param.max': '{name}: het maximum, {max}',
   'a11y.board.panel.show': '{title} tonen',
   'a11y.board.panel.minimize': '{title} minimaliseren',
+  'a11y.board.panel.maximize': '{title} maximaliseren',
+  'a11y.board.panel.restore': 'Hele tafel tonen',
   'a11y.board.zone.showAll': 'Alles van {zone} tonen',
   'a11y.board.zone.hideRest': 'De rest van {zone} verbergen',
   'a11y.board.pile.top': '{pile}, bovenste kaart {card}, {cards}',

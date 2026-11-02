@@ -169,14 +169,20 @@ export function move(a: Arrangement, id: RegionId, m: Move, present: ReadonlySet
  * and both have something in them; otherwise one, in the order the player
  * set when the arrangement is a single column, and today's order when it is
  * two — a side-by-side layout read top to bottom would put the results under
- * the hand, which is no order anyone chose.
+ * the hand, which is no order anyone chose. A region the player maximized is
+ * drawn alone.
  */
 export function columnsToDraw(
   a: Arrangement,
   roomForTwo: boolean,
   present: ReadonlySet<RegionId>,
   holdsHand: boolean,
+  focused?: RegionId | null,
 ): { columns: RegionId[][]; split: number } {
+  // One region filling the board, while the game still draws it. A region
+  // that went away under it (the results, once the next round is dealt) gives
+  // the board back rather than leaving it empty.
+  if (focused && present.has(focused)) return { columns: [[focused]], split: 1 };
   const left = a.columns[0].filter((r) => present.has(r));
   const right = a.columns[1].filter((r) => present.has(r));
   if (!right.length) return { columns: [left], split: 1 };

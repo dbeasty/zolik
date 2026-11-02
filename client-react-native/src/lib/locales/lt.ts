@@ -1407,6 +1407,8 @@ export const lt: Record<string, string> = {
   'match.layout.move.right': 'Perkelti {region} į dešinįjį stulpelį',
   'match.layout.reset': 'Atkurti išdėstymą',
   'match.layout.done': 'Baigta',
+  'match.focus.only': 'Rodoma tik: {region}',
+  'match.focus.restore': 'Visas stalas',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(tu)',
   'match.side.yours': 'Jūsų pusė',
@@ -3229,6 +3231,8 @@ export const lt: Record<string, string> = {
   'a11y.board.param.max': '{name}: daugiausia, {max}',
   'a11y.board.panel.show': 'Rodyti: {title}',
   'a11y.board.panel.minimize': 'Sumažinti: {title}',
+  'a11y.board.panel.maximize': 'Padidinti: {title}',
+  'a11y.board.panel.restore': 'Rodyti visą stalą',
   'a11y.board.zone.showAll': 'Rodyti viską: {zone}',
   'a11y.board.zone.hideRest': 'Slėpti likusias: {zone}',
   'a11y.board.pile.top': '{pile}, viršutinė korta {card}, {cards}',

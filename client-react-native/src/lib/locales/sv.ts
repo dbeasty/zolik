@@ -1402,6 +1402,8 @@ export const sv: Record<string, string> = {
   'match.layout.move.right': 'Flytta {region} till höger kolumn',
   'match.layout.reset': 'Återställ layout',
   'match.layout.done': 'Klar',
+  'match.focus.only': 'Visar bara {region}',
+  'match.focus.restore': 'Hela bordet',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(du)',
   'match.side.yours': 'Din sida',
@@ -3229,6 +3231,8 @@ export const sv: Record<string, string> = {
   'a11y.board.param.max': '{name}: högsta, {max}',
   'a11y.board.panel.show': 'Visa {title}',
   'a11y.board.panel.minimize': 'Minimera {title}',
+  'a11y.board.panel.maximize': 'Maximera {title}',
+  'a11y.board.panel.restore': 'Visa hela bordet',
   'a11y.board.zone.showAll': 'Visa allt i {zone}',
   'a11y.board.zone.hideRest': 'Dölj resten av {zone}',
   'a11y.board.pile.top': '{pile}, översta kortet {card}, {cards}',

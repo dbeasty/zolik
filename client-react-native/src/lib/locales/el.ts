@@ -1447,6 +1447,8 @@ export const el: Record<string, string> = {
   'match.layout.move.right': 'Μετακίνηση {region} στη δεξιά στήλη',
   'match.layout.reset': 'Επαναφορά διάταξης',
   'match.layout.done': 'Τέλος',
+  'match.focus.only': 'Εμφανίζεται μόνο: {region}',
+  'match.focus.restore': 'Όλο το τραπέζι',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(εσύ)',
   'match.side.yours': 'Η ομάδα σου',
@@ -3270,6 +3272,8 @@ export const el: Record<string, string> = {
   'a11y.board.param.max': '{name}: το μέγιστο, {max}',
   'a11y.board.panel.show': 'Εμφάνιση: {title}',
   'a11y.board.panel.minimize': 'Ελαχιστοποίηση: {title}',
+  'a11y.board.panel.maximize': 'Μεγιστοποίηση: {title}',
+  'a11y.board.panel.restore': 'Εμφάνιση όλου του τραπεζιού',
   'a11y.board.zone.showAll': 'Εμφάνιση όλων: {zone}',
   'a11y.board.zone.hideRest': 'Απόκρυψη των υπολοίπων: {zone}',
   'a11y.board.pile.top': '{pile}, πάνω χαρτί {card}, {cards}',

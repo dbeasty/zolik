@@ -1418,6 +1418,8 @@ export const bg: Record<string, string> = {
   'match.layout.move.right': 'Премести {region} в дясната колона',
   'match.layout.reset': 'Нулиране на подредбата',
   'match.layout.done': 'Готово',
+  'match.focus.only': 'Показано е само: {region}',
+  'match.focus.restore': 'Цялата маса',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(ти)',
   'match.side.yours': 'Вашата страна',
@@ -3244,6 +3246,8 @@ export const bg: Record<string, string> = {
   'a11y.board.param.max': '{name}: максимум, {max}',
   'a11y.board.panel.show': 'Покажи {title}',
   'a11y.board.panel.minimize': 'Минимизирай {title}',
+  'a11y.board.panel.maximize': 'Максимизирай {title}',
+  'a11y.board.panel.restore': 'Покажи цялата маса',
   'a11y.board.zone.showAll': 'Покажи всичко от {zone}',
   'a11y.board.zone.hideRest': 'Скрий останалото от {zone}',
   'a11y.board.pile.top': '{pile}, горна карта {card}, {cards}',

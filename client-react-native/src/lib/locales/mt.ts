@@ -1429,6 +1429,8 @@ export const mt: Record<string, string> = {
   'match.layout.move.right': 'Ċaqlaq {region} għall-kolonna tal-lemin',
   'match.layout.reset': 'Irrisettja t-tqassim',
   'match.layout.done': 'Lest',
+  'match.focus.only': 'Qed jintwera biss: {region}',
+  'match.focus.restore': 'Il-mejda kollha',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(int)',
   'match.side.yours': 'In-naħa tiegħek',
@@ -3251,6 +3253,8 @@ export const mt: Record<string, string> = {
   'a11y.board.param.max': '{name}: l-aktar, {max}',
   'a11y.board.panel.show': 'Uri: {title}',
   'a11y.board.panel.minimize': 'Imminimizza: {title}',
+  'a11y.board.panel.maximize': 'Immassimizza: {title}',
+  'a11y.board.panel.restore': 'Uri l-mejda kollha',
   'a11y.board.zone.showAll': 'Uri kollox: {zone}',
   'a11y.board.zone.hideRest': 'Aħbi l-bqija: {zone}',
   'a11y.board.pile.top': '{pile}, il-karta ta’ fuq {card}, {cards}',
