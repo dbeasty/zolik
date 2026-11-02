@@ -157,6 +157,40 @@ test.describe('a drag near the window edge scrolls the board', () => {
       .toBe('5C,6C,7C,8C,9C,TC');
   });
 
+  // The same gesture, but finished the way a hand finishes it: held at the
+  // edge off to one side, then one quick movement across onto the meld and
+  // let go. On web, gesture-handler reported only every third move of that
+  // last stretch once the board had scrolled, and never the final two, so the
+  // drop was judged at a point short of the meld and nothing was laid off —
+  // see `onTouchesUp` in useCardPan. The test above only aimed straight down,
+  // where a point short of the meld is still on it; this one comes across.
+  test('a quick last stretch across onto the meld, after the board scrolled, still lands', async ({ page, request }) => {
+    const { matchId, host, auth } = await tableWithBot(request);
+    await seedRunAndGapCards(request, matchId, host, auth);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const meld = page.getByTestId('group-meld_1');
+    await selectOnly(page, ['5C', '6C']);
+    const grab = await grabPoint(cardByCode(page, '6C'));
+    // Down into the bottom band at the far left, well to the side of the
+    // meld, so the last stretch has a long way across to go.
+    await carryPointOver(page, grab, { x: 40, y: SHORT - 20 });
+    await expect
+      .poll(async () => (await meld.boundingBox())!.y, { timeout: 10_000, message: 'the board should scroll while the card is held at the edge' })
+      .toBeLessThan(SHORT / 2);
+
+    const at = (await meld.boundingBox())!;
+    expect(at.x, 'the premise: the last stretch comes across, from well left of the meld').toBeGreaterThan(300);
+    await page.mouse.move(at.x + at.width / 2, at.y + 60, { steps: 10 });
+    await page.waitForTimeout(200);
+    await release(page);
+
+    await expect
+      .poll(() => meldOnServer(request, matchId, host), { timeout: 10_000 })
+      .toBe('5C,6C,7C,8C,9C,TC');
+  });
+
   test('a drag that starts in the bottom band does not carry the board away', async ({ page, request }) => {
     const { matchId, host, auth } = await tableWithBot(request);
     await seedRunAndGapCards(request, matchId, host, auth);
