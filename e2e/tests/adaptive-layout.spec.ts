@@ -11,7 +11,8 @@ import { waitForOfferEnabled } from '../helpers/turn';
  * `board-layout.spec.ts` proves the shell lays a zone out by its *kind*; this
  * proves the same shell stays usable once the screen it's laid out on is a
  * phone's — every control reachable, nothing drawn for a hand nobody can see,
- * two players' spreads sharing a row instead of each claiming one, and a
+ * two players' spreads sharing a row instead of each claiming one, a
+ * partnership's spreads gathered into a panel of their own, and a
  * panel a player put away staying away without ever hiding a drop target from
  * a card actually headed for it.
  */
@@ -57,6 +58,31 @@ async function openMatch(page: Page, host: any, matchId: string) {
   );
   await page.goto(`/match/${matchId}`);
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+}
+
+type Box = { id: string; x: number; y: number; width: number; height: number };
+
+/** The spread zones inside `container`, in the order they are drawn. */
+async function spreadBoxes(page: Page, container: string): Promise<Box[]> {
+  return page.locator(container).evaluate((root) =>
+    [...root.querySelectorAll('[data-testid^="zone-melds:"], [data-testid^="zone-redThrees:"]')].map((e) => {
+      const r = e.getBoundingClientRect();
+      return { id: (e as HTMLElement).dataset.testid!, x: r.x, y: r.y, width: r.width, height: r.height };
+    }),
+  );
+}
+
+/** Nothing spills off the screen, and spreads on one line sit side by side rather than over each other. */
+async function expectPackedWithinScreen(page: Page, boxes: Box[]) {
+  const screen = (await page.getByTestId('match-screen').boundingBox())!;
+  for (const b of boxes) {
+    expect(b.x, `${b.id} starts on screen`).toBeGreaterThanOrEqual(screen.x - 1);
+    expect(b.x + b.width, `${b.id} ends on screen`).toBeLessThanOrEqual(screen.x + screen.width + 1);
+  }
+  for (let i = 1; i < boxes.length; i++) {
+    const [a, b] = [boxes[i - 1], boxes[i]];
+    if (Math.abs(a.y - b.y) < 8) expect(b.x, `${b.id} sits beside ${a.id}`).toBeGreaterThanOrEqual(a.x + a.width - 1);
+  }
 }
 
 test.describe('the board on a phone', () => {
@@ -114,31 +140,61 @@ test.describe('the board on a phone', () => {
     await expect(page.getByTestId(`zone-hand:${host.userId}`)).toBeVisible();
   });
 
+  // Canasta's melds zones are sent from the very first deal, whether or not
+  // anyone has melded yet — deterministic, unlike waiting on a rummy deal to
+  // produce one. Its red-threes zones come and go with the deal, so neither
+  // test below depends on whether there are any.
+  //
+  // A spread is no longer kept narrower than the screen: one that wraps onto
+  // a line of its own grows across it (see `stretchesInRow`), which on a phone
+  // is the whole width. What still holds is that spreads with room beside
+  // each other share a line, and that nothing spills off the screen.
+
   test('two spreads share a row instead of each claiming a full-width line', async ({
     page,
     request,
   }) => {
-    // Canasta's team melds zones are sent from the very first deal, whether
-    // or not either team has melded yet — deterministic, unlike waiting on a
-    // rummy deal to produce one.
-    const { matchId, host } = await tableWithBots(request, 'canasta');
+    // Heads-up: every player is their own side, so no side panels — the
+    // spreads stand on their own in one wrapping row.
+    const { matchId, host } = await tableWithBots(request, 'canasta', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const spreads = page.locator('[data-testid^="zone-melds:"]');
-    await expect(spreads).toHaveCount(2, { timeout: 15_000 });
+    await expect(page.locator('[data-testid^="zone-melds:"]')).toHaveCount(2, { timeout: 15_000 });
+    await expect(page.locator('[data-testid^="section-side-"]')).toHaveCount(0);
 
-    const first = await spreads.nth(0).boundingBox();
-    const second = await spreads.nth(1).boundingBox();
-    expect(first && second).toBeTruthy();
+    // Two spreads always fit side by side on a phone, so the first two share
+    // a line whichever two they are — both melds zones, or a melds zone and
+    // its red threes.
+    const boxes = await spreadBoxes(page, '[data-testid="section-spreads"]');
+    expect(boxes.length).toBeGreaterThanOrEqual(2);
+    expect(Math.abs(boxes[0].y - boxes[1].y), 'the first two spreads share a line').toBeLessThan(8);
+    await expectPackedWithinScreen(page, boxes);
+  });
 
-    const screen = await page.getByTestId('match-screen').boundingBox();
-    // Each spread is a panel, not a full-width row — the layout may wrap on a
-    // narrow phone, but neither panel should claim the whole screen.
-    expect(first!.width).toBeLessThan(screen!.width * 0.75);
-    expect(second!.width).toBeLessThan(screen!.width * 0.75);
-    if (Math.abs(first!.y - second!.y) < 8) {
-      expect(second!.x).toBeGreaterThan(first!.x + first!.width - 1);
+  test('a partnership’s spreads are one panel of their own, yours first', async ({ page, request }) => {
+    const { matchId, host } = await tableWithBots(request, 'canasta', 4);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const mine = page.getByTestId('section-side-mine');
+    const theirs = page.locator('[data-testid^="section-side-"]:not([data-testid="section-side-mine"])');
+    await expect(mine).toBeVisible({ timeout: 15_000 });
+    await expect(theirs).toHaveCount(1);
+
+    // Each side is a line of its own, and the viewer's side comes first —
+    // nearest the hand, which is what they play into.
+    const m = (await mine.boundingBox())!;
+    const t = (await theirs.boundingBox())!;
+    expect(t.y, 'the other side starts below yours').toBeGreaterThanOrEqual(m.y + m.height - 1);
+
+    // A side's own zones — its melds, and its red threes when it has any —
+    // are inside its panel and share its row.
+    for (const panel of ['[data-testid="section-side-mine"]', '[data-testid^="section-side-"]:not([data-testid="section-side-mine"])']) {
+      const boxes = await spreadBoxes(page, panel);
+      expect(boxes.length).toBeGreaterThanOrEqual(1);
+      if (boxes.length > 1) expect(Math.abs(boxes[0].y - boxes[1].y), 'a side’s zones share a line').toBeLessThan(8);
+      await expectPackedWithinScreen(page, boxes);
     }
   });
 
