@@ -72,8 +72,15 @@ const sounds = {
   // One card lifted off the discards: a quick flick and a bright upward chirp,
   // about half the length of a whole pile.
   pick: [note(0, 0, 0.05, { type: 'noise', gain: 0.7 }), note(330, 0.01, 0.1, { slide: 620, type: 'tri', gain: 0.5 })],
-  // Your turn: one soft bell.
-  turn: [note(E5, 0, 0.35, { gain: 0.4 }), note(E5 * 2, 0, 0.2, { gain: 0.12 })],
+  // Your turn: a bright double ding, then a fifth up — pitched above the deep
+  // board sounds on purpose, so it is never mistaken for a card or a round.
+  // The 2.76× partial is a struck bell's, which no other cue has.
+  turn: [
+    note(E5 * 2, 0, 0.3, { gain: 0.4 }),
+    note(E5 * 2 * 2.76, 0, 0.12, { gain: 0.1 }),
+    note(E5 * 3, 0.15, 0.55, { gain: 0.45 }),
+    note(E5 * 3 * 2.76, 0.15, 0.18, { gain: 0.1 }),
+  ],
   // A round settles: a falling-then-rising pair.
   round: [note(G5, 0, 0.22, { gain: 0.45 }), note(C5, 0.18, 0.4, { gain: 0.5 })],
   // The match is won: a rising arpeggio.
