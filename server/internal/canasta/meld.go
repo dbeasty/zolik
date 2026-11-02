@@ -166,6 +166,10 @@ type candidate struct {
 	// Dirty is a sequence with wilds in it (CanastaX), told apart from a clean
 	// one starting at the same card.
 	Dirty bool
+
+	// Window is a clean sequence cut from inside a longer one (see
+	// runWindows), told apart by both its ends: 5S-8S and 5S-7S start alike.
+	Window bool
 }
 
 // selectable is the cards a person may pick for this meld — the pool where
@@ -195,6 +199,9 @@ func (c candidate) offerKey() string {
 		if c.Dirty {
 			// Both ends: a hand may lay 9H-JOKER-JH or 9H-JOKER-JH-QH.
 			return "run:" + c.Suit + first + "*" + last
+		}
+		if c.Window {
+			return "run:" + c.Suit + first + "-" + last
 		}
 		return "run:" + c.Suit + first
 	case meldWild:
@@ -589,6 +596,35 @@ func runCandidates(r ruleset, hand []string, t *Team) []candidate {
 		}
 		return out[i].Cards[0] < out[j].Cards[0]
 	})
+	return out
+}
+
+// runWindows is every shorter sequence inside a clean run candidate: 5S-8S
+// and 4S-6S, among others, from a hand holding 4S to 8S.
+//
+// A run offer is one list with a count on it, and a count cannot say
+// "contiguous" — so a run demands its whole candidate (smallestAcceptedMeld),
+// and a hand holding 4S-8S could lay all five or nothing. Keeping the 4S back
+// for a meld of fours is ordinary play, and it was simply not on offer. Each
+// window is its own candidate instead, which needs no new vocabulary.
+//
+// Offers only. runCandidates stays the maximal blocks, because reachableValue
+// spends a candidate's cards as it counts them and these overlap by design.
+func runWindows(c candidate) []candidate {
+	if c.Kind != meldRun || c.Dirty || len(c.Cards) <= minMeldSize {
+		return nil
+	}
+	var out []candidate
+	for n := len(c.Cards) - 1; n >= minMeldSize; n-- {
+		// High windows first: the high cards are the valuable ones.
+		for lo := len(c.Cards) - n; lo >= 0; lo-- {
+			cards := append([]string(nil), c.Cards[lo:lo+n]...)
+			out = append(out, candidate{
+				Kind: meldRun, Suit: c.Suit, Window: true,
+				Cards: cards, Value: handValue(cards),
+			})
+		}
+	}
 	return out
 }
 
