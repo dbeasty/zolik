@@ -85,8 +85,10 @@ type Props = {
   selected: ReadonlySet<string>;
   onToggle: (slotId: string) => void;
   onMove: (from: number, to: number) => void;
-  /** Tidy the hand into rank order, likely melds held together. */
-  onAutoArrange?: () => void;
+  /** Whether the hand is being kept in rank order, likely melds held together. */
+  autoArrange?: boolean;
+  /** Ticks or unticks Auto-arrange; without it there is no checkbox. */
+  onAutoArrangeChange?: (on: boolean) => void;
   /** A drag began on the card at this index. */
   onDragStart?: (index: number) => void;
   /** The card moved, in window coordinates. */
@@ -281,7 +283,8 @@ export function HandZone({
   selected,
   onToggle,
   onMove,
-  onAutoArrange,
+  autoArrange = false,
+  onAutoArrangeChange,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -837,13 +840,28 @@ export function HandZone({
         />
       }
       accessory={
-        onAutoArrange && slots.length > 1 ? (
+        onAutoArrangeChange && slots.length > 1 ? (
           <View style={styles.accessory}>
+            {/* A checkbox, not a button: it is a standing choice that holds
+                for every hand on this device until unticked, rather than a
+                one-off tidy the next drawn card undoes. */}
             <Tip text={t(zone.arrange === 'sorted' ? 'a11y.board.tip.autoArrangeSuits' : 'a11y.board.tip.autoArrange')}>
-              <Pressable onPress={onAutoArrange} hitSlop={8} accessibilityRole="button" style={styles.smallTarget}>
-                <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
-                  {t('a11y.board.hand.autoArrange')}
-                </Text>
+              <Pressable
+                onPress={() => onAutoArrangeChange(!autoArrange)}
+                hitSlop={8}
+                role="checkbox"
+                // `aria-checked`: react-native-web does not render
+                // `accessibilityState`.
+                aria-checked={autoArrange}
+                accessibilityState={{ checked: autoArrange }}
+                style={[styles.smallTarget, styles.checkRow]}
+                testID={`hand-auto-arrange-${zone.id}`}
+              >
+                {/* The same border on and off, so ticking it moves nothing. */}
+                <View style={[styles.checkBox, autoArrange && styles.checkBoxOn]} aria-hidden>
+                  {autoArrange ? <Text style={styles.checkTick}>✓</Text> : null}
+                </View>
+                <Text style={styles.autoArrange}>{t('a11y.board.hand.autoArrange')}</Text>
               </Pressable>
             </Tip>
             {/* Opening the fan out is a look, not a setting, so it sits with
@@ -1366,6 +1384,18 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
   const lift = liftFor(m);
   return StyleSheet.create({
     autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
+    checkRow: { flexDirection: 'row', gap: 6 },
+    checkBox: {
+      width: 14,
+      height: 14,
+      borderRadius: 3,
+      borderWidth: 1.5,
+      borderColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkBoxOn: { backgroundColor: colors.accent },
+    checkTick: { color: colors.onAccent, fontSize: 10, fontWeight: '800', lineHeight: 12 },
     accessory: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     // WCAG 2.2 target size: a 12px line of text is not a 24px target.
     smallTarget: { minHeight: 24, minWidth: 24, alignItems: 'center', justifyContent: 'center' },

@@ -35,6 +35,7 @@ import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RulesButton } from '@/src/components/match/RulesButton';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { AutoContinue } from '@/src/components/match/AutoContinue';
+import { useAutoArrange } from '@/src/lib/autoArrangePref';
 import { useAutoContinue } from '@/src/lib/autoContinuePref';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { InviteBackSheet } from '@/src/components/match/InviteBackSheet';
@@ -333,7 +334,12 @@ function MatchScreen() {
   const myHands = mine.filter((z) => z.kind === 'hand');
   // Keyed by match, so an arrangement is remembered across a reload but never
   // carried into a different deal, where it would mean nothing.
-  const { slotsFor, move, arrange, autoSelectIds } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
+  const [autoArrange, setAutoArrange] = useAutoArrange();
+  const { slotsFor, move, autoSelectIds } = useHandOrder(
+    myHands,
+    matchId ? String(matchId) : undefined,
+    autoArrange,
+  );
 
   // The Mac app's View › Show/Hide Hand, Table and Log, and Help › Rules for
   // this game. The hand and the table are the same panels the ▾ on each puts
@@ -2074,9 +2080,14 @@ function MatchScreen() {
               return next;
             });
           }
+          // Putting a card somewhere yourself is choosing your own order,
+          // so it unticks Auto-arrange — left on, the next card drawn would
+          // sort the hand straight back.
+          if (autoArrange) setAutoArrange(false);
           move(z.id, from, to);
         }}
-        onAutoArrange={() => arrange(z.id)}
+        autoArrange={autoArrange}
+        onAutoArrangeChange={setAutoArrange}
         onDragStart={(index) => beginDrag(z.id, index)}
         onDragMove={moveDrag}
         onDragEnd={endDrag}

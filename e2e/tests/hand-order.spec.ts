@@ -964,12 +964,14 @@ test.describe('arranging your hand', () => {
       .toBe(arranged.join(','));
   });
 
-  test('Auto-arrange tidies the hand without moving anything to the server', async ({
+  test('Auto-arrange is a checkbox that keeps the hand tidy until a drag unticks it', async ({
     page,
     request,
   }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
+    const box = page.getByTestId(`hand-auto-arrange-hand:${host.userId}`);
+    await expect(box).toHaveAttribute('aria-checked', 'false');
 
     // Scramble it first, so a no-op auto-arrange (the hand already happened
     // to be tidy) can't pass this test by accident.
@@ -977,7 +979,8 @@ test.describe('arranging your hand', () => {
     const scrambled = await handCards(page);
     const serverBefore = await serverHand(request, matchId, host);
 
-    await page.getByTestId(`hand-auto-arrange-hand:${host.userId}`).click();
+    await box.click();
+    await expect(box).toHaveAttribute('aria-checked', 'true');
 
     const tidied = await handCards(page);
     expect(tidied).not.toEqual(scrambled);
@@ -990,12 +993,31 @@ test.describe('arranging your hand', () => {
     const serverAfter = await serverHand(request, matchId, host);
     expect(serverAfter).toEqual(serverBefore);
 
-    // And it is remembered the same way a manual arrangement is.
+    // The choice itself is remembered, not just the order it produced.
     await page.reload();
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await expect(box).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 });
     await expect
       .poll(async () => (await handCards(page)).join(','), { timeout: 15_000 })
       .toBe(tidied.join(','));
+
+    // On means on: a card drawn while it is ticked is sorted in, not left at
+    // the end. Re-sorting by hand afterwards must find nothing to change.
+    await settleOnMyTurn(page);
+    const count = tidied.length;
+    await page.getByTestId('offer-draw:deck').click();
+    await expect.poll(async () => (await handCards(page)).length).toBe(count + 1);
+    const drawn = await handCards(page);
+    await box.click();
+    await box.click();
+    await expect(box).toHaveAttribute('aria-checked', 'true');
+    expect(await handCards(page)).toEqual(drawn);
+
+    // Arranging by hand is choosing your own order, so it unticks the box
+    // and the drag sticks.
+    await dragLocatorTo(page, card(page, 0), card(page, 3));
+    await expect(box).toHaveAttribute('aria-checked', 'false');
+    expect(await handCards(page)).not.toEqual(drawn);
   });
 
   test('rearranging is not a move: the server never hears about it', async ({ page, request }) => {
