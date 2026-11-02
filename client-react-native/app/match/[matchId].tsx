@@ -58,6 +58,9 @@ import { GuideTarget } from '@/src/guide/GuideTarget';
 import { useGuide } from '@/src/guide/useGuide';
 import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
+import { useBoardArrangement } from '@/src/hooks/useBoardArrangement';
+import { LayoutSheet } from '@/src/components/match/LayoutSheet';
+import { TWO_COLUMN_MAX_WIDTH, TWO_COLUMN_MIN_WIDTH, type RegionId } from '@/src/lib/boardArrangement';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
@@ -342,7 +345,18 @@ function MatchScreen() {
     autoArrange,
   );
 
-  // The Mac app's View › Show/Hide Hand, Table and Log, and Help › Rules for
+  // Where the board's regions go, for this game on this device — see
+  // `boardArrangement.ts`. Which regions this board has, and whether it came
+  // out as two columns, are the board's own answer (`BoardLayout`'s
+  // `onDrawn`): the sheet lists only those, and the board is let wider than a
+  // table only while there are two columns to fill.
+  const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'));
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  const [drawn, setDrawn] = useState<{ present: ReadonlySet<RegionId>; columns: number }>(() => ({
+    present: new Set(),
+    columns: 1,
+  }));
+  // The Mac app's View › Show/Hide Hand, Table and Log, Layout, and Help › Rules for
   // this game. The hand and the table are the same panels the ▾ on each puts
   // away; the log is the list of recent moves. Before the early returns
   // below, because it is a hook.
@@ -370,6 +384,13 @@ function MatchScreen() {
       log: { shown: logOpen, toggle: () => setMovesOpen(!logOpen) },
     },
     state ? { moduleId: state.moduleId, variation: state.variation ?? '', options: state.options ?? {} } : null,
+    state
+      ? {
+          current: board.arrangement.custom ? 'custom' : board.arrangement.preset,
+          choose: board.choose,
+          reset: board.reset,
+        }
+      : undefined,
   );
   // The game window's title bar, in the Mac app: the game and who it is
   // against, with the status (and where the table runs) beneath.
@@ -2241,7 +2262,11 @@ function MatchScreen() {
         // the draw pile end up at opposite ends of a metre of glass.
         contentContainerStyle={[
           styles.body,
-          { maxWidth: metrics.maxWidth, width: '100%', alignSelf: 'center' },
+          {
+            maxWidth: drawn.columns > 1 ? Math.min(windowWidth, TWO_COLUMN_MAX_WIDTH) : metrics.maxWidth,
+            width: '100%',
+            alignSelf: 'center',
+          },
           boardNoShrink.style,
         ]}
         onContentSizeChange={boardNoShrink.onContentSizeChange}
@@ -2305,6 +2330,21 @@ function MatchScreen() {
               module knows it exists. */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <SoundToggle />
+          {/* Where the board's panels go — one column, or two on a wide
+              screen. A preference about this game's look on this device,
+              like the skin beside it. */}
+          <Tip text={t('match.layout.tip')}>
+            <Pressable
+              testID="layout-open"
+              onPress={() => setLayoutOpen(true)}
+              hitSlop={8}
+              style={[styles.skinToggle, { marginRight: 6 }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('match.layout.title')}
+            >
+              <Text style={styles.skinToggleText}>▦ {t('match.layout.button')}</Text>
+            </Pressable>
+          </Tip>
           <Tip text={t('a11y.board.tip.skin')}>
             <Pressable
               testID="skin-toggle"
@@ -2548,30 +2588,38 @@ function MatchScreen() {
             something worked out here from the controls that happen to be live —
             and the control to go on is an ordinary offer, so the action bar
             below renders it like any other. */}
-        {showResults ? (
-          <View style={styles.ending} {...ending.anchor('results')}>
-            <RoundResults
-              log={state.rounds!}
-              players={state.players}
-              standings={state.standings}
-              viewerId={viewerId}
-              onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
-              // Folded by default while play is on, so it is stored the other
-              // way round from the board's panels: present means opened out.
-              minimized={resultsHeld ? undefined : !panels.isMinimized('results:open')}
-              onToggleMinimized={resultsHeld ? undefined : () => panels.toggle('results:open')}
-            />
-            {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
-          </View>
-        ) : null}
-
-        {/* Between rounds the one control the module still offers belongs
-            here, with the settlement it acts on, rather than under a hand
-            that cannot be played. See `controlsPanel`. */}
-        {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
-
         <BoardLayout
           state={state}
+          results={
+            showResults || paused ? (
+              <>
+              {showResults ? (
+                <View style={styles.ending} {...ending.anchor('results')}>
+                  <RoundResults
+                    log={state.rounds!}
+                    players={state.players}
+                    standings={state.standings}
+                    viewerId={viewerId}
+                    onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
+                    // Folded by default while play is on, so it is stored the other
+                    // way round from the board's panels: present means opened out.
+                    minimized={resultsHeld ? undefined : !panels.isMinimized('results:open')}
+                    onToggleMinimized={resultsHeld ? undefined : () => panels.toggle('results:open')}
+                  />
+                  {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
+                </View>
+              ) : null}
+
+              {/* Between rounds the one control the module still offers belongs
+                  here, with the settlement it acts on, rather than under a hand
+                  that cannot be played. See `controlsPanel`. */}
+              {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
+              </>
+            ) : null
+          }
+          arrangement={board.arrangement}
+          roomForTwo={windowWidth >= TWO_COLUMN_MIN_WIDTH}
+          onDrawn={setDrawn}
           viewerId={viewerId}
           styles={styles}
           zonePanelProps={zonePanelProps}
@@ -2606,6 +2654,16 @@ function MatchScreen() {
           for all three, because they are one question. */}
       {botStrength.sheet}
       {standIn.sheet}
+      <LayoutSheet
+        visible={layoutOpen}
+        arrangement={board.arrangement}
+        present={drawn.present}
+        roomForTwo={windowWidth >= TWO_COLUMN_MIN_WIDTH}
+        onChoose={board.choose}
+        onMove={(region, move) => board.move(region, move, drawn.present)}
+        onReset={board.reset}
+        onClose={() => setLayoutOpen(false)}
+      />
       {seatLook.sheet}
       {guide ? (
         <GuideExitSheet

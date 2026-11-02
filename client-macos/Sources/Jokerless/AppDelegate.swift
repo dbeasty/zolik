@@ -416,6 +416,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     gameWeb?.toggleView(part)
   }
 
+  @objc func chooseLayout(_ sender: NSMenuItem) {
+    guard let command = MenuBuilder.layoutTags[sender.tag] else { return }
+    gameWeb?.layout(command)
+  }
+
+  /// The preset the board in front is in, `custom` once a panel was moved by
+  /// hand, or nil when there is no game in front.
+  private var layoutInFront: String? {
+    (active?.role == .game ? active?.viewState : nil)?["layout"] as? String
+  }
+
   @objc private func openRules(_ sender: NSMenuItem) {
     if let path = sender.representedObject as? String {
       showMain()
@@ -436,6 +447,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     if item.action == #selector(toggleViewPart(_:)), let part = MenuBuilder.viewTags[item.tag] {
       return viewPart(part) != nil
     }
+    if item.action == #selector(chooseLayout(_:)) { return layoutInFront != nil }
     return true
   }
 
@@ -445,6 +457,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
       let Part = part.prefix(1).uppercased() + part.dropFirst()
       item.title = viewPart(part) == false
         ? label("show\(Part)", "Show \(Part)") : label("hide\(Part)", "Hide \(Part)")
+    }
+    // A tick on the preset the board is in; none once it has been arranged by hand.
+    let current = layoutInFront
+    let layout = viewMenu.items.first { $0.identifier?.rawValue == "menu.layout" }?.submenu
+    for item in layout?.items ?? [] {
+      guard let preset = MenuBuilder.layoutTags[item.tag], preset != "reset" else { continue }
+      item.state = preset == current ? .on : .off
     }
   }
 
@@ -490,6 +509,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     let menu: NSMenu
     switch which {
     case "View": refreshViewMenu(); menu = viewMenu
+    case "Layout":
+      refreshViewMenu()
+      menu = viewMenu.items.first { $0.identifier?.rawValue == "menu.layout" }?.submenu ?? accountMenu
     case "Rules": refreshRulesMenu(); menu = rulesMenu
     case "Help": refreshHelpMenu(); menu = helpMenu
     case "bar": menu = NSApp.mainMenu ?? accountMenu

@@ -419,8 +419,7 @@ async function main() {
   await step('starting a bot game opens a game window; the main window is back home', async () => {
     await on(a, 1);
     await a.js(`await e2e.click('Last Card', { exact: true }); return 1`);
-    await a.js(`await e2e.click('Play against bots', { exact: true }); return 1`);
-    await a.js(`await e2e.click('One deal', { exact: true }); await e2e.click('Deal me in', { exact: true }); return 1`);
+    await a.js(`await e2e.click('Play now', { exact: true }); return 1`);
     const wins = await waitWindows(a, (w) => w.length === 2, 'a game window');
     expect(wins[0].role === 'main' && wins[1].role === 'game', `windows ${JSON.stringify(wins)}`);
     lastCard = wins[1].key;
@@ -488,8 +487,7 @@ async function main() {
   await step('a second game opens a second game window; both play', async () => {
     await on(a, 1);
     await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 20000); await e2e.click('Prší', { exact: true }); return 1`);
-    await a.js(`await e2e.click('Play against bots', { exact: true }); return 1`);
-    await a.js(`await e2e.click('Deal me in', { exact: true }); return 1`);
+    await a.js(`await e2e.click('Play now', { exact: true }); return 1`);
     const wins = await waitWindows(a, (w) => w.length === 3, 'a second game window');
     prsi = wins[2].key;
     expect(prsi !== lastCard && wins.filter((w) => w.role === 'main').length === 1, `windows ${JSON.stringify(wins)}`);
@@ -788,6 +786,33 @@ async function main() {
     for (const word of ['Back', 'Forward']) {
       expect(view.some((t) => t.startsWith('(disabled)') && t.endsWith(word)), `in a game window View shows ${JSON.stringify(view)}`);
     }
+  }, [a]);
+
+  await step('View › Layout picks a preset for the game in front, ticks it, and resets it', async () => {
+    const lc = await indexOfGame(a, lastCard);
+    await on(a, lc);
+    const stored = `(() => { try { return JSON.parse(localStorage.getItem('zolik_board_arrangement') || '{}').lastcard?.preset ?? null; } catch { return 'unreadable'; } })()`;
+    const ticked = async (want) => {
+      let items = [];
+      for (let i = 0; i < 50; i++) {
+        items = await a.native('menuitems Layout');
+        if (items.includes(`✓ ${want}`)) return items;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      throw new Error(`Layout does not tick "${want}": ${JSON.stringify(items)}`);
+    };
+    await ticked('Stacked');
+    await a.native('menu Table beside hand');
+    await a.js(`await e2e.waitFor(() => ${stored} === 'beside', 'the layout to be kept', 5000); return 1`);
+    const items = await ticked('Table beside hand');
+    expect(!items.includes('✓ Stacked'), `two presets ticked: ${JSON.stringify(items)}`);
+    await a.native('menu Reset layout');
+    await a.js(`await e2e.waitFor(() => ${stored} === null, 'the layout to be forgotten', 5000); return 1`);
+    await ticked('Stacked');
+    // Off a game there is no board to arrange.
+    await on(a, 1);
+    const off = await a.native('menuitems Layout');
+    expect(off.filter((t) => t !== '—').every((t) => t.startsWith('(disabled)')), `off the game, Layout shows ${JSON.stringify(off)}`);
   }, [a]);
 
   await step('a game window’s Rules link goes to the main window; leaving for the lobby closes the window', async () => {
@@ -1235,7 +1260,7 @@ async function main() {
     // the app's address, not by anything the main window holds.
     await l.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
     await l.js(`await e2e.waitForText('No internet needed'); await e2e.click('Last Card', { exact: true }); return 1`);
-    await l.js(`await e2e.click('Play against bots', { exact: true }); return 1`);
+    await l.js(`await e2e.click('Play now', { exact: true }); return 1`);
     await l.js(`await e2e.click('Deal me in', { exact: true }); return 1`);
     const wins = await waitWindows(l, (w) => w.length === 2, 'the game window', 30_000);
     await on(l, 2);
@@ -1274,7 +1299,7 @@ async function main() {
     for (const game of ['Last Card', 'Prší']) {
       await on(r, 1);
       await r.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 20000); await e2e.click(${JSON.stringify(game)}, { exact: true }); return 1`);
-      await r.js(`await e2e.click('Play against bots', { exact: true }); return 1`);
+      await r.js(`await e2e.click('Play now', { exact: true }); return 1`);
       await r.js(`await e2e.click('Deal me in', { exact: true }); return 1`);
       const want = game === 'Last Card' ? 2 : 3;
       await waitWindows(r, (w) => w.length === want, `game window ${want - 1}`);
@@ -1351,7 +1376,7 @@ async function main() {
     await ob.native('menu Start an offline table');
     await ob.js(`await e2e.waitForText('Your name at the table'); await e2e.fill('Your name at the table', 'Mac Solo'); await e2e.click('Start an offline table', { exact: true }); return 1`);
     await ob.js(`await e2e.waitFor(() => ZolikNearbyDesktop.hostStatus(), 'the host', 45000); window.__zolikNavigate('/'); await e2e.waitForText('No internet needed'); await e2e.sleep(1500); return 1`);
-    await ob.js(`await e2e.click('Last Card', { exact: true }); await e2e.click('Play against bots', { exact: true }); await e2e.sleep(400); await e2e.click('Deal me in', { exact: true }); return 1`);
+    await ob.js(`await e2e.click('Last Card', { exact: true }); await e2e.click('Play now', { exact: true }); await e2e.sleep(400); await e2e.click('Deal me in', { exact: true }); return 1`);
     const wins = await waitWindows(ob, (w) => w.length === 2 && /Server: this computer/.test(w[1].subtitle), 'the offline bot game window, titled for its server');
     expect(wins[1].role === 'game', `windows ${JSON.stringify(wins)}`);
     await on(ob, 1);
