@@ -479,17 +479,20 @@ export function OfferGlance({
     <View style={styles.glanceRow} testID={testID}>
       {shown.map((o) => {
         const groupKey = offerGroupKey(o);
-        // A folded pill can always be pressed — it either resolves outright
-        // or opens up the board's targets — but a lone offer still waiting on
-        // a card combination or a parameter isn't ready for a bare tap yet.
+        // A folded target pill is pressable once the selection fits one of
+        // its targets — it then resolves outright or opens up the board's
+        // targets that fit — and a lone offer still waiting on a card
+        // combination or a parameter isn't ready for a bare tap yet.
         //
-        // Except a choice group: with no targets to open, a pill it cannot
-        // settle has nowhere to go, so it waits for cards that make exactly
-        // one of its melds. Before this fold, the pill fired whichever meld the
-        // server happened to list first.
+        // A choice group has no targets to open, so a pill it cannot settle
+        // has nowhere to go: it waits for cards that make exactly one of its
+        // melds. Before this fold, the pill fired whichever meld the server
+        // happened to list first.
         const group = groups.get(groupKey) ?? [];
         const ready = foldedIds.has(o.id)
-          ? !isChoiceGroup(group) || settledOffers(group, selectedCards, armedGroupId).length === 1
+          ? isChoiceGroup(group)
+            ? settledOffers(group, selectedCards, armedGroupId).length === 1
+            : !targetUnready(group, selectedCards, armedGroupId)
           : isReady(o, selectedCards, params[o.id]);
         // The same title the full bar gives it — "Raise to 483", from the
         // shared value — so the pill says what it sends.
@@ -572,11 +575,6 @@ function FoldedOffer({
   const enabledCount = group.filter((o) => o.enabled).length;
   const settled = settledOffers(group, selectedCards, armedGroupId);
   const disabled = enabledCount === 0;
-  // Whether a target was pointed at before any card was — the board already
-  // knows which one; only the cards are still open. Used purely to pick the
-  // hint below: an aimed target that is not yet settled means "keep picking
-  // cards", not "there's more than one place this could go".
-  const aimed = armedGroupId ? group.some((o) => o.target?.meldId === armedGroupId) : false;
 
   // The engine's own reason, same as a lone offer already shows — a folded
   // control disabled with nothing next to it reads as broken, not as "not
@@ -586,7 +584,11 @@ function FoldedOffer({
   const sharedReason = sharedRefusal(group);
 
   const choice = isChoiceGroup(group);
-  const unready = choice && !disabled ? choiceUnready(group, selectedCards) : undefined;
+  const unready = disabled
+    ? undefined
+    : choice
+      ? choiceUnready(group, selectedCards)
+      : targetUnready(group, selectedCards, armedGroupId);
   const ghost = disabled || !!unready;
 
   // The member this reason actually came from, so its rules and its remedy
@@ -652,7 +654,7 @@ function FoldedOffer({
         </Tip>
       </ExplainOnPress>
 
-      {choice && unready ? (
+      {unready ? (
         <ReasonLine
           testID={`why-group:${groupKey}`}
           text={label(unready.labelKey, unready.params)}
@@ -691,9 +693,9 @@ function FoldedOffer({
         />
       ) : null}
 
-      {!disabled && !choice && settled.length !== 1 ? (
+      {!ghost && !choice && settled.length > 1 ? (
         <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
-          {aimed ? t('offer.pickCards') : t('offer.ambiguous')}
+          {t('offer.ambiguous')}
         </Text>
       ) : null}
     </View>
@@ -1083,7 +1085,7 @@ function pickCards(offer: ActionOffer, selected: string[]): string[] | undefined
  */
 function offerSettles(offer: ActionOffer, selected: string[]): boolean {
   if (!offer.enabled) return false;
-  if (selected.length === 0) return isOneTap(offer);
+  if (selected.length === 0) return isOneTap(offer) && !waitsForCards(offer);
   // `readyWith` rather than `fits`, and the difference is the whole of it: a
   // selection the offer would accept eventually is not one it would accept
   // now. A control settled on `fits` alone went out lit over a half-built
@@ -1107,6 +1109,49 @@ function settledOffers(group: ActionOffer[], selected: string[], armedGroupId?: 
   const aimed = armedGroupId ? group.find((o) => o.target?.meldId === armedGroupId) : undefined;
   if (!aimed) return group.filter((o) => offerSettles(o, selected));
   return offerSettles(aimed, selected) ? [aimed] : [];
+}
+
+/**
+ * An offer that adds cards from hand to something already on the table and
+ * does not name them itself: a lay-off. It is never a bare tap, even when the
+ * hand holds exactly one card that fits — which card goes is the player's to
+ * say, so the control waits for a selection that fits and lights only then.
+ * Before, a lay-off lit up the moment any card in hand could go anywhere, and
+ * a press with nothing chosen either sent a card the player had not picked or
+ * landed on "pick on the board".
+ */
+function waitsForCards(offer: ActionOffer): boolean {
+  return !!offer.target?.meldId && (offer.source?.minCards ?? 0) > 0 && !(offer.source?.submit ?? []).length;
+}
+
+/**
+ * Why a target group's control — one lay-off, several melds it could go on —
+ * is not ready for the current selection, or undefined when the selection
+ * fits at least one of them. Nothing picked yet asks for a card; a pick that
+ * fits none says why, from the aimed target alone once one is aimed, since
+ * that is the only place a press would send it.
+ */
+export function targetUnready(
+  group: ActionOffer[],
+  selected: string[],
+  armedGroupId?: string | null,
+): Extract<Fit, { ok: false }> | undefined {
+  if (settledOffers(group, selected, armedGroupId).length > 0) return undefined;
+  const live = group.filter((o) => o.enabled);
+  if (selected.length === 0) {
+    const need = Math.min(...live.map((o) => o.source?.minCards ?? 1));
+    return { ok: false, labelKey: 'sel.needMore', params: { n: need } };
+  }
+  const aimed = armedGroupId ? live.filter((o) => o.target?.meldId === armedGroupId) : [];
+  let miss: Extract<Fit, { ok: false }> | undefined;
+  for (const o of aimed.length ? aimed : live) {
+    const fit = readyWith(o, selected);
+    if (fit.ok) continue;
+    // A refusal that names the card or its missing company says more than
+    // "not these", so it wins over one that does not.
+    if (!miss || (miss.labelKey === 'sel.notThese' && fit.labelKey !== 'sel.notThese')) miss = fit;
+  }
+  return miss ?? { ok: false, labelKey: 'sel.notThese' };
 }
 
 /** An offer that carries its own submission and aims at no existing target. */
@@ -1171,7 +1216,9 @@ function unreadyReason(offer: ActionOffer, selected: string[]): Extract<Fit, { o
   const need = offer.source?.minCards ?? 0;
   if (need === 0) return undefined;
   if (selected.length === 0) {
-    return isOneTap(offer) ? undefined : { ok: false, labelKey: 'sel.needMore', params: { n: need } };
+    return isOneTap(offer) && !waitsForCards(offer)
+      ? undefined
+      : { ok: false, labelKey: 'sel.needMore', params: { n: need } };
   }
   const fit = readyWith(offer, selected);
   return fit.ok ? undefined : fit;
