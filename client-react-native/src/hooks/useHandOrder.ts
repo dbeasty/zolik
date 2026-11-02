@@ -5,6 +5,14 @@ import { applySavedOrder, arrangeAsSent, arrangeAuto, arrangeSlots, justArrived,
 import { loadHandOrder, saveHandOrder } from '@/src/lib/handOrderStore';
 
 /**
+ * Auto-arrange for one hand. A hand the module sends sorted is put back in the
+ * module's order; any other is clustered for sets and runs.
+ */
+function arrangeZone(zone: Zone | undefined, slots: Slot[]): Slot[] {
+  return zone?.arrange === 'sorted' ? arrangeAsSent(slots, (zone.cards ?? []).map((c) => c.card)) : arrangeAuto(slots);
+}
+
+/**
  * Keeps each hand in the order its owner put it in.
  *
  * The problem this exists for is that the server re-pushes the entire board
@@ -21,8 +29,12 @@ import { loadHandOrder, saveHandOrder } from '@/src/lib/handOrderStore';
  *
  * It is also written to the device, so it survives a reload and coming back to
  * a match later — arranging a hand is only worth the trouble if it stays done.
+ *
+ * With `auto` on, every hand is kept in `arrangeAuto` order instead: put in
+ * order the moment it is switched on, and again after every push, so a drawn
+ * card lands among its meld material rather than at the end.
  */
-export function useHandOrder(zones: Zone[], matchId?: string) {
+export function useHandOrder(zones: Zone[], matchId?: string, auto = false) {
   const [order, setOrder] = useState<Record<string, Slot[]>>({});
 
   // Distinct ids for the lifetime of the screen. A counter rather than the
@@ -71,6 +83,28 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
   // an effect elsewhere key off it rather than polling.
   const [autoSelectIds, setAutoSelectIds] = useState<string[]>([]);
 
+  // Switching auto on is a push's worth of change to every hand, made the same
+  // way and for the same reason: set during render, so the old order is never
+  // painted once more first.
+  const [lastAuto, setLastAuto] = useState(auto);
+  // For the restore below, which resolves long after this render: a stored
+  // arrangement put back over a hand that is meant to stay sorted would
+  // un-sort it until the next push.
+  const autoRef = useRef(auto);
+  autoRef.current = auto;
+  const zonesRef = useRef(zones);
+  zonesRef.current = zones;
+  if (auto !== lastAuto) {
+    setLastAuto(auto);
+    if (auto) {
+      const next: Record<string, Slot[]> = {};
+      for (const [zoneId, slots] of Object.entries(order)) {
+        next[zoneId] = arrangeZone(zones.find((z) => z.id === zoneId), slots);
+      }
+      setOrder(next);
+    }
+  }
+
   if (signature !== lastSignature) {
     // React's documented way to adjust state when props change: set it during
     // render, and it re-renders before committing anything to the screen. The
@@ -87,7 +121,8 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     const drawn: string[] = [];
     for (const zone of zones) {
       const previousSlots = order[zone.id] ?? [];
-      const slots = reconcile(zone, previousSlots);
+      const reconciled = reconcile(zone, previousSlots);
+      const slots = auto ? arrangeZone(zone, reconciled) : reconciled;
       next[zone.id] = slots;
       drawn.push(...justArrived(previousSlots, slots));
     }
@@ -122,7 +157,10 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
               const slots = prev[zoneId];
               if (!slots?.length || restoredZones.current.has(zoneId)) continue;
               restoredZones.current.add(zoneId);
-              next[zoneId] = applySavedOrder(slots, cards);
+              const applied = applySavedOrder(slots, cards);
+              next[zoneId] = autoRef.current
+                ? arrangeZone(zonesRef.current.find((z) => z.id === zoneId), applied)
+                : applied;
             }
             return next;
           });
@@ -161,17 +199,5 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     setOrder((prev) => ({ ...prev, [zoneId]: moveSlot(prev[zoneId] ?? [], from, to) }));
   }, []);
 
-  // A hand the module sends sorted is put back in the module's order; any
-  // other is clustered for sets and runs.
-  const arrange = useCallback((zoneId: string) => {
-    const zone = zones.find((z) => z.id === zoneId);
-    setOrder((prev) => {
-      const slots = prev[zoneId] ?? [];
-      const arranged =
-        zone?.arrange === 'sorted' ? arrangeAsSent(slots, (zone.cards ?? []).map((c) => c.card)) : arrangeAuto(slots);
-      return { ...prev, [zoneId]: arranged };
-    });
-  }, [zones]);
-
-  return { slotsFor, move, arrange, autoSelectIds };
+  return { slotsFor, move, autoSelectIds };
 }
