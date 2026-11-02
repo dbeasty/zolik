@@ -15,7 +15,7 @@ import { SettleIn } from '@/src/components/match/SettleIn';
 import { useCardPan } from '@/src/hooks/useCardPan';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
-import { concealedCount, isWideSpread } from '@/src/lib/board';
+import { concealedCount, isWideSpread, zoneDropLive } from '@/src/lib/board';
 import { marksIn, type ChangeMarks } from '@/src/lib/changes';
 import { groupElementId, liftKey, zoneElementId } from '@/src/lib/drops';
 import {
@@ -68,6 +68,8 @@ type Props = {
   inline?: boolean;
   /** A softer look for a panel drawn inside another panel — see `Panel`'s own `nested`. */
   nested?: boolean;
+  /** Grows to fill what its row leaves over, out to the right edge — see `stretchesInRow`. */
+  stretch?: boolean;
   /** Names this panel by something other than the zone's own label — an owner's name, typically. */
   title?: string;
   /** A second line under `title` — falls back to the zone's own label when `title` is supplied. */
@@ -181,6 +183,7 @@ export function ZoneView({
   compact,
   inline,
   nested,
+  stretch,
   title: titleOverride,
   subtitle: subtitleOverride,
   panelId,
@@ -365,11 +368,7 @@ export function ZoneView({
   // A minimized panel still has to open for a drag aimed at it, or at one of
   // its own groups — a target a preference can hide is a target a card can be
   // lost into.
-  const groupsLive = (zone.groups ?? []).some((g) => {
-    const gid = groupElementId(g.id);
-    return (activeDrops?.has(gid) ?? false) || (pressableDrops?.has(gid) ?? false);
-  });
-  const forceOpen = zoneLive || groupsLive;
+  const forceOpen = zoneDropLive(zone, activeDrops, pressableDrops);
 
   // Stands in for a drag once what to send is already chosen and only where
   // it goes is still open — the same thing a group's own press overlay does,
@@ -447,7 +446,7 @@ export function ZoneView({
       subtitle={subtitle}
       inline={inline}
       nested={nested}
-      style={wide ? styles.widePanel : undefined}
+      style={wide ? styles.widePanel : stretch ? styles.stretchPanel : undefined}
       live={zoneLive}
       refused={zoneRefused}
       hovered={hoveredDrop === zoneId}
@@ -1072,6 +1071,8 @@ function zoneStyles(m: Metrics, s: Skin) {
     fanOverlap: { marginLeft: -(m.card.compactWidth * 0.62) },
     // A wide table spread takes the whole width of the row it sits in...
     widePanel: { flexBasis: '100%', flexGrow: 1, flexShrink: 1, minWidth: 0 },
+    // A spread of melds filling what its row leaves over — see `stretchesInRow`.
+    stretchPanel: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
     // ...and draws its groups as equal columns on one line.
     wideGroups: { flexWrap: 'nowrap', gap: 4 },
     wideGroup: {

@@ -1383,6 +1383,7 @@ export const da: Record<string, string> = {
   'match.opponents': 'Modstandere',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(dig)',
+  'match.side.yours': 'Din side',
   // The winner line is composed from whole sentences rather than a name glued
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.

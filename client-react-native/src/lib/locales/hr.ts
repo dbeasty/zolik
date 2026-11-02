@@ -1384,6 +1384,7 @@ export const hr: Record<string, string> = {
   'match.opponents': 'Protivnici',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(ti)',
+  'match.side.yours': 'Tvoja strana',
   // The winner line is composed from whole sentences rather than a name glued
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.

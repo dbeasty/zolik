@@ -1,5 +1,5 @@
 import type { Zone } from '@/src/api/matchTypes';
-import { zoneElementId } from '@/src/lib/drops';
+import { groupElementId, zoneElementId } from '@/src/lib/drops';
 
 /**
  * Which zones are worth putting on screen.
@@ -75,6 +75,24 @@ export function drawableZones(
 }
 
 /**
+ * Whether the card in flight, or the choice waiting on a press, could land on
+ * this zone or one of its groups. A panel holding such a zone opens whatever
+ * the player left minimized — a target a preference can hide is a target a
+ * card can be lost into.
+ */
+export function zoneDropLive(
+  zone: Zone,
+  activeDrops?: ReadonlySet<string>,
+  pressableDrops?: ReadonlySet<string>,
+): boolean {
+  if (activeDrops?.has(zoneElementId(zone.id))) return true;
+  return (zone.groups ?? []).some((g) => {
+    const gid = groupElementId(g.id);
+    return (activeDrops?.has(gid) ?? false) || (pressableDrops?.has(gid) ?? false);
+  });
+}
+
+/**
  * Where a zone is drawn, decided by what the module said it *is*.
  *
  * Two places on the board, and each of these answers one of them: the table
@@ -97,6 +115,20 @@ export function isTableZone(zone: Zone): boolean {
   // buttons that make them — not above the seats, a screen away from them.
   if (zone.dealer) return true;
   return zone.kind !== 'spread' || !!zone.shared;
+}
+
+/**
+ * Whether a spread in the row of what players have laid down grows to fill
+ * what its row leaves over.
+ *
+ * Melds are what that row is for, and a panel shrunk to its first two melds
+ * leaves the right of a wide screen empty while the next meld wraps under
+ * them. So a spread made of groups — or none yet, where the first meld will
+ * land — reaches the right edge. A few loose cards (red threes, a blackjack
+ * box) are not a row that grows, and keep their own size beside it.
+ */
+export function stretchesInRow(zone: Zone): boolean {
+  return zone.kind === 'spread' && !(zone.cards ?? []).length;
 }
 
 /** A spread that belongs in the row of what players have laid down. */

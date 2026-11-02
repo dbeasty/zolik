@@ -269,6 +269,17 @@ type Zone struct {
 	// time. Presentational — a client that ignores it shows the top card and
 	// loses nothing it needs to play.
 	Fan int `json:"fan,omitempty"`
+	// Side is the partnership a zone belongs to, in the same opaque id as
+	// Seat.Side: a Canasta side's melds and its red threes. It answers what
+	// an empty OwnerID cannot — whose these cards are when they are nobody's
+	// in particular — so a client can draw each side's zones together, the
+	// viewer's own nearest their hand.
+	//
+	// Presentational, like Shared: a client that ignores it draws each zone
+	// as a spread on its own and loses only the grouping. Set only where
+	// Seat.Side is, for the same reason — a side of one is a player, and a
+	// player's zone says so with OwnerID.
+	Side string `json:"side,omitempty"`
 }
 
 // ArrangeBySeat lays a zone's cards out around the table, each toward the

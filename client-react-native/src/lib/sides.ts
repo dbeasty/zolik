@@ -1,4 +1,4 @@
-import type { Seat } from '@/src/api/matchTypes';
+import type { Seat, Zone } from '@/src/api/matchTypes';
 import { t } from '@/src/lib/i18n';
 import { type Named, playerName } from '@/src/lib/labels';
 
@@ -61,4 +61,48 @@ export function partnerText(
   const partners = partnersOf(seats, playerId);
   if (!partners.length) return '';
   return partners.map((id) => (id === viewerId ? t('match.you') : playerName(players, id))).join(', ');
+}
+
+/**
+ * One area of the row of spreads: a partnership's zones together, or a zone
+ * that stands on its own — a player's melds, or a side's in a game whose
+ * seats carry none.
+ */
+export type SpreadArea = { side: string; zones: Zone[] } | { side?: undefined; zones: [Zone] };
+
+/**
+ * The row of spreads cut into areas, the viewer's own first.
+ *
+ * A side's zones — its melds, its red threes — are gathered wherever they
+ * arrived, in the order the first of them did, because they are one answer
+ * to "what has this partnership laid down?". The viewer's own area leads,
+ * whether it is theirs by side or by owner, because it is the one drawn
+ * directly under the hand they play into it from.
+ */
+export function spreadAreas(zones: Zone[], seats: Seat[], viewerId: string): SpreadArea[] {
+  const mySide = seats.find((s) => s.playerId === viewerId)?.side;
+  const areas: SpreadArea[] = [];
+  const bySide = new Map<string, Zone[]>();
+  for (const z of zones) {
+    if (!z.side) {
+      areas.push({ zones: [z] });
+      continue;
+    }
+    const held = bySide.get(z.side);
+    if (held) {
+      held.push(z);
+      continue;
+    }
+    const fresh = [z];
+    bySide.set(z.side, fresh);
+    areas.push({ side: z.side, zones: fresh });
+  }
+  const mine = (a: SpreadArea) =>
+    a.side ? a.side === mySide : a.zones[0].ownerId === viewerId;
+  return [...areas.filter(mine), ...areas.filter((a) => !mine(a))];
+}
+
+/** Everyone seated on a side, in seating order. */
+export function sideMembers(seats: Seat[], side: string): string[] {
+  return seats.filter((s) => s.side === side).map((s) => s.playerId);
 }

@@ -1837,6 +1837,7 @@
  "match.sendDealDone": "Link ready — send it to a friend",
  "match.sendDealMessage": "Can you beat me? Here is a deal of {game} I just played:",
  "match.settingUp": "Setting up…",
+ "match.side.yours": "Your side",
  "match.someoneWon": "{name} won.",
  "match.table": "Table",
  "match.tableCode": "Code {code}",
