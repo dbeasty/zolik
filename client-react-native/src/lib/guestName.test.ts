@@ -1,5 +1,5 @@
 import { avatarFor } from '@/src/components/avatars/catalogue';
-import { GUEST_NAME_COUNT, guestNameFor } from '@/src/lib/guestName';
+import { GUEST_NAME_COUNT, guestNameChoices, guestNameFor } from '@/src/lib/guestName';
 
 /**
  * The defect these replace is not subtle — every guest was called "Player" —
@@ -66,5 +66,24 @@ describe('guestNameFor', () => {
     const face = avatarFor(GUEST_ID, false).id;
     expect(guestNameFor(GUEST_ID)).toBe(name);
     expect(avatarFor(GUEST_ID, false).id).toBe(face);
+  });
+});
+
+describe('guestNameChoices', () => {
+  it('offers distinct names that nobody at the table goes by, whatever their case', () => {
+    // A table that already holds most of what a fixed draw would offer.
+    let n = 0;
+    const draw = () => ((n++ * 7919) % 1000) / 1000;
+    const offered = guestNameChoices([], 8, draw);
+    n = 0;
+    const taken = offered.slice(0, 4).map((name) => name.toUpperCase());
+    const again = guestNameChoices(taken, 8, draw);
+    expect(again).toHaveLength(8);
+    expect(new Set(again).size).toBe(8);
+    for (const name of again) expect(taken).not.toContain(name.toUpperCase());
+  });
+
+  it('ends with fewer names rather than looping when there are none left', () => {
+    expect(guestNameChoices([guestNameFor('0')], 3, () => 0)).toEqual([]);
   });
 });

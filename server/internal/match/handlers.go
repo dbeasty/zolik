@@ -132,6 +132,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// by anybody at the table; opened and taken by whoever was sent it, who
 	// need not be signed in as anyone.
 	r.With(matchAuth).Post("/matches/{id}/seats/{playerId}/link", h.mintSeatLink)
+	// The caller's own name and face at this table, changeable until the
+	// match is over (see seatlook.go).
+	r.With(matchAuth).Post("/matches/{id}/look", h.setSeatLook)
 	r.Get("/seats/{id}/{secret}", h.seatPreview)
 	r.With(auth.OptionalAuthMiddleware).Post("/seats/{id}/{secret}/claim", h.claimSeat)
 	// The move this caller's seat would make, suggested and never made. POST
@@ -1567,7 +1570,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusForbidden
 	case "NOT_THE_HOST", "HINTS_OFF":
 		status = http.StatusForbidden
-	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "SEAT_IN_USE", "MATCH_NOT_OVER":
+	case "NO_LONGER_WAITING", "NAME_TAKEN", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "SEAT_IN_USE", "MATCH_NOT_OVER":
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict

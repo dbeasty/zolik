@@ -49,6 +49,7 @@ import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useStandIn } from '@/src/components/StandInSheet';
+import { useSeatLook } from '@/src/components/match/SeatLookSheet';
 import { TableBanner } from '@/src/components/match/TableBanner';
 import { GuideCard } from '@/src/guide/GuideCard';
 import { GuideExitSheet } from '@/src/guide/GuideExitSheet';
@@ -464,6 +465,15 @@ function MatchScreen() {
   // And a person's seat while they are away: a bot now, a different bot, or
   // none and wait for them. Also the host's alone.
   const standIn = useStandIn(client, String(matchId ?? ''), !!state?.hostId && state.hostId === viewerId, botStrength.offersAI);
+  // Your own face and name, changeable until the match is over.
+  const seatLook = useSeatLook(
+    client,
+    String(matchId ?? ''),
+    viewerId,
+    state?.players,
+    session?.username,
+    !!state && state.status !== 'completed',
+  );
   // Amounts dialled into the controls and not yet sent. Held here, not in the
   // bar, because the bar unmounts when its panel collapses and the collapsed
   // rail's pills send the same offers — both read this one store.
@@ -2574,6 +2584,7 @@ function MatchScreen() {
           onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
           onPickBot={botStrength.open}
           onPickStandIn={standIn.open}
+          onEditMe={seatLook.open}
         />
 
       </ScrollView>
@@ -2584,6 +2595,7 @@ function MatchScreen() {
           for all three, because they are one question. */}
       {botStrength.sheet}
       {standIn.sheet}
+      {seatLook.sheet}
       {guide ? (
         <GuideExitSheet
           guide={guide}

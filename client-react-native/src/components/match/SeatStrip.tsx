@@ -56,17 +56,23 @@ import { t } from '@/src/lib/i18n';
  * without being read at all, which is what a glance at a board is.
  */
 
-/** A bot's face or badge, made a control when the viewer may change its strength. */
+/**
+ * A bot's face or badge, made a control when the viewer may change its
+ * strength — or the viewer's own face, made one for changing their look.
+ */
 function BotPress({
   onPress,
   testID,
   name,
+  label,
   children,
   ...rest
 }: {
   onPress?: () => void;
   testID: string;
   name: string;
+  /** What the control is called, when it is not a bot's strength picker. */
+  label?: string;
   children: ReactNode;
   // A tooltip's description, passed on to the control it describes.
   'aria-describedby'?: string;
@@ -79,7 +85,7 @@ function BotPress({
       hitSlop={6}
       style={tapTarget}
       accessibilityRole="button"
-      accessibilityLabel={t('bot.strength.title', { name })}
+      accessibilityLabel={label ?? t('bot.strength.title', { name })}
       testID={testID}
       {...(rest as object)}
     >
@@ -125,9 +131,14 @@ type Props = {
    * badge is a control that opens it.
    */
   onPickStandIn?: (seat: { id: string; name: string; skill?: string; on: boolean }) => void;
+  /**
+   * The viewer's own name-and-face sheet. Where it is given, the viewer's
+   * avatar on their own tile is a control that opens it.
+   */
+  onEditMe?: () => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot, onPickStandIn }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot, onPickStandIn, onEditMe }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   // Asked for stillness, the seat on turn keeps its outline and its shadow
@@ -176,6 +187,11 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     ) : null;
     const pickBot =
       player?.isAI && onPickBot ? () => onPickBot({ id: player.id, name, skill: player.skill }) : undefined;
+    // The face is the control: on your own tile it opens your look, on a
+    // bot's it opens the host's strength picker. Never both — you are not a bot.
+    const facePress = isMe && onEditMe ? onEditMe : pickBot;
+    const faceLabel = isMe && onEditMe ? t('seat.look.open') : undefined;
+    const faceTestID = isMe && onEditMe ? 'seat-look-open' : `bot-strength-open-${seat.playerId}`;
     const rank = standing ? <Text style={styles.rank}>{standing.rank}</Text> : null;
     // The whole tile as one sentence — name, kind of player, numbers, marks,
     // whose turn — for a screen reader, which otherwise reads a tile as a
@@ -263,6 +279,14 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         </Text>
       </Tip>
     ) : null);
+    // On your own tile, the mark that says your face and name are yours to
+    // change — the face alone being a control is not something anyone guesses.
+    const editMe =
+      isMe && onEditMe ? (
+        <BotPress onPress={onEditMe} testID="seat-look-edit" name={name} label={t('seat.look.open')}>
+          <Text style={[styles.badge, styles.badgeLink]}>{'\u270E'}</Text>
+        </BotPress>
+      ) : null;
     // The bot's badge: a control for the host (it opens the strength picker,
     // and the tip says so), a plain mark with the same tip for everyone else.
     const botBadge = bot ? (
@@ -305,11 +329,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           // so the tile is as wide as its longest line rather than both.
           <>
             <View style={styles.nameRow}>
-              <BotPress onPress={pickBot} testID={`bot-strength-open-${seat.playerId}`} name={name}>
+              <BotPress onPress={facePress} testID={faceTestID} name={name} label={faceLabel}>
                 {avatar}
               </BotPress>
               {rank}
               {botBadge}
+              {editMe}
               {away}
             </View>
             <Text
@@ -322,7 +347,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           </>
         ) : (
           <View style={styles.nameRow}>
-            <BotPress onPress={pickBot} testID={`bot-strength-open-${seat.playerId}`} name={name}>
+            <BotPress onPress={facePress} testID={faceTestID} name={name} label={faceLabel}>
               {avatar}
             </BotPress>
             {rank}
@@ -337,6 +362,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {name}
             </Text>
             {botBadge}
+            {editMe}
             {away}
           </View>
         )}
