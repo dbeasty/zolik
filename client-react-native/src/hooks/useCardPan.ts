@@ -71,6 +71,10 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
     touch: false,
     active: false,
     moved: false,
+    // The last point `onUpdate` was told about, so a release somewhere else
+    // can be reported before the drag ends — see `onTouchesUp` below.
+    lastX: 0,
+    lastY: 0,
     timer: null as ReturnType<typeof setTimeout> | null,
   });
 
@@ -124,6 +128,8 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
         ...s.current,
         x0: t.absoluteX,
         y0: t.absoluteY,
+        lastX: t.absoluteX,
+        lastY: t.absoluteY,
         touch: e.pointerType === PointerType.TOUCH,
         active: false,
         moved: false,
@@ -154,13 +160,31 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
         manager.fail();
       }
     })
-    .onTouchesUp(() => clear())
+    // Where the pointer was let go is where the card lands — even when the
+    // pan never reported that point. On web, gesture-handler can skip moves:
+    // a quick last stretch onto a meld, after the board had scrolled under a
+    // held card, reached `onUpdate` one move in three, and never its final
+    // two. The drop was then judged at a point short of the meld, outside
+    // it, and nothing was laid off while the card sat visibly on top of it.
+    // The touch-up itself does carry the real point, and it arrives before
+    // `onFinalize`, so it is reported as one last move first.
+    .onTouchesUp((e) => {
+      clear();
+      const t = e.changedTouches[0];
+      if (!s.current.active || !t) return;
+      if (t.absoluteX === s.current.lastX && t.absoluteY === s.current.lastY) return;
+      s.current.lastX = t.absoluteX;
+      s.current.lastY = t.absoluteY;
+      h.current.onUpdate(t.absoluteX, t.absoluteY, t.absoluteX - s.current.x0, t.absoluteY - s.current.y0);
+    })
     .onTouchesCancelled(() => clear())
     .onStart(() => {
       s.current.active = true;
       h.current.onStart();
     })
     .onUpdate((e) => {
+      s.current.lastX = e.absoluteX;
+      s.current.lastY = e.absoluteY;
       h.current.onUpdate(e.absoluteX, e.absoluteY, e.translationX, e.translationY);
     })
     .onFinalize(() => {
