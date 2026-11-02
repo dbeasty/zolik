@@ -1407,6 +1407,7 @@ export const es: Record<string, string> = {
   'match.opponents': 'Rivales',
   // Marks which seat is the reader's own, in a list of seats.
   'match.youSuffix': '(tú)',
+  'match.side.yours': 'Tu equipo',
   // The winner line is composed from whole sentences rather than a name glued
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.

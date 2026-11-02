@@ -13,9 +13,10 @@ import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import type { ChangeMarks } from '@/src/lib/changes';
-import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
+import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside, stretchesInRow, zoneDropLive } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
 import { isSeatArranged } from '@/src/lib/seatArrangement';
+import { partnersOf, sideMembers, spreadAreas } from '@/src/lib/sides';
 import { factText, label, playerName } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 
@@ -132,10 +133,9 @@ export function BoardLayout({
   // replay: no zone is a live target, so none is held open for one.
   const visible = drawableZones(zones, viewerId, drops.activeDrops ?? EMPTY_DROPS);
 
-  const spreadZones = visible.filter(isSpreadRowZone);
-  const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
-  const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
-  const orderedSpreads = [...mySpreads, ...otherSpreads];
+  // The viewer's own first, and a partnership's zones together — see
+  // `spreadAreas`.
+  const areas = spreadAreas(visible.filter(isSpreadRowZone), view.seats ?? [], viewerId);
 
   // Where that row goes. Under the buttons when the viewer holds a hand: the
   // hand is what they play from, and the melds are a record of what has been
@@ -185,18 +185,74 @@ export function BoardLayout({
   // instead of each claiming a full-width line — named by its owner where the
   // server sent one, so two or more players' melds read as whose they are at
   // a glance rather than an anonymous stack.
+  const spreadView = (z: Zone, nested?: boolean) => (
+    <ZoneView
+      key={z.id}
+      zone={z}
+      nested={nested}
+      stretch={stretchesInRow(z)}
+      title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ` ${t('match.youSuffix')}` : '') : undefined}
+      {...zonePanelProps(z.id)}
+      {...drops}
+    />
+  );
+
+  // A partnership's zones are one panel of their own, on a line of its own,
+  // that can be put away as a whole: at a four-handed Canasta table the other
+  // side's melds are something to glance at, and the viewer's own — drawn
+  // first, directly under the hand — is what they play into. Zones standing
+  // on their own keep sharing a wrapping row, cut wherever a side's panel
+  // falls between them.
+  const seats = view.seats ?? [];
+  const spreadBlocks: ReactNode[] = [];
+  let loose: Zone[] = [];
+  const flushLoose = () => {
+    if (!loose.length) return;
+    spreadBlocks.push(
+      <View key={`row-${loose[0].id}`} style={styles.spreadsRow}>
+        {loose.map((z) => spreadView(z))}
+      </View>,
+    );
+    loose = [];
+  };
+  for (const area of areas) {
+    if (!area.side) {
+      loose.push(area.zones[0]);
+      continue;
+    }
+    flushLoose();
+    const mine = seats.some((s) => s.playerId === viewerId && s.side === area.side);
+    const names = (ids: string[]) => ids.map((id) => playerName(state.players, id)).join(', ');
+    const panel = zonePanelProps(`side:${area.side}`);
+    spreadBlocks.push(
+      <Panel
+        key={`side-${area.side}`}
+        {...panel}
+        title={mine ? t('match.side.yours') : names(sideMembers(seats, area.side))}
+        subtitle={mine ? names(partnersOf(seats, viewerId)) : undefined}
+        forceOpen={area.zones.some((z) => zoneDropLive(z, drops.activeDrops, drops.pressableDrops))}
+        testID={mine ? 'section-side-mine' : `section-side-${area.side}`}
+        summary={
+          <View style={styles.sectionSummary}>
+            {area.zones.map((z, i) => (
+              <Text key={z.id} style={styles.sectionSummaryText} numberOfLines={1}>
+                {label(z.labelKey) || z.id} {z.count}
+                {i < area.zones.length - 1 ? ' · ' : ''}
+              </Text>
+            ))}
+          </View>
+        }
+      >
+        <View style={styles.spreadsRow}>{area.zones.map((z) => spreadView(z, true))}</View>
+      </Panel>,
+    );
+  }
+  flushLoose();
+
   const spreadsRow =
-    orderedSpreads.length > 0 ? (
+    spreadBlocks.length > 0 ? (
       <View style={styles.spreads} testID="section-spreads">
-        {orderedSpreads.map((z) => (
-          <ZoneView
-            key={z.id}
-            zone={z}
-            title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ` ${t('match.youSuffix')}` : '') : undefined}
-            {...zonePanelProps(z.id)}
-            {...drops}
-          />
-        ))}
+        {spreadBlocks}
       </View>
     ) : null;
 
@@ -467,7 +523,8 @@ export function matchStyles(s: Skin) {
   // panel sized to its own content instead of the row's default stretch,
   // which would size every panel in a row to match its tallest neighbour —
   // and make a minimized panel look exactly as tall as an open one beside it.
-  spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
+  spreads: { gap: 8, marginTop: 10 },
+  spreadsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
   // What this player can do now, over the controls that do it, with the way

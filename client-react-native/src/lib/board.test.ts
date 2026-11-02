@@ -1,6 +1,7 @@
 import type { Zone } from '@/src/api/matchTypes';
 import {
   besideRows,
+  stretchesInRow,
   concealedCount,
   drawableZones,
   isConcealed,
@@ -178,5 +179,16 @@ describe('besideRows', () => {
     // foundations' row and ran it off the screen.
     expect(besideRows([stock, waste, foundations, tableau])).toEqual([[stock, waste, foundations], [tableau]]);
     expect(besideRows([tableau, stock])).toEqual([[tableau], [stock]]);
+  });
+});
+
+describe('stretchesInRow', () => {
+  it('stretches a spread of melds, and an empty one where the first will land', () => {
+    expect(stretchesInRow({ id: 'm', kind: 'spread', count: 3, groups: [{ id: 'g', cards: ['KH', 'KD', 'KS'] }] })).toBe(true);
+    expect(stretchesInRow({ id: 'm', kind: 'spread', count: 0 })).toBe(true);
+  });
+
+  it('keeps a few loose cards at their own size', () => {
+    expect(stretchesInRow({ id: 'r', kind: 'spread', count: 1, cards: [{ card: '3H' }] })).toBe(false);
   });
 });

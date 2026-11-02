@@ -268,20 +268,30 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	// One spread per partnership. Melds are groups inside it, badged with what
 	// they have become — a client renders "canasta" without knowing that seven
 	// is the number.
+	//
+	// The viewer's side first, so a client that lays zones out in the order
+	// they arrive puts the viewer's own melds nearest their hand. Each zone
+	// names its side where sides exist (see `sided` below), so a client can
+	// draw a partnership's melds and red threes as one area.
+	//
+	// Sides are set only where sides exist. `s.Teams` is already the answer
+	// seatsToTeams gave when the match was dealt, so a side per seat means
+	// every player is their own side — heads-up, three, five — and saying so
+	// would put a partnership badge on a game that has no partners.
+	sided := len(s.Teams) < len(s.TurnOrder)
 	viewerTeam := s.team(viewerID)
-	for i := range s.Teams {
+	for _, i := range teamsViewerFirst(s.Teams, viewerTeam) {
 		t := &s.Teams[i]
-		var z module.Zone
+		side := ""
+		if sided {
+			side = strconv.Itoa(t.ID)
+		}
+		z := module.Zone{
+			ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
+			LabelKey: "zone.opponentMelds", Side: side,
+		}
 		if viewerTeam != nil && t.ID == viewerTeam.ID {
-			z = module.Zone{
-				ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
-				LabelKey: "zone.teamMelds", Count: 0,
-			}
-		} else {
-			z = module.Zone{
-				ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
-				LabelKey: "zone.opponentMelds", Count: 0,
-			}
+			z.LabelKey = "zone.teamMelds"
 		}
 		for _, mm := range meldsInViewOrder(t.Melds) {
 			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
@@ -311,8 +321,8 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if len(t.RedThrees) > 0 {
 			vm.Zones = append(vm.Zones, module.Zone{
 				ID: redThreesZoneID(t.ID), Kind: module.ZoneSpread,
-				LabelKey: "zone.redThrees",
-				Cards:    cardViews(t.RedThrees), Count: len(t.RedThrees),
+				LabelKey: "zone.redThrees", Side: side,
+				Cards: cardViews(t.RedThrees), Count: len(t.RedThrees),
 			})
 		}
 	}
@@ -320,13 +330,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	// The seats. Canasta's numbers belong to a partnership rather than a
 	// player, so each seat carries its side's score and canasta count — which
 	// is exactly the sort of thing that had nowhere to go before Seats existed
-	// and had to be smuggled through Status facts.
-	//
-	// Sides are set only where sides exist. `s.Teams` is already the answer
-	// seatsToTeams gave when the match was dealt, so a side per seat means
-	// every player is their own side — heads-up, three, five — and saying so
-	// would put a partnership badge on a game that has no partners.
-	sided := len(s.Teams) < len(s.TurnOrder)
+	// and had to be smuggled through Status facts. Sides as for the zones.
 	for _, p := range s.TurnOrder {
 		t := s.team(p)
 		seat := module.Seat{
@@ -592,4 +596,19 @@ func houseOption(name, label, help string) module.OptionSpec {
 			{Value: module.OptOn, Label: "On"},
 		},
 	}
+}
+
+// teamsViewerFirst is the order to send the partnerships' zones in: the
+// viewer's side, then the rest in seating order. A spectator, who has no
+// side, gets seating order.
+func teamsViewerFirst(teams []Team, viewer *Team) []int {
+	order := make([]int, 0, len(teams))
+	for i := range teams {
+		if viewer != nil && teams[i].ID == viewer.ID {
+			order = append([]int{i}, order...)
+		} else {
+			order = append(order, i)
+		}
+	}
+	return order
 }

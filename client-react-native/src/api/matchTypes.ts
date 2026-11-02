@@ -152,6 +152,13 @@ export type Zone = {
    * client that ignores it shows the top card and loses nothing it needs.
    */
   fan?: number;
+  /**
+   * The partnership this zone belongs to, in the same opaque id as
+   * `Seat.side` — a Canasta side's melds and its red threes. Lets the board
+   * draw a side's zones as one area, the viewer's nearest their hand. Absent
+   * where seats carry no side.
+   */
+  side?: string;
 };
 
 export type ZoneArrange = 'bySeat' | 'sorted';

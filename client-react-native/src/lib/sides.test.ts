@@ -1,6 +1,6 @@
-import type { Seat } from '@/src/api/matchTypes';
+import type { Seat, Zone } from '@/src/api/matchTypes';
 import { setLocale } from '@/src/lib/i18n';
-import { isPartnerOfViewer, partnerText, partnersOf } from '@/src/lib/sides';
+import { isPartnerOfViewer, partnerText, partnersOf, sideMembers, spreadAreas } from '@/src/lib/sides';
 
 afterEach(() => setLocale('en'));
 
@@ -83,5 +83,46 @@ describe('partnerText', () => {
   it('follows the active locale', () => {
     setLocale('cs');
     expect(partnerText(partnered, players, 'p3', 'p1')).toBe('ty');
+  });
+});
+
+describe('spreadAreas', () => {
+  const spread = (id: string, extra: Partial<Zone> = {}): Zone => ({ id, kind: 'spread', count: 0, ...extra });
+  // Seating order, the other side first — the order a viewer on side 1 used
+  // to see their opponents' melds above their own.
+  const canasta = [
+    spread('melds:t0', { side: '0' }),
+    spread('redThrees:t0', { side: '0' }),
+    spread('melds:t1', { side: '1' }),
+    spread('redThrees:t1', { side: '1' }),
+  ];
+
+  it("gathers a side's zones and puts the viewer's side first", () => {
+    const areas = spreadAreas(canasta, partnered, 'p2');
+    expect(areas.map((a) => a.side)).toEqual(['1', '0']);
+    expect(areas[0].zones.map((z) => z.id)).toEqual(['melds:t1', 'redThrees:t1']);
+  });
+
+  it('keeps seating order for a spectator', () => {
+    expect(spreadAreas(canasta, partnered, 'watcher').map((a) => a.side)).toEqual(['0', '1']);
+  });
+
+  it("gathers a side's zones that did not arrive together", () => {
+    const shuffled = [canasta[0], canasta[2], canasta[1]];
+    const areas = spreadAreas(shuffled, partnered, 'p1');
+    expect(areas[0].zones.map((z) => z.id)).toEqual(['melds:t0', 'redThrees:t0']);
+  });
+
+  it("leaves each player's own zone standing alone, the viewer's first", () => {
+    const zones = [spread('m:p1', { ownerId: 'p1' }), spread('m:p2', { ownerId: 'p2' })];
+    const areas = spreadAreas(zones, [{ playerId: 'p1' }, { playerId: 'p2' }], 'p2');
+    expect(areas.map((a) => [a.side, a.zones[0].id])).toEqual([
+      [undefined, 'm:p2'],
+      [undefined, 'm:p1'],
+    ]);
+  });
+
+  it('names who sits on a side', () => {
+    expect(sideMembers(partnered, '1')).toEqual(['p2', 'p4']);
   });
 });

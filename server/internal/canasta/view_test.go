@@ -322,6 +322,41 @@ func TestSeatsCarryTheirSide(t *testing.T) {
 	}
 }
 
+// TestSideZonesComeViewerFirstAndNameTheirSide: a partnership's melds and red
+// threes are one area of the board, and the viewer's own is the one drawn
+// nearest their hand. Each zone names the side its seats carry, so a client can
+// gather them; and the viewer's side is sent first, so a client that only
+// draws zones in order still puts theirs nearest.
+func TestSideZonesComeViewerFirstAndNameTheirSide(t *testing.T) {
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].RedThrees = []string{"3H"}
+		s.Teams[1].RedThrees = []string{"3D"}
+	})
+	for _, viewer := range []string{"p1", "p2"} {
+		vm, err := New().View(raw, viewer)
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		mine := vm.SeatOf(viewer).Side
+		var sides []string
+		for _, z := range vm.Zones {
+			if z.Kind != module.ZoneSpread {
+				continue
+			}
+			if z.Side == "" {
+				t.Errorf("%s's view: zone %s names no side", viewer, z.ID)
+			}
+			sides = append(sides, z.Side)
+		}
+		if len(sides) != 4 {
+			t.Fatalf("%s's view: %d side zones, want melds and red threes for two sides", viewer, len(sides))
+		}
+		if sides[0] != mine || sides[1] != mine || sides[2] == mine || sides[3] == mine {
+			t.Errorf("%s's view: zone sides %v, want their own side %q first", viewer, sides, mine)
+		}
+	}
+}
+
 // TestSeatsOfOwnSideCarryNoSide is the same rule the lobby applies: at two,
 // three or five seats every player is their own side, and a partnership badge
 // on every seat is noise rather than information.
@@ -334,6 +369,11 @@ func TestSeatsOfOwnSideCarryNoSide(t *testing.T) {
 		if seat.Side != "" {
 			t.Errorf("%s has side %q in a game where everybody plays for themselves",
 				seat.PlayerID, seat.Side)
+		}
+	}
+	for _, z := range vm.Zones {
+		if z.Side != "" {
+			t.Errorf("zone %s has side %q in a game where everybody plays for themselves", z.ID, z.Side)
 		}
 	}
 }
