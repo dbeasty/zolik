@@ -5,11 +5,12 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
-import type { Fact, MatchPlayer, RoundLog, RoundScore, Standing } from '@/src/api/matchTypes';
+import type { Fact, MatchPlayer, RoundLog, RoundScore, Seat, Standing } from '@/src/api/matchTypes';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
+import { sidesOf } from './ScoreSheet';
 import { t } from '@/src/lib/i18n';
 
 /**
@@ -30,6 +31,8 @@ import { t } from '@/src/lib/i18n';
 type Props = {
   log: RoundLog;
   players: MatchPlayer[];
+  /** Who sits with whom: a partnership is one column, not one per member. */
+  seats?: Seat[];
   standings?: Standing[];
   viewerId: string;
   /** Open the account behind one cell: that player, that round. */
@@ -46,6 +49,7 @@ type Props = {
 export const RoundResults = memo(function RoundResults({
   log,
   players,
+  seats,
   standings,
   viewerId,
   onOpenScore,
@@ -56,12 +60,23 @@ export const RoundResults = memo(function RoundResults({
   const skin = useSkin();
   const styles = useMemo(() => roundStyles(metrics, skin), [metrics, skin]);
 
-  // Columns follow the standings when there are any, so the table reads
-  // best-first — and fall back to the seating when there are not.
-  const columns = useMemo(() => {
-    if (standings?.length) return standings.map((s) => s.playerId);
-    return players.map((p) => p.id);
-  }, [standings, players]);
+  // A column per side, best first. Partners share a score, so a partnership
+  // printed a column per member repeated every number once per partner and
+  // never said the two columns were the same team. Each column is keyed by
+  // one member — the viewer where the viewer is on it — and every member's
+  // row reads the same.
+  const columns = useMemo(
+    () =>
+      sidesOf(seats ?? [], standings, players).map((members) => ({
+        id: members.includes(viewerId) ? viewerId : members[0],
+        members,
+      })),
+    [seats, standings, players, viewerId],
+  );
+  const headOf = (members: string[]) =>
+    members.length > 1
+      ? t('match.teammates', { names: members.map((m) => playerName(players, m)).join(' & ') })
+      : playerName(players, members[0]);
 
   // A fact that is true of every round is not a fact about a round. Some games
   // rotate what a round demands and some fix it once for the match, and a table
@@ -120,13 +135,13 @@ export const RoundResults = memo(function RoundResults({
               <Text style={[styles.cell, styles.labelCell, styles.head]}>
                 {label(log.labelKey)}
               </Text>
-              {columns.map((id) => (
+              {columns.map(({ id, members }) => (
                 <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
                   <Text
-                    numberOfLines={1}
+                    numberOfLines={members.length > 1 ? 2 : 1}
                     style={[styles.name, styles.head, id === viewerId && styles.mine]}
                   >
-                    {playerName(players, id)}
+                    {headOf(members)}
                   </Text>
                   {/* Set under the name rather than after it: a column is
                       narrow, and a marker appended inline is the half that
@@ -163,8 +178,8 @@ export const RoundResults = memo(function RoundResults({
                       </Text>
                     ))}
                   </View>
-                  {columns.map((id) => {
-                    const s = scores.get(id);
+                  {columns.map(({ id, members }) => {
+                    const s = scores.get(id) ?? members.map((m) => scores.get(m)).find(Boolean);
                     const isMine = id === viewerId;
                     const moved = s ? (s.shown ?? s.delta) : 0;
                     const content = (
@@ -178,7 +193,7 @@ export const RoundResults = memo(function RoundResults({
                             isMine && styles.mineDelta,
                             isMine && moved > 0 && styles.up,
                             isMine && moved < 0 && styles.down,
-                            took.has(id) && styles.tookIt,
+                            members.some((m) => took.has(m)) && styles.tookIt,
                           ]}
                         >
                           {s ? formatDelta(s) : '—'}
@@ -213,7 +228,7 @@ export const RoundResults = memo(function RoundResults({
                 <Text style={[styles.cell, styles.labelCell, styles.head]}>
                   {unit ? label(unit) : 'Total'}
                 </Text>
-                {columns.map((id) => {
+                {columns.map(({ id }) => {
                   const s = byId.get(id);
                   return (
                     <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]}>
