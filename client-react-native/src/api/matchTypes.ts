@@ -153,6 +153,12 @@ export type Zone = {
    */
   fan?: number;
   /**
+   * Start minimized: a record glanced at rather than played from (Canasta's
+   * red threes). The player can open it, and that choice is kept like any
+   * panel's. Presentational; a client that ignores it draws the zone open.
+   */
+  folded?: boolean;
+  /**
    * The partnership this zone belongs to, in the same opaque id as
    * `Seat.side` — a Canasta side's melds and its red threes. Lets the board
    * draw a side's zones as one area, the viewer's nearest their hand. Absent

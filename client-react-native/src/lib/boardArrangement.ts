@@ -17,9 +17,9 @@
  * to the shell later finds its place by `normalize` rather than vanishing.
  */
 
-export type RegionId = 'results' | 'seats' | 'table' | 'hand' | 'spreads' | 'opponents';
+export type RegionId = 'results' | 'seats' | 'table' | 'log' | 'hand' | 'spreads' | 'opponents';
 
-export const REGIONS: readonly RegionId[] = ['results', 'seats', 'table', 'hand', 'spreads', 'opponents'];
+export const REGIONS: readonly RegionId[] = ['results', 'seats', 'table', 'log', 'hand', 'spreads', 'opponents'];
 
 export type PresetId = 'stacked' | 'beside' | 'side';
 
@@ -44,8 +44,8 @@ export type Arrangement = {
  */
 function stackedOrder(holdsHand: boolean): RegionId[] {
   return holdsHand
-    ? ['results', 'seats', 'table', 'hand', 'spreads', 'opponents']
-    : ['results', 'seats', 'table', 'spreads', 'hand', 'opponents'];
+    ? ['results', 'seats', 'table', 'log', 'hand', 'spreads', 'opponents']
+    : ['results', 'seats', 'table', 'log', 'spreads', 'hand', 'opponents'];
 }
 
 export function preset(id: PresetId, holdsHand: boolean): Arrangement {
@@ -58,7 +58,7 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
         preset: id,
         custom: false,
         columns: [
-          ['results', 'seats', 'table'],
+          ['results', 'seats', 'table', 'log'],
           holdsHand ? ['hand', 'spreads', 'opponents'] : ['spreads', 'hand', 'opponents'],
         ],
         split: 0.5,
@@ -71,7 +71,7 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
         custom: false,
         columns: [
           holdsHand ? ['seats', 'table', 'hand'] : ['seats', 'table', 'spreads', 'hand'],
-          holdsHand ? ['results', 'spreads', 'opponents'] : ['results', 'opponents'],
+          holdsHand ? ['results', 'log', 'spreads', 'opponents'] : ['results', 'log', 'opponents'],
         ],
         split: 0.66,
       };
@@ -104,11 +104,27 @@ export function normalize(raw: unknown, holdsHand: boolean): Arrangement {
   ) as [RegionId[], RegionId[]];
   for (const id of REGIONS) {
     if (seen.has(id)) continue;
+    // Just after whatever its preset has above it, so a region added since —
+    // the move log — turns up where it belongs rather than at the foot.
     const c = base.columns[0].includes(id) ? 0 : 1;
-    columns[c].push(id);
+    const order = base.columns[c];
+    let at = 0;
+    for (let k = order.indexOf(id) - 1; k >= 0; k--) {
+      const j = columns[c].indexOf(order[k]!);
+      if (j >= 0) {
+        at = j + 1;
+        break;
+      }
+    }
+    columns[c].splice(at, 0, id);
   }
-  const split = typeof r.split === 'number' && r.split > 0.2 && r.split <= 1 ? r.split : base.split;
-  return { preset: presetId, custom: true, columns, split: columns[1].length ? Math.min(split, 0.8) : 1 };
+  const split = typeof r.split === 'number' && r.split > 0 && r.split <= 1 ? r.split : base.split;
+  return {
+    preset: presetId,
+    custom: true,
+    columns,
+    split: columns[1].length && columns[0].length ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, split)) : 1,
+  };
 }
 
 export type Move = 'up' | 'down' | 'left' | 'right';
@@ -165,26 +181,88 @@ export function move(a: Arrangement, id: RegionId, m: Move, present: ReadonlySet
 }
 
 /**
+ * One region put somewhere in particular — where a dragged panel was let go:
+ * into `column`, just above `before`, or at the foot of the column when
+ * `before` is null. Letting go where it already was changes nothing. A second
+ * column appears at half the width, and emptying one closes it, as with a
+ * step to the side.
+ */
+export function moveTo(a: Arrangement, id: RegionId, column: 0 | 1, before: RegionId | null): Arrangement {
+  if (before === id) return a;
+  const from = locate(a, id);
+  if (from.index < 0) return a;
+  const columns: [RegionId[], RegionId[]] = [[...a.columns[0]], [...a.columns[1]]];
+  columns[from.column].splice(from.index, 1);
+  const to = columns[column];
+  const at = before ? to.indexOf(before) : -1;
+  to.splice(at >= 0 ? at : to.length, 0, id);
+  if (columns[0].join() === a.columns[0].join() && columns[1].join() === a.columns[1].join()) return a;
+  let split = a.split;
+  if (!columns[1].length || !columns[0].length) split = 1;
+  else if (!a.columns[1].length || !a.columns[0].length) split = 0.5;
+  return { ...a, custom: true, columns, split };
+}
+
+/**
+ * The arrangement a player is moving regions about in: the one stored, or —
+ * where two columns would not fit and the board is drawn as one — that one
+ * column, in the order it is drawn. A step up or down taken in the stored
+ * columns would move a region somewhere this screen does not show, which is
+ * a press that changes nothing the player can see.
+ */
+export function asDrawn(a: Arrangement, roomForTwo: boolean, holdsHand: boolean): Arrangement {
+  if (roomForTwo || !a.columns[0].length || !a.columns[1].length) return a;
+  return { ...a, custom: true, columns: [stackedOrder(holdsHand), []], split: 1 };
+}
+
+/** The narrowest and widest the left column may be made, as a share of the board. */
+export const SPLIT_MIN = 0.25;
+export const SPLIT_MAX = 0.75;
+
+/**
+ * Halves and thirds are what people aim for, so a divider let go near one
+ * lands on it: within this much of the board's width either side.
+ */
+const SNAP = 0.025;
+const SNAPS = [1 / 3, 0.5, 2 / 3];
+
+/** A dragged divider's share, kept within reach of both columns and caught at halves and thirds. */
+export function clampSplit(split: number): number {
+  const s = Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, split));
+  const near = SNAPS.find((p) => Math.abs(p - s) <= SNAP);
+  return near ?? s;
+}
+
+/** The arrangement with the left column at `split` of the width. Changes nothing with one column. */
+export function withSplit(a: Arrangement, split: number): Arrangement {
+  if (!a.columns[1].length || !a.columns[0].length) return a;
+  const s = clampSplit(split);
+  return s === a.split ? a : { ...a, custom: true, split: s };
+}
+
+/**
  * What a screen actually draws. Two columns only when the board has the room
  * and both have something in them; otherwise one, in the order the player
  * set when the arrangement is a single column, and today's order when it is
  * two — a side-by-side layout read top to bottom would put the results under
- * the hand, which is no order anyone chose. A region the player maximized is
- * drawn alone.
+ * the hand, which is no order anyone chose.
+ *
+ * While the player is arranging the board, both columns are drawn wherever
+ * there is room, an empty one too: it is somewhere to drop a panel, and a
+ * column that was not drawn could not be dropped into.
  */
 export function columnsToDraw(
   a: Arrangement,
   roomForTwo: boolean,
   present: ReadonlySet<RegionId>,
   holdsHand: boolean,
-  focused?: RegionId | null,
+  editing = false,
 ): { columns: RegionId[][]; split: number } {
-  // One region filling the board, while the game still draws it. A region
-  // that went away under it (the results, once the next round is dealt) gives
-  // the board back rather than leaving it empty.
-  if (focused && present.has(focused)) return { columns: [[focused]], split: 1 };
   const left = a.columns[0].filter((r) => present.has(r));
   const right = a.columns[1].filter((r) => present.has(r));
+  if (editing && roomForTwo) {
+    return { columns: [left, right], split: left.length && right.length ? a.split : left.length ? 0.7 : 0.3 };
+  }
   if (!right.length) return { columns: [left], split: 1 };
   if (!left.length) return { columns: [right], split: 1 };
   if (roomForTwo) return { columns: [left, right], split: a.split };
@@ -194,9 +272,12 @@ export function columnsToDraw(
 /**
  * The narrowest board, in points, two columns are drawn on. Under it a hand
  * of thirteen at the scale the window gives would be squeezed into an
- * overlap the player did not ask for.
+ * overlap the player did not ask for. Lower than it was (1100): a laptop
+ * window is 900 to 1100 wide, and there two columns were offered and never
+ * drawn — every move to the side looked like nothing happening. The hand
+ * measures the column it is given, so it fans tighter rather than spilling.
  */
-export const TWO_COLUMN_MIN_WIDTH = 1100;
+export const TWO_COLUMN_MIN_WIDTH = 900;
 
 /**
  * The widest a two-column board is drawn. A single column stops at a table's

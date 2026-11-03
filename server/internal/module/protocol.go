@@ -280,6 +280,14 @@ type Zone struct {
 	// Seat.Side is, for the same reason — a side of one is a player, and a
 	// player's zone says so with OwnerID.
 	Side string `json:"side,omitempty"`
+	// Folded asks for the zone to start minimized: a record a player glances
+	// at rather than plays from — Canasta's red threes, which only ever score.
+	// The player can still open it, and a client keeps their choice as it
+	// keeps any other panel's.
+	//
+	// Presentational, like Fan: a client that ignores it draws the zone open
+	// and loses nothing. It says how the cards are used, not which game it is.
+	Folded bool `json:"folded,omitempty"`
 }
 
 // ArrangeBySeat lays a zone's cards out around the table, each toward the

@@ -15,10 +15,16 @@ export type RulesTarget = { moduleId: string; variation?: string; options?: Reco
 
 /**
  * View › Layout: which preset the board is in (`custom` once a region has
- * been moved by hand, which no preset item ticks), and how to pick one or go
- * back to the default. See `boardArrangement.ts`.
+ * been moved by hand, which no preset item ticks), how to pick one or go
+ * back to the default, and Arrange Panels, which turns moving and resizing
+ * them on the board on and off. See `boardArrangement.ts`.
  */
-export type LayoutControl = { current: PresetId | 'custom'; choose: (preset: PresetId) => void; reset: () => void };
+export type LayoutControl = {
+  current: PresetId | 'custom';
+  choose: (preset: PresetId) => void;
+  reset: () => void;
+  edit: () => void;
+};
 
 type Handler = { postMessage(msg: unknown): unknown };
 
@@ -71,6 +77,7 @@ export function useDesktopMatchView(
       const l = latestLayout.current;
       if (!l) return;
       if (command === 'reset') l.reset();
+      else if (command === 'edit') l.edit();
       else if (PRESETS.includes(command as PresetId)) l.choose(command as PresetId);
     };
     w.__zolikLayout = arrange;

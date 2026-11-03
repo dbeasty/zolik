@@ -323,6 +323,9 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 				ID: redThreesZoneID(t.ID), Kind: module.ZoneSpread,
 				LabelKey: "zone.redThrees", Side: side,
 				Cards: cardViews(t.RedThrees), Count: len(t.RedThrees),
+				// Laid down the moment they are drawn and never played from
+				// again: a score to glance at, folded until it is asked for.
+				Folded: true,
 			})
 		}
 	}
