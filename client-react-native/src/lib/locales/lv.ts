@@ -53,6 +53,7 @@ export const lv: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Lai tevi uzskatītu par izlikušos, uz galda vajadzīga secība bez džokera',
   'err.INCOMPLETE_INITIAL_MELD': 'Pabeidz izlikšanu vai atsauc to, pirms izmet kārti',
   'err.DISCARD_CARD_NOT_MELDED': 'Paņemtajai kārtij jānonāk tavā kombinācijā',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Ar šo kārti šajā gājienā nevari izlikt',
   'err.JOKER_DISCARD_FORBIDDEN': 'Džokeru nedrīkst izmest',
   'err.NOTHING_TO_UNDO': 'Nav ko atsaukt',
   'err.NOTHING_FITS_HERE': 'Neviena no tavām kārtīm šeit neder',

@@ -53,6 +53,7 @@ export const ga: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Teastaíonn sraith gan áilteoir ar an mbord uait sula gcomhairtear leagtha síos thú',
   'err.INCOMPLETE_INITIAL_MELD': 'Críochnaigh do leagan síos, nó cealaigh é, sula gcaitheann tú cárta',
   'err.DISCARD_CARD_NOT_MELDED': 'Caithfidh an cárta a phioc tú dul isteach i do chumasc',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Ní féidir leat dul síos leis an gcárta sin an babhta seo',
   'err.JOKER_DISCARD_FORBIDDEN': 'Ní féidir áilteoir a chaitheamh',
   'err.NOTHING_TO_UNDO': 'Níl aon rud le cealú',
   'err.NOTHING_FITS_HERE': 'Ní théann aon cheann de do chártaí anseo',

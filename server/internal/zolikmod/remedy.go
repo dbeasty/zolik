@@ -114,7 +114,7 @@ func annotate(gs rules.GameState, playerID string, offers []module.ActionOffer) 
 			}
 			o.RemedyOfferID = firstEnabled(rules.OfferDrawDeck)
 
-		case rules.ErrDiscardPileEmpty:
+		case rules.ErrDiscardPileEmpty, errPickupUnplayable:
 			o.Remedy = &module.Fact{LabelKey: "zolik.remedy.drawFromStockEmpty"}
 			o.RemedyOfferID = firstEnabled(rules.OfferDrawDeck)
 

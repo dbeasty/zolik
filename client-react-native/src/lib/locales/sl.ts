@@ -53,6 +53,7 @@ export const sl: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Na mizi potrebuješ niz brez jokerja, da se šteješ za položenega',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokončaj polaganje ali ga razveljavi, preden odvržeš',
   'err.DISCARD_CARD_NOT_MELDED': 'Karta, ki si jo pobral, mora v tvojo kombinacijo',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'S to karto v tej potezi ne moreš izložiti',
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokerja ni mogoče odvreči',
   'err.NOTHING_TO_UNDO': 'Ni ničesar za razveljaviti',
   'err.NOTHING_FITS_HERE': 'Nobena tvoja karta ne sodi sem',

@@ -53,6 +53,7 @@ export const et: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Selleks et sind loetaks väljas olevaks, on sul lauale vaja jokkerita jada',
   'err.INCOMPLETE_INITIAL_MELD': 'Lõpeta väljapanek või võta see tagasi, enne kui viskad',
   'err.DISCARD_CARD_NOT_MELDED': 'Võetud kaart peab minema sinu kombinatsiooni',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Selle kaardiga ei saa sa sel käigul maha käia',
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokkerit ei tohi ära visata',
   'err.NOTHING_TO_UNDO': 'Midagi pole tagasi võtta',
   'err.NOTHING_FITS_HERE': 'Ükski sinu kaart siia ei sobi',

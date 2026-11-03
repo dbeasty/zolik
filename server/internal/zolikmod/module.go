@@ -319,6 +319,8 @@ func codeOf(err error) rules.RulesErrorCode {
 // Nothing is recomputed here: the rummy offers were already built by probing
 // the real validators, and this is a field-for-field translation. If it had to
 // decide anything, that decision would be a second implementation of a rule.
+// The one exception, withholding a pickup that could only strand the player,
+// is explained at gatePickup.
 func (m *Module) LegalActions(raw module.State, playerID string) ([]module.ActionOffer, error) {
 	s, err := decode(raw)
 	if err != nil {
@@ -336,6 +338,7 @@ func (m *Module) legalActions(s *matchState, playerID string) ([]module.ActionOf
 	}
 
 	src := rules.LegalActions(s.Rules, playerID)
+	gatePickup(s.Rules, playerID, src)
 	out := make([]module.ActionOffer, 0, len(src))
 	for _, o := range src {
 		out = append(out, module.ActionOffer{

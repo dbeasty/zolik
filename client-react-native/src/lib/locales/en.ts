@@ -62,6 +62,7 @@ export const en: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'You need a joker-free run on the table before you count as down',
   'err.INCOMPLETE_INITIAL_MELD': 'Finish your lay-down, or undo it, before you discard',
   'err.DISCARD_CARD_NOT_MELDED': 'The card you picked up must go into your meld',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "You can't go down with that card this turn",
   'err.JOKER_DISCARD_FORBIDDEN': "A joker can't be discarded",
   'err.NOTHING_TO_UNDO': 'Nothing to undo',
   'err.NOTHING_FITS_HERE': 'None of your cards go there',

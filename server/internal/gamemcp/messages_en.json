@@ -807,6 +807,7 @@
  "err.DEAL_LINK_INVALID": "This link does not open a deal",
  "err.DISCARD_CARD_NOT_MELDED": "The card you picked up must go into your meld",
  "err.DISCARD_LOCKED": "The discard pile is locked for now",
+ "err.DISCARD_PICKUP_UNPLAYABLE": "You can't go down with that card this turn",
  "err.DISCARD_PILE_EMPTY": "The discard pile is empty",
  "err.DISCARD_TAKEN_CARD_FORBIDDEN": "You can't discard the card you just took — play it or keep it",
  "err.DISPLACED": "Opened in another tab — this one has stopped syncing",

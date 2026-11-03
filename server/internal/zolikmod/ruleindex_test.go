@@ -21,12 +21,13 @@ import (
 func TestRuleIndex(t *testing.T) {
 	problems, notes := module.RuleIndexCheck{
 		Module: New(),
-		Dirs:   []string{"../rules"},
+		Dirs:   []string{"../rules", "."},
 		Exempt: map[string]string{
 			"CARD_NOT_IN_HAND": "not a rule — the client and server disagree about the hand",
 			"NOTHING_TO_UNDO":  "not a rule — there is simply nothing to take back",
 			"GAME_SUSPENDED":   "not a rule — the table is waiting for a player",
 			"GAME_NOT_ACTIVE":  "not a rule — the match is over or has not started",
+			"UNKNOWN_ACTION":   "not a rule — a verb this module does not have",
 		},
 	}.Run()
 

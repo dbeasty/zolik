@@ -53,6 +53,7 @@ export const it: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Ti serve una scala senza jolly sul tavolo per risultare calato',
   'err.INCOMPLETE_INITIAL_MELD': 'Completa la calata, o annullala, prima di scartare',
   'err.DISCARD_CARD_NOT_MELDED': 'La carta raccolta deve finire nella tua combinazione',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Non puoi calare con quella carta in questo turno',
   'err.JOKER_DISCARD_FORBIDDEN': 'Un jolly non si può scartare',
   'err.NOTHING_TO_UNDO': "Non c'è nulla da annullare",
   'err.NOTHING_FITS_HERE': 'Nessuna delle tue carte va qui',

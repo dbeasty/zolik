@@ -53,6 +53,7 @@ export const pt: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Precisas de uma sequência sem joker na mesa para contares como baixado',
   'err.INCOMPLETE_INITIAL_MELD': 'Termina a tua baixa, ou anula-a, antes de descartares',
   'err.DISCARD_CARD_NOT_MELDED': 'A carta que apanhaste tem de entrar na tua combinação',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Não podes baixar com essa carta nesta jogada',
   'err.JOKER_DISCARD_FORBIDDEN': 'Um joker não pode ser descartado',
   'err.NOTHING_TO_UNDO': 'Não há nada para anular',
   'err.NOTHING_FITS_HERE': 'Nenhuma das tuas cartas vai aqui',

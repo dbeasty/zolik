@@ -53,6 +53,7 @@ export const hu: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Joker nélküli sorra van szükséged az asztalon, hogy leraktnak számíts',
   'err.INCOMPLETE_INITIAL_MELD': 'Fejezd be a lerakást, vagy vond vissza, mielőtt dobsz',
   'err.DISCARD_CARD_NOT_MELDED': 'A felvett lapnak a kombinációdba kell kerülnie',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Ezzel a lappal ebben a körben nem tudsz lerakni',
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokert nem lehet eldobni',
   'err.NOTHING_TO_UNDO': 'Nincs mit visszavonni',
   'err.NOTHING_FITS_HERE': 'Egyik lapod sem illik ide',

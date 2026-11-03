@@ -53,6 +53,7 @@ export const da: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Du skal have en jokerfri række på bordet for at tælle som lagt ud',
   'err.INCOMPLETE_INITIAL_MELD': 'Gør din udlægning færdig, eller fortryd den, før du smider ud',
   'err.DISCARD_CARD_NOT_MELDED': 'Kortet, du samlede op, skal indgå i din kombination',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Du kan ikke melde ud med det kort i denne tur',
   'err.JOKER_DISCARD_FORBIDDEN': 'En joker må ikke smides ud',
   'err.NOTHING_TO_UNDO': 'Der er intet at fortryde',
   'err.NOTHING_FITS_HERE': 'Ingen af dine kort passer her',

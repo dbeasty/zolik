@@ -53,6 +53,7 @@ export const sk: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Potrebuješ na stole postupku bez žolíka, aby si sa rátal za vyloženého',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokonči vykladanie alebo ho vráť späť, než odhodíš kartu',
   'err.DISCARD_CARD_NOT_MELDED': 'Karta, ktorú si zobral, musí ísť do tvojej kombinácie',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'S touto kartou v tomto ťahu nemôžeš vyložiť',
   'err.JOKER_DISCARD_FORBIDDEN': 'Žolíka nemožno odhodiť',
   'err.NOTHING_TO_UNDO': 'Nie je čo vrátiť späť',
   'err.NOTHING_FITS_HERE': 'Žiadna z tvojich kariet sem nepatrí',

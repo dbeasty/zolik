@@ -53,6 +53,7 @@ export const hr: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Treba ti niz bez džokera na stolu da bi se računao kao spušten',
   'err.INCOMPLETE_INITIAL_MELD': 'Dovrši spuštanje ili ga poništi prije nego što odbaciš',
   'err.DISCARD_CARD_NOT_MELDED': 'Karta koju si uzeo mora ući u tvoju kombinaciju',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'S tom kartom ne možeš izići u ovom potezu',
   'err.JOKER_DISCARD_FORBIDDEN': 'Džoker se ne može odbaciti',
   'err.NOTHING_TO_UNDO': 'Nema se što poništiti',
   'err.NOTHING_FITS_HERE': 'Nijedna tvoja karta ne ide ovdje',

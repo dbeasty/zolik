@@ -53,6 +53,7 @@ export const bg: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Нужна ти е поредица без жокер на масата, за да се броиш за свалил',
   'err.INCOMPLETE_INITIAL_MELD': 'Довърши свалянето или го върни, преди да изхвърлиш',
   'err.DISCARD_CARD_NOT_MELDED': 'Картата, която взе, трябва да влезе в комбинацията ти',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Не можеш да излезеш с тази карта този ход',
   'err.JOKER_DISCARD_FORBIDDEN': 'Жокер не може да се изхвърля',
   'err.NOTHING_TO_UNDO': 'Няма какво да се връща',
   'err.NOTHING_FITS_HERE': 'Никоя от картите ти не отива тук',

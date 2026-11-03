@@ -53,6 +53,7 @@ export const sv: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Du behöver en jokerfri svit på bordet för att räknas som utlagd',
   'err.INCOMPLETE_INITIAL_MELD': 'Avsluta din utläggning, eller ångra den, innan du kastar',
   'err.DISCARD_CARD_NOT_MELDED': 'Kortet du tog upp måste ingå i din kombination',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Du kan inte gå ut med det kortet den här rundan',
   'err.JOKER_DISCARD_FORBIDDEN': 'En joker får inte kastas',
   'err.NOTHING_TO_UNDO': 'Det finns inget att ångra',
   'err.NOTHING_FITS_HERE': 'Inget av dina kort passar här',

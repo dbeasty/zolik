@@ -53,6 +53,7 @@ export const mt: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Għandek bżonn sekwenza mingħajr joker fuq il-mejda biex titqies li niżżilt',
   'err.INCOMPLETE_INITIAL_MELD': 'Temm it-tniżżil tiegħek, jew ħassru, qabel ma tarmi',
   'err.DISCARD_CARD_NOT_MELDED': 'Il-karta li ġbidt trid tidħol fil-kombinazzjoni tiegħek',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Ma tistax tinżel b'dik il-karta f'din id-dawra",
   'err.JOKER_DISCARD_FORBIDDEN': 'Joker ma jistax jintrema',
   'err.NOTHING_TO_UNDO': "M'hemm xejn x'iġġib lura",
   'err.NOTHING_FITS_HERE': 'L-ebda karta tiegħek ma tmur hawn',
