@@ -1,4 +1,4 @@
-import { nearestStep, stepZoom, ZOOM_STEPS } from './boardZoom';
+import { MIN_ZOOMED_CARD_WIDTH, nearestStep, smallestZoom, stepZoom, ZOOM_STEPS } from './boardZoom';
 import { metricsFor } from './layout';
 
 describe('boardZoom', () => {
@@ -39,5 +39,19 @@ describe('boardZoom', () => {
 
   it('stacks on the card size', () => {
     expect(metricsFor(800, 'large', 1.25).card.width).toBeGreaterThan(metricsFor(800, 'large').card.width);
+  });
+});
+
+describe('smallestZoom', () => {
+  it('lets a wide screen go to the first step', () => {
+    expect(ZOOM_STEPS[0]).toBe(0.2);
+    expect(smallestZoom(1440)).toBe(0.2);
+  });
+
+  it('stops a phone before its cards are too small to read', () => {
+    const floor = smallestZoom(390);
+    expect(floor).toBeGreaterThan(0.2);
+    expect(metricsFor(390, 'normal', floor).card.width).toBeGreaterThanOrEqual(MIN_ZOOMED_CARD_WIDTH);
+    expect(metricsFor(390, 'normal', stepZoom(floor, -1)).card.width).toBeLessThan(MIN_ZOOMED_CARD_WIDTH);
   });
 });

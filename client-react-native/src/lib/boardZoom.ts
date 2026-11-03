@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { storage } from '@/src/context/SessionContext';
+import { metricsFor, type CardSize } from '@/src/lib/layout';
 
 /**
  * How far the player has zoomed the board — the − / + beside Layout.
@@ -20,7 +21,7 @@ import { storage } from '@/src/context/SessionContext';
  */
 
 /** The steps − and + walk through; 1 is the board as it always was. */
-export const ZOOM_STEPS = [0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6] as const;
+export const ZOOM_STEPS = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6] as const;
 
 const KEY = 'zolik_board_zoom';
 
@@ -36,6 +37,21 @@ export function nearestStep(z: unknown): number {
 export function stepZoom(z: number, dir: 1 | -1): number {
   const i = ZOOM_STEPS.indexOf(nearestStep(z) as (typeof ZOOM_STEPS)[number]);
   return ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, i + dir))];
+}
+
+/**
+ * Narrower than this, a card's rank and suit no longer fit on its face: the
+ * fonts stop shrinking at 9px long before the card does.
+ */
+export const MIN_ZOOMED_CARD_WIDTH = 20;
+
+/**
+ * The smallest step this window can draw. A wide screen goes all the way to
+ * the first step; a phone, whose cards start small, stops sooner.
+ */
+export function smallestZoom(width: number, cardSize: CardSize = 'normal'): number {
+  for (const s of ZOOM_STEPS) if (metricsFor(width, cardSize, s).card.width >= MIN_ZOOMED_CARD_WIDTH) return s;
+  return 1;
 }
 
 let current = 1;
@@ -71,9 +87,11 @@ export async function setBoardZoom(z: number): Promise<void> {
 /**
  * One step from the zoom as it is now, not as the last render saw it — two
  * quick presses of + are two steps, though the button has not redrawn between.
+ * From no lower than `floor`, which is where the board is really drawn when
+ * a zoom saved on a wider window is too small for this one.
  */
-export function stepBoardZoom(dir: 1 | -1): Promise<void> {
-  return setBoardZoom(stepZoom(current, dir));
+export function stepBoardZoom(dir: 1 | -1, floor: number = ZOOM_STEPS[0]): Promise<void> {
+  return setBoardZoom(Math.max(floor, stepZoom(Math.max(current, floor), dir)));
 }
 
 // Another tab zoomed: follow it, as the accessibility choices do.

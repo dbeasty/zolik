@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { Dimensions, useWindowDimensions } from 'react-native';
 
 import { getA11yPrefs, useA11yPrefs } from '@/src/a11y/prefs';
-import { useBoardZoom } from '@/src/lib/boardZoom';
+import { smallestZoom, useBoardZoom } from '@/src/lib/boardZoom';
 import { metricsFor, type Metrics } from '@/src/lib/layout';
 
 /**
@@ -31,8 +31,21 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
 export function useBoardMetrics(): Metrics {
   const { width } = useWindowDimensions();
   const { cardSize } = useA11yPrefs();
-  const zoom = useBoardZoom();
+  const { zoom } = useBoardZoomLevel();
   return useMemo(() => metricsFor(width, cardSize, zoom), [width, cardSize, zoom]);
+}
+
+/**
+ * The zoom the board is drawn at, and the smallest this window allows. The
+ * saved zoom is kept as chosen, so a small zoom picked on a wide screen
+ * comes back when the window is wide again.
+ */
+export function useBoardZoomLevel(): { zoom: number; floor: number } {
+  const { width } = useWindowDimensions();
+  const { cardSize } = useA11yPrefs();
+  const saved = useBoardZoom();
+  const floor = useMemo(() => smallestZoom(width, cardSize), [width, cardSize]);
+  return { zoom: Math.max(saved, floor), floor };
 }
 
 export function BoardMetricsProvider({ metrics, children }: { metrics: Metrics; children: ReactNode }) {

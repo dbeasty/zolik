@@ -43,8 +43,8 @@ import { TableCode } from '@/src/components/match/TableCode';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
 import { useSeatSession } from '@/src/hooks/useSeatSession';
-import { BoardMetricsProvider, useBoardMetrics } from '@/src/hooks/useMetrics';
-import { setBoardZoom, stepBoardZoom, useBoardZoom, ZOOM_STEPS } from '@/src/lib/boardZoom';
+import { BoardMetricsProvider, useBoardMetrics, useBoardZoomLevel } from '@/src/hooks/useMetrics';
+import { setBoardZoom, stepBoardZoom, ZOOM_STEPS } from '@/src/lib/boardZoom';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
@@ -596,7 +596,7 @@ function MatchScreen() {
   // screen is decided by the component that draws it, from the same metrics,
   // which the scroll view below hands down zoomed (`BoardMetricsProvider`).
   const metrics = useBoardMetrics();
-  const zoom = useBoardZoom();
+  const { zoom, floor: zoomFloor } = useBoardZoomLevel();
   const cycleSkin = () => {
     const at = skins.findIndex((s) => s.id === skin.id);
     setSkinId(skins[(at + 1) % skins.length]!.id);
@@ -2203,14 +2203,14 @@ function MatchScreen() {
       <Tip text={t('match.zoom.out')}>
         <Pressable
           testID="board-zoom-out"
-          onPress={() => void stepBoardZoom(-1)}
-          disabled={zoom <= ZOOM_STEPS[0]}
+          onPress={() => void stepBoardZoom(-1, zoomFloor)}
+          disabled={zoom <= zoomFloor}
           hitSlop={6}
           style={styles.zoomButton}
           accessibilityRole="button"
           accessibilityLabel={t('match.zoom.out')}
         >
-          <Text style={[styles.tableCodeText, zoom <= ZOOM_STEPS[0] && styles.zoomDisabled]}>−</Text>
+          <Text style={[styles.tableCodeText, zoom <= zoomFloor && styles.zoomDisabled]}>−</Text>
         </Pressable>
       </Tip>
       <Tip text={t('match.zoom.reset')}>
@@ -2228,7 +2228,7 @@ function MatchScreen() {
       <Tip text={t('match.zoom.in')}>
         <Pressable
           testID="board-zoom-in"
-          onPress={() => void stepBoardZoom(1)}
+          onPress={() => void stepBoardZoom(1, zoomFloor)}
           disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
           hitSlop={6}
           style={styles.zoomButton}
