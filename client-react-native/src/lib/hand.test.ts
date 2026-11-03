@@ -378,10 +378,12 @@ describe('cardsForSelection', () => {
     expect(cardsForSelection(held, new Set([held[1].id]))).toEqual(['7H']);
   });
 
-  it('reads cards in held order, not selection order', () => {
+  // The order picked is where a joker goes in a run: 5, 6, joker lays it as
+  // the seven, joker, 5, 6 as the four — wherever the cards sit in the fan.
+  it('reads cards in selection order, not held order', () => {
     const held = slots('KD', '7H', 'AS');
 
-    expect(cardsForSelection(held, new Set([held[2].id, held[0].id]))).toEqual(['KD', 'AS']);
+    expect(cardsForSelection(held, new Set([held[2].id, held[0].id]))).toEqual(['AS', 'KD']);
   });
 });
 
@@ -431,6 +433,13 @@ describe('pruneSelection', () => {
     const left = pruneSelection([held[1]], chosen);
 
     expect(left).toEqual(new Set([held[1].id]));
+  });
+
+  it('keeps the order the cards were picked in', () => {
+    const held = slots('5S', '6S', 'JOKER1');
+    const chosen = new Set([held[2].id, held[0].id, held[1].id]);
+
+    expect([...pruneSelection(held, chosen)]).toEqual([held[2].id, held[0].id, held[1].id]);
   });
 });
 

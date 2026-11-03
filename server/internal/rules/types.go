@@ -179,6 +179,12 @@ type Action struct {
 	// instead of the server silently picking whichever placement uses the
 	// fewest wilds. Empty means "either end" (sets always ignore it).
 	Position string
+	// PickOrder says lay_meld's Cards are in the order the player picked
+	// them, so a run that could hold its wilds in more than one place puts
+	// them where that order does: 5, 6, joker lays 5-6-7, and joker, 5, 6
+	// lays 4-5-6. Unset, the run takes whichever place is worth more. Bots
+	// leave it unset — their card order means nothing.
+	PickOrder bool
 }
 
 type GameState struct {

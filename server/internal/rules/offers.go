@@ -960,7 +960,9 @@ func droppableEnds(prevCards, submission []string, cfg RulesConfig) []string {
 	}
 	var sides []string
 	for _, position := range []string{"front", "end"} {
-		mv, err := validateRun(submission, minRun, position == "end")
+		mv, err := resolveRun(submission, minRun, runPrefs{
+			positionGiven: true, preferHigh: position == "end", ordered: len(prevCards),
+		})
 		if err != nil {
 			continue
 		}
@@ -973,7 +975,7 @@ func droppableEnds(prevCards, submission []string, cfg RulesConfig) []string {
 	// Growing both ends at once is rejected whichever end is named, so offer
 	// no hint at all rather than one the server will refuse.
 	if len(sides) == 2 {
-		if mv, err := validateRun(submission, minRun); err == nil {
+		if mv, err := resolveRun(submission, minRun, runPrefs{ordered: len(prevCards)}); err == nil {
 			if resolved, known := runGrowthSides(prevCards, mv); known && len(resolved) == 0 {
 				return nil
 			}

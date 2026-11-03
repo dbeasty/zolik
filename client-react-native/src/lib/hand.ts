@@ -551,15 +551,30 @@ export function splitFan(opts: {
   return { shift, gap, opening: Math.round(want - budget) };
 }
 
-/** The cards a set of selected slots stands for, in the order they are held. */
+/**
+ * The cards a set of selected slots stands for, in the order they were picked
+ * (a Set keeps insertion order). That order is the player's say in where a
+ * joker goes: 5, 6, joker lays the joker as the seven; joker, 5, 6 as the
+ * four. Sent with `pickOrder` — see submissionFor.
+ */
 export function cardsForSelection(slots: Slot[], selected: ReadonlySet<string>): string[] {
-  return slots.filter((s) => selected.has(s.id)).map((s) => s.card);
+  const byId = new Map(slots.map((s) => [s.id, s.card]));
+  const out: string[] = [];
+  for (const id of selected) {
+    const card = byId.get(id);
+    if (card !== undefined) out.push(card);
+  }
+  return out;
 }
 
-/** Drops selections whose slot has left the hand, so nothing stale survives. */
+/**
+ * Drops selections whose slot has left the hand, so nothing stale survives.
+ * Keeps the order they were picked in, which cardsForSelection hands on.
+ */
 export function pruneSelection(slots: Slot[], selected: ReadonlySet<string>): Set<string> {
+  const held = new Set(slots.map((s) => s.id));
   const live = new Set<string>();
-  for (const s of slots) if (selected.has(s.id)) live.add(s.id);
+  for (const id of selected) if (held.has(id)) live.add(id);
   return live;
 }
 

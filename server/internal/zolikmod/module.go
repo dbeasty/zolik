@@ -273,7 +273,10 @@ func toRulesAction(a module.Action) (rules.Action, error) {
 		}
 		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: from, Card: card}, nil
 	case string(rules.VerbLayMeld):
-		return rules.Action{Type: rules.ActionLayMeld, Cards: a.Cards}, nil
+		return rules.Action{
+			Type: rules.ActionLayMeld, Cards: a.Cards,
+			PickOrder: a.Params[module.PickOrderParam] == "1",
+		}, nil
 	case string(rules.VerbLayOff):
 		return rules.Action{
 			Type: rules.ActionLayOff, MeldID: a.Target, Cards: a.Cards,

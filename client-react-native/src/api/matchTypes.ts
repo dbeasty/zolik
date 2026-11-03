@@ -273,6 +273,12 @@ export type Placement = {
 /** The parameter a chosen {@link Placement} position travels back under. */
 export const POSITION_PARAM = 'position';
 
+/**
+ * Marks an action whose cards are in the order the player picked them — the
+ * server's module.PickOrderParam. See {@link submissionFor}.
+ */
+export const PICK_ORDER_PARAM = 'pickOrder';
+
 export type Selector = {
   /** What sort of place this is: a hand, a deck, a discard pile, a meld. */
   zone: string;
@@ -714,6 +720,10 @@ export function submissionFor(
       const max = offer.source?.maxCards ?? need;
       if (chosen.cards.length < need || chosen.cards.length > max) return null;
       action.cards = chosen.cards;
+      // Cards the player chose go in the order they chose them, and saying
+      // so lets a module read that order as a choice — where a joker sits
+      // in a run that could hold it at either end.
+      if (chosen.cards.length > 1) action.params = { [PICK_ORDER_PARAM]: '1' };
     } else {
       // Nobody chose, so the offer has to have named its own combination —
       // either outright in `submit`, or by listing exactly as many cards as it
