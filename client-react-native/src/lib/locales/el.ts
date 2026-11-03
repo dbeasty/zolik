@@ -53,6 +53,7 @@ export const el: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Χρειάζεσαι μια κέντα χωρίς μπαλαντέρ στο τραπέζι για να μετρήσεις ως κατεβασμένος',
   'err.INCOMPLETE_INITIAL_MELD': 'Ολοκλήρωσε το κατέβασμα, ή ανέβασέ το πίσω, πριν πετάξεις',
   'err.DISCARD_CARD_NOT_MELDED': 'Το φύλλο που πήρες πρέπει να μπει στον συνδυασμό σου',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Δεν μπορείς να ανοίξεις με αυτό το φύλλο σε αυτόν τον γύρο',
   'err.JOKER_DISCARD_FORBIDDEN': 'Ο μπαλαντέρ δεν πετιέται',
   'err.NOTHING_TO_UNDO': 'Δεν υπάρχει τίποτα να αναιρεθεί',
   'err.NOTHING_FITS_HERE': 'Κανένα από τα φύλλα σου δεν ταιριάζει εδώ',

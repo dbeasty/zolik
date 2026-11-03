@@ -93,7 +93,7 @@ func scanDir(dir string) (declared map[string]string, uses map[string]int) {
 		collectDeclared(f, declared)
 	}
 	// Only *construction* positions count as emitting a code: the value of a
-	// Code: field, an argument to a call (errCode(ErrPileFrozen)), or a bare
+	// Code: field or an offer's WhyNot: field, an argument to a call (errCode(ErrPileFrozen)), or a bare
 	// return. A code named in a switch that classifies refusals is a
 	// reference to one, not a place one happens — counting those would make
 	// every code the engine merely knows about look reachable.
@@ -115,7 +115,7 @@ func scanDir(dir string) (declared map[string]string, uses map[string]int) {
 		ast.Inspect(f, func(n ast.Node) bool {
 			switch v := n.(type) {
 			case *ast.KeyValueExpr:
-				if key, ok := v.Key.(*ast.Ident); ok && key.Name == "Code" {
+				if key, ok := v.Key.(*ast.Ident); ok && (key.Name == "Code" || key.Name == "WhyNot") {
 					note(v.Value)
 				}
 			case *ast.CallExpr:

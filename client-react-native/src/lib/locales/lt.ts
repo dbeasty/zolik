@@ -53,6 +53,7 @@ export const lt: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Kad būtum laikomas išdėjusiu, ant stalo tau reikia sekos be džokerio',
   'err.INCOMPLETE_INITIAL_MELD': 'Užbaik išdėjimą arba jį atšauk, prieš atmesdamas kortą',
   'err.DISCARD_CARD_NOT_MELDED': 'Paimta korta turi patekti į tavo derinį',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Su šia korta šį ėjimą negali išsidėti',
   'err.JOKER_DISCARD_FORBIDDEN': 'Džokerio atmesti negalima',
   'err.NOTHING_TO_UNDO': 'Nėra ko atšaukti',
   'err.NOTHING_FITS_HERE': 'Nė viena tavo korta čia netinka',

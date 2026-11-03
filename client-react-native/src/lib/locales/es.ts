@@ -53,6 +53,7 @@ export const es: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Necesitas una escalera sin comodines en la mesa para contar como bajado',
   'err.INCOMPLETE_INITIAL_MELD': 'Termina tu bajada, o deshazla, antes de descartar',
   'err.DISCARD_CARD_NOT_MELDED': 'La carta que cogiste debe entrar en tu combinación',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'No puedes bajarte con esa carta en este turno',
   'err.JOKER_DISCARD_FORBIDDEN': 'Un comodín no se puede descartar',
   'err.NOTHING_TO_UNDO': 'No hay nada que deshacer',
   'err.NOTHING_FITS_HERE': 'Ninguna de tus cartas va aquí',

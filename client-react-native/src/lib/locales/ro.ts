@@ -53,6 +53,7 @@ export const ro: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Ai nevoie de o scară fără joker pe masă ca să fii considerat coborât',
   'err.INCOMPLETE_INITIAL_MELD': 'Termină coborârea, sau anuleaz-o, înainte să arunci',
   'err.DISCARD_CARD_NOT_MELDED': 'Cartea pe care ai luat-o trebuie să intre în combinația ta',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Nu poți să te întinzi cu cartea asta în tura aceasta',
   'err.JOKER_DISCARD_FORBIDDEN': 'Un joker nu poate fi aruncat',
   'err.NOTHING_TO_UNDO': 'Nu e nimic de anulat',
   'err.NOTHING_FITS_HERE': 'Niciuna dintre cărțile tale nu merge aici',

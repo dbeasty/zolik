@@ -53,6 +53,7 @@ export const nl: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Je hebt een jokervrije reeks op tafel nodig om als uitgelegd te tellen',
   'err.INCOMPLETE_INITIAL_MELD': 'Maak je leg af, of draai hem terug, voordat je aflegt',
   'err.DISCARD_CARD_NOT_MELDED': 'De kaart die je pakte moet in je combinatie',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Met die kaart kun je deze beurt niet uitkomen',
   'err.JOKER_DISCARD_FORBIDDEN': 'Een joker mag niet afgelegd worden',
   'err.NOTHING_TO_UNDO': 'Er is niets om ongedaan te maken',
   'err.NOTHING_FITS_HERE': 'Geen van je kaarten past hier',

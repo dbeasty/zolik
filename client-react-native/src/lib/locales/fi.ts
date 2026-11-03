@@ -53,6 +53,7 @@ export const fi: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Tarvitset pöytään jokerittoman suoran, jotta sinut lasketaan alas laskeneeksi',
   'err.INCOMPLETE_INITIAL_MELD': 'Viimeistele laskusi tai peru se ennen kuin poistat kortin',
   'err.DISCARD_CARD_NOT_MELDED': 'Nostamasi kortin on mentävä yhdistelmääsi',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Et voi avata tällä kortilla tällä vuorolla',
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokeria ei voi poistaa',
   'err.NOTHING_TO_UNDO': 'Ei ole mitään peruttavaa',
   'err.NOTHING_FITS_HERE': 'Mikään korteistasi ei sovi tähän',

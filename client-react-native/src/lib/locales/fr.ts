@@ -53,6 +53,7 @@ export const fr: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Il te faut une suite sans joker sur la table pour être considéré comme posé',
   'err.INCOMPLETE_INITIAL_MELD': 'Termine ta pose, ou annule-la, avant de défausser',
   'err.DISCARD_CARD_NOT_MELDED': 'La carte ramassée doit entrer dans ta combinaison',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Tu ne peux pas poser avec cette carte ce tour-ci',
   'err.JOKER_DISCARD_FORBIDDEN': 'Un joker ne peut pas être défaussé',
   'err.NOTHING_TO_UNDO': 'Rien à annuler',
   'err.NOTHING_FITS_HERE': 'Aucune de tes cartes ne va ici',

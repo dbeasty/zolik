@@ -378,6 +378,34 @@ func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) 
 // obligates melding that exact card this turn) is actually going to work
 // before committing to the draw.
 func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand []string, mustInclude string) ([][]string, bool) {
+	steps := 200000
+	combo, ok, _ := initialMeldPlan(state, playerID, hand, mustInclude, &steps, true)
+	return combo, ok
+}
+
+// CanGoDown reports whether a player who is not yet down could lay an opening
+// this turn from hand. It is the question a pickup before going down turns
+// on: the engine refuses every discard after one until the player is down
+// (rules.ErrDiscardCardNotMelded).
+//
+// The search spends its steps from *budget, which the caller shares across
+// every hand it asks about so that the whole question has one bound. It errs
+// towards yes: a search that runs out of budget has not shown the opening is
+// impossible, and the caller uses a no to withhold a legal move.
+func CanGoDown(state rules.GameState, playerID string, hand []string, budget *int) bool {
+	_, ok, inconclusive := initialMeldPlan(state, playerID, hand, "", budget, false)
+	return ok || inconclusive
+}
+
+// initialMeldPlan is findInitialMeldPlanRequiring, also saying whether a
+// failure is inconclusive: the search gave up on its budget, or the plan it
+// found spent the whole hand when some other plan might have kept a card back.
+//
+// Each pass draws its search steps from *steps; with refill, the second pass
+// starts again from the first's full allowance, as the agent's planning always
+// has, and without it both passes share what *steps holds and spend it down.
+func initialMeldPlan(state rules.GameState, playerID string, hand []string, mustInclude string, steps *int, refill bool) ([][]string, bool, bool) {
+	allowance := *steps
 	cfg := state.Rules
 	req := cfg.ContractFor(state.GameNumber)
 	setsBefore, runsBefore, hasCleanRun := rules.PlayerMeldCounts(state, playerID)
@@ -402,11 +430,14 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 	// assignment in rules.ValidateMeldAction), so a contract-complete but
 	// under-value position still needs more melds to top the total up.
 	if needSets == 0 && needRuns == 0 && !needCleanRun && alreadyValue >= minValue && mustInclude == "" {
-		return nil, false
+		return nil, false, false
 	}
 
 	satisfied := mustInclude == ""
-	combo, ok := searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, &searchBudget{remaining: 200000})
+	first := &searchBudget{remaining: *steps}
+	combo, ok := searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, first)
+	*steps = max(first.remaining, 0)
+	exhausted := first.remaining <= 0
 	if !ok && minValue > alreadyValue {
 		// The first pass lays every meld at its minimum length, which is the
 		// cheapest plan and usually the only one needed — but under a point
@@ -416,11 +447,16 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 		// rest of the deal. A second pass, only when the first found nothing,
 		// also tries the longer melds, so every plan the first pass reached
 		// is still reached first.
-		b := &searchBudget{remaining: 200000, longer: true}
+		if refill {
+			*steps = allowance
+		}
+		b := &searchBudget{remaining: *steps, longer: true}
 		combo, ok = searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, b)
+		*steps = max(b.remaining, 0)
+		exhausted = exhausted || b.remaining <= 0
 	}
 	if !ok {
-		return nil, false
+		return nil, false, exhausted
 	}
 	if !cfg.IsFinalDeal(state.GameNumber) {
 		used := 0
@@ -429,10 +465,10 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 		}
 		if len(hand)-used < 1 {
 			// Would meld away the entire hand with no card left to discard.
-			return nil, false
+			return nil, false, true
 		}
 	}
-	return combo, true
+	return combo, true, false
 }
 
 type searchBudget struct {

@@ -53,6 +53,7 @@ export const pl: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Potrzebujesz na stole sekwensu bez jokera, żeby liczyć się jako wyłożony',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokończ wykładanie albo je cofnij, zanim odrzucisz kartę',
   'err.DISCARD_CARD_NOT_MELDED': 'Podniesiona karta musi trafić do twojego układu',
+  'err.DISCARD_PICKUP_UNPLAYABLE': 'Tą kartą nie możesz się wyłożyć w tej turze',
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokera nie można odrzucić',
   'err.NOTHING_TO_UNDO': 'Nie ma czego cofać',
   'err.NOTHING_FITS_HERE': 'Żadna z twoich kart tu nie pasuje',
