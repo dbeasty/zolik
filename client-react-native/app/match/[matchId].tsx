@@ -2648,6 +2648,7 @@ function MatchScreen() {
                   <RoundResults
                     log={state.rounds!}
                     players={state.players}
+                    seats={view.seats ?? []}
                     standings={state.standings}
                     viewerId={viewerId}
                     onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}

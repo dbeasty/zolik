@@ -33,17 +33,18 @@ async function guest(request: Ctx) {
  * settled table in a few presses where a rummy deal takes a hundred — and the
  * table under test names no game.
  */
-async function table(request: Ctx, bots = 3) {
+async function table(
+  request: Ctx,
+  bots = 3,
+  game: { moduleId: string; variation: string; options: Record<string, number> } = {
+    moduleId: 'holdem',
+    variation: 'timed',
+    options: { handLimit: 5 },
+  },
+) {
   const host = await guest(request);
   const auth = { Authorization: `Bearer ${host.accessToken}` };
-  const created = await request.post(`${API_BASE}/matches`, {
-    headers: auth,
-    data: {
-      moduleId: 'holdem',
-      variation: 'timed',
-      options: { handLimit: 5 },
-    },
-  });
+  const created = await request.post(`${API_BASE}/matches`, { headers: auth, data: game });
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
   for (let i = 0; i < bots; i++) {
@@ -73,6 +74,22 @@ async function playUntilPaused(page: Page, request: Ctx, matchId: string, viewer
     const ids = await page
       .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
+    // A card game's play waits on a card: pick the first one the hand says
+    // can go, then press it. Clicked in the page rather than by pointer — a
+    // fanned hand overlaps, and a pointer lands on whichever card is on top.
+    if (!ids.includes('offer-play')) {
+      const chose = await page.evaluate(() => {
+        const card = [...document.querySelectorAll('[data-testid^="hand-"] [role="option"]')].find((o) =>
+          /can be played/.test(o.getAttribute('aria-label') ?? ''),
+        ) as HTMLElement | undefined;
+        card?.click();
+        return !!card;
+      });
+      if (chose) {
+        await page.waitForTimeout(250);
+        continue;
+      }
+    }
     const pick = ids.find((id) => !id.includes('continue'));
     if (!pick) {
       await page.waitForTimeout(400);
@@ -165,4 +182,41 @@ test('the results table names the reader and lines its columns up', async ({ pag
   // And one width for all of them, rather than each as wide as its own name.
   const widths = new Set(seen.columns.map((c) => c.headBox!.width));
   expect([...widths], 'every column is the same width').toHaveLength(1);
+});
+
+test('a partnership is one column, headed by the team', async ({ page, request }) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize({ width: 900, height: 900 });
+
+  // Sedma at four is two against two, and a hand is eight tricks. Played to
+  // ten, since a hand can win three and one that ends the match never pauses.
+  const { matchId, host } = await table(request, 3, {
+    moduleId: 'sedma',
+    variation: 'classic',
+    options: { target: 10 },
+  });
+  await signIn(page, host);
+  await page.goto(`/match/${matchId}`);
+  await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+
+  const state = await playUntilPaused(page, request, matchId, host);
+  expect(state, 'a table with the pause switched on should have stopped between rounds').toBeTruthy();
+  await expect(page.getByTestId('round-results')).toBeVisible({ timeout: 30_000 });
+
+  const heads = await page
+    .locator('[data-testid^="round-head-"]')
+    .evaluateAll((els) => els.map((e) => ({ id: e.getAttribute('data-testid'), text: (e as HTMLElement).innerText })));
+  expect(heads, 'four players on two sides are two columns').toHaveLength(2);
+
+  const name = (id: string) => state.players.find((p: any) => p.id === id)?.name ?? '';
+  const partner = (state.view.seats as any[]).find(
+    (s) => s.playerId !== host.userId && s.side === state.view.seats.find((x: any) => x.playerId === host.userId).side,
+  ).playerId;
+  const mine = heads.find((h) => h.id === `round-head-${host.userId}`);
+  expect(mine?.text, 'the reader\'s column names the team').toContain('Team:');
+  expect(mine?.text, 'and both of its members').toContain(name(partner));
+  expect(mine?.text).toContain('(you)');
+  const theirs = heads.find((h) => h !== mine);
+  expect(theirs?.text, 'the other side is a team too').toContain('Team:');
+  expect(theirs?.text).not.toContain('(you)');
 });
