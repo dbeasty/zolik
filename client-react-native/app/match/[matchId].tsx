@@ -59,7 +59,7 @@ import { useGuide } from '@/src/guide/useGuide';
 import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useBoardArrangement } from '@/src/hooks/useBoardArrangement';
-import { LayoutSheet } from '@/src/components/match/LayoutSheet';
+import { LayoutEditBar } from '@/src/components/match/LayoutEditor';
 import { TWO_COLUMN_MAX_WIDTH, TWO_COLUMN_MIN_WIDTH, type RegionId } from '@/src/lib/boardArrangement';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
@@ -350,15 +350,15 @@ function MatchScreen() {
   // Where the board's regions go, for this game on this device — see
   // `boardArrangement.ts`. Which regions this board has, and whether it came
   // out as two columns, are the board's own answer (`BoardLayout`'s
-  // `onDrawn`): the sheet lists only those, and the board is let wider than a
-  // table only while there are two columns to fill.
-  const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'));
-  const [layoutOpen, setLayoutOpen] = useState(false);
-  // One region filling the board — the ⤢ on the panel at its head. A look
-  // for now rather than a preference: it is not stored, and a different
-  // match starts with the whole board.
-  const [focused, setFocused] = useState<RegionId | null>(null);
-  useEffect(() => setFocused(null), [matchId]);
+  // `onDrawn`): the board is let wider than a table only while there are two
+  // columns to fill.
+  const roomForTwo = useWindowDimensions().width >= TWO_COLUMN_MIN_WIDTH;
+  const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'), roomForTwo);
+  // Arranging the board — ▦ Layout: every region gets a handle and arrows,
+  // and the cards take no presses until Done. Not kept: a different match
+  // starts playing, not arranging.
+  const [arranging, setArranging] = useState(false);
+  useEffect(() => setArranging(false), [matchId]);
   // The Mac app draws no navigation bar, so Layout stays on the board there.
   const desktopChrome = useDesktopChrome();
   const [drawn, setDrawn] = useState<{ present: ReadonlySet<RegionId>; columns: number }>(() => ({
@@ -398,6 +398,7 @@ function MatchScreen() {
           current: board.arrangement.custom ? 'custom' : board.arrangement.preset,
           choose: board.choose,
           reset: board.reset,
+          edit: () => setArranging((on) => !on),
         }
       : undefined,
   );
@@ -1616,9 +1617,9 @@ function MatchScreen() {
         clearSelection();
         setPendingGroupKey(null);
         setTablePick(null);
-      } else if (focused) {
-        // Nothing picked up to put down: the whole board back.
-        setFocused(null);
+      } else if (arranging) {
+        // Nothing picked up to put down: done arranging.
+        setArranging(false);
       }
       return;
     }
@@ -1780,11 +1781,17 @@ function MatchScreen() {
   // A stable id for remembering whether a zone's own panel is put away —
   // shared by every place this screen draws one.
   const panelIdFor = (zoneId: string) => `zone:${zoneId}`;
-  const zonePanelProps = (zoneId: string) => ({
-    panelId: panelIdFor(zoneId),
-    minimized: panels.isMinimized(panelIdFor(zoneId)),
-    onToggleMinimized: () => panels.toggle(panelIdFor(zoneId)),
-  });
+  const zonePanelProps = (zoneId: string) => {
+    // A zone the module asks to start folded is stored the other way round,
+    // as the results are: present means the player opened it out.
+    const folded = zones.some((z) => z.id === zoneId && z.folded);
+    const stored = folded ? `${panelIdFor(zoneId)}:open` : panelIdFor(zoneId);
+    return {
+      panelId: panelIdFor(zoneId),
+      minimized: folded !== panels.isMinimized(stored),
+      onToggleMinimized: () => panels.toggle(stored),
+    };
+  };
 
   // How the match ended, in the one vocabulary every game shares: who the
   // server says won.
@@ -2164,18 +2171,23 @@ function MatchScreen() {
   // preference about this game's look on this device, like the skin. In the
   // navigation bar, beside the account menu: on the board's own header line
   // it scrolled away with the rest of the top of the board the moment the
-  // screen scrolled to the hand, and nobody found it.
+  // screen scrolled to the hand, and nobody found it. Pressed, the board is
+  // arranged in place (see `LayoutEditor`); pressed again, it is played.
   const layoutButton = (
     <Tip text={t('match.layout.tip')}>
       <Pressable
         testID="layout-open"
-        onPress={() => setLayoutOpen(true)}
+        onPress={() => setArranging((on) => !on)}
         hitSlop={8}
-        style={[styles.tableCode, { marginRight: 10 }]}
+        style={[styles.tableCode, { marginRight: 10 }, arranging && { backgroundColor: skin.colors.accentButton }]}
         accessibilityRole="button"
         accessibilityLabel={t('match.layout.title')}
+        accessibilityState={{ selected: arranging }}
+        {...((Platform.OS === 'web' ? { 'aria-pressed': arranging } : {}) as object)}
       >
-        <Text style={styles.tableCodeText}>▦ {t('match.layout.button')}</Text>
+        <Text style={[styles.tableCodeText, arranging && { color: skin.colors.onAccent }]}>
+          ▦ {arranging ? t('match.layout.done') : t('match.layout.button')}
+        </Text>
       </Pressable>
     </Tip>
   );
@@ -2294,6 +2306,15 @@ function MatchScreen() {
       {/* The guide speaks from here, outside the board, for the same reason
           the banner above does — and exit is always one press away. */}
       {guide ? <GuideCard guide={guide} onExit={() => setGuideExitOpen(true)} /> : null}
+      {arranging && state ? (
+        <LayoutEditBar
+          arrangement={board.arrangement}
+          narrow={!roomForTwo}
+          onChoose={board.choose}
+          onReset={board.reset}
+          onDone={() => setArranging(false)}
+        />
+      ) : null}
       <ScrollView
         ref={scrollRef}
         // Wide enough for the table and no wider. On a large monitor the felt
@@ -2647,9 +2668,11 @@ function MatchScreen() {
             ) : null
           }
           arrangement={board.arrangement}
-          roomForTwo={windowWidth >= TWO_COLUMN_MIN_WIDTH}
-          focused={focused}
-          onFocus={setFocused}
+          roomForTwo={roomForTwo}
+          editing={arranging}
+          onMove={(region, move) => board.move(region, move, drawn.present)}
+          onMoveTo={board.moveTo}
+          onSplit={board.setSplit}
           onDrawn={setDrawn}
           viewerId={viewerId}
           styles={styles}
@@ -2685,16 +2708,6 @@ function MatchScreen() {
           for all three, because they are one question. */}
       {botStrength.sheet}
       {standIn.sheet}
-      <LayoutSheet
-        visible={layoutOpen}
-        arrangement={board.arrangement}
-        present={drawn.present}
-        roomForTwo={windowWidth >= TWO_COLUMN_MIN_WIDTH}
-        onChoose={board.choose}
-        onMove={(region, move) => board.move(region, move, drawn.present)}
-        onReset={board.reset}
-        onClose={() => setLayoutOpen(false)}
-      />
       {seatLook.sheet}
       {guide ? (
         <GuideExitSheet

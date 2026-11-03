@@ -1,13 +1,20 @@
-import { useEffect, useMemo, type ReactNode, type Ref } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchState, Zone } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardSpeechProvider } from '@/src/components/match/BoardSpeech';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
-import { RegionFocusProvider } from '@/src/components/match/RegionFocus';
-import { MoveAnnouncements } from '@/src/components/match/MoveAnnouncements';
+import {
+  ColumnDivider,
+  DragLabel,
+  DropLine,
+  EmptyColumn,
+  RegionFrame,
+  regionLayer,
+} from '@/src/components/match/LayoutEditor';
+import { MoveAnnouncements, setMovesOpen, useMovesOpen } from '@/src/components/match/MoveAnnouncements';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
 import { ZoneView } from '@/src/components/match/ZoneView';
@@ -16,7 +23,15 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import type { ChangeMarks } from '@/src/lib/changes';
 import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside, stretchesInRow, zoneDropLive } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
-import { columnsToDraw, preset as presetArrangement, type Arrangement, type RegionId } from '@/src/lib/boardArrangement';
+import {
+  asDrawn,
+  canMove,
+  columnsToDraw,
+  preset as presetArrangement,
+  type Arrangement,
+  type Move,
+  type RegionId,
+} from '@/src/lib/boardArrangement';
 import { isSeatArranged } from '@/src/lib/seatArrangement';
 import { partnersOf, sideMembers, spreadAreas } from '@/src/lib/sides';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -85,8 +100,10 @@ export function BoardLayout({
   results,
   arrangement,
   roomForTwo,
-  focused,
-  onFocus,
+  editing,
+  onMove,
+  onMoveTo,
+  onSplit,
   onDrawn,
   tableAnchor,
   tableRing,
@@ -111,13 +128,20 @@ export function BoardLayout({
   arrangement?: Arrangement;
   /** The board is wide enough for two columns — see `TWO_COLUMN_MIN_WIDTH`. */
   roomForTwo?: boolean;
-  /** The region the player maximized, drawn alone. */
-  focused?: RegionId | null;
   /**
-   * Maximize a region, or (null) give the whole board back. Absent, no panel
-   * offers to — a replay is read as the whole table.
+   * The player is arranging the board: every region gets a handle and arrows
+   * (see `RegionFrame`), and what is in them takes no presses.
    */
-  onFocus?: (region: RegionId | null) => void;
+  editing?: boolean;
+  /** A region stepped one place — an arrow on its frame. */
+  onMove?: (region: RegionId, move: Move) => void;
+  /** A region dragged by its handle and let go: into `column`, above `before` or at the foot. */
+  onMoveTo?: (region: RegionId, column: 0 | 1, before: RegionId | null) => void;
+  /**
+   * The divider between two columns let go at `split`. Absent, no divider is
+   * offered — a replay is drawn as it is.
+   */
+  onSplit?: (split: number) => void;
   /**
    * Which regions this board has, and how many columns it came out as — for a
    * screen that sizes the board to the columns, and offers to move only the
@@ -291,6 +315,22 @@ export function BoardLayout({
       {factText(f, state.players)}
     </Text>
   ));
+  const moves = state.recentMoves ?? [];
+  const prompts = view.prompts ?? [];
+  const standing = (view.header ?? []).filter((f) => f.standing);
+  // Folded or open as the session last left it — the Mac app's View › Log
+  // flips the same switch.
+  const logOpen = useMovesOpen();
+  const log = (
+    <MoveAnnouncements
+      moves={moves}
+      prompts={prompts}
+      standing={standing}
+      players={state.players}
+      viewerId={viewerId}
+      bare
+    />
+  );
   const regions: Record<RegionId, ReactNode> = {
     results: results ?? null,
     seats: (
@@ -307,13 +347,9 @@ export function BoardLayout({
       />
     ),
     // The piles and stacks everyone draws from and discards to, and the cards
-    // everyone plays against — and under them what just happened, and what
-    // the table is waiting on this viewer for, between the cards everyone
-    // plays to and the hand they play from, where the eye goes on the way
-    // down. The announcements travel with the table because they are about it.
-    table: (
-      <>
-        {tableZones.length > 0 || arranged.length > 0 ? (
+    // everyone plays against.
+    table:
+      tableZones.length > 0 || arranged.length > 0 ? (
           <View
             {...tableAnchor}
             // The table is one of the board's regions — see `Panel`'s `region`.
@@ -346,23 +382,33 @@ export function BoardLayout({
             />
             <Attention active={!!tableRing} radius={10} gap={3} />
           </View>
-        ) : null}
-        <MoveAnnouncements
-          moves={state.recentMoves ?? []}
-          prompts={view.prompts ?? []}
-          standing={(view.header ?? []).filter((f) => f.standing)}
-          players={state.players}
-          viewerId={viewerId}
-        />
-      </>
-    ),
-    // The buttons travel with the hand, but are not what a player maximizes:
-    // the hand's own panel offers that, for both.
+      ) : null,
+    // What just happened, and what the table is waiting on this viewer for —
+    // under the table by default, between the cards everyone plays to and
+    // the hand they play from, where the eye goes on the way down. A panel of
+    // its own, so it can be moved like any other, and put away with the one
+    // ▾ every panel has: put away, its header still carries the newest move
+    // and what the table is waiting for, the way the folded box always did;
+    // open, it lists every recent move.
+    log:
+      moves.length || prompts.length || standing.length ? (
+        <Panel
+          panelId="log"
+          title={t('moves.title')}
+          testID="section-moves"
+          minimized={!logOpen}
+          onToggleMinimized={() => setMovesOpen(!logOpen)}
+          summary={log}
+        >
+          {log}
+        </Panel>
+      ) : null,
+    // The buttons travel with the hand: one region, moved as one.
     hand:
       hand || controls ? (
         <>
           {hand}
-          <RegionFocusProvider value={null}>{controls}</RegionFocusProvider>
+          {controls}
         </>
       ) : null,
     spreads: spreadsRow,
@@ -383,69 +429,221 @@ export function BoardLayout({
       ) : null,
   };
   const present = new Set((Object.keys(regions) as RegionId[]).filter((r) => regions[r] != null));
-  const drawn = columnsToDraw(
-    arrangement ?? presetArrangement('stacked', holdsHand),
-    !!roomForTwo,
-    present,
-    holdsHand,
-    focused,
-  );
-  // Each region told which it is, so the panel at its head can offer to fill
-  // the board with it — see `RegionFocus`.
-  const shown = drawn.columns.length === 1 && drawn.columns[0]!.length === 1 ? drawn.columns[0]![0] : null;
-  const focusedNow = focused && shown === focused ? focused : null;
-  const place = (r: RegionId) => (
-    <RegionFocusProvider
-      key={r}
-      value={
-        onFocus ? { region: r, focused: focusedNow === r, toggle: () => onFocus(focusedNow === r ? null : r) } : null
+  const stored = arrangement ?? presetArrangement('stacked', holdsHand);
+  const isEditing = !!editing && !!onMove;
+  const drawn = columnsToDraw(stored, !!roomForTwo, present, holdsHand, isEditing);
+  // What the arrows step through: the column as it is drawn — see `asDrawn`.
+  const editable = asDrawn(stored, !!roomForTwo, holdsHand);
+  const twoColumns = drawn.columns.length > 1;
+
+  // The divider while it is being dragged: the columns follow it frame by
+  // frame, and only the share it is let go at is stored.
+  const [liveSplit, setLiveSplit] = useState<number | null>(null);
+  const split = liveSplit ?? drawn.split;
+  const columnsRow = useRef<View | null>(null);
+  const measureBoard = () =>
+    new Promise<{ x: number; width: number } | null>((resolve) => {
+      const node = columnsRow.current;
+      if (!node) return resolve(null);
+      node.measureInWindow((x, _y, width) => resolve({ x, width }));
+    });
+
+  // A region carried by its handle. Where everything is, measured once when
+  // it is picked up — nothing moves under a carried panel until it is let go.
+  const frames = useRef(new Map<RegionId, Measurable>());
+  const columnNodes = useRef<(View | null)[]>([]);
+  const rootNode = useRef<View | null>(null);
+  const rects = useRef<{
+    root: { x: number; y: number };
+    columns: { x: number; width: number }[];
+    frames: Map<RegionId, { y: number; height: number }>;
+  } | null>(null);
+  const [carry, setCarry] = useState<{
+    region: RegionId;
+    x: number;
+    y: number;
+    target: { column: 0 | 1; before: RegionId | null } | null;
+  } | null>(null);
+  const carryRef = useRef(carry);
+  carryRef.current = carry;
+
+  const measure = (node: Measurable | View | null | undefined) =>
+    new Promise<{ x: number; y: number; width: number; height: number } | null>((resolve) => {
+      if (!node) return resolve(null);
+      (node as Measurable).measureInWindow((x, y, width, height) => resolve({ x, y, width, height }));
+    });
+  const measuring = useRef<Promise<void> | null>(null);
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const startCarry = (region: RegionId) => {
+    rects.current = null;
+    pointer.current = null;
+    setCarry({ region, x: 0, y: 0, target: null });
+    measuring.current = (async () => {
+      const root = await measure(rootNode.current);
+      const cols = await Promise.all(drawn.columns.map((_, i) => measure(columnNodes.current[i])));
+      const fs = new Map<RegionId, { y: number; height: number }>();
+      for (const col of drawn.columns) {
+        for (const r of col) {
+          const m = await measure(frames.current.get(r));
+          if (m) fs.set(r, { y: m.y, height: m.height });
+        }
       }
-    >
-      {regions[r]}
-    </RegionFocusProvider>
-  );
-  const drawnKey = `${[...present].sort().join(',')}|${drawn.columns.length}`;
+      rects.current = {
+        root: root ? { x: root.x, y: root.y } : { x: 0, y: 0 },
+        columns: cols.map((c) => (c ? { x: c.x, width: c.width } : { x: 0, width: 0 })),
+        frames: fs,
+      };
+    })();
+  };
+  // The column under the pointer — or the nearer one, off either side — and
+  // the first region in it whose middle is below the pointer.
+  const targetAt = (region: RegionId, x: number, y: number) => {
+    const r = rects.current;
+    if (!r) return null;
+    let column = 0;
+    let best = Infinity;
+    r.columns.forEach((c, i) => {
+      const d = x < c.x ? c.x - x : x > c.x + c.width ? x - (c.x + c.width) : 0;
+      if (d < best) {
+        best = d;
+        column = i;
+      }
+    });
+    const col = drawn.columns[column] ?? [];
+    let before: RegionId | null = null;
+    for (const id of col) {
+      const f = r.frames.get(id);
+      if (f && y < f.y + f.height / 2) {
+        before = id;
+        break;
+      }
+    }
+    // Dropped just under itself is where it already is.
+    if (before === region) {
+      const i = col.indexOf(region);
+      before = col[i + 1] ?? null;
+    }
+    return { column: column as 0 | 1, before };
+  };
+  const moveCarry = (x: number, y: number) => {
+    pointer.current = { x, y };
+    const c = carryRef.current;
+    if (!c || !rects.current) return;
+    const root = rects.current.root;
+    setCarry({
+      ...c,
+      x: x - root.x,
+      y: y - root.y,
+      target: targetAt(c.region, x, y),
+    });
+  };
+  // Let go. A quick flick can be let go before the board is measured, so the
+  // drop waits for that and is judged where the pointer last was.
+  const endCarry = () => {
+    const c = carryRef.current;
+    const wait = measuring.current;
+    measuring.current = null;
+    void (async () => {
+      await wait;
+      setCarry(null);
+      const at = pointer.current;
+      const target = c && at ? targetAt(c.region, at.x, at.y) : null;
+      if (!c || !target || !onMoveTo) return;
+      // The drawn column's own regions are the present ones; the stored
+      // column also holds regions this game does not draw, so "at the foot"
+      // is put after the last drawn one rather than after those.
+      const { column, before } = target;
+      const col = editable.columns[column];
+      const drawnCol = drawn.columns[column] ?? [];
+      const after = before == null ? drawnCol.filter((r) => r !== c.region).slice(-1)[0] : undefined;
+      const beforeStored = before ?? (after ? (col[col.indexOf(after) + 1] ?? null) : null);
+      onMoveTo(c.region, column, beforeStored === c.region ? null : beforeStored);
+    })();
+  };
+
+  const place = (r: RegionId, column: number) => {
+    const showLine = carry?.target && carry.target.column === column && carry.target.before === r;
+    return (
+      <View key={r} style={[{ gap: 4 }, regionLayer(r === 'hand')]}>
+        {showLine ? <DropLine /> : null}
+        <RegionFrame
+          region={r}
+          editing={isEditing}
+          dragging={carry?.region === r}
+          canMove={(m) => canMove(editable, r, m, present)}
+          showSideways={!!roomForTwo}
+          onMove={(m) => onMove?.(r, m)}
+          onDragStart={() => startCarry(r)}
+          onDragMove={moveCarry}
+          onDragEnd={endCarry}
+          frameRef={(n) => {
+            if (n) frames.current.set(r, n);
+            else frames.current.delete(r);
+          }}
+        >
+          {regions[r]}
+        </RegionFrame>
+      </View>
+    );
+  };
+  const footLine = (column: number) =>
+    carry?.target && carry.target.column === column && carry.target.before == null ? <DropLine key="foot" /> : null;
+
+  const drawnKey = `${[...present].sort().join(',')}|${drawn.columns.filter((c) => c.length).length}`;
   useEffect(() => {
-    onDrawn?.({ present, columns: drawn.columns.length });
+    onDrawn?.({
+      present,
+      columns: drawn.columns.filter((c) => c.length).length || 1,
+    });
     // Keyed on what was drawn, not on the set, which is new every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawnKey]);
 
   return (
     <BoardSpeechProvider value={speech}>
-      {drawn.columns.length === 1 ? (
-        <>
-          {focusedNow && onFocus ? (
-            <View style={styles.focusBar} testID="board-focus-bar">
-              <Text style={styles.focusBarText} numberOfLines={1}>
-                {t('match.focus.only', { region: t(`match.layout.region.${focusedNow}`) })}
-              </Text>
-              <Pressable
-                testID="board-focus-restore"
-                accessibilityRole="button"
-                onPress={() => onFocus(null)}
-                hitSlop={8}
-                style={styles.focusBarButton}
+      <View ref={rootNode} style={[styles.boardRoot, regionLayer(true)]} testID="board-regions">
+        {!twoColumns ? (
+          <View
+            ref={(n) => {
+              columnNodes.current[0] = n;
+            }}
+            style={[styles.boardRoot, regionLayer(true)]}
+            testID="board-column-0"
+          >
+            {drawn.columns[0]!.map((r) => place(r, 0))}
+            {footLine(0)}
+          </View>
+        ) : (
+          <View ref={columnsRow} style={[styles.boardColumns, regionLayer(true)]} testID="board-columns">
+            {drawn.columns.map((col, i) => [
+              i === 1 && onSplit ? (
+                <ColumnDivider
+                  key="divider"
+                  split={split}
+                  measureBoard={measureBoard}
+                  onLive={setLiveSplit}
+                  onCommit={onSplit}
+                />
+              ) : i === 1 ? (
+                <View key="gap" style={{ width: 16 }} />
+              ) : null,
+              <View
+                key={i}
+                ref={(n) => {
+                  columnNodes.current[i] = n;
+                }}
+                testID={`board-column-${i}`}
+                style={[styles.boardColumn, regionLayer(col.includes('hand')), { flex: i === 0 ? split : 1 - split }]}
               >
-                <Text style={styles.focusBarButtonText}>⤡ {t('match.focus.restore')}</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          {drawn.columns[0]!.map(place)}
-        </>
-      ) : (
-        <View style={styles.boardColumns} testID="board-columns">
-          {drawn.columns.map((col, i) => (
-            <View
-              key={i}
-              testID={`board-column-${i}`}
-              style={[styles.boardColumn, { flex: i === 0 ? drawn.split : 1 - drawn.split }]}
-            >
-              {col.map(place)}
-            </View>
-          ))}
-        </View>
-      )}
+                {col.map((r) => place(r, i))}
+                {footLine(i)}
+                {isEditing && !col.length ? <EmptyColumn live={carry?.target?.column === i} /> : null}
+              </View>,
+            ])}
+          </View>
+        )}
+        {carry && rects.current ? <DragLabel region={carry.region} x={carry.x} y={carry.y} /> : null}
+      </View>
     </BoardSpeechProvider>
   );
 }
@@ -579,30 +777,22 @@ export function matchStyles(s: Skin) {
     paddingVertical: 3,
   },
   tableCodeText: { color: colors.accent, fontSize: 11, fontWeight: '700' },
-  body: { paddingBottom: 40, gap: 4 },
+  // Clear of the scrollbar on the right. A Mac's overlay scrollbar is drawn
+  // over the content while the board scrolls, and every panel's ▾ sits at its
+  // right edge: the move log's was under it, and nobody could tell it was
+  // there. The bar floats in this strip instead.
+  body: { paddingBottom: 40, gap: 4, ...(Platform.OS === 'web' ? { paddingRight: 14 } : null) },
   // Two columns of regions side by side on a wide board — see
   // `boardArrangement.ts`. Each column is its own stack with the body's gap,
   // and may shrink below its contents' natural width: the hand measures the
   // width it is given rather than assuming the whole board's.
-  boardColumns: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  // The divider between them is the gap (see `ColumnDivider`).
+  boardColumns: { flexDirection: 'row', alignItems: 'stretch' },
   boardColumn: { gap: 4, minWidth: 0, flexBasis: 0 },
-  // Over a region the player maximized: what is showing, and the way back to
-  // the whole board, where the eye lands rather than on one panel's corner.
-  focusBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginBottom: 4,
-  },
-  focusBarText: { color: colors.muted, fontSize: 12, flexShrink: 1 },
-  focusBarButton: { minHeight: 24, justifyContent: 'center' },
-  focusBarButtonText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+  // Every region of the board, in one box a carried panel is placed against.
+  // Spaced as the body spaces what is in it, which is where the regions used
+  // to sit directly.
+  boardRoot: { gap: 4 },
   // The settlement and its record, grouped so the block a stopped table has to
   // put in front of the player can be measured as one. Spaced like the body,
   // which is what was between them before they were grouped.

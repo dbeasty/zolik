@@ -1,13 +1,17 @@
 import {
+  asDrawn,
   canMove,
+  clampSplit,
   columnsToDraw,
   move,
+  moveTo,
   normalize,
   preset,
   PRESETS,
   REGIONS,
   type Arrangement,
   type RegionId,
+  withSplit,
 } from './boardArrangement';
 
 const ALL: ReadonlySet<RegionId> = new Set(REGIONS);
@@ -23,9 +27,9 @@ describe('boardArrangement', () => {
   });
 
   it('stacked is the order the board always had', () => {
-    expect(preset('stacked', true).columns[0]).toEqual(['results', 'seats', 'table', 'hand', 'spreads', 'opponents']);
+    expect(preset('stacked', true).columns[0]).toEqual(['results', 'seats', 'table', 'log', 'hand', 'spreads', 'opponents']);
     // Blackjack: the spreads are the cards in play, above the hand.
-    expect(preset('stacked', false).columns[0]).toEqual(['results', 'seats', 'table', 'spreads', 'hand', 'opponents']);
+    expect(preset('stacked', false).columns[0]).toEqual(['results', 'seats', 'table', 'log', 'spreads', 'hand', 'opponents']);
   });
 
   it('normalize reads nothing, junk, or an unmoved preset as that preset', () => {
@@ -40,8 +44,18 @@ describe('boardArrangement', () => {
       true,
     );
     expect(all(a)).toEqual([...REGIONS].sort());
-    expect(a.columns[0].slice(0, 2)).toEqual(['table', 'seats']);
+    // The player's own order kept; what it lacked put back under what its
+    // preset has above it — the log under the table.
+    expect(a.columns[0]).toEqual(['results', 'table', 'log', 'seats']);
     expect(a.split).toBe(0.4);
+  });
+
+  it('a layout stored before the move log had a region of its own gets it back under the table', () => {
+    const a = normalize(
+      { preset: 'stacked', custom: true, columns: [['hand', 'results', 'seats', 'table', 'spreads', 'opponents'], []], split: 1 },
+      true,
+    );
+    expect(a.columns[0]).toEqual(['hand', 'results', 'seats', 'table', 'log', 'spreads', 'opponents']);
   });
 
   it('up and down step over regions this game does not draw', () => {
@@ -50,7 +64,7 @@ describe('boardArrangement', () => {
     // results sits above seats but is not on the board: seats cannot go up.
     expect(canMove(a, 'seats', 'up', present)).toBe(false);
     const b = move(a, 'hand', 'up', present);
-    expect(b.columns[0]).toEqual(['results', 'seats', 'hand', 'table', 'spreads', 'opponents']);
+    expect(b.columns[0]).toEqual(['results', 'seats', 'hand', 'table', 'log', 'spreads', 'opponents']);
     expect(b.custom).toBe(true);
     // Nothing drawn below the hand now except the table.
     expect(move(b, 'table', 'down', present)).toBe(b);
@@ -80,14 +94,55 @@ describe('boardArrangement', () => {
     expect(columnsToDraw(a, false, ALL, true).columns[0]).toEqual(a.columns[0]);
   });
 
-  it('a maximized region is drawn alone, in any arrangement, until the game stops drawing it', () => {
-    for (const p of PRESETS) {
-      expect(columnsToDraw(preset(p, true), true, ALL, true, 'hand')).toEqual({ columns: [['hand']], split: 1 });
-    }
-    // The round's results went away under it: the whole board again.
-    const dealt = new Set<RegionId>(['seats', 'table', 'hand']);
-    expect(columnsToDraw(preset('stacked', true), true, dealt, true, 'results').columns).toEqual([
-      ['seats', 'table', 'hand'],
-    ]);
+  it('a dragged region lands above the one it was let go over, or at the foot', () => {
+    const a = preset('stacked', true);
+    const b = moveTo(a, 'hand', 0, 'seats');
+    expect(b.columns[0]).toEqual(['results', 'hand', 'seats', 'table', 'log', 'spreads', 'opponents']);
+    expect(b.custom).toBe(true);
+    expect(moveTo(a, 'seats', 0, null).columns[0].slice(-1)).toEqual(['seats']);
+    // Let go over itself, or where it already is: nothing changes.
+    expect(moveTo(a, 'hand', 0, 'hand')).toBe(a);
+    expect(moveTo(a, 'hand', 0, 'spreads')).toBe(a);
+  });
+
+  it('dragging into the other column opens it at half, emptying it closes it', () => {
+    const a = moveTo(preset('stacked', true), 'table', 1, null);
+    expect(a.columns[1]).toEqual(['table']);
+    expect(a.split).toBe(0.5);
+    const b = moveTo(a, 'table', 0, 'hand');
+    expect(b.columns[1]).toEqual([]);
+    expect(b.split).toBe(1);
+  });
+
+  it('the divider stays within reach of both columns and catches halves and thirds', () => {
+    expect(clampSplit(0.05)).toBe(0.25);
+    expect(clampSplit(0.99)).toBe(0.75);
+    expect(clampSplit(0.51)).toBe(0.5);
+    expect(clampSplit(0.65)).toBeCloseTo(2 / 3);
+    expect(clampSplit(0.42)).toBe(0.42);
+    const beside = preset('beside', true);
+    expect(withSplit(beside, 0.6)).toEqual({ ...beside, custom: true, split: 0.6 });
+    // One column has nothing to divide.
+    expect(withSplit(preset('stacked', true), 0.3)).toEqual(preset('stacked', true));
+  });
+
+  it('a stored split outside the divider\'s range is brought back into it', () => {
+    const a = normalize({ preset: 'beside', custom: true, columns: [['table'], ['hand']], split: 0.95 }, true);
+    expect(a.split).toBe(0.75);
+  });
+
+  it('while arranging, both columns are drawn with room for them, an empty one too', () => {
+    const stacked = preset('stacked', true);
+    expect(columnsToDraw(stacked, true, ALL, true, true).columns).toEqual([stacked.columns[0], []]);
+    // Too narrow for two: the one column, as when playing.
+    expect(columnsToDraw(stacked, false, ALL, true, true).columns).toHaveLength(1);
+  });
+
+  it('on a narrow window moves are taken in the one column that is drawn', () => {
+    const side = preset('side', true);
+    expect(asDrawn(side, true, true)).toBe(side);
+    const narrow = asDrawn(side, false, true);
+    expect(narrow.columns).toEqual([preset('stacked', true).columns[0], []]);
+    expect(columnsToDraw(narrow, false, ALL, true).columns[0]).toEqual(narrow.columns[0]);
   });
 });

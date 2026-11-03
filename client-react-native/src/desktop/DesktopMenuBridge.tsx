@@ -166,5 +166,6 @@ function menuLabels(): Record<string, string> {
   labels.layoutBeside = t('match.layout.preset.beside');
   labels.layoutSide = t('match.layout.preset.side');
   labels.layoutReset = t('match.layout.reset');
+  labels.layoutArrange = t('match.layout.arrange');
   return labels;
 }

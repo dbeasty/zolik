@@ -752,7 +752,7 @@ async function main() {
     await a.js(`await e2e.waitFor(() => ${panels}['section:table'] === 'true', 'the table back', 5000); return 1`);
 
     await a.native('menu Show Log');
-    await a.js(`await e2e.waitFor(() => document.querySelector('[data-testid="moves-toggle"]')?.getAttribute('aria-expanded') === 'true', 'the log to open', 5000); return 1`);
+    await a.js(`await e2e.waitFor(() => document.querySelector('[data-testid="panel-toggle-log"]')?.getAttribute('aria-expanded') === 'true', 'the log to open', 5000); return 1`);
     view = await a.native('menuitems View');
     expect(view.includes('Hide Log'), `after showing the log: ${JSON.stringify(view)}`);
     await a.native('menu Hide Log');

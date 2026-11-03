@@ -41,6 +41,7 @@ export function MoveAnnouncements({
   standing = [],
   players,
   viewerId,
+  bare,
 }: {
   moves: MoveLine[];
   prompts: Fact[];
@@ -48,6 +49,11 @@ export function MoveAnnouncements({
   standing?: Fact[];
   players: MatchPlayer[];
   viewerId: string;
+  /**
+   * Inside the Moves panel, which draws the frame and the title, and whose ▾
+   * folds and opens the list: none of the three is drawn again here.
+   */
+  bare?: boolean;
 }) {
   const skin = useSkin();
   const open = useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
@@ -68,7 +74,7 @@ export function MoveAnnouncements({
   // The corner's real width, measured: its labels are translated and the
   // standing facts vary, so a guessed width let the first line run under it.
   const [cornerWidth, setCornerWidth] = useState(0);
-  const styles = useMemo(() => announceStyles(skin, linesHeight, short, cornerWidth), [skin, linesHeight, short, cornerWidth]);
+  const styles = useMemo(() => announceStyles(skin, linesHeight, short, bare ? 0 : cornerWidth), [skin, linesHeight, short, cornerWidth, bare]);
 
   // Everything after the viewer's own last move. When their move was the
   // last one, that move alone, dimmed — so the box says what the table is
@@ -134,7 +140,7 @@ export function MoveAnnouncements({
 
   return (
     <View
-      style={styles.box}
+      style={[styles.box, bare && styles.bare]}
       testID="move-announcements"
       {...((Platform.OS === 'web'
         ? { role: 'region', 'aria-label': t('a11y.board.region.moves'), tabIndex: -1 }
@@ -148,7 +154,7 @@ export function MoveAnnouncements({
       {/* Repeat-last, over the box's corner rather than in its flow: the box
           keeps one fixed height whatever is in it (see below). */}
       <View
-        style={styles.repeatAt}
+        style={[styles.repeatAt, bare && styles.repeatInFlow]}
         onLayout={(e) => {
           const w = Math.ceil(e.nativeEvent.layout.width);
           setCornerWidth((prev) => (prev === w ? prev : w));
@@ -180,6 +186,7 @@ export function MoveAnnouncements({
             <Text style={styles.repeatText}>↻</Text>
           </Pressable>
         </Tip>
+        {bare ? null : (
         <Pressable
           testID="moves-toggle"
           accessibilityRole="button"
@@ -194,15 +201,16 @@ export function MoveAnnouncements({
         >
           <Text style={styles.toggleText}>{open ? '▴' : '▾'}</Text>
         </Pressable>
+        )}
       </View>
       {/* On a short window the lines speak for themselves; the room goes to
           the hand. Folded, the one line does. */}
-      {short || !open ? null : (
+      {short || !open || bare ? null : (
         <Text style={styles.title} {...((Platform.OS === 'web' ? {} : { accessibilityRole: 'header' }) as object)}>
           {t('moves.title')}
         </Text>
       )}
-      <View style={styles.lines}>
+      <View style={[styles.lines, bare && styles.linesBeside]}>
         {/* The moves are a list of their own — the prompts after them are
             not moves, and a list may hold nothing but its items. Spaced the
             way the lines are, so the box looks exactly as it did. */}
@@ -290,6 +298,23 @@ const SHORT_WINDOW = 760;
 function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean, cornerWidth: number) {
   const colors = s.colors;
   return StyleSheet.create({
+    // In the Moves panel, which draws the frame and the title itself.
+    // Inside the Moves panel, which draws the frame and the title itself. The
+    // corner buttons sit beside the lines rather than over them: folded into
+    // the panel's header the box is only as wide as its words, and a corner
+    // floated over it covered the prompt.
+    bare: {
+      borderWidth: 0,
+      backgroundColor: 'transparent',
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      marginTop: 0,
+      flexDirection: 'row-reverse',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    repeatInFlow: { position: 'relative', top: 0, right: 0 },
+    linesBeside: { flexShrink: 1, flexGrow: 1, minWidth: 0 },
     box: {
       borderWidth: 1,
       borderColor: colors.accent,

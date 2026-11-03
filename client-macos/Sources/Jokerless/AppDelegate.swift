@@ -462,7 +462,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     let current = layoutInFront
     let layout = viewMenu.items.first { $0.identifier?.rawValue == "menu.layout" }?.submenu
     for item in layout?.items ?? [] {
-      guard let preset = MenuBuilder.layoutTags[item.tag], preset != "reset" else { continue }
+      guard let preset = MenuBuilder.layoutTags[item.tag], preset != "reset", preset != "edit" else { continue }
       item.state = preset == current ? .on : .off
     }
   }

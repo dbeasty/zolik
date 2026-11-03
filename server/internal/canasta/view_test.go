@@ -468,3 +468,36 @@ func TestFoldedCanastaShowsANatural(t *testing.T) {
 }
 
 func intp(i int) *int { return &i }
+
+// TestRedThreesStartFolded: red threes are laid down the moment they are drawn
+// and only ever score, so the zone asks a client to start it minimized, while
+// the melds beside them, which are played into, stay open.
+func TestRedThreesStartFolded(t *testing.T) {
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].RedThrees = []string{"3H"}
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "K"), TeamID: 0, Rank: "K", Cards: []string{"KH", "KD", "KS"}}}
+	})
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	var red, melds *module.Zone
+	for i := range vm.Zones {
+		switch vm.Zones[i].ID {
+		case redThreesZoneID(0):
+			red = &vm.Zones[i]
+		case meldsZoneID(0):
+			melds = &vm.Zones[i]
+		}
+	}
+	if red == nil || melds == nil {
+		t.Fatalf("want both a red threes and a melds zone for team 0, got %+v", vm.Zones)
+	}
+	if !red.Folded {
+		t.Error("the red threes zone should start folded")
+	}
+	if melds.Folded {
+		t.Error("the melds zone is played into and should start open")
+	}
+}

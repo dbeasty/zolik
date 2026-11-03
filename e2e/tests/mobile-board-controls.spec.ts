@@ -72,7 +72,7 @@ test('opening the log shows earlier plays, still, after your own move', async ({
   const { matchId, host } = await canastaTable(request);
   await openMatch(page, host, matchId);
 
-  await page.getByTestId('moves-toggle').click();
+  await page.getByTestId('panel-toggle-log').click();
 
   // One full turn, so there are moves on both sides of ours.
   await waitForOfferEnabled(page, 'offer-draw:deck', 60_000);
@@ -94,7 +94,7 @@ test('opening the log shows earlier plays, still, after your own move', async ({
   expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(scroll.y + scroll.height + 1);
 
   // Folding goes back to a single line.
-  await page.getByTestId('moves-toggle').click();
+  await page.getByTestId('panel-toggle-log').click();
   await expect(lines).toHaveCount(1);
 });
 

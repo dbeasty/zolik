@@ -13,9 +13,11 @@ import AppKit
 enum MenuBuilder {
   /// Tags of View's show/hide items, whose titles follow what is showing.
   static let viewTags: [Int: String] = [101: "hand", 102: "table", 103: "log"]
-  /// Tags of View › Layout's items: a preset of the board's, or going back
-  /// to the default. The page's own names for them (`boardArrangement.ts`).
-  static let layoutTags: [Int: String] = [301: "stacked", 302: "beside", 303: "side", 304: "reset"]
+  /// Tags of View › Layout's items: a preset of the board's, going back to
+  /// the default, or Arrange Panels ("edit"), which turns moving and resizing
+  /// panels on the board on and off. The page's own names for them
+  /// (`boardArrangement.ts`, `useDesktopMatchView.ts`).
+  static let layoutTags: [Int: String] = [301: "stacked", 302: "beside", 303: "side", 304: "reset", 305: "edit"]
   /// Help's legal items are rebuilt from the page; they carry this tag.
   static let legalTag = 200
 
@@ -63,9 +65,14 @@ enum MenuBuilder {
       part.tag = tag
       view.addItem(part)
     }
-    // Layout › one column or two, as the board's own Layout sheet offers;
-    // moving a single panel stays in that sheet, which can show where it goes.
+    // Layout › one column or two, and Arrange Panels, which puts a handle on
+    // every panel of the board and lets the bar between columns be dragged —
+    // the same as the board's own Layout button.
     let layout = NSMenu(title: "Layout")
+    let arrange = item("layoutArrange", "Arrange Panels", #selector(AppDelegate.chooseLayout(_:)), "", target)
+    arrange.tag = 305
+    layout.addItem(arrange)
+    layout.addItem(.separator())
     for (tag, key, title) in [
       (301, "layoutStacked", "Stacked"), (302, "layoutBeside", "Table beside hand"), (303, "layoutSide", "Side column"),
     ] {

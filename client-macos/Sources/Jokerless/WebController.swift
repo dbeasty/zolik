@@ -161,7 +161,7 @@ final class WebController: NSObject, WKNavigationDelegate, WKUIDelegate {
     webView.evaluateJavaScript("window.__zolikView && window.__zolikView(\(quoted)[0])")
   }
 
-  /// View › Layout: a preset of the board's ("stacked", "beside", "side") or "reset".
+  /// View › Layout: a preset of the board's ("stacked", "beside", "side"), "reset", or "edit" (Arrange Panels).
   func layout(_ command: String) {
     let quoted = (try? JSONSerialization.data(withJSONObject: [command])).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
     webView.evaluateJavaScript("window.__zolikLayout && window.__zolikLayout(\(quoted)[0])")

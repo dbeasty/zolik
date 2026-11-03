@@ -2,7 +2,6 @@ import { useMemo, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Tip } from '@/src/a11y/Tip';
-import { useRegionFocus } from '@/src/components/match/RegionFocus';
 import { t } from '@/src/lib/i18n';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
@@ -118,18 +117,6 @@ export function Panel({
 
   const collapsed = !!minimized && !forceOpen;
   const canToggle = !!panelId && !!onToggleMinimized;
-  // The board shown as this panel's region alone, or given back — offered by
-  // the panels that head a region (see `RegionFocus`), not by a pile drawn
-  // inside the table. Filling the board with a panel that is put away would
-  // fill it with nothing, so it is opened on the way.
-  const focus = useRegionFocus();
-  const canFocus = !!focus && !nested && canToggle;
-  const regionName = focus ? t(`match.layout.region.${focus.region}`) : '';
-  const toggleFocus = () => {
-    if (!focus) return;
-    if (!focus.focused && collapsed) onToggleMinimized?.();
-    focus.toggle();
-  };
 
   return (
     <View
@@ -199,32 +186,6 @@ export function Panel({
             <Text style={styles.count} testID={countTestID}>
               {count}
             </Text>
-          ) : null}
-          {focus && canFocus ? (
-            <Tip
-              text={
-                focus.focused
-                  ? t('a11y.board.panel.restore')
-                  : t('a11y.board.panel.maximize', { title: regionName })
-              }
-            >
-              <Pressable
-                testID={`panel-focus-${panelId}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: focus.focused }}
-                {...((Platform.OS === 'web' ? { 'aria-pressed': focus.focused } : {}) as object)}
-                accessibilityLabel={
-                  focus.focused
-                    ? t('a11y.board.panel.restore')
-                    : t('a11y.board.panel.maximize', { title: regionName })
-                }
-                onPress={toggleFocus}
-                hitSlop={8}
-                style={styles.toggle}
-              >
-                <Text style={styles.toggleGlyph}>{focus.focused ? '⤡' : '⤢'}</Text>
-              </Pressable>
-            </Tip>
           ) : null}
           {canToggle ? (
             <Tip
