@@ -777,6 +777,11 @@ export function matchStyles(s: Skin) {
     paddingVertical: 3,
   },
   tableCodeText: { color: colors.accent, fontSize: 11, fontWeight: '700' },
+  // The board's − 100% +: one outline, like Layout beside it, holding three
+  // presses. Each is 24 wide so a thumb gets the one it aimed at (WCAG 2.5.8).
+  zoomGroup: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2, paddingVertical: 0 },
+  zoomButton: { minWidth: 24, minHeight: 22, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+  zoomDisabled: { opacity: 0.35 },
   // Clear of the scrollbar on the right. A Mac's overlay scrollbar is drawn
   // over the content while the board scrolls, and every panel's ▾ sits at its
   // right edge: the move log's was under it, and nobody could tell it was
