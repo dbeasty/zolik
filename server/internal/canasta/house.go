@@ -862,6 +862,13 @@ func dirtyRunCandidates(r ruleset, hand []string, t *Team) []candidate {
 				if length < minMeldSize {
 					need += minMeldSize - length
 				}
+				// A stretch with no gap is clean, and runCandidates offers it
+				// clean; it is dirty only with a wild on an end — 5H-6H-7H with
+				// a joker for the eight or the four. Before this it was never
+				// offered at all, and the joker could not be picked for it.
+				if need == 0 && length < canastaSize {
+					need = 1
+				}
 				if need == 0 || need > len(wilds) {
 					continue
 				}

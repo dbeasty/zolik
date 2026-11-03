@@ -1,7 +1,9 @@
 package canasta
 
 import (
+	"slices"
 	"sort"
+	"strings"
 
 	"zolik/server/internal/module"
 )
@@ -413,7 +415,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			placements = ends
 		}
 		switch {
-		case len(accepted) > 0:
+		case len(accepted) > 0 || slices.ContainsFunc(placements, func(p module.Placement) bool { return len(p.Requires) > 0 }):
+			// Or nothing goes on alone but something goes on in company: no
+			// natural reaches 9C-TC-JC-JOKER without a wild for the eight, and
+			// no wild goes on without the seven to keep the ratio, yet 7C with
+			// either is a lay-off the engine takes.
 			o.Enabled = true
 		case len(eligible) > 0:
 			// Say why, using whichever card the player would most plausibly try
@@ -747,8 +753,11 @@ func layOffPlacements(m *Module, raw module.State, playerID string, mm Meld, eli
 			for n := 1; n <= len(naturals); n++ {
 				company = append(company, naturals[:n])
 			}
+			if mm.kind() == meldRun {
+				company = append(company, wildRunCompany(eligible, mm, c)...)
+			}
 		} else if mm.kind() == meldRun {
-			company = runCompany(eligible, mm, c)
+			company = naturalRunCompany(eligible, mm, c)
 		}
 		// A group's wild takes the first company that works: the larger ones
 		// only add naturals to it. A sequence's ways are genuinely different
@@ -784,6 +793,92 @@ func layOffPlacements(m *Module, raw module.State, playerID string, mm Meld, eli
 		out = append(out, module.Placement{Card: c})
 	}
 	return append(out, needy...)
+}
+
+// naturalRunCompany is runCompany asked once per distinct wild in the list,
+// each in turn first in line for the gaps: holding a 2 and a joker, the seven
+// of clubs onto 9C-TC-JC goes on with either one standing for the eight, and
+// runCompany alone only ever spent the first wild it met (match
+// 6ae8f68a4c2fd2bc950e7dba).
+func naturalRunCompany(eligible []string, mm Meld, c string) [][]string {
+	var ways [][]string
+	seen := map[string]bool{}
+	add := func(list []string) {
+		for _, way := range runCompany(list, mm, c) {
+			key := strings.Join(sortedCards(append([]string(nil), way...)), ",")
+			if !seen[key] {
+				seen[key] = true
+				ways = append(ways, way)
+			}
+		}
+	}
+	add(eligible)
+	for _, w := range sortedUnique(handWilds(eligible)) {
+		add(wildFirst(eligible, w))
+	}
+	return ways
+}
+
+// wildRunCompany is the naturals a wild could go onto a sequence with, beyond
+// the ones that go on alone: the natural the wild bridges to — 7C with a joker
+// for the eight, onto 9C-TC-JC — and a natural together with the cards between
+// it and the run — 6S and 7S, onto 8S-9S-2C, where the 2:1 ratio refuses 7S
+// and the joker by themselves. Smallest first, so the placement names the
+// fewest cards the engine will take.
+func wildRunCompany(eligible []string, mm Meld, w string) [][]string {
+	list := wildFirst(eligible, w)
+	var out [][]string
+	seen := map[string]bool{}
+	for _, n := range eligible {
+		if isWild(n) {
+			continue
+		}
+		ways := runCompany(list, mm, n)
+		if ways == nil {
+			ways = [][]string{nil} // next to the run already
+		}
+		for _, way := range ways {
+			// The wild itself may be what fills the gap; any other wild in
+			// the way is a second one the player did not pick.
+			company, spent := []string{n}, false
+			ok := true
+			for _, e := range way {
+				switch {
+				case e == w && !spent:
+					spent = true
+				case isWild(e):
+					ok = false
+				default:
+					company = append(company, e)
+				}
+			}
+			if !ok {
+				continue
+			}
+			company = sortedCards(company)
+			if key := strings.Join(company, ","); !seen[key] {
+				seen[key] = true
+				out = append(out, company)
+			}
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return len(out[i]) < len(out[j]) })
+	return out
+}
+
+// wildFirst is the list with one copy of w moved to the front, so runCompany
+// spends it before any other wild.
+func wildFirst(list []string, w string) []string {
+	out := []string{w}
+	moved := false
+	for _, e := range list {
+		if e == w && !moved {
+			moved = true
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
 }
 
 // runCompany is the ways c could be joined to the run: each way the cards

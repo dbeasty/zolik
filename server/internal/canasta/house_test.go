@@ -808,3 +808,95 @@ func TestNewDirtyRunShorterThanTheHandAllows(t *testing.T) {
 		t.Fatalf("short submit %v", short.Source.Submit)
 	}
 }
+
+// Match 6ae8f68a4c2fd2bc950e7dba: the engine took every one of these, and the
+// offers named none of them, so the client refused the selection. A joker on
+// the end of a gapless stretch, 5C-6C-7C-JOKER; a joker onto 8S-9S-2C with the
+// six and seven, which the 2:1 ratio needs both of; and onto 9C-TC-JC-JOKER2,
+// where nothing goes on alone, the seven with the joker for the eight.
+func TestCanastaXLaysTheEngineTakes(t *testing.T) {
+	raw := canastaXTable(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{
+			{ID: "t0-seq9", TeamID: 0, Kind: meldRun, Suit: "C", Cards: []string{"9C", "TC", "JC", "JOKER2"}},
+			{ID: "t0-seq10", TeamID: 0, Kind: meldRun, Suit: "S", Cards: []string{"8S", "9S", "2C"}},
+		}
+		s.Hands["p1"] = []string{"4C", "5C", "6C", "7C", "6S", "7S", "4H", "5H", "6H", "7H", "JOKER1", "2H", "KH", "9D"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// covers is the client's own test (drops.ts fits): every card listed, and
+	// every card that needs company holding one of its companies in full.
+	covers := func(o *module.ActionOffer, cards []string) bool {
+		listed := map[string]module.Placement{}
+		for _, p := range o.Source.Placements {
+			listed[p.Card] = p
+		}
+		for _, c := range o.Source.Cards {
+			if _, ok := listed[c]; !ok {
+				listed[c] = module.Placement{Card: c}
+			}
+		}
+		for _, c := range cards {
+			p, ok := listed[c]
+			if !ok {
+				return false
+			}
+			if len(p.Requires) == 0 {
+				continue
+			}
+			held := false
+			for _, way := range append([][]string{p.Requires}, p.Alternatives...) {
+				held = held || !slices.ContainsFunc(way, func(r string) bool { return !slices.Contains(cards, r) })
+			}
+			if !held {
+				return false
+			}
+		}
+		return true
+	}
+	offered := func(a module.Action) bool {
+		for i := range offers {
+			o := &offers[i]
+			if o.Verb != a.Verb || !o.Enabled || o.Source == nil {
+				continue
+			}
+			if a.Verb == VerbLayOff && o.Target.MeldID != a.Target {
+				continue
+			}
+			if covers(o, a.Cards) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, a := range []module.Action{
+		{Verb: VerbLayMeld, Cards: []string{"5C", "6C", "7C", "JOKER1"}},
+		{Verb: VerbLayMeld, Cards: []string{"4C", "5C", "6C", "7C", "JOKER1"}},
+		{Verb: VerbLayMeld, Cards: []string{"5H", "6H", "7H", "JOKER1"}},
+		{Verb: VerbLayMeld, Cards: []string{"4H", "5H", "6H", "7H", "JOKER1"}},
+		{Verb: VerbLayOff, Cards: []string{"6S", "7S", "JOKER1"}, Target: "t0-seq10"},
+		{Verb: VerbLayOff, Cards: []string{"7C", "JOKER1"}, Target: "t0-seq9"},
+		{Verb: VerbLayOff, Cards: []string{"6C", "7C", "JOKER1"}, Target: "t0-seq9"},
+		{Verb: VerbLayOff, Cards: []string{"7C", "2H"}, Target: "t0-seq9"},
+	} {
+		if _, code := apply(t, raw, "p1", a); code != "" {
+			t.Fatalf("%s %v: engine refused %s", a.Verb, a.Cards, code)
+		}
+		if !offered(a) {
+			t.Errorf("%s %v onto %q: the engine takes it, no offer covers it", a.Verb, a.Cards, a.Target)
+		}
+	}
+	// And what the ratio refuses is still not offered: a lone joker onto a
+	// run of two naturals, or with only the seven beside it.
+	for _, a := range []module.Action{
+		{Verb: VerbLayOff, Cards: []string{"JOKER1"}, Target: "t0-seq10"},
+		{Verb: VerbLayOff, Cards: []string{"7S", "JOKER1"}, Target: "t0-seq10"},
+		{Verb: VerbLayOff, Cards: []string{"JOKER1"}, Target: "t0-seq9"},
+	} {
+		if offered(a) {
+			t.Errorf("%s %v onto %q: offered, though the engine refuses it", a.Verb, a.Cards, a.Target)
+		}
+	}
+}
