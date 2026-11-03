@@ -716,11 +716,18 @@ func reachableValue(r ruleset, hand []string, t *Team) int {
 		total := 0
 		for _, enumerate := range order {
 			for _, c := range enumerate(r, remaining, t) {
-				total += c.Value
 				// Spent, not merely counted: a bound that let one card pay
 				// twice would be an over-estimate, which is precisely the dead
-				// end this function exists to prevent.
-				remaining, _ = removeCards(remaining, c.Cards)
+				// end this function exists to prevent. One pass may list
+				// candidates that share cards — the dirty sequences are every
+				// stretch, 9H-JH and 9H-QH both — so one whose cards an earlier
+				// candidate already spent counts for nothing.
+				rest, ok := removeCards(remaining, c.Cards)
+				if !ok {
+					continue
+				}
+				remaining = rest
+				total += c.Value
 			}
 		}
 		if total > best {
