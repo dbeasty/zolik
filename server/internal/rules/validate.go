@@ -140,6 +140,13 @@ func ValidateUndoDrawDiscard(state GameState, playerID string) (GameState, error
 }
 
 func ValidateMeldAction(state GameState, playerID string, cards []string) (GameState, string, MeldType, error) {
+	return validateMeldAction(state, playerID, cards, false)
+}
+
+// validateMeldAction is ValidateMeldAction with Action.PickOrder: when set,
+// cards are in the order the player picked them and a run's wilds go where
+// that order puts them (ValidateMeldInPickOrder).
+func validateMeldAction(state GameState, playerID string, cards []string, pickOrder bool) (GameState, string, MeldType, error) {
 	if state.Status != StatusActive {
 		return state, "", "", RulesError{Code: ErrGameNotActive}
 	}
@@ -167,7 +174,11 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	prevJokersReclaimed := append([]string(nil), state.JokersReclaimedPendingMeld...)
 	cfg := effectiveRules(state)
 
-	mv, err := ValidateMeld(cards, cfg)
+	ordered := 0
+	if pickOrder {
+		ordered = len(cards)
+	}
+	mv, err := validateMeld(cards, cfg, ordered)
 	if err != nil {
 		return state, "", "", err
 	}
@@ -603,8 +614,10 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		}
 		toAppend = append(toAppend, c)
 	}
+	// The meld's own cards keep the order they were laid in, so a joker on
+	// the table stays in its slot while the meld grows round it.
 	newMeld := append(working, toAppend...)
-	mv, err := ValidateMeld(newMeld, cfg)
+	mv, err := validateMeld(newMeld, cfg, len(working))
 	if err != nil {
 		return state, err
 	}
@@ -628,7 +641,8 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 			if minRun == 0 {
 				minRun = 4
 			}
-			if reMV, reErr := validateRun(newMeld, minRun, position == "end"); reErr == nil {
+			prefs := runPrefs{positionGiven: true, preferHigh: position == "end", ordered: len(working)}
+			if reMV, reErr := resolveRun(newMeld, minRun, prefs); reErr == nil {
 				mv = reMV
 			}
 			// Which end this submission actually grows is then resolved by
@@ -759,10 +773,7 @@ func reclaimJokerForLayOff(meld []string, card string, cfg RulesConfig, meta Mel
 	}
 	joker = meld[jokerPos]
 
-	replaced := append(append([]string(nil), meld[:jokerPos]...), meld[jokerPos+1:]...)
-	replaced = append(replaced, card)
-
-	mv, err := ValidateMeld(replaced, cfg)
+	replaced, mv, err := replaceJoker(meld, jokerPos, card, cfg)
 	if err != nil {
 		return nil, "", false
 	}
@@ -770,6 +781,28 @@ func reclaimJokerForLayOff(meld []string, card string, cfg RulesConfig, meta Mel
 		return nil, "", false
 	}
 	return replaced, joker, true
+}
+
+// replaceJoker puts card where meld's joker at jokerPos lies and validates the
+// result. For a run the card must take that joker's own slot, not merely make
+// some valid run: a joker laid as the four of 4-5-6 is bought back by the four,
+// and the seven — which would make 5-6-7 just as well — is refused, because
+// the joker was never the seven. Both sides are read as they lie
+// (ValidateMeldInOrder), which is what fixes the slot in the first place.
+func replaceJoker(meld []string, jokerPos int, card string, cfg RulesConfig) ([]string, MeldValidation, error) {
+	replaced := append([]string(nil), meld...)
+	replaced[jokerPos] = card
+	mv, err := ValidateMeldInOrder(replaced, cfg)
+	if err != nil {
+		return nil, MeldValidation{}, err
+	}
+	if mv.Type == MeldRun {
+		before, err := ValidateMeldInOrder(meld, cfg)
+		if err != nil || before.Type != MeldRun || !slices.Equal(before.ResolvedRun, mv.ResolvedRun) {
+			return nil, MeldValidation{}, RulesError{Code: ErrJokerSwapMismatch}
+		}
+	}
+	return replaced, mv, nil
 }
 
 // ValidateSwapJoker replaces a joker sitting in an existing meld with the
@@ -815,11 +848,8 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 	}
 	joker := meld[jokerPos]
 
-	replaced := append(append([]string(nil), meld[:jokerPos]...), meld[jokerPos+1:]...)
-	replaced = append(replaced, card)
-
 	cfg := effectiveRules(state)
-	mv, err := ValidateMeld(replaced, cfg)
+	replaced, mv, err := replaceJoker(meld, jokerPos, card, cfg)
 	if err != nil {
 		return state, RulesError{
 			Code:    ErrJokerSwapMismatch,

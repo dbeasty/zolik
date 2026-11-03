@@ -103,7 +103,7 @@ func applyOwned(state GameState, playerID string, action Action) (ApplyOutcome, 
 		return ApplyOutcome{State: ns, Events: events}, nil
 
 	case ActionLayMeld:
-		ns, meldID, meldType, err := ValidateMeldAction(state, playerID, action.Cards)
+		ns, meldID, meldType, err := validateMeldAction(state, playerID, action.Cards, action.PickOrder)
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}

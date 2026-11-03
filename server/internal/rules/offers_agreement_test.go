@@ -289,7 +289,7 @@ func agreementCorpus() []agreementCase {
 		s.Melds["p2"] = [][]string{
 			{"5H", "6H", "7H", "8H"}, // clean run, extendable at both ends
 			{"QH", "QD", "QC"},       // set
-			{"2S", "3S", "JOKER2"},   // run holding a joker to swap
+			{"JOKER2", "2S", "3S"},   // run holding a joker to swap (as the ace)
 		}
 		s.MeldMeta["p2"] = []MeldInfo{
 			{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 0},

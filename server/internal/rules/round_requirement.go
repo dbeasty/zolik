@@ -109,7 +109,8 @@ func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
 	total := 0
 	melds := state.Melds[playerID]
 	for _, cards := range melds {
-		mv, err := ValidateMeld(cards, cfg)
+		// As laid: a joker is worth the card whose slot it took.
+		mv, err := ValidateMeldInOrder(cards, cfg)
 		if err != nil {
 			continue
 		}

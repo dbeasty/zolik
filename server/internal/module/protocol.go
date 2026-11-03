@@ -455,6 +455,13 @@ type Placement struct {
 // placement hint generically, the same way it renders a declared ParamSpec.
 const PositionParam = "position"
 
+// PickOrderParam marks an action whose Cards are listed in the order the
+// player picked them, rather than the order they sit in hand. A client that
+// keeps that order sends it as "1"; a module whose melds can be laid more than
+// one way (where a rummy joker goes in a run) reads the order as the player's
+// choice. Absent, Cards carry no order and the module decides.
+const PickOrderParam = "pickOrder"
+
 // Selector describes where an offer's cards come from, or where they land.
 type Selector struct {
 	// Zone says what kind of place this is, in the abstract: a hand, a deck, a

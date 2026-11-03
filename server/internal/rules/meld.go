@@ -61,6 +61,26 @@ type MeldValidation struct {
 // and run sizes. Callers without a live GameState (e.g. AI search) may pass
 // any RulesConfig — ProfileContinental for the historical 3/4 minimums.
 func ValidateMeld(cards []string, cfg RulesConfig) (MeldValidation, error) {
+	return validateMeld(cards, cfg, 0)
+}
+
+// ValidateMeldInOrder is ValidateMeld for cards whose order means something:
+// the order a player picked them in, or a meld as it lies on the table (which
+// is stored in its laid order, see OrderMeldForDisplay). Where a run could
+// hold its wilds in more than one place — 5-6 plus a joker is 4-5-6 or 5-6-7
+// — the place that order puts them in wins: after the six, the joker is the
+// seven; before the five, the four. See runOrderDisorder.
+//
+// Anything that re-reads a meld on the table and cares where its joker sits
+// (what the joker is worth, which card can buy it back) must read it this
+// way; ValidateMeld would move the joker to whichever slot is worth more.
+func ValidateMeldInOrder(cards []string, cfg RulesConfig) (MeldValidation, error) {
+	return validateMeld(cards, cfg, len(cards))
+}
+
+// validateMeld is ValidateMeld where the first ordered cards are in a
+// meaningful order (runPrefs.ordered); zero is ValidateMeld itself.
+func validateMeld(cards []string, cfg RulesConfig, ordered int) (MeldValidation, error) {
 	minSet := cfg.MinSetSize
 	if minSet == 0 {
 		minSet = 3
@@ -73,7 +93,7 @@ func ValidateMeld(cards []string, cfg RulesConfig) (MeldValidation, error) {
 	if setErr == nil {
 		return setV, nil
 	}
-	runV, runErr := validateRun(cards, minRun)
+	runV, runErr := resolveRun(cards, minRun, runPrefs{ordered: ordered})
 	if runErr == nil {
 		return runV, nil
 	}
@@ -275,8 +295,27 @@ const MaxRunLength = 14
 // be the engine overruling them, which is exactly what Action.Position exists
 // to prevent.
 func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldValidation, error) {
-	positionGiven := len(preferHighStart) > 0
-	preferHigh := positionGiven && preferHighStart[0]
+	return resolveRun(cards, minRunSize, runPrefs{
+		positionGiven: len(preferHighStart) > 0,
+		preferHigh:    len(preferHighStart) > 0 && preferHighStart[0],
+	})
+}
+
+// runPrefs says how to choose between run windows that fit the same cards
+// with the same number of wilds. positionGiven/preferHigh are validateRun's
+// drop position. ordered is how many leading cards are in a meaningful order
+// — all of a pick-ordered lay_meld, or the part of a lay-off that is already
+// on the table — and the window that keeps them in that order wins first (see
+// runOrderDisorder). A lay-off's own cards come after and carry no order, so
+// a drop position still decides which end they grow.
+type runPrefs struct {
+	positionGiven bool
+	preferHigh    bool
+	ordered       int
+}
+
+func resolveRun(cards []string, minRunSize int, prefs runPrefs) (MeldValidation, error) {
+	positionGiven, preferHigh := prefs.positionGiven, prefs.preferHigh
 	if len(cards) < minRunSize {
 		return MeldValidation{}, RulesError{
 			Code:    ErrInvalidMeld,
@@ -363,6 +402,7 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 
 	aceAsNatural := map[string]int{}
 	var best *MeldValidation
+	bestDisorder := 0
 
 	// Candidate start ranks in 1..(14-L+1). 14 represents Ace-high endpoint.
 tryStart:
@@ -512,19 +552,33 @@ tryStart:
 		// player pointed at an end, and value is a guess at what they wanted
 		// where position is a statement of it. With no position given the
 		// lowest window still wins an exact tie, as it always has.
+		//
+		// Ordered cards come ahead of both: a joker already on the table
+		// stays where it was laid, whatever a lay-off's position or value
+		// would make of it, and a pick order is a statement of the same
+		// kind as a drop position, made while choosing. An order that reads
+		// as neither window (disorder equal) leaves the rest to decide.
+		disorder := 0
+		if prefs.ordered > 1 && wildCount > 0 {
+			disorder = runOrderDisorder(cards, prefs.ordered, candidate)
+		}
 		switch {
 		case best == nil:
-			best = &candidate
+			best, bestDisorder = &candidate, disorder
 		case candidate.WildCount != best.WildCount:
 			if candidate.WildCount < best.WildCount {
-				best = &candidate
+				best, bestDisorder = &candidate, disorder
+			}
+		case disorder != bestDisorder:
+			if disorder < bestDisorder {
+				best, bestDisorder = &candidate, disorder
 			}
 		case positionGiven:
 			if preferHigh {
-				best = &candidate
+				best, bestDisorder = &candidate, disorder
 			}
 		case candidate.NaturalValue > best.NaturalValue:
-			best = &candidate
+			best, bestDisorder = &candidate, disorder
 		}
 	}
 
@@ -536,6 +590,38 @@ tryStart:
 		Code:    ErrInvalidMeld,
 		Message: "these cards don't fit into one consecutive run of the same suit (check for too many wild cards or two wilds in a row)",
 	}
+}
+
+// runOrderDisorder measures how far the first ordered cards are from the
+// order mv lays them out in: the number of pairs out of step with their places
+// in the run, read upwards or downwards, whichever fits better. Picking 5, 6,
+// joker reads upwards with the joker as the seven (0) and not the four (1);
+// 7, 6, joker reads downwards with the joker as the five. Zero means the run
+// keeps exactly that order.
+func runOrderDisorder(cards []string, ordered int, mv MeldValidation) int {
+	laid := orderRunForDisplay(cards, mv)
+	used := make([]bool, len(laid))
+	slots := make([]int, 0, ordered)
+	for _, c := range cards[:min(ordered, len(cards))] {
+		for k, l := range laid {
+			if !used[k] && l == c {
+				used[k] = true
+				slots = append(slots, k)
+				break
+			}
+		}
+	}
+	up, down := 0, 0
+	for i := range slots {
+		for j := i + 1; j < len(slots); j++ {
+			if slots[i] > slots[j] {
+				up++
+			} else {
+				down++
+			}
+		}
+	}
+	return min(up, down)
 }
 
 func containsInt(hay []int, needle int) bool {
@@ -699,7 +785,7 @@ func runGrowthSides(prevCards []string, mv MeldValidation) (sides []string, know
 	// already validated at its real size when it was laid. This call wants
 	// only its resolved rank range, not another length check that could
 	// reject a run shorter than the current table minimum.
-	oldMV, err := validateRun(prevCards, 1)
+	oldMV, err := resolveRun(prevCards, 1, runPrefs{ordered: len(prevCards)})
 	if err != nil || len(oldMV.ResolvedRun) == 0 || len(mv.ResolvedRun) == 0 {
 		return nil, false
 	}

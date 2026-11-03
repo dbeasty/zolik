@@ -41,6 +41,17 @@ describe('an offer that names its own combination', () => {
     });
   });
 
+  // The server may read that order as a choice (where a Žolíky joker sits
+  // in a run), so it is told the order is the player's.
+  it('says the chosen cards are in the order they were picked', () => {
+    expect(submissionFor(fourQueens, { cards: ['QH', 'QC', 'QD'] })).toEqual({
+      offerId: 'lay_meld:Q',
+      verb: 'lay_meld',
+      cards: ['QH', 'QC', 'QD'],
+      params: { pickOrder: '1' },
+    });
+  });
+
   it('still refuses a choice outside the offer’s own bounds', () => {
     expect(submissionFor(fourQueens, { cards: ['QC', 'QD'] })).toBeNull();
   });
