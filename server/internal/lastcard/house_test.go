@@ -166,7 +166,7 @@ func TestTheHouseWildsJoinThePackOnlyWhereTheyArePlayed(t *testing.T) {
 	if len(d) != 112 || count(d, cardWildSwap) != 2 || count(d, cardWildMayhem) != 2 {
 		t.Errorf("pack of %d with %d swaps and %d mayhems; want 112, 2, 2", len(d), count(d, cardWildSwap), count(d, cardWildMayhem))
 	}
-	raw, err := New().NewMatch(module.MatchConfig{Options: module.Options{OptSwapCards: module.OptOn}}, players("a", "b"), 3)
+	raw, err := New().NewMatch(module.MatchConfig{Options: module.Options{OptSwapCards: module.OptOn, OptMayhemCards: module.OptOff}}, players("a", "b"), 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,10 +373,22 @@ func TestBotsPlayEveryHouseRule(t *testing.T) {
 
 func TestHouseRulesAreStatedOnlyWhereTheyArePlayed(t *testing.T) {
 	plain := module.StatedRuleIDs(New(), module.MatchConfig{})
-	for _, id := range []string{"lastcard.rules.stacking.any", "lastcard.rules.sevens", "lastcard.rules.turn.drawUntil",
-		"lastcard.rules.wildSwap", "lastcard.rules.wildMayhem"} {
+	for _, id := range []string{"lastcard.rules.stacking.any", "lastcard.rules.sevens", "lastcard.rules.turn.drawUntil"} {
 		if plain[id] {
 			t.Errorf("a default table states %s", id)
+		}
+	}
+	// The house wilds are in the pack by default; a table that turns them off
+	// stops stating them.
+	noWilds := module.StatedRuleIDs(New(), module.MatchConfig{Options: module.Options{
+		OptSwapCards: module.OptOff, OptMayhemCards: module.OptOff,
+	}})
+	for _, id := range []string{"lastcard.rules.wildSwap", "lastcard.rules.wildMayhem"} {
+		if !plain[id] {
+			t.Errorf("a default table does not state %s", id)
+		}
+		if noWilds[id] {
+			t.Errorf("a table without house wilds states %s", id)
 		}
 	}
 	house := module.StatedRuleIDs(New(), module.MatchConfig{Options: module.Options{

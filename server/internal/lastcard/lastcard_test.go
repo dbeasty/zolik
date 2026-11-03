@@ -120,8 +120,8 @@ func TestNewMatchDealsSevenAndNeverOpensOnAWild(t *testing.T) {
 		for _, h := range s.Hands {
 			total += len(h)
 		}
-		if total != 108 {
-			t.Fatalf("seed %d: %d cards accounted for, want 108", seed, total)
+		if total != deckSize(true, true) {
+			t.Fatalf("seed %d: %d cards accounted for, want %d", seed, total, deckSize(true, true))
 		}
 		if isWild(s.top()) {
 			t.Fatalf("seed %d: opened on a wild", seed)
