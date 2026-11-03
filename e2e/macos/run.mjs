@@ -416,7 +416,7 @@ async function main() {
   }, [a]);
 
   let lastCard = '';
-  await step('starting a bot game opens a game window; the main window is back home', async () => {
+  await step('starting a bot game opens a game window; the main window is back where it was', async () => {
     await on(a, 1);
     await a.js(`await e2e.click('Last Card', { exact: true }); return 1`);
     await a.js(`await e2e.click('Play now', { exact: true }); return 1`);
@@ -424,13 +424,18 @@ async function main() {
     expect(wins[0].role === 'main' && wins[1].role === 'game', `windows ${JSON.stringify(wins)}`);
     lastCard = wins[1].key;
     expect(/^match:\w+/.test(lastCard), `the game window is keyed ${lastCard}`);
-    // The main window put itself back: not at the match, and no socket of its own.
+    // The main window put itself back: not at the match, and no socket of its
+    // own. Back where it was — the game's page, which holds Play now — since a
+    // push is undone by going back (DesktopGameHandoff); only a waiting room,
+    // arrived at by replace, sends it home.
     await on(a, 1);
-    const home = await a.js(`
-      await e2e.waitFor(() => location.pathname === '/', 'the main window to go home', 15000);
+    const back = await a.js(`
+      await e2e.waitFor(() => location.pathname === '/lobby/games', 'the main window to go back to the game page', 15000);
       return { path: location.pathname, board: document.querySelectorAll('[data-card]').length };
     `);
-    expect(home.board === 0, 'the main window drew the board');
+    expect(back.board === 0, 'the main window drew the board');
+    // The steps after this one start from home.
+    await a.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
     // The game window holds the match.
     await on(a, 2);
     const game = await a.js(`
@@ -509,6 +514,10 @@ async function main() {
     const frames = (await windowsOf(a)).filter((w) => w.role === 'game').map((w) => w.frame.map(Math.round).join(','));
     expect(new Set(frames).size === frames.length && (await windowsOf(a)).every((w) => w.onScreen), `game windows share a spot or are off screen: ${JSON.stringify(frames)}`);
     await a.screenshot('second-window');
+    // The main window went back to Prší's page, as after the first game; the
+    // steps after this one start from home.
+    await on(a, 1);
+    await a.js(`await e2e.waitFor(() => location.pathname === '/lobby/games', 'the game page', 15000); window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
   }, [a]);
 
   await step('resuming a game that is already open brings its window forward; no duplicate', async () => {
@@ -1260,8 +1269,8 @@ async function main() {
     // the app's address, not by anything the main window holds.
     await l.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
     await l.js(`await e2e.waitForText('No internet needed'); await e2e.click('Last Card', { exact: true }); return 1`);
+    // Play now deals at once (#377): no waiting room to deal from.
     await l.js(`await e2e.click('Play now', { exact: true }); return 1`);
-    await l.js(`await e2e.click('Deal me in', { exact: true }); return 1`);
     const wins = await waitWindows(l, (w) => w.length === 2, 'the game window', 30_000);
     await on(l, 2);
     await l.js(`await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'the match', 30000); return 1`);
@@ -1298,9 +1307,10 @@ async function main() {
     await r.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 20000); return 1`);
     for (const game of ['Last Card', 'Prší']) {
       await on(r, 1);
-      await r.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 20000); await e2e.click(${JSON.stringify(game)}, { exact: true }); return 1`);
+      // The main window is back on the last game's page after the first
+      // deal (DesktopGameHandoff goes back after a push), so go home first.
+      await r.js(`window.__zolikNavigate('/'); await e2e.waitFor(() => location.pathname === '/', 'home', 20000); await e2e.click(${JSON.stringify(game)}, { exact: true }); return 1`);
       await r.js(`await e2e.click('Play now', { exact: true }); return 1`);
-      await r.js(`await e2e.click('Deal me in', { exact: true }); return 1`);
       const want = game === 'Last Card' ? 2 : 3;
       await waitWindows(r, (w) => w.length === want, `game window ${want - 1}`);
     }
@@ -1376,7 +1386,7 @@ async function main() {
     await ob.native('menu Start an offline table');
     await ob.js(`await e2e.waitForText('Your name at the table'); await e2e.fill('Your name at the table', 'Mac Solo'); await e2e.click('Start an offline table', { exact: true }); return 1`);
     await ob.js(`await e2e.waitFor(() => ZolikNearbyDesktop.hostStatus(), 'the host', 45000); window.__zolikNavigate('/'); await e2e.waitForText('No internet needed'); await e2e.sleep(1500); return 1`);
-    await ob.js(`await e2e.click('Last Card', { exact: true }); await e2e.click('Play now', { exact: true }); await e2e.sleep(400); await e2e.click('Deal me in', { exact: true }); return 1`);
+    await ob.js(`await e2e.click('Last Card', { exact: true }); await e2e.click('Play now', { exact: true }); return 1`);
     const wins = await waitWindows(ob, (w) => w.length === 2 && /Server: this computer/.test(w[1].subtitle), 'the offline bot game window, titled for its server');
     expect(wins[1].role === 'game', `windows ${JSON.stringify(wins)}`);
     await on(ob, 1);
