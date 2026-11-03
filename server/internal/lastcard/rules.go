@@ -19,8 +19,8 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	stacking := cfg.Opt(OptStacking, stackOff)
 	drawUntil := cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn
 	sevenZero := cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn
-	swap := cfg.Opt(OptSwapCards, module.OptOff) == module.OptOn
-	mayhem := cfg.Opt(OptMayhemCards, module.OptOff) == module.OptOn
+	swap := cfg.Opt(OptSwapCards, module.OptOn) == module.OptOn
+	mayhem := cfg.Opt(OptMayhemCards, module.OptOn) == module.OptOn
 	lowest := cfg.Opt(OptScoring, scoreWinnerTakes) == scoreLowest
 
 	goal := module.Fact{LabelKey: "lastcard.rules.goal"}

@@ -85,8 +85,8 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		Stacking:    cfg.Opt(OptStacking, stackOff),
 		DrawUntil:   cfg.Opt(OptDrawUntilPlayable, module.OptOff) == module.OptOn,
 		SevenZero:   cfg.Opt(OptSevenZero, module.OptOff) == module.OptOn,
-		SwapCards:   cfg.Opt(OptSwapCards, module.OptOff) == module.OptOn,
-		MayhemCards: cfg.Opt(OptMayhemCards, module.OptOff) == module.OptOn,
+		SwapCards:   cfg.Opt(OptSwapCards, module.OptOn) == module.OptOn,
+		MayhemCards: cfg.Opt(OptMayhemCards, module.OptOn) == module.OptOn,
 		Scoring:     cfg.Opt(OptScoring, scoreWinnerTakes),
 		Scores:      map[string]int{},
 	}
