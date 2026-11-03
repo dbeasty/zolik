@@ -31,6 +31,15 @@ command -v gomobile >/dev/null || { echo "gomobile not found: go install golang.
 # because nothing would say which commit it came from.
 #
 #   ZOLIK_MOBILE_WEB=0 scripts/build-mobile-core.sh   leaves it out
+#
+# Stamped the same way the Docker image is, so the footer and the About
+# screen say which build the phone's own server is. Read once, here, before
+# the web export lands in server/internal/webui/dist: that folder is tracked,
+# so reading the version after the copy saw a modified tree and stamped every
+# core "-dirty" (TestFlight 1.14.3.1 build 202611030304).
+eval "$("$ROOT/scripts/version.sh" --export)"
+STAMP="-X zolik/server/internal/buildinfo.Version=$ZOLIK_VERSION -X zolik/server/internal/buildinfo.Commit=$ZOLIK_COMMIT"
+
 WEBDIST="$ROOT/server/internal/webui/dist"
 if [ "$(ls -A "$WEBDIST" | grep -v '^.gitkeep$' || true)" ]; then
   echo "server/internal/webui/dist holds a web export; clear it first" >&2
@@ -41,7 +50,6 @@ clean_web() {
 }
 trap clean_web EXIT
 if [ "${ZOLIK_MOBILE_WEB:-1}" != 0 ]; then
-  eval "$("$ROOT/scripts/version.sh" --export)"
   (
     cd "$ROOT/client-react-native"
     rm -rf dist
@@ -54,11 +62,6 @@ if [ "${ZOLIK_MOBILE_WEB:-1}" != 0 ]; then
   cp -R "$ROOT/client-react-native/dist/." "$WEBDIST/"
   echo "web: $(du -sh "$WEBDIST" | cut -f1) compiled into the core"
 fi
-
-# Stamped the same way the Docker image is, so the footer and the About
-# screen say which build the phone's own server is.
-eval "$("$ROOT/scripts/version.sh" --export)"
-STAMP="-X zolik/server/internal/buildinfo.Version=$ZOLIK_VERSION -X zolik/server/internal/buildinfo.Commit=$ZOLIK_COMMIT"
 
 cd "$ROOT/server"
 
