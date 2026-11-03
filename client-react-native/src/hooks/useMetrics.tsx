@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { Dimensions, useWindowDimensions } from 'react-native';
 
 import { getA11yPrefs, useA11yPrefs } from '@/src/a11y/prefs';
+import { smallestZoom, useBoardZoom } from '@/src/lib/boardZoom';
 import { metricsFor, type Metrics } from '@/src/lib/layout';
 
 /**
@@ -18,6 +19,36 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
   const { width } = useWindowDimensions();
   const { cardSize } = useA11yPrefs();
   const metrics = useMemo(() => metricsFor(width, cardSize), [width, cardSize]);
+  return <MetricsContext.Provider value={metrics}>{children}</MetricsContext.Provider>;
+}
+
+/**
+ * The board's metrics: the app's, with the board's zoom (the − / + beside
+ * Layout) folded in. The match screen reads them for the board's width and
+ * hands them to `BoardMetricsProvider` around its scroll view, so the sheets
+ * and screens around the board keep their size.
+ */
+export function useBoardMetrics(): Metrics {
+  const { width } = useWindowDimensions();
+  const { cardSize } = useA11yPrefs();
+  const { zoom } = useBoardZoomLevel();
+  return useMemo(() => metricsFor(width, cardSize, zoom), [width, cardSize, zoom]);
+}
+
+/**
+ * The zoom the board is drawn at, and the smallest this window allows. The
+ * saved zoom is kept as chosen, so a small zoom picked on a wide screen
+ * comes back when the window is wide again.
+ */
+export function useBoardZoomLevel(): { zoom: number; floor: number } {
+  const { width } = useWindowDimensions();
+  const { cardSize } = useA11yPrefs();
+  const saved = useBoardZoom();
+  const floor = useMemo(() => smallestZoom(width, cardSize), [width, cardSize]);
+  return { zoom: Math.max(saved, floor), floor };
+}
+
+export function BoardMetricsProvider({ metrics, children }: { metrics: Metrics; children: ReactNode }) {
   return <MetricsContext.Provider value={metrics}>{children}</MetricsContext.Provider>;
 }
 

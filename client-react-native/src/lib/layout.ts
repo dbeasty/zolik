@@ -397,14 +397,16 @@ export const CARD_SIZE_FACTOR: Record<CardSize, number> = {
   xlarge: 1.3,
 };
 
-export function metricsFor(width: number, cardSize: CardSize = 'normal'): Metrics {
+/**
+ * `zoom` is the board's − / + (`boardZoom.ts`), layered over the card size the
+ * same way and for the same reason; 1 everywhere off the board.
+ */
+export function metricsFor(width: number, cardSize: CardSize = 'normal', zoom = 1): Metrics {
   const widthScale = scaleFor(width);
   // Rounded to a hundredth so a factor's float noise never reaches a
-  // `Math.round` on its knife edge; `normal` is untouched, to the bit.
-  const scale =
-    cardSize === 'normal'
-      ? widthScale
-      : Math.round(widthScale * CARD_SIZE_FACTOR[cardSize] * 100) / 100;
+  // `Math.round` on its knife edge; `normal` at zoom 1 is untouched, to the bit.
+  const factor = CARD_SIZE_FACTOR[cardSize] * zoom;
+  const scale = factor === 1 ? widthScale : Math.round(widthScale * factor * 100) / 100;
   const chrome = chromeScale(scale);
   const narrow = width < 768;
   const cardWidth = dim(BASE_CARD.width, scale);
@@ -462,7 +464,10 @@ export function metricsFor(width: number, cardSize: CardSize = 'normal'): Metric
     // than size (the dealer's own place at the table), and a bigger card
     // takes room rather than making any.
     roomy: widthScale > 1,
-    maxWidth: Math.min(width, BOARD_MAX_WIDTH),
+    // Zoomed in, the board may widen with its cards up to the window, and
+    // zoomed out it narrows with them — so a zoom changes how big the board
+    // is, not only how soon its rows wrap.
+    maxWidth: Math.min(width, Math.round(BOARD_MAX_WIDTH * zoom)),
     card,
     panel,
     seat,

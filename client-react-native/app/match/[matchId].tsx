@@ -43,7 +43,8 @@ import { TableCode } from '@/src/components/match/TableCode';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
 import { useSeatSession } from '@/src/hooks/useSeatSession';
-import { useMetrics } from '@/src/hooks/useMetrics';
+import { BoardMetricsProvider, useBoardMetrics, useBoardZoomLevel } from '@/src/hooks/useMetrics';
+import { setBoardZoom, stepBoardZoom, ZOOM_STEPS } from '@/src/lib/boardZoom';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
@@ -592,8 +593,10 @@ function MatchScreen() {
   const { skin, skins, setSkinId } = useSkinControls();
   const styles = useMemo(() => matchStyles(skin), [skin]);
   // Only for how wide the board is allowed to get — every other size on this
-  // screen is decided by the component that draws it, from the same metrics.
-  const metrics = useMetrics();
+  // screen is decided by the component that draws it, from the same metrics,
+  // which the scroll view below hands down zoomed (`BoardMetricsProvider`).
+  const metrics = useBoardMetrics();
+  const { zoom, floor: zoomFloor } = useBoardZoomLevel();
   const cycleSkin = () => {
     const at = skins.findIndex((s) => s.id === skin.id);
     setSkinId(skins[(at + 1) % skins.length]!.id);
@@ -2192,6 +2195,52 @@ function MatchScreen() {
     </Tip>
   );
 
+  // The board's zoom: − and + a step at a time, and the percentage between
+  // them back to 100%. Beside Layout, for the same reason Layout is in the
+  // bar. Sizes the board the way Card size does, so drag and drop still lands.
+  const zoomButtons = (
+    <View testID="board-zoom" style={[styles.tableCode, styles.zoomGroup, { marginRight: 10 }]}>
+      <Tip text={t('match.zoom.out')}>
+        <Pressable
+          testID="board-zoom-out"
+          onPress={() => void stepBoardZoom(-1, zoomFloor)}
+          disabled={zoom <= zoomFloor}
+          hitSlop={6}
+          style={styles.zoomButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('match.zoom.out')}
+        >
+          <Text style={[styles.tableCodeText, zoom <= zoomFloor && styles.zoomDisabled]}>−</Text>
+        </Pressable>
+      </Tip>
+      <Tip text={t('match.zoom.reset')}>
+        <Pressable
+          testID="board-zoom-reset"
+          onPress={() => void setBoardZoom(1)}
+          hitSlop={6}
+          style={styles.zoomButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('match.zoom.level', { n: Math.round(zoom * 100) })}
+        >
+          <Text style={styles.tableCodeText}>{Math.round(zoom * 100)}%</Text>
+        </Pressable>
+      </Tip>
+      <Tip text={t('match.zoom.in')}>
+        <Pressable
+          testID="board-zoom-in"
+          onPress={() => void stepBoardZoom(1, zoomFloor)}
+          disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
+          hitSlop={6}
+          style={styles.zoomButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('match.zoom.in')}
+        >
+          <Text style={[styles.tableCodeText, zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1] && styles.zoomDisabled]}>+</Text>
+        </Pressable>
+      </Tip>
+    </View>
+  );
+
   const screen = (
     <View
       style={styles.root}
@@ -2225,6 +2274,7 @@ function MatchScreen() {
             ? undefined
             : () => (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {zoomButtons}
                   {layoutButton}
                   <AccountMenu />
                 </View>
@@ -2315,6 +2365,7 @@ function MatchScreen() {
           onDone={() => setArranging(false)}
         />
       ) : null}
+      <BoardMetricsProvider metrics={metrics}>
       <ScrollView
         ref={scrollRef}
         // Wide enough for the table and no wider. On a large monitor the felt
@@ -2394,6 +2445,7 @@ function MatchScreen() {
           {/* Layout lives in the navigation bar, which stays put while the
               board scrolls to the hand — except in the Mac app, which has
               no bar. */}
+          {desktopChrome ? zoomButtons : null}
           {desktopChrome ? layoutButton : null}
           <Tip text={t('a11y.board.tip.skin')}>
             <Pressable
@@ -2702,6 +2754,7 @@ function MatchScreen() {
         />
 
       </ScrollView>
+      </BoardMetricsProvider>
 
       {/* Why a move was refused: the reason, the rule behind it, and the move
           to make instead. Opened from a greyed-out control's reason line, a
