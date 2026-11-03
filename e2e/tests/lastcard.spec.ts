@@ -38,7 +38,7 @@ type MatchState = {
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
-const CODE = /^([CTVA]-([0-9]|S|R|D)|W4?)$/;
+const CODE = /^([CTVA]-([0-9]|S|R|D)|W4?|WS|WM)$/;
 
 async function guest(request: Ctx) {
   const res = await request.post(`${API_BASE}/auth/guest`, {

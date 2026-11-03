@@ -38,6 +38,10 @@ test('a wild asks for its colour however it is played, and a drawn card is let g
       targetScore: 0,
       lastCardCall: 0,
       drawFourChallenge: 0,
+      // The swap and mayhem wilds ask for more than a colour; this walks
+      // the plain wilds only.
+      swapCards: 0,
+      mayhemCards: 0,
     });
     await watchAs(page, A, matchId);
     const seats = users.map((u) => (u === A ? new Seat(matchId, u, page, request) : new Seat(matchId, u)));
