@@ -3354,6 +3354,8 @@ export const mt: Record<string, string> = {
   'a11y.board.confirm.yes': 'Iva, {move}',
   'a11y.board.confirm.no': 'Mhux issa',
   'a11y.board.chooser.title': 'Fejn tilgħab {cards}?',
+  'a11y.board.chooser.howTitle': 'Liema mossa b’{cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Ikkanċella',
   'a11y.board.shortcut.nothing': 'M’hemm xejn x’tagħmel b’{key} issa',
   'a11y.board.shortcuts.title': 'Shortcuts tat-tastiera',

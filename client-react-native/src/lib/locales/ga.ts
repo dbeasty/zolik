@@ -3366,6 +3366,8 @@ export const ga: Record<string, string> = {
   'a11y.board.confirm.yes': 'Cinnte, {move}',
   'a11y.board.confirm.no': 'Ní fós',
   'a11y.board.chooser.title': 'Cá n-imreofar {cards}?',
+  'a11y.board.chooser.howTitle': 'Cén beart le {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Cealaigh',
   'a11y.board.shortcut.nothing': 'Níl aon rud le déanamh le {key} faoi láthair',
   'a11y.board.shortcuts.title': 'Aicearraí méarchláir',

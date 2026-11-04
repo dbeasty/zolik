@@ -3331,6 +3331,8 @@ export const lv: Record<string, string> = {
   'a11y.board.confirm.yes': 'Jā, {move}',
   'a11y.board.confirm.no': 'Vēl ne',
   'a11y.board.chooser.title': 'Kur izspēlēt {cards}?',
+  'a11y.board.chooser.howTitle': 'Kāds gājiens ar {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Atcelt',
   'a11y.board.shortcut.nothing': 'Ar {key} pašlaik nav ko darīt',
   'a11y.board.shortcuts.title': 'Īsinājumtaustiņi',

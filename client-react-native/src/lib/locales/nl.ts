@@ -3361,6 +3361,8 @@ export const nl: Record<string, string> = {
   'a11y.board.confirm.yes': 'Ja, {move}',
   'a11y.board.confirm.no': 'Nog niet',
   'a11y.board.chooser.title': '{cards} waar spelen?',
+  'a11y.board.chooser.howTitle': 'Welke zet met {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Annuleren',
   'a11y.board.shortcut.nothing': 'Nu niets te doen met {key}',
   'a11y.board.shortcuts.title': 'Sneltoetsen',

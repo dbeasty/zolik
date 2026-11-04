@@ -3354,6 +3354,8 @@ export const hu: Record<string, string> = {
   'a11y.board.confirm.yes': 'Igen, {move}',
   'a11y.board.confirm.no': 'Még nem',
   'a11y.board.chooser.title': 'Hová kerüljön: {cards}?',
+  'a11y.board.chooser.howTitle': 'Melyik lépés: {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Mégse',
   'a11y.board.shortcut.nothing': 'A(z) {key} billentyűnek most nincs teendője',
   'a11y.board.shortcuts.title': 'Billentyűparancsok',

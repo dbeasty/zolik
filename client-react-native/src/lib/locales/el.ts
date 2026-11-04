@@ -3373,6 +3373,8 @@ export const el: Record<string, string> = {
   'a11y.board.confirm.yes': 'Ναι, {move}',
   'a11y.board.confirm.no': 'Όχι ακόμη',
   'a11y.board.chooser.title': 'Πού να παιχτούν: {cards};',
+  'a11y.board.chooser.howTitle': 'Ποια κίνηση με {cards};',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Ακύρωση',
   'a11y.board.shortcut.nothing': 'Δεν υπάρχει τίποτα να γίνει με το {key} τώρα',
   'a11y.board.shortcuts.title': 'Συντομεύσεις πληκτρολογίου',

@@ -471,6 +471,38 @@ func TestPoach(t *testing.T) {
 	})
 }
 
+// TestPoachOwnDirtyMeld: a side may buy the wild out of its own dirty meld,
+// and the natural that would do it is offered both ways at once — joining
+// the meld and buying its joker — so the client must ask which, rather than
+// take whichever offer comes first (it laid the 8 off, every time).
+func TestPoachOwnDirtyMeld(t *testing.T) {
+	raw := canastaXTable(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{{ID: "t0-8", TeamID: 0, Kind: meldSet, Rank: "8", Cards: []string{"8H", "8D", "8S", "JOKER1"}}}
+		s.Hands["p1"] = []string{"8C", "QD", "9D"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"lay_off:t0-8", "poach:t0-8"} {
+		o := offerByID(offers, id)
+		if o == nil || !o.Enabled || o.Source == nil || !slices.Contains(o.Source.Cards, "8C") {
+			t.Fatalf("%s: %+v", id, o)
+		}
+	}
+	raw, code := apply(t, raw, "p1", module.Action{Verb: VerbPoach, Cards: []string{"8C"}, Target: "t0-8"})
+	if code != "" {
+		t.Fatal(code)
+	}
+	s := mustDecode(t, raw)
+	if m := s.Teams[0].meldByID("t0-8"); m.wilds() != 0 || !slices.Contains(m.Cards, "8C") {
+		t.Fatalf("meld %v", m.Cards)
+	}
+	if !slices.Contains(s.Hands["p1"], "JOKER1") || slices.Contains(s.Hands["p1"], "8C") {
+		t.Fatalf("hand %v", s.Hands["p1"])
+	}
+}
+
 func TestUndoOrderWithReshapes(t *testing.T) {
 	raw := canastaXTable(func(s *GameState) {
 		s.Teams[0].Melds = []Meld{

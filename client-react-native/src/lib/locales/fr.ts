@@ -3361,6 +3361,8 @@ export const fr: Record<string, string> = {
   'a11y.board.confirm.yes': 'Oui, {move}',
   'a11y.board.confirm.no': 'Pas encore',
   'a11y.board.chooser.title': 'Où jouer {cards} ?',
+  'a11y.board.chooser.howTitle': 'Quel coup avec {cards} ?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Annuler',
   'a11y.board.shortcut.nothing': 'Rien à faire avec {key} pour l’instant',
   'a11y.board.shortcuts.title': 'Raccourcis clavier',

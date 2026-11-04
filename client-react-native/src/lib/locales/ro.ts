@@ -3354,6 +3354,8 @@ export const ro: Record<string, string> = {
   'a11y.board.confirm.yes': 'Da, {move}',
   'a11y.board.confirm.no': 'Încă nu',
   'a11y.board.chooser.title': 'Unde joci {cards}?',
+  'a11y.board.chooser.howTitle': 'Ce mutare cu {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Anulează',
   'a11y.board.shortcut.nothing': 'Nimic de făcut acum cu {key}',
   'a11y.board.shortcuts.title': 'Comenzi rapide de la tastatură',

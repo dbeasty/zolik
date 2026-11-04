@@ -3332,6 +3332,8 @@ export const lt: Record<string, string> = {
   'a11y.board.confirm.yes': 'Taip, {move}',
   'a11y.board.confirm.no': 'Dar ne',
   'a11y.board.chooser.title': 'Kur sužaisti {cards}?',
+  'a11y.board.chooser.howTitle': 'Koks ėjimas su {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Atšaukti',
   'a11y.board.shortcut.nothing': 'Su {key} dabar nėra ką daryti',
   'a11y.board.shortcuts.title': 'Spartieji klavišai',

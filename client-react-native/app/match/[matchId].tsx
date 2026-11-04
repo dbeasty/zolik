@@ -114,6 +114,8 @@ import {
   isTypingTarget,
   newMoveLines,
   playOptionsFor,
+  playOptionsOf,
+  distinctMoves,
   readTableText,
   shortcutForKey,
   sourceSpotFor,
@@ -818,7 +820,9 @@ function MatchScreen() {
 
   // Where to play a card that fits more than one place, asked from the
   // keyboard (Enter on a card) — the sheet's question and its answers.
-  const [chooser, setChooser] = useState<{ cards: string[]; options: PlayOption[] } | null>(null);
+  // `how` when the places are one place taking two different moves — asked
+  // after a drop or a press on it, not only from the keyboard.
+  const [chooser, setChooser] = useState<{ cards: string[]; options: PlayOption[]; how?: boolean } | null>(null);
   // The `?` sheet.
   const [helpOpen, setHelpOpen] = useState(false);
   // A way back into the hand for the keyboard, handed up by `HandZone`.
@@ -1381,6 +1385,31 @@ function MatchScreen() {
 
   dragMoveRef.current = moveDrag;
 
+  // One target, two different moves for the same cards — in CanastaX an 8
+  // let go on your own dirty 8s either joins them or buys their joker. Taking
+  // whichever offer came first decided that for the player (it laid the 8
+  // off, every time, and the poach could never be made from the board), so
+  // ask, in the same sheet the keyboard asks "where" in. A drop or press near
+  // one end of a run still says which end; only the move is asked.
+  const askWhichMove = (here: DropSpot[], cards: string[], pageY: number, share?: number): boolean => {
+    const ready = here.filter((s) => s.ready);
+    if (distinctMoves(ready) < 2 || !cards.length) return false;
+    const rect = drops.rectFor(ready[0]!.elementId);
+    const { options } = playOptionsOf(ready, state.legalActions, zones, state.players, viewerId);
+    const at = (o: PlayOption) =>
+      (o.spot.positions?.length ?? 0) < 2
+        ? true
+        : o.position ===
+          (share !== undefined
+            ? positionAtShare(o.spot.positions, share)
+            : rect
+              ? positionAt(o.spot.positions, pageY, rect)
+              : o.position);
+    const narrowed = options.filter(at);
+    setChooser({ cards, options: narrowed.length ? narrowed : options, how: true });
+    return true;
+  };
+
   const endDrag = (x: number, y: number): boolean => {
     const current = dragRef.current;
     dragRef.current = null;
@@ -1393,6 +1422,7 @@ function MatchScreen() {
     const takeable = takeableSpots(spots);
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     const spot = takeable.find((s) => s.elementId === over);
+    if (spot && askWhichMove(takeable.filter((s) => s.elementId === over), current.cards, y)) return true;
     if (!spot) {
       // Let go somewhere the cards are not welcome. Before this the card
       // simply snapped home and nothing was said, which reads as an
@@ -1450,6 +1480,17 @@ function MatchScreen() {
       pendingSpots.find((s) => s.elementId === elementId) ??
       sourceSpots.find((s) => s.elementId === elementId);
     if (!spot) return;
+    if (
+      !meldPickLive &&
+      pendingTakeable.includes(spot) &&
+      askWhichMove(
+        pendingTakeable.filter((s) => s.elementId === elementId),
+        tablePick ?? selectedCards,
+        pageY,
+        share,
+      )
+    )
+      return;
     const offer = state.legalActions.find((o) => o.id === spot.offerId);
     if (!offer) return;
 
@@ -2816,7 +2857,13 @@ function MatchScreen() {
       <BoardSheet
         visible={!!chooser}
         testID="play-where"
-        title={chooser ? t('a11y.board.chooser.title', { cards: cardsSpoken(chooser.cards) }) : ''}
+        title={
+          chooser
+            ? t(chooser.how ? 'a11y.board.chooser.howTitle' : 'a11y.board.chooser.title', {
+                cards: cardsSpoken(chooser.cards),
+              })
+            : ''
+        }
         options={(chooser?.options ?? []).map((o) => ({
           key: o.key,
           label: o.label,

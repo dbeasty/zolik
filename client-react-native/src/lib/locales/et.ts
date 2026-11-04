@@ -3335,6 +3335,8 @@ export const et: Record<string, string> = {
   'a11y.board.confirm.yes': 'Jah, {move}',
   'a11y.board.confirm.no': 'Veel mitte',
   'a11y.board.chooser.title': 'Kuhu mängida {cards}?',
+  'a11y.board.chooser.howTitle': 'Milline käik kaardiga {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Tühista',
   'a11y.board.shortcut.nothing': 'Klahviga {key} pole praegu midagi teha',
   'a11y.board.shortcuts.title': 'Kiirklahvid',

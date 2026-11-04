@@ -3333,6 +3333,8 @@ export const da: Record<string, string> = {
   'a11y.board.confirm.yes': 'Ja, {move}',
   'a11y.board.confirm.no': 'Ikke endnu',
   'a11y.board.chooser.title': 'Hvor skal {cards} spilles?',
+  'a11y.board.chooser.howTitle': 'Hvilket træk med {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Annuller',
   'a11y.board.shortcut.nothing': 'Der er intet at gøre med {key} lige nu',
   'a11y.board.shortcuts.title': 'Tastaturgenveje',

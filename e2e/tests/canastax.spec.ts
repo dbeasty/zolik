@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards, tapCard } from '../helpers/drag';
+import { dragLocatorTo, handCards, tapCard } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
-import { selectOnly } from '../helpers/hand';
+import { cardByCode, selectOnly } from '../helpers/hand';
 
 /**
  * CanastaX, end to end: every house move made with the pointer, and every one
@@ -412,4 +412,62 @@ test('9H 2C JH alone cannot open, and says why', async ({ page, request }) => {
   await meld.click();
   await expect(page.getByText(/minimum|50/i).first()).toBeVisible();
   expect(Object.keys((await onServer(request, matchId, host)).melds)).toEqual([]);
+});
+
+/**
+ * Our own dirty meld of 8s, with an 8 in hand that could join it or buy its
+ * joker. Both moves land on the same meld with the same card, so the board
+ * has to ask which — before this it took the first offer, laid the 8 off, and
+ * the poach could not be made from the board at all.
+ */
+const ownDirtyEights = (s: any, p1: string) => {
+  s.teams[0].melds.push({ id: 't0-8', teamId: 0, kind: 'set', rank: '8', cards: ['8H', '8D', '8S', 'JOKER4'] });
+  s.hands[p1].push('8C');
+};
+
+async function expectPoached(request: Ctx, matchId: string, host: any) {
+  await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-8']).toBe('8H 8D 8S 8C');
+  const after = await onServer(request, matchId, host);
+  expect(after.hand).toContain('JOKER4');
+  expect(after.hand).not.toContain('8C');
+}
+
+test('the 8♣ tapped onto our own dirty 8s asks, and buys the joker', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { matchId, host } = await canastaXTable(request, ownDirtyEights);
+  await openMatch(page, host, matchId);
+
+  await selectOnly(page, ['8C']);
+  await page.getByTestId('group-press-t0-8').click();
+  const sheet = page.getByTestId('play-where');
+  await expect(sheet).toContainText('Which move');
+  // Each answer names its move, the way its button does.
+  await expect(page.getByTestId('play-where-lay_off:t0-8')).toContainText('Lay off —');
+  await expect(page.getByTestId('play-where-poach:t0-8')).toContainText('Poach a wild —');
+  // Nothing has been played while the question is open.
+  expect((await onServer(request, matchId, host)).melds['t0-8']).toBe('8H 8D 8S JOKER4');
+  await page.getByTestId('play-where-poach:t0-8').click();
+  await expectPoached(request, matchId, host);
+});
+
+test('the 8♣ dragged onto our own dirty 8s asks, and buys the joker', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { matchId, host } = await canastaXTable(request, ownDirtyEights);
+  await openMatch(page, host, matchId);
+
+  await dragLocatorTo(page, cardByCode(page, '8C'), page.getByTestId('group-t0-8'));
+  await expect(page.getByTestId('play-where')).toContainText('Which move');
+  await page.getByTestId('play-where-poach:t0-8').click();
+  await expectPoached(request, matchId, host);
+});
+
+test('the 8♣ can still join our own dirty 8s instead', async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const { matchId, host } = await canastaXTable(request, ownDirtyEights);
+  await openMatch(page, host, matchId);
+
+  await selectOnly(page, ['8C']);
+  await page.getByTestId('group-press-t0-8').click();
+  await page.getByTestId('play-where-lay_off:t0-8').click();
+  await expect.poll(async () => (await onServer(request, matchId, host)).melds['t0-8']).toBe('8H 8D 8S JOKER4 8C');
 });
