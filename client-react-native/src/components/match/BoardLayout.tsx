@@ -834,6 +834,24 @@ export function matchStyles(s: Skin) {
   sectionSummaryText: { color: colors.muted, fontSize: 12 },
   beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
   mine: { marginTop: 10 },
+  // Docked, the hand sits flush under the banner: the margin that separated it
+  // from the board above is room the dock exists to give back.
+  mineDocked: { marginTop: 0 },
+  // The hand and its controls docked above the scrolling board. Over the board
+  // in the stacking order, always, so a card carried out of it is drawn above
+  // the melds; a line along its foot so the board scrolling up to it reads as
+  // passing under it rather than being cut off.
+  dock: {
+    position: 'relative',
+    zIndex: 20,
+    width: '100%',
+    alignSelf: 'center',
+    gap: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    ...(Platform.OS === 'web' ? { paddingRight: 14 } : null),
+  },
   // Two or more to a row rather than each claiming a full-width line — see
   // the comment above where this is used. alignItems: flex-start keeps each
   // panel sized to its own content instead of the row's default stretch,

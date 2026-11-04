@@ -36,6 +36,7 @@ import { RulesButton } from '@/src/components/match/RulesButton';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { AutoContinue } from '@/src/components/match/AutoContinue';
 import { useAutoArrange } from '@/src/lib/autoArrangePref';
+import { useFloatingHand } from '@/src/lib/floatingHandPref';
 import { useAutoContinue } from '@/src/lib/autoContinuePref';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { InviteBackSheet } from '@/src/components/match/InviteBackSheet';
@@ -43,7 +44,7 @@ import { TableCode } from '@/src/components/match/TableCode';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
 import { useSeatSession } from '@/src/hooks/useSeatSession';
-import { BoardMetricsProvider, useBoardMetrics, useBoardZoomLevel } from '@/src/hooks/useMetrics';
+import { BoardMetricsProvider, useBoardMetrics, useBoardZoomLevel, useDockMetrics } from '@/src/hooks/useMetrics';
 import { setBoardZoom, stepBoardZoom, ZOOM_STEPS } from '@/src/lib/boardZoom';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
@@ -476,6 +477,13 @@ function MatchScreen() {
   // arrive before the state that started the drag has been committed, and a
   // drag whose first frames land nowhere reads as an unresponsive one.
   const drops = useDropRegistry();
+  // Whether this player keeps the hand and its controls docked at the top of
+  // the screen, for this game — see `floatingHandPref`. Read up here with the
+  // hooks; whether the dock is actually drawn depends on the deal (`docked`).
+  const [floatPref, setFloatPref] = useFloatingHand(state?.moduleId);
+  const dockMetrics = useDockMetrics();
+  // Read by the edge autoscroll's timer, which outlives any one render.
+  const dockedRef = useRef(false);
   const dragRef = useRef<{ slotIds: string[]; cards: string[]; fromTable?: boolean; fromMeld?: string } | null>(null);
   const [drag, setDrag] = useState<{ cards: string[]; fromTable?: boolean; fromMeld?: string } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
@@ -700,6 +708,13 @@ function MatchScreen() {
   // board moves: someone who asked their system for less movement is taken
   // there rather than travelling there, exactly as with everything else here.
   const scrollRef = useRef<ScrollView>(null);
+  // The board's visible box clips every drop target inside it, so a meld
+  // scrolled out of sight — under the docked hand, or the banner — cannot
+  // take a card let go over whatever is drawn there now. Every render, since
+  // the scroller is only there once the match has loaded; it costs a ref.
+  useEffect(() => {
+    drops.setViewport(scrollRef.current as unknown as Measurable | null);
+  });
   const goTo = useCallback(
     (y: number) => {
       scrollRef.current?.scrollTo({ y, animated: !stillness });
@@ -768,8 +783,15 @@ function MatchScreen() {
       const p = dragPoint.current;
       if (!p) return;
       const now = Date.now();
-      const intoTop = EDGE - p.y;
-      const intoBottom = p.y - (windowHeight - EDGE);
+      // Measured from the board's own edges rather than the window's: with
+      // the hand docked above it, the top of the board is the dock's bottom
+      // edge, and the band begins there. A pointer back up over the docked
+      // hand is putting a card away, not asking for the board to move.
+      const vp = drops.viewport();
+      const top = vp ? vp.y : 0;
+      const bottom = vp ? vp.y + vp.height : windowHeight;
+      const intoTop = dockedRef.current && p.y < top ? 0 : top + EDGE - p.y;
+      const intoBottom = p.y - (bottom - EDGE);
       if (intoTop <= 0) armed.top = true;
       if (intoBottom <= 0) armed.bottom = true;
       // How long the pointer has been in each band. Passing through a band on
@@ -1974,7 +1996,23 @@ function MatchScreen() {
   // The hint and what it said, shared by the open panel and the minimized
   // one. A player who put the controls away still makes moves from the
   // summary, so the button that suggests one has to stay in reach too.
-  const controlsMinimized = zonePanelProps('controls').minimized;
+  // The dock is drawn only while there is a hand to play from and nothing
+  // else wants it in the page: not between rounds, when the controls move up
+  // beside the settlement; not while the board's layout is being edited, which
+  // places the hand as one of its regions; not once the match is over.
+  const docked = floatPref && myHands.length > 0 && !paused && !arranging && state.status === 'active';
+  dockedRef.current = docked;
+  // Docked, the controls start folded to their one-row rail of live moves —
+  // the dock is only worth having if it leaves room for the melds — and are
+  // stored the other way round, as the results are: present means opened out.
+  const controlsPanelProps = docked
+    ? {
+        panelId: 'controls',
+        minimized: !panels.isMinimized('controls:dockOpen'),
+        onToggleMinimized: () => panels.toggle('controls:dockOpen'),
+      }
+    : zonePanelProps('controls');
+  const controlsMinimized = controlsPanelProps.minimized;
   const hintButton =
     hintsAllowed && step && !paused ? (
       <Tip text={t('a11y.board.tip.hint')} style={styles.hintAt}>
@@ -2017,7 +2055,7 @@ function MatchScreen() {
   // drift apart.
   const controlsPanel = (
     <Panel
-      {...zonePanelProps('controls')}
+      {...controlsPanelProps}
       title={t('match.controls')}
       region={t('a11y.board.region.actions')}
       testID="controls-panel"
@@ -2038,6 +2076,8 @@ function MatchScreen() {
             }}
             onExplain={explain}
             testID="controls-summary"
+            // The dock's rail is its whole action bar, so it shows a few more.
+            max={docked ? 6 : undefined}
           />
           {hintText}
         </>
@@ -2147,7 +2187,12 @@ function MatchScreen() {
   // about rearranging and nothing more.
   const canDropOnBoard = someOfferDroppable(state.legalActions);
   const handPanel = (
-  <View style={[styles.mine, handOnDragLayer(drag) && dragLayer]} {...opening.anchor('hand')}>
+  <View
+    style={[styles.mine, docked && styles.mineDocked, handOnDragLayer(drag) && dragLayer]}
+    // Docked, the hand is always on screen: there is nothing for the opening
+    // scroll to bring into view, so it is not told where the hand is.
+    {...(docked ? {} : opening.anchor('hand'))}
+  >
     {myHands.map((z) => (
       <HandZone
         key={z.id}
@@ -2181,12 +2226,22 @@ function MatchScreen() {
           move(z.id, from, to);
         }}
         autoArrange={autoArrange}
+        floating={docked}
+        // Not mid-drag: docking moves the hand to another parent, which would
+        // drop the card being carried.
+        onFloatingChange={
+          myHands.length && state.status === 'active' && !paused && !arranging
+            ? (on) => {
+                if (!dragRef.current) setFloatPref(on);
+              }
+            : undefined
+        }
         onAutoArrangeChange={setAutoArrange}
         onDragStart={(index) => beginDrag(z.id, index)}
         onDragMove={moveDrag}
         onDragEnd={endDrag}
         externalTarget={hoveredDrop}
-        registerSpot={dropProps.registerDrop}
+        registerSpot={docked ? drops.registerUnclipped : dropProps.registerDrop}
         entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
         canDropOnBoard={canDropOnBoard}
         badges={badgesFor(z)}
@@ -2405,6 +2460,32 @@ function MatchScreen() {
           onReset={board.reset}
           onDone={() => setArranging(false)}
         />
+      ) : null}
+      {/* The hand and its controls, docked above the board — the one copy of
+          each: while they are here, the board below leaves their slot out.
+          Outside the scroller so they stay put while the melds scroll, and
+          above it in the stacking order so a card carried out of the dock is
+          drawn over the board rather than under it. A fixed zIndex, never one
+          that changes mid-gesture (see `handOnDragLayer`). */}
+      {docked ? (
+        <View
+          style={[
+            styles.dock,
+            { maxWidth: drawn.columns > 1 ? Math.min(windowWidth, TWO_COLUMN_MAX_WIDTH) : metrics.maxWidth },
+          ]}
+          testID="hand-dock"
+          // Where the board starts in the window just moved.
+          onLayout={() => drops.measure()}
+        >
+          <BoardMetricsProvider metrics={dockMetrics}>
+            <GuideTarget guide={guide} anchor="hand">
+              {handPanel}
+            </GuideTarget>
+            <GuideTarget guide={guide} anchor="actionBar">
+              {controlsPanel}
+            </GuideTarget>
+          </BoardMetricsProvider>
+        </View>
       ) : null}
       <BoardMetricsProvider metrics={metrics}>
       <ScrollView
@@ -2773,12 +2854,14 @@ function MatchScreen() {
           zonePanelProps={zonePanelProps}
           dropProps={dropProps}
           hand={
-            <GuideTarget guide={guide} anchor="hand">
-              {handPanel}
-            </GuideTarget>
+            docked ? null : (
+              <GuideTarget guide={guide} anchor="hand">
+                {handPanel}
+              </GuideTarget>
+            )
           }
           controls={
-            paused ? null : (
+            paused || docked ? null : (
               <GuideTarget guide={guide} anchor="actionBar">
                 <View {...opening.anchor('controls')}>{controlsPanel}</View>
               </GuideTarget>

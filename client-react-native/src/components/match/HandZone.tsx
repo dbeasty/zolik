@@ -89,6 +89,10 @@ type Props = {
   autoArrange?: boolean;
   /** Ticks or unticks Auto-arrange; without it there is no checkbox. */
   onAutoArrangeChange?: (on: boolean) => void;
+  /** Whether the hand is docked at the top of the screen rather than in the page. */
+  floating?: boolean;
+  /** Docks or undocks the hand; without it there is no pin. */
+  onFloatingChange?: (on: boolean) => void;
   /** A drag began on the card at this index. */
   onDragStart?: (index: number) => void;
   /** The card moved, in window coordinates. */
@@ -285,6 +289,8 @@ export function HandZone({
   onMove,
   autoArrange = false,
   onAutoArrangeChange,
+  floating = false,
+  onFloatingChange,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -840,8 +846,10 @@ export function HandZone({
         />
       }
       accessory={
-        onAutoArrangeChange && slots.length > 1 ? (
+        (onAutoArrangeChange && slots.length > 1) || onFloatingChange ? (
           <View style={styles.accessory}>
+            {onAutoArrangeChange && slots.length > 1 ? (
+            <>
             {/* A checkbox, not a button: it is a standing choice that holds
                 for every hand on this device until unticked, rather than a
                 one-off tidy the next drawn card undoes. */}
@@ -880,6 +888,28 @@ export function HandZone({
                   testID={`hand-spread-${zone.id}`}
                 >
                   <Text style={styles.spreadToggle}>{spread ? '›‹' : '‹›'}</Text>
+                </Pressable>
+              </Tip>
+            ) : null}
+            </>
+            ) : null}
+            {/* Last, at the right-hand end, so it is in the same place whether
+                the hand is in the page or docked at the top: the one control
+                that moves the hand is always where the hand is. A toggle, so
+                it says which state it is in rather than what it will do. */}
+            {onFloatingChange ? (
+              <Tip text={t(floating ? 'a11y.board.tip.unfloat' : 'a11y.board.tip.float')}>
+                <Pressable
+                  onPress={() => onFloatingChange(!floating)}
+                  hitSlop={8}
+                  style={[styles.smallTarget, styles.floatToggle, floating && styles.floatToggleOn]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('hand.float')}
+                  accessibilityState={{ selected: floating }}
+                  {...((Platform.OS === 'web' ? { 'aria-pressed': floating } : {}) as object)}
+                  testID={`hand-float-${zone.id}`}
+                >
+                  <Text style={[styles.floatLabel, floating && styles.floatLabelOn]}>{t('hand.float')}</Text>
                 </Pressable>
               </Tip>
             ) : null}
@@ -984,7 +1014,10 @@ export function HandZone({
         />
       </View>
 
-      {slots.length > 1 ? (
+      {/* Not while docked: the dock is only worth having for the room it
+          leaves the melds, and a player who has docked the hand has already
+          found out what it does. */}
+      {slots.length > 1 && !floating ? (
         <Text style={styles.hint} testID={`hand-hint-${zone.id}`}>
           {t(canDropOnBoard ? 'hand.dragHint' : 'hand.dragHintRearrange')}
         </Text>
@@ -1397,6 +1430,18 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
     checkBoxOn: { backgroundColor: colors.accent },
     checkTick: { color: colors.onAccent, fontSize: 10, fontWeight: '800', lineHeight: 12 },
     accessory: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    // A pressed-in look while docked, so the pin reads as a switch that is on.
+    // The same border both ways, so pressing it moves nothing.
+    floatToggle: {
+      flexDirection: 'row',
+      paddingHorizontal: 8,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: colors.accent,
+    },
+    floatToggleOn: { backgroundColor: colors.accent },
+    floatLabel: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
+    floatLabelOn: { color: colors.onAccent },
     // WCAG 2.2 target size: a 12px line of text is not a 24px target.
     smallTarget: { minHeight: 24, minWidth: 24, alignItems: 'center', justifyContent: 'center' },
     // The one control on the board that is about looking rather than playing.

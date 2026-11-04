@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dragLocatorTo, handCards, tapCard } from '../helpers/drag';
+import { BOARD_FITS_HEIGHT, dragLocatorTo, handCards, tapCard } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { cardByCode, selectOnly } from '../helpers/hand';
 
@@ -442,8 +442,8 @@ test('the 8♣ tapped onto our own dirty 8s asks, and buys the joker', async ({ 
   const sheet = page.getByTestId('play-where');
   await expect(sheet).toContainText('Which move');
   // Each answer names its move, the way its button does.
-  await expect(page.getByTestId('play-where-lay_off:t0-8')).toContainText('Lay off —');
-  await expect(page.getByTestId('play-where-poach:t0-8')).toContainText('Poach a wild —');
+  await expect(page.getByTestId('play-where-lay_off:t0-8')).toContainText('Add to meld —');
+  await expect(page.getByTestId('play-where-poach:t0-8')).toContainText('Swap for wild —');
   // Nothing has been played while the question is open.
   expect((await onServer(request, matchId, host)).melds['t0-8']).toBe('8H 8D 8S JOKER4');
   await page.getByTestId('play-where-poach:t0-8').click();
@@ -454,6 +454,9 @@ test('the 8♣ dragged onto our own dirty 8s asks, and buys the joker', async ({
   test.setTimeout(90_000);
   const { matchId, host } = await canastaXTable(request, ownDirtyEights);
   await openMatch(page, host, matchId);
+  // Tall enough that the meld is on screen with the hand: a drop lands only
+  // on a meld the player can see (see `BOARD_FITS_HEIGHT`).
+  await page.setViewportSize({ width: 1280, height: BOARD_FITS_HEIGHT });
 
   await dragLocatorTo(page, cardByCode(page, '8C'), page.getByTestId('group-t0-8'));
   await expect(page.getByTestId('play-where')).toContainText('Which move');
