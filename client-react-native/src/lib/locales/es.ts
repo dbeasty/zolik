@@ -441,6 +441,8 @@ export const es: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Esa combinación no está en la mesa',
   'err.CANNOT_MELD_THREE': 'Los treses nunca se bajan',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Los treses negros solo se bajan como la jugada que vacía tu mano',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Los treses negros solo se bajan al cerrar, y tu equipo aún no tiene las canastas para ello',
   'err.CANNOT_DISCARD_RED_THREE': 'Un tres rojo no se puede descartar',
   'err.MUST_KEEP_A_CARD': 'Tu bando aún no puede irse — quédate dos cartas, una para descartar y otra para guardar',
   'err.MUST_MELD_FIRST': 'Baja primero la combinación inicial de tu bando',
@@ -568,6 +570,8 @@ export const es: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Descarta otra cosa que no sea un tres rojo.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Los treses negros solo bajan al irte: después puedes quedarte como mucho con una carta, para descartarla.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Los treses negros solo se bajan al cerrar, y antes tu equipo necesita {n} canasta más de {size} cartas. Mientras tanto, descartar uno bloquea el pozo para el siguiente jugador.',
   'canasta.remedy.ownMeldsOnly': 'Añade solo a las combinaciones de tu propio bando.',
   'badge.naturalCanasta': 'Canasta pura',
   'badge.mixedCanasta': 'Canasta impura',

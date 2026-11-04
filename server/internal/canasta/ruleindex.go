@@ -142,6 +142,13 @@ func refusalRules(v ruleset, code string) []string {
 		}
 	case ErrBlackThreeGoOutOnly:
 		return []string{"canasta.rules.blackThreesGoOut", "canasta.rules.blackThreesNeverMeld"}
+	case ErrBlackThreesNeedCanastas:
+		// The threes' own sentence first — it is the one the player did not
+		// know — then the canasta count that going out costs here.
+		return []string{
+			"canasta.rules.blackThreesGoOut",
+			"canasta.rules.oneCanastaToGoOut", "canasta.rules.twoCanastasToGoOut",
+		}
 	case ErrCannotDiscardThree:
 		return []string{"canasta.rules.redThrees"}
 

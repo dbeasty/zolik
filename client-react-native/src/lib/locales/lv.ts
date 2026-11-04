@@ -436,6 +436,8 @@ export const lv: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Šīs kombinācijas uz galda nav',
   'err.CANNOT_MELD_THREE': 'Trijniekus nekad neizliek',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Melnus trijniekus izliek tikai kā gājienu, kas iztukšo tavu roku',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Melnos trijniekus izliek tikai, izejot no spēles, un tavai pusei tam vēl nav kanastu',
   'err.CANNOT_DISCARD_RED_THREE': 'Sarkano trijnieku nedrīkst izmest',
   'err.MUST_KEEP_A_CARD': 'Tava puse vēl nevar iziet — paturi divas kārtis, vienu nomešanai un vienu rokā',
   'err.MUST_MELD_FIRST': 'Vispirms izliec savas puses pirmo kombināciju',
@@ -561,6 +563,8 @@ export const lv: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Izmet ko citu, nevis sarkano trijnieku.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Melnos trijniekus izliek tikai izejot: pēc tam drīksti paturēt ne vairāk kā vienu kārti, ko nomest.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Melnos trijniekus izliek tikai, izejot no spēles, un tavai pusei vispirms vajag vēl {n} kanastu pa {size} kārtīm. Līdz tam nomests melnais trijnieks bloķē kaudzi nākamajam spēlētājam.',
   'canasta.remedy.ownMeldsOnly': 'Papildini tikai savas puses kombinācijas.',
   'badge.naturalCanasta': 'Tīra kanasta',
   'badge.mixedCanasta': 'Netīra kanasta',

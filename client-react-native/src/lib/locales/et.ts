@@ -437,6 +437,8 @@ export const et: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Kolmi ei panda kunagi välja',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Mustad kolmed pannakse välja ainult käiguna, mis tühjendab su käe',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Mustad kolmed käivad lauale ainult välja minnes ja su poolel pole selleks veel kanastaid',
   'err.CANNOT_DISCARD_RED_THREE': 'Punast kolme ei tohi ära visata',
   'err.MUST_KEEP_A_CARD': 'Sinu pool ei saa veel välja minna — jäta kaks kaarti, üks äraviskamiseks ja üks kätte',
   'err.MUST_MELD_FIRST': 'Pane esmalt välja oma poole avang',
@@ -565,6 +567,8 @@ export const et: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Viska ära midagi muud kui punane kolmik.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Mustad kolmikud lähevad lauale ainult välja minnes: pärast seda võid jätta kätte kõige rohkem ühe kaardi, et see ära visata.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Mustad kolmed käivad lauale ainult välja minnes ja su pool vajab enne veel {n} kanastat {size} kaardist. Seni lukustab äravisatud must kolm paki järgmisele mängijale.',
   'canasta.remedy.ownMeldsOnly': 'Pane juurde ainult oma poole kombinatsioonidele.',
   'badge.naturalCanasta': 'Puhas kanasta',
   'badge.mixedCanasta': 'Segakanasta',

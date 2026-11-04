@@ -437,6 +437,8 @@ export const it: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Quella combinazione non è sul tavolo',
   'err.CANNOT_MELD_THREE': 'I tre non si calano mai',
   'err.BLACK_THREE_GO_OUT_ONLY': 'I tre neri si calano solo come la mossa che svuota la tua mano',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'I tre neri si calano solo chiudendo, e la tua squadra non ha ancora le canaste per farlo',
   'err.CANNOT_DISCARD_RED_THREE': 'Un tre rosso non si può scartare',
   'err.MUST_KEEP_A_CARD': 'La tua coppia non può ancora chiudere — tieni due carte, una da scartare e una da tenere',
   'err.MUST_MELD_FIRST': "Cala prima l'apertura della tua coppia",
@@ -564,6 +566,8 @@ export const it: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Scarta qualcosa che non sia un tre rosso.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'I tre neri si calano solo per chiudere: dopo puoi tenere al massimo una carta, da scartare.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'I tre neri si calano solo chiudendo, e prima la tua squadra ha bisogno di altre {n} canaste da {size} carte. Nel frattempo, scartarne uno blocca il pozzo al giocatore successivo.',
   'canasta.remedy.ownMeldsOnly': 'Aggiungi solo alle combinazioni della tua parte.',
   'badge.naturalCanasta': 'Canasta pura',
   'badge.mixedCanasta': 'Canasta impura',

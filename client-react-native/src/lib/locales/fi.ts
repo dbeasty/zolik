@@ -436,6 +436,8 @@ export const fi: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Tuota yhdistelmää ei ole pöydässä',
   'err.CANNOT_MELD_THREE': 'Kolmosia ei koskaan lasketa',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Mustat kolmoset lasketaan vain siirtona, joka tyhjentää kätesi',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Mustat kolmoset lasketaan vain pois mentäessä, eikä puolellasi ole siihen vielä kanastoja',
   'err.CANNOT_DISCARD_RED_THREE': 'Punaista kolmosta ei voi poistaa',
   'err.MUST_KEEP_A_CARD': 'Puolesi ei voi vielä mennä ulos — pidä kaksi korttia, yksi poistettavaksi ja yksi käteen',
   'err.MUST_MELD_FIRST': 'Laske ensin puolesi avaus',
@@ -564,6 +566,8 @@ export const fi: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Poista jokin muu kuin punainen kolmonen.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Mustat kolmoset lasketaan vain ulos mentäessä: sen jälkeen saat pitää korkeintaan yhden kortin, poistettavaksi.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Mustat kolmoset lasketaan vain osana pois menemistä, ja puolesi tarvitsee ensin vielä {n} {size} kortin kanastan. Siihen asti poisheitetty musta kolmonen lukitsee pakan seuraavalta pelaajalta.',
   'canasta.remedy.ownMeldsOnly': 'Liitä vain oman puolesi sarjoihin.',
   'badge.naturalCanasta': 'Puhdas canasta',
   'badge.mixedCanasta': 'Epäpuhdas canasta',

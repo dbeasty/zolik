@@ -436,6 +436,8 @@ export const sk: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Táto kombinácia nie je na stole',
   'err.CANNOT_MELD_THREE': 'Trojky sa nikdy nevykladajú',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Čierne trojky sa vykladajú len ťahom, ktorý vyprázdni tvoju ruku',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Čierne trojky sa vykladajú len pri vyjdení a tvoja strana na to ešte nemá canasty',
   'err.CANNOT_DISCARD_RED_THREE': 'Červenú trojku nemožno odhodiť',
   'err.MUST_KEEP_A_CARD': 'Tvoja strana ešte nemôže vyjsť — nechaj si dve karty, jednu na odhodenie a jednu v ruke',
   'err.MUST_MELD_FIRST': 'Najprv vylož prvú kombináciu svojej strany',
@@ -562,6 +564,8 @@ export const sk: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Odhoď niečo iné než červenú trojku.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Čierne trojky sa vykladajú len pri vychádzaní: potom si smieš nechať najviac jednu kartu, na odhodenie.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Čierne trojky sa vykladajú len pri vyjdení a tvoja strana na to potrebuje ešte {n} canást po {size} kartách. Dovtedy odhodená čierna trojka zablokuje balíček ďalšiemu hráčovi.',
   'canasta.remedy.ownMeldsOnly': 'Prikladaj len ku kombináciám vlastnej strany.',
   'badge.naturalCanasta': 'Čistá kanasta',
   'badge.mixedCanasta': 'Nečistá kanasta',

@@ -958,7 +958,7 @@ func layMeld(s *GameState, playerID string, a module.Action) ([]module.Event, []
 		// short of its canastas is the wrong *time*, and the second is the one
 		// the going-out rule already has words for.
 		if !canGoOut(s, t) {
-			return nil, nil, errCode(ErrCannotGoOutYet)
+			return nil, nil, errCode(ErrBlackThreesNeedCanastas)
 		}
 		// One card left is still going out: it is the discard that ends the
 		// deal, and the side already has its canastas, so nothing can stop it.

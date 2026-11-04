@@ -431,6 +431,8 @@ export const da: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Den kombination ligger ikke på bordet',
   'err.CANNOT_MELD_THREE': 'Treere lægges aldrig ud',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Sorte treere lægges kun ud som det træk, der tømmer din hånd',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Sorte treere lægges kun ned, når du går ud, og jeres side har ikke canastaerne til det endnu',
   'err.CANNOT_DISCARD_RED_THREE': 'En rød treer må ikke smides ud',
   'err.MUST_KEEP_A_CARD': 'Din side kan ikke gå ud endnu — behold to kort, et at smide og et at beholde',
   'err.MUST_MELD_FIRST': 'Læg din sides åbning ud først',
@@ -559,6 +561,8 @@ export const da: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Smid noget andet ud end en rød tre.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Sorte treere lægges kun ud, når du går ud: bagefter må du højst beholde ét kort, til at smide.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Sorte treere lægges kun ned som en del af at gå ud, og jeres side mangler først {n} canasta mere på {size} kort. Indtil da spærrer en kasseret sort treer bunken for den næste spiller.',
   'canasta.remedy.ownMeldsOnly': 'Læg kun til din egen sides meldinger.',
   'badge.naturalCanasta': 'Ren canasta',
   'badge.mixedCanasta': 'Uren canasta',

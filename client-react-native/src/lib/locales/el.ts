@@ -447,6 +447,8 @@ export const el: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Τα τριάρια δεν κατεβαίνουν ποτέ',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Τα μαύρα τριάρια κατεβαίνουν μόνο ως η κίνηση που αδειάζει το χέρι σου',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Τα μαύρα τριάρια κατεβαίνουν μόνο όταν βγαίνεις, και η πλευρά σου δεν έχει ακόμη τις κανάστες γι’ αυτό',
   'err.CANNOT_DISCARD_RED_THREE': 'Το κόκκινο τριάρι δεν πετιέται',
   'err.MUST_KEEP_A_CARD': 'Η πλευρά σου δεν μπορεί ακόμα να βγει — κράτα δύο φύλλα, ένα για πέταμα και ένα στο χέρι',
   'err.MUST_MELD_FIRST': 'Κατέβασε πρώτα το άνοιγμα της πλευράς σου',
@@ -577,6 +579,8 @@ export const el: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Ρίξε κάτι άλλο, όχι κόκκινο τρία.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Τα μαύρα τρία κατεβαίνουν μόνο όταν βγαίνεις: μετά μπορείς να κρατήσεις το πολύ ένα φύλλο, για να το πετάξεις.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Τα μαύρα τριάρια κατεβαίνουν μόνο ως μέρος της εξόδου, και η πλευρά σου χρειάζεται πρώτα ακόμη {n} κανάστα των {size} φύλλων. Ως τότε, ένα πεταμένο μαύρο τριάρι μπλοκάρει τη στοίβα για τον επόμενο παίκτη.',
   'canasta.remedy.ownMeldsOnly': 'Πρόσθετε μόνο στα μελντ της δικής σου πλευράς.',
   'badge.naturalCanasta': 'Καθαρή κανάστα',
   'badge.mixedCanasta': 'Μικτή κανάστα',

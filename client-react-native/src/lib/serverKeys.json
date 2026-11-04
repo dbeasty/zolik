@@ -15,6 +15,7 @@
     "BANKER_DOES_NOT_STAKE",
     "BANK_CANNOT_COVER",
     "BET_BELOW_MINIMUM",
+    "BLACK_THREES_NEED_CANASTAS",
     "BLACK_THREE_GO_OUT_ONLY",
     "CANNOT_ADD_SELF",
     "CANNOT_CHECK",
@@ -380,6 +381,7 @@
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.offer.wildMeld",
+    "canasta.remedy.blackThreesNeedCanastas",
     "canasta.remedy.blackThreesOnTheWayOut",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.discardNotARedThree",
@@ -1576,6 +1578,7 @@
     "blackjack.rules.stakeFromStack",
     "blackjack.rules.standsSoft17",
     "blackjack.rules.surrender",
+    "canasta.remedy.blackThreesNeedCanastas",
     "canasta.remedy.blackThreesOnTheWayOut",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.discardNotARedThree",
@@ -2368,6 +2371,10 @@
     ],
     "canasta.offer.wildMeld": [
       "value"
+    ],
+    "canasta.remedy.blackThreesNeedCanastas": [
+      "n",
+      "size"
     ],
     "canasta.remedy.captureFromHand": [
       "card"
@@ -3838,6 +3845,7 @@
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.offer.wildMeld",
+    "canasta.remedy.blackThreesNeedCanastas",
     "canasta.remedy.captureFromHand",
     "canasta.remedy.meldClosed",
     "canasta.remedy.needCanastas",

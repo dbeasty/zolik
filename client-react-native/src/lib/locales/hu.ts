@@ -444,6 +444,8 @@ export const hu: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'A hármasokat soha nem rakják le',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'A fekete hármasokat csak azzal a lépéssel lehet lerakni, amely kiüríti a kezed',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'A fekete hármasok csak kimenéskor tehetők le, és az oldaladnak még nincs meg hozzá a kanaszta',
   'err.CANNOT_DISCARD_RED_THREE': 'Piros hármast nem lehet eldobni',
   'err.MUST_KEEP_A_CARD': 'Az oldalad még nem szállhat ki — tarts meg két lapot, egyet eldobni, egyet megtartani',
   'err.MUST_MELD_FIRST': 'Előbb rakd le az oldalad nyitását',
@@ -574,6 +576,8 @@ export const hu: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Dobj el valami mást, ne piros hármast.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'A fekete hármasok csak kiszálláskor kerülnek ki: utána legfeljebb egy lapot tarthatsz meg, eldobásra.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'A fekete hármasok csak a kimenés részeként tehetők le, és ehhez az oldaladnak még {n} {size} lapos kanaszta kell. Addig egy eldobott fekete hármas lezárja a paklit a következő játékos elől.',
   'canasta.remedy.ownMeldsOnly': 'Csak a saját csapatod kombinációihoz tegyél hozzá.',
   'badge.naturalCanasta': 'Tiszta kanaszta',
   'badge.mixedCanasta': 'Vegyes kanaszta',

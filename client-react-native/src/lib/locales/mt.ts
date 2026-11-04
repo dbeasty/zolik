@@ -441,6 +441,8 @@ export const mt: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Dik il-kombinazzjoni mhijiex fuq il-mejda',
   'err.CANNOT_MELD_THREE': 'It-tlietiet qatt ma jitniżżlu',
   'err.BLACK_THREE_GO_OUT_ONLY': 'It-tlietiet suwed jitniżżlu biss bħala l-mossa li tbattal idejk',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'It-tlietiet suwed jitqiegħdu biss meta toħroġ, u n-naħa tiegħek għad m’għandhiex il-canasti għal dan',
   'err.CANNOT_DISCARD_RED_THREE': 'Tlieta ħamra ma tistax tintrema',
   'err.MUST_KEEP_A_CARD': 'In-naħa tiegħek għadha ma tistax toħroġ — żomm żewġ karti, waħda biex tarmi u waħda biex iżżomm',
   'err.MUST_MELD_FIRST': 'L-ewwel niżżel il-ftuħ tan-naħa tiegħek',
@@ -570,6 +572,8 @@ export const mt: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Armi xi ħaġa oħra għajr tlieta ħamra.',
   'canasta.remedy.blackThreesOnTheWayOut':
     "It-tlieta suwed jinżlu biss meta toħroġ: wara tista' żżomm karta waħda l-aktar, biex tarmiha.",
+  'canasta.remedy.blackThreesNeedCanastas':
+    'It-tlietiet suwed jitqiegħdu biss bħala parti mill-ħruġ, u n-naħa tiegħek l-ewwel trid {n} canasta oħra ta’ {size} karti. Sa dakinhar, tlieta sewda mormija timblokka l-mazz għall-plejer li jmiss.',
   'canasta.remedy.ownMeldsOnly': 'Żid biss mal-melds tan-naħa tiegħek stess.',
   'badge.naturalCanasta': 'Canasta nadifa',
   'badge.mixedCanasta': 'Canasta mħallta',
