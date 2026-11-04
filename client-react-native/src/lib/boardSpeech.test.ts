@@ -6,6 +6,8 @@ import {
   handSpokenLabel,
   isTypingTarget,
   newMoveLines,
+  offerTip,
+  verbTip,
   playOptionsFor,
   readTableText,
   seatSpokenLabel,
@@ -150,6 +152,31 @@ describe('playOptionsFor', () => {
     const { options, refusal } = playOptionsFor([refused], ['8H'], zones, players, 'me');
     expect(options).toEqual([]);
     expect(refusal?.code).toBe('NOT_YOUR_TURN');
+  });
+});
+
+describe('offerTip', () => {
+  const run = "Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's";
+
+  it('says what adding to a meld does, rather than naming the jargon', () => {
+    expect(offerTip(layoff, zones, players, 'me')).toBe(`Adds the selected cards to ${run}.`);
+  });
+
+  it('says where the wild goes when swapping for one', () => {
+    const poach: ActionOffer = { ...layoff, id: 'poach:m1', verb: 'poach' };
+    expect(offerTip(poach, zones, players, 'me')).toBe(
+      `Swaps the selected card for the wild it stands for in ${run}. The wild goes into your hand.`,
+    );
+  });
+
+  it('explains a folded add or swap without naming a meld', () => {
+    expect(verbTip('lay_off')).toBe('Adds the selected cards to a meld already on the table.');
+    expect(verbTip('poach')).toBe('Swaps the selected card for the wild it stands for in a meld. The wild goes into your hand.');
+    expect(verbTip('discard')).toBeUndefined();
+  });
+
+  it('keeps the plain sentence for any other move with a target', () => {
+    expect(offerTip(discard, zones, players, 'me')).toBe('Plays the selected cards to Discard pile.');
   });
 });
 
