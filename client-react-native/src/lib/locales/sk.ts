@@ -3335,6 +3335,8 @@ export const sk: Record<string, string> = {
   'a11y.board.confirm.yes': 'Áno, {move}',
   'a11y.board.confirm.no': 'Ešte nie',
   'a11y.board.chooser.title': 'Kam zahrať {cards}?',
+  'a11y.board.chooser.howTitle': 'Aký ťah s {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Zrušiť',
   'a11y.board.shortcut.nothing': 'Kláves {key} teraz nič nerobí',
   'a11y.board.shortcuts.title': 'Klávesové skratky',

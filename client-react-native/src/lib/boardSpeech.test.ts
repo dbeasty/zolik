@@ -145,6 +145,19 @@ describe('playOptionsFor', () => {
     ]);
   });
 
+  it('names the move when one meld takes the card two ways', () => {
+    // CanastaX: an 8 on your own dirty 8s either joins them or buys the joker.
+    // The lay-off names no key of its own, as the server's does not: its verb's is used.
+    const lay = { ...layoff, labelKey: undefined, source: { zoneId: 'hand:me', minCards: 1, maxCards: 1 } };
+    const poach: ActionOffer = { ...lay, id: 'poach:m1', verb: 'poach', labelKey: 'verb.poach' };
+    const { options } = playOptionsFor([discard, lay, poach], ['8H'], zones, players, 'me');
+    expect(options.map((o) => o.label)).toEqual([
+      'Play to Discard pile',
+      "Lay off — Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's",
+      "Poach a wild — Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's",
+    ]);
+  });
+
   it('carries the reason when a card goes nowhere', () => {
     const refused = { ...discard, enabled: false, whyNot: 'NOT_YOUR_TURN' };
     const { options, refusal } = playOptionsFor([refused], ['8H'], zones, players, 'me');

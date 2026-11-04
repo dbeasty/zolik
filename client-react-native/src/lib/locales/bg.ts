@@ -3347,6 +3347,8 @@ export const bg: Record<string, string> = {
   'a11y.board.confirm.yes': 'Да, {move}',
   'a11y.board.confirm.no': 'Още не',
   'a11y.board.chooser.title': 'Къде да се изиграе {cards}?',
+  'a11y.board.chooser.howTitle': 'Какъв ход с {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Отказ',
   'a11y.board.shortcut.nothing': 'В момента няма какво да се направи с {key}',
   'a11y.board.shortcuts.title': 'Клавишни комбинации',

@@ -3334,6 +3334,8 @@ export const hr: Record<string, string> = {
   'a11y.board.confirm.yes': 'Da, {move}',
   'a11y.board.confirm.no': 'Još ne',
   'a11y.board.chooser.title': 'Gdje odigrati {cards}?',
+  'a11y.board.chooser.howTitle': 'Koji potez s {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Odustani',
   'a11y.board.shortcut.nothing': 'S tipkom {key} trenutačno nema što učiniti',
   'a11y.board.shortcuts.title': 'Tipkovnički prečaci',

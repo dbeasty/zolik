@@ -3330,6 +3330,8 @@ export const sl: Record<string, string> = {
   'a11y.board.confirm.yes': 'Da, {move}',
   'a11y.board.confirm.no': 'Še ne',
   'a11y.board.chooser.title': 'Kam odigrati {cards}?',
+  'a11y.board.chooser.howTitle': 'Katera poteza s {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Prekliči',
   'a11y.board.shortcut.nothing': 'Tipka {key} trenutno ne naredi ničesar',
   'a11y.board.shortcuts.title': 'Bližnjice na tipkovnici',

@@ -3328,6 +3328,8 @@ export const cs: Record<string, string> = {
   'a11y.board.confirm.yes': 'Ano, {move}',
   'a11y.board.confirm.no': 'Ještě ne',
   'a11y.board.chooser.title': 'Kam zahrát: {cards}?',
+  'a11y.board.chooser.howTitle': 'Jaký tah s {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Zrušit',
   'a11y.board.shortcut.nothing': 'S klávesou {key} teď nelze nic udělat',
   'a11y.board.shortcuts.title': 'Klávesové zkratky',

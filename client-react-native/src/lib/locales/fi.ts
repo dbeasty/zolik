@@ -3341,6 +3341,8 @@ export const fi: Record<string, string> = {
   'a11y.board.confirm.yes': 'Kyllä, {move}',
   'a11y.board.confirm.no': 'Ei vielä',
   'a11y.board.chooser.title': 'Mihin pelataan {cards}?',
+  'a11y.board.chooser.howTitle': 'Mikä siirto: {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Peruuta',
   'a11y.board.shortcut.nothing': 'Näppäimellä {key} ei voi tehdä nyt mitään',
   'a11y.board.shortcuts.title': 'Pikanäppäimet',

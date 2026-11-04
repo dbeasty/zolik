@@ -177,22 +177,50 @@ export function playOptionsFor(
 ): { options: PlayOption[]; partial: PlayOption[]; refusal?: DropSpot['refusal'] } {
   const spots = dropSpotsFor(offers, cards);
   const takeable = takeableSpots(spots);
+  const refusal = takeable.length ? undefined : spots.find((s) => s.refusal)?.refusal;
+  return { ...playOptionsOf(takeable, offers, zones, players, viewerId), refusal };
+}
+
+/**
+ * The spots already found, as named choices — what `playOptionsFor` lists,
+ * for a caller that has the spots in hand (a drop or a press on one target).
+ *
+ * Two different moves can land on the same target with the same cards: in
+ * CanastaX an 8 let go on your own dirty meld of 8s either joins it or buys
+ * its joker back. Named by the target alone they would read as the same answer
+ * twice, so where a target takes more than one offer each choice says which
+ * move it is, in the offer's own words.
+ */
+export function playOptionsOf(
+  takeable: DropSpot[],
+  offers: ActionOffer[],
+  zones: Zone[],
+  players: MatchPlayer[],
+  viewerId: string,
+): { options: PlayOption[]; partial: PlayOption[] } {
+  const movesAt = new Map<string, Set<string>>();
+  for (const s of takeable) movesAt.set(s.elementId, (movesAt.get(s.elementId) ?? new Set()).add(s.offerId));
   const options: PlayOption[] = [];
   const partial: PlayOption[] = [];
   for (const spot of takeable) {
     const target = targetName(spot.elementId, zones, players, viewerId);
+    const offer = offers.find((o) => o.id === spot.offerId);
+    // Named the way its own control is (OfferBar): its key, else its verb's.
+    const move =
+      (movesAt.get(spot.elementId)?.size ?? 0) > 1 && offer
+        ? label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb
+        : '';
+    const named = (place: string, fallback: string) => (move ? t('a11y.board.moveOn', { move, target: place }) : fallback);
     const into = spot.ready ? options : partial;
     if ((spot.positions?.length ?? 0) > 1) {
       for (const position of spot.positions!) {
+        const end = label(`a11y.board.position.${position}`);
         into.push({
           key: `${spot.offerId}|${position}`,
           spot,
           position,
           target,
-          label: t('a11y.board.playToAt', {
-            target,
-            position: label(`a11y.board.position.${position}`),
-          }),
+          label: named(`${target}, ${end}`, t('a11y.board.playToAt', { target, position: end })),
         });
       }
     } else {
@@ -201,12 +229,16 @@ export function playOptionsFor(
         spot,
         position: spot.positions?.[0],
         target,
-        label: t('a11y.board.playTo', { target }),
+        label: named(target, t('a11y.board.playTo', { target })),
       });
     }
   }
-  const refusal = takeable.length ? undefined : spots.find((s) => s.refusal)?.refusal;
-  return { options, partial, refusal };
+  return { options, partial };
+}
+
+/** How many different moves these spots are — two on one target means asking which. */
+export function distinctMoves(spots: DropSpot[]): number {
+  return new Set(spots.map((s) => s.offerId)).size;
 }
 
 /** The flags a card in hand can carry besides its name. */

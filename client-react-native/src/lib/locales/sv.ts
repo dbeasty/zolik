@@ -3332,6 +3332,8 @@ export const sv: Record<string, string> = {
   'a11y.board.confirm.yes': 'Ja, {move}',
   'a11y.board.confirm.no': 'Inte än',
   'a11y.board.chooser.title': 'Var ska {cards} spelas?',
+  'a11y.board.chooser.howTitle': 'Vilket drag med {cards}?',
+  'a11y.board.moveOn': '{move} — {target}',
   'a11y.board.chooser.cancel': 'Avbryt',
   'a11y.board.shortcut.nothing': 'Inget att göra med {key} just nu',
   'a11y.board.shortcuts.title': 'Kortkommandon',
