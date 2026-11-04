@@ -155,8 +155,8 @@ describe('playOptionsFor', () => {
     const { options } = playOptionsFor([discard, lay, poach], ['8H'], zones, players, 'me');
     expect(options.map((o) => o.label)).toEqual([
       'Play to Discard pile',
-      "Lay off — Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's",
-      "Poach a wild — Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's",
+      "Add to meld — Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's",
+      "Swap for wild — Run: Five of Hearts, Six of Hearts, Seven of Hearts, Anna's",
     ]);
   });
 

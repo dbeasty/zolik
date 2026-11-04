@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { carryLocatorOver, dragLocatorTo, handCards, release } from '../helpers/drag';
+import { BOARD_FITS_HEIGHT, carryLocatorOver, dragLocatorTo, handCards, release } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { clearHandSelection, handCodes } from '../helpers/hand';
 
@@ -301,6 +301,9 @@ test.describe('dropping a card on the board', () => {
     // Dropped on the *group*, not on the zone that holds it. A partnership has
     // several melds in one spread, and which one the card joins is decided by
     // where the pointer let go.
+    // Tall enough that the meld is on screen with the hand: a drop lands only
+    // on a meld the player can see, and a four-seat board runs past 1400.
+    await page.setViewportSize({ width: 1280, height: BOARD_FITS_HEIGHT });
     await dragLocatorTo(page, card(page, index), page.getByTestId(`group-${meldId}`));
 
     // Asserted by *membership*, not by count.

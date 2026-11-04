@@ -36,6 +36,25 @@ export function useBoardMetrics(): Metrics {
 }
 
 /**
+ * The board's metrics a few steps smaller, for the hand while it is docked at
+ * the top of the screen. The dock is only worth having if it leaves room for
+ * the melds it was opened to look at, so its cards are drawn at roughly
+ * three quarters of the board's — never below the smallest this window can
+ * still print a rank on.
+ */
+export const DOCK_SCALE = 0.75;
+
+export function useDockMetrics(): Metrics {
+  const { width } = useWindowDimensions();
+  const { cardSize } = useA11yPrefs();
+  const { zoom, floor } = useBoardZoomLevel();
+  return useMemo(
+    () => metricsFor(width, cardSize, Math.max(floor, Math.round(zoom * DOCK_SCALE * 100) / 100)),
+    [width, cardSize, zoom, floor],
+  );
+}
+
+/**
  * The zoom the board is drawn at, and the smallest this window allows. The
  * saved zoom is kept as chosen, so a small zoom picked on a wide screen
  * comes back when the window is wide again.
