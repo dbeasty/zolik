@@ -156,7 +156,7 @@ test('the lobby offers CanastaX and states its rules', async ({ page, request })
   await page.getByText('CanastaX', { exact: true }).click();
   await expect(page.getByText(/dirty samba, worth 700/)).toBeVisible();
   await expect(page.getByText(/2250 if all 2s, 1500 with jokers/)).toBeVisible();
-  for (const option of ['Dirty sequences', 'Meld of 2s', 'Rearrange melds', 'Poach wilds', 'Top card or whole pile']) {
+  for (const option of ['Dirty sequences', 'Meld of 2s', 'Rearrange melds', 'Swap for wilds', 'Top card or whole pile']) {
     await expect(page.getByText(option, { exact: true })).toBeVisible();
   }
 });

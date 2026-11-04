@@ -161,7 +161,7 @@ test.describe("Žolík Classic's clean-run rule", () => {
     // The whole point of the report: not "no", but *why*. "Lay your own
     // initial meld first" was the old answer, to a player looking at three
     // melds of their own.
-    expect(await reasonUnder(page, 'Lay off')).toContain('joker-free run');
+    expect(await reasonUnder(page, 'Add to meld')).toContain('joker-free run');
 
     // And the turn cannot simply be walked away from with an unfinished
     // lay-down on the table — that is how the dead position was reached.

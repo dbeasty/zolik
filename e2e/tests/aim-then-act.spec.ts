@@ -16,7 +16,7 @@ import { clearHandSelection, selectOnly } from '../helpers/hand';
  * hit `onAmbiguous` and send whatever the offer's own list defaulted to —
  * a card nobody chose. Now it arms that meld as the target and sends nothing
  * until a selection actually settles it, which is the fix for both: aiming a
- * folded "Lay off" at a specific meld before any card is picked, and never
+ * folded "Add to meld" at a specific meld before any card is picked, and never
  * guessing which of several eligible cards was meant.
  */
 

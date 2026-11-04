@@ -552,6 +552,18 @@ export function offerSpokenName(title: string, facts: Fact[] | undefined, player
 }
 
 /**
+ * What a jargon verb does, in a sentence with no particular target — for a
+ * control that folds the same move at several melds into one button, where
+ * there is no single meld to name. Undefined for every other verb: their
+ * labels already say what they do.
+ */
+export function verbTip(verb: string): string | undefined {
+  if (verb === 'lay_off') return t('a11y.board.tip.add');
+  if (verb === 'poach') return t('a11y.board.tip.swap');
+  return undefined;
+}
+
+/**
  * What pressing an offer does, for its tooltip — read off the offer's shape,
  * never its game: a move that takes a card from a pile, one that plays the
  * picked cards somewhere, one that needs cards composed or an amount chosen,
@@ -565,7 +577,15 @@ export function offerTip(offer: ActionOffer, zones: Zone[], players: MatchPlayer
   if (offer.composite) return t('a11y.board.tip.compose', { n: need || 1 });
   if (need > 0) {
     const at = offer.target?.meldId ? `group-${offer.target.meldId}` : offer.target?.zoneId ? `zone-${offer.target.zoneId}` : undefined;
-    if (at) return t('a11y.board.tip.playTo', { target: targetName(at, zones, players, viewerId) });
+    if (at) {
+      const target = targetName(at, zones, players, viewerId);
+      // Two verbs whose names are card-table jargon get a sentence that says
+      // what actually happens. "Lay off" and "poach" are words a new player
+      // has to look up; "adds to" and "swaps for the wild" are not.
+      if (offer.verb === 'lay_off') return t('a11y.board.tip.addTo', { target });
+      if (offer.verb === 'poach') return t('a11y.board.tip.poach', { target });
+      return t('a11y.board.tip.playTo', { target });
+    }
     return undefined;
   }
   const from = offer.source?.zoneId ? zones.find((z) => z.id === offer.source!.zoneId) : undefined;

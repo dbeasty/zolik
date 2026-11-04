@@ -25,7 +25,7 @@ import { fits, readyWith, refusalOfFit, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
 import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
-import { offerSpokenName, offerTip } from '@/src/lib/boardSpeech';
+import { offerSpokenName, offerTip, verbTip } from '@/src/lib/boardSpeech';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText, t } from '@/src/lib/i18n';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -376,7 +376,7 @@ export function OfferBar({
 /**
  * A tiny row of what's currently pressable — built for a collapsed `Controls`
  * panel's rail, the same way `CardGlance` stands in for a minimized hand. One
- * pill per distinct label, so three targets folded into one "Lay off" control
+ * pill per distinct label, so three targets folded into one "Add to meld" control
  * above read as the one kind of move here too, not three identical pills;
  * disabled offers are left off, since a reason nobody can read yet on a
  * collapsed rail is not worth the room.
@@ -632,7 +632,7 @@ function FoldedOffer({
                 : sharedReason
                   ? reasonText(sharedReason, sharedReason)
                   : undefined
-              : undefined
+              : verbTip(first.verb)
           }
         >
         <Pressable
