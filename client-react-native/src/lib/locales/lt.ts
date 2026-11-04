@@ -435,6 +435,8 @@ export const lt: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Trejetai niekada neišdedami',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Juodi trejetai išdedami tik kaip ėjimas, ištuštinantis tavo ranką',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Juodi trejetai dedami tik išeinant, o tavo pusė dar neturi tam reikiamų kanastų',
   'err.CANNOT_DISCARD_RED_THREE': 'Raudono trejeto atmesti negalima',
   'err.MUST_KEEP_A_CARD': 'Tavo pusė dar negali išeiti — pasilik dvi kortas, vieną numesti ir vieną laikyti',
   'err.MUST_MELD_FIRST': 'Pirma išdėk savo pusės pradinį derinį',
@@ -560,6 +562,8 @@ export const lt: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Numesk ką nors kita, ne raudoną trejetą.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Juodi trejetai dedami tik išeinant: po to gali pasilikti daugiausia vieną kortą, kurią numesi.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Juodi trejetai dedami tik išeinant, o tavo pusei pirmiausia reikia dar {n} kanastos iš {size} kortų. Iki tol numestas juodas trejetas užblokuoja krūvą kitam žaidėjui.',
   'canasta.remedy.ownMeldsOnly': 'Papildyk tik savo pusės kombinacijas.',
   'badge.naturalCanasta': 'Švari kanasta',
   'badge.mixedCanasta': 'Nešvari kanasta',

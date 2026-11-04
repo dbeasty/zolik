@@ -120,6 +120,11 @@ const (
 	// one. "Threes are never melded" would be a lie at a Classic table that is
 	// offering the move three lines further down the same screen.
 	ErrBlackThreeGoOutOnly = "BLACK_THREE_GO_OUT_ONLY"
+	// ErrBlackThreesNeedCanastas is the black-three meld refused for lack of
+	// canastas. It was CANNOT_GO_OUT_YET, which is true but reads as a
+	// non-sequitur on the Meld button: the player asked to meld, not to go
+	// out, and nothing said the threes were melded only on the way out.
+	ErrBlackThreesNeedCanastas = "BLACK_THREES_NEED_CANASTAS"
 	ErrNoSuchMeld          = "NO_SUCH_MELD"
 	ErrNotYourMeld         = "NOT_YOUR_MELD"
 	ErrMeldClosed          = "MELD_CLOSED"

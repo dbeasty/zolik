@@ -439,6 +439,8 @@ export const pt: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Os treses nunca se baixam',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Os treses pretos só se baixam como a jogada que esvazia a tua mão',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Os três pretos só se baixam ao bater, e a tua equipa ainda não tem as canastras para isso',
   'err.CANNOT_DISCARD_RED_THREE': 'Um três vermelho não pode ser descartado',
   'err.MUST_KEEP_A_CARD': 'O teu lado ainda não pode sair — fica com duas cartas, uma para descartar e outra para guardar',
   'err.MUST_MELD_FIRST': 'Baixa primeiro a abertura do teu lado',
@@ -566,6 +568,8 @@ export const pt: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Descarta outra coisa que não um três vermelho.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Os três pretos só descem ao sair: depois podes ficar com uma carta no máximo, para descartar.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Os três pretos só se baixam ao bater, e antes a tua equipa precisa de mais {n} canastra de {size} cartas. Até lá, descartar um bloqueia o monte para o jogador seguinte.',
   'canasta.remedy.ownMeldsOnly': 'Junta apenas às combinações do teu próprio lado.',
   'badge.naturalCanasta': 'Canastra limpa',
   'badge.mixedCanasta': 'Canastra suja',

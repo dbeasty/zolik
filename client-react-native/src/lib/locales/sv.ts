@@ -429,6 +429,8 @@ export const sv: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Den kombinationen ligger inte på bordet',
   'err.CANNOT_MELD_THREE': 'Treor läggs aldrig ut',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Svarta treor läggs bara ut som draget som tömmer din hand',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Svarta treor läggs bara ned när du går ut, och er sida har inte canastorna för det än',
   'err.CANNOT_DISCARD_RED_THREE': 'En röd trea får inte kastas',
   'err.MUST_KEEP_A_CARD': 'Din sida kan inte gå ut än — behåll två kort, ett att kasta och ett att behålla',
   'err.MUST_MELD_FIRST': 'Lägg ut din sidas öppning först',
@@ -557,6 +559,8 @@ export const sv: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Kasta något annat än en röd trea.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Svarta treor läggs bara ned när du går ut: efteråt får du behålla högst ett kort, att slänga.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Svarta treor läggs bara ned när du går ut, och er sida behöver först {n} canasta till om {size} kort. Tills dess spärrar en kastad svart trea högen för nästa spelare.',
   'canasta.remedy.ownMeldsOnly': 'Lägg bara till på din egen sidas läggningar.',
   'badge.naturalCanasta': 'Ren canasta',
   'badge.mixedCanasta': 'Oren canasta',

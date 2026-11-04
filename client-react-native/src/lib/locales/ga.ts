@@ -450,6 +450,8 @@ export const ga: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Ní leagtar trínna síos riamh',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Ní leagtar trínna dubha síos ach mar an mbeart a fholmhaíonn do lámh',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Ní leagtar triúir dhubha síos ach agus tú ag dul amach, agus níl na canastaí ag do thaobh fós',
   'err.CANNOT_DISCARD_RED_THREE': 'Ní féidir trí dhearg a chaitheamh',
   'err.MUST_KEEP_A_CARD': 'Ní féidir le do thaobh dul amach fós — coinnigh dhá chárta, ceann le caitheamh agus ceann le coinneáil',
   'err.MUST_MELD_FIRST': 'Leag síos céad chumasc do thaobha ar dtús',
@@ -579,6 +581,8 @@ export const ga: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Caith rud éigin seachas trí dearg.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Ní chuirtear trínna dubha síos ach agus tú ag dul amach: ina dhiaidh sin ní féidir leat ach cárta amháin ar a mhéad a choinneáil, lena chaitheamh.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Ní leagtar triúir dhubha síos ach mar chuid den dul amach, agus tá {n} canasta eile de {size} cárta de dhíth ar do thaobh ar dtús. Go dtí sin, cuireann triúr dubh caite bac ar an gcarn don chéad imreoir eile.',
   'canasta.remedy.ownMeldsOnly': 'Ná cuir le cumasc ach amháin ceann de chuid do thaoibh féin.',
   'badge.naturalCanasta': 'Canasta glan',
   'badge.mixedCanasta': 'Canasta measctha',

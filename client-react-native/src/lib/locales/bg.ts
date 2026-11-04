@@ -440,6 +440,8 @@ export const bg: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Тройки никога не се свалят',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Черните тройки се свалят само като ходът, който изпразва ръката ти',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Черните тройки се свалят само при излизане, а твоята страна още няма канастите за това',
   'err.CANNOT_DISCARD_RED_THREE': 'Червена тройка не може да се изхвърля',
   'err.MUST_KEEP_A_CARD': 'Страната ти още не може да излезе — задръж две карти, една за хвърляне и една в ръка',
   'err.MUST_MELD_FIRST': 'Първо свали отварянето на страната си',
@@ -569,6 +571,8 @@ export const bg: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Хвърли нещо друго, не червена тройка.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Черните тройки се полагат само при излизане: след това можеш да задържиш най-много една карта, за да я изхвърлиш.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Черните тройки се свалят само като част от излизането, а твоята страна първо има нужда от още {n} канаста от {size} карти. Дотогава изхвърлена черна тройка блокира купчината за следващия играч.',
   'canasta.remedy.ownMeldsOnly': 'Добавяй само към комбинациите на твоята страна.',
   'badge.naturalCanasta': 'Чиста канаста',
   'badge.mixedCanasta': 'Нечиста канаста',

@@ -438,6 +438,8 @@ export const ro: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Acea combinație nu este pe masă',
   'err.CANNOT_MELD_THREE': 'Treiurile nu se coboară niciodată',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Treiurile negre se coboară doar ca mutarea care îți golește mâna',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Treiarii negri se pun jos doar la ieșire, iar echipa ta nu are încă canastele pentru asta',
   'err.CANNOT_DISCARD_RED_THREE': 'Un trei roșu nu poate fi aruncat',
   'err.MUST_KEEP_A_CARD': 'Tabăra ta nu poate ieși încă — păstrează două cărți, una de aruncat și una de ținut',
   'err.MUST_MELD_FIRST': 'Coboară mai întâi deschiderea taberei tale',
@@ -566,6 +568,8 @@ export const ro: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Aruncă altceva decât un trei roșu.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Treii negri se pun jos doar la ieșire: după aceea poți păstra cel mult o carte, de aruncat.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Treiarii negri se pun jos doar ca parte a ieșirii, iar echipa ta mai are nevoie întâi de {n} canastă de {size} cărți. Până atunci, un treiar negru aruncat blochează teancul pentru următorul jucător.',
   'canasta.remedy.ownMeldsOnly': 'Adaugă doar la combinațiile propriei echipe.',
   'badge.naturalCanasta': 'Canastă curată',
   'badge.mixedCanasta': 'Canastă mixtă',

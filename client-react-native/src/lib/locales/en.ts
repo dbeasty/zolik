@@ -450,6 +450,8 @@ export const en: Record<string, string> = {
   'err.NO_SUCH_MELD': 'That meld is not on the table',
   'err.CANNOT_MELD_THREE': 'Threes are never melded',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Black threes go down only as the move that empties your hand',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Black threes go down only when you go out, and your side hasn\'t the canastas for that yet',
   'err.CANNOT_DISCARD_RED_THREE': 'A red three can\'t be discarded',
   'err.MUST_KEEP_A_CARD': 'Your side can\'t go out yet — keep two cards, one to discard and one to hold',
   'err.MUST_MELD_FIRST': 'Lay your side\'s first meld before doing that',
@@ -564,6 +566,8 @@ export const en: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Discard something other than a red three.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Black threes go down only as part of going out: afterwards you may keep at most one card, to discard.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Black threes are melded only as part of going out, and your side needs {n} more canasta of {size} first. Until then, discarding one blocks the pile for the next player.',
   'canasta.remedy.ownMeldsOnly': "Add them to one of your own side's melds.",
   'badge.naturalCanasta': 'Natural canasta',
   'badge.mixedCanasta': 'Mixed canasta',

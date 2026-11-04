@@ -332,8 +332,16 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	}
 	if laid == 0 {
 		o := module.ActionOffer{ID: OfferLayMeld, Verb: VerbLayMeld}
+		asked := plausibleMeld(r, hand, t)
+		// A hand whose only meld is its black threes is refused for the
+		// threes' reason — usually "not enough canastas to go out" — rather
+		// than for an empty or two-card guess at some other rank, which read
+		// "a meld needs more cards" to a player holding three threes.
+		if bt := blackThreeCandidate(r, hand); bt != nil && len(asked) < minMeldSize {
+			asked = bt
+		}
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-			Verb: VerbLayMeld, Cards: plausibleMeld(r, hand, t),
+			Verb: VerbLayMeld, Cards: asked,
 		})
 		o.Source = &module.Selector{
 			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),

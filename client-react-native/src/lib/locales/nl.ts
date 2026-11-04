@@ -443,6 +443,8 @@ export const nl: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Drieën worden nooit gelegd',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Zwarte drieën worden alleen gelegd als de zet die je hand leegmaakt',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Zwarte drieën gaan alleen op tafel als je uitgaat, en je kant heeft daar nog niet de canasta’s voor',
   'err.CANNOT_DISCARD_RED_THREE': 'Een rode drie mag niet afgelegd worden',
   'err.MUST_KEEP_A_CARD': 'Jouw partij kan nog niet uitgaan — houd twee kaarten, één om af te leggen en één om te houden',
   'err.MUST_MELD_FIRST': 'Leg eerst de openingsleg van jouw partij',
@@ -572,6 +574,8 @@ export const nl: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Leg iets anders af dan een rode drie.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Zwarte drieën gaan alleen neer bij het uitgaan: daarna mag je hoogstens één kaart houden, om af te leggen.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Zwarte drieën gaan alleen op tafel als je uitgaat, en je kant heeft eerst nog {n} canasta van {size} kaarten nodig. Tot dan blokkeert een afgelegde zwarte drie de stapel voor de volgende speler.',
   'canasta.remedy.ownMeldsOnly': 'Leg alleen aan bij series van je eigen kant.',
   'badge.naturalCanasta': 'Zuivere canasta',
   'badge.mixedCanasta': 'Onzuivere canasta',

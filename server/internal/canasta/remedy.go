@@ -206,6 +206,22 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 		case ErrBlackThreeGoOutOnly:
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.blackThreesOnTheWayOut"}
 
+		case ErrBlackThreesNeedCanastas:
+			// What is still owed, and what to do with the threes meanwhile:
+			// a black three discarded blocks the pile for the next player,
+			// which is the use a held one has until the side can go out.
+			if t != nil {
+				short := s.CanastasToGoOut - t.canastas()
+				if short < 1 {
+					short = 1
+				}
+				o.Remedy = &module.Fact{
+					LabelKey: "canasta.remedy.blackThreesNeedCanastas",
+					Params:   map[string]any{"n": short, "size": canastaSize},
+				}
+			}
+			o.RemedyOfferID = firstEnabled(OfferDiscard)
+
 		case ErrNotYourMeld:
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.ownMeldsOnly"}
 			o.RemedyOfferID = firstEnabled("lay_off")

@@ -1358,8 +1358,8 @@ func TestBlackThreesOnlyGoDownOnTheWayOut(t *testing.T) {
 		})
 		if _, code := apply(t, raw, "p1", module.Action{
 			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
-		}); code != ErrCannotGoOutYet {
-			t.Errorf("got %q, want %q", code, ErrCannotGoOutYet)
+		}); code != ErrBlackThreesNeedCanastas {
+			t.Errorf("got %q, want %q", code, ErrBlackThreesNeedCanastas)
 		}
 	})
 
@@ -1435,6 +1435,38 @@ func TestBlackThreesThenTheClosingDiscard(t *testing.T) {
 				t.Errorf("the deal should have ended with p1 out, got %+v", s.LastDeal)
 			}
 		})
+	}
+}
+
+// Three black threes and a wild, at a Samba table whose side has one canasta of
+// the two it needs: the meld is refused, and the Meld control has to say why.
+// It used to read "a meld needs more cards than that", because the reason was
+// asked of a guess at some other rank — and the hand had none.
+func TestRefusedBlackThreesSayWhy(t *testing.T) {
+	raw := sambaTable(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+			Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}}}
+		s.Hands["p1"] = []string{"2S", "3C", "3C", "3S"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := offerByID(offers, OfferLayMeld)
+	if o == nil {
+		t.Fatalf("no meld control:\n%s", module.DescribeOffers(offers))
+	}
+	if o.Enabled || o.WhyNot != ErrBlackThreesNeedCanastas {
+		t.Errorf("meld control: enabled=%v whyNot=%q, want refused with %q", o.Enabled, o.WhyNot, ErrBlackThreesNeedCanastas)
+	}
+	// The help behind it names the black-three rule, and says what is owed.
+	if len(o.RuleIDs) == 0 || o.RuleIDs[0] != "canasta.rules.blackThreesGoOut" {
+		t.Errorf("rules behind the refusal: %v, want the black-three sentence first", o.RuleIDs)
+	}
+	if o.Remedy == nil || o.Remedy.LabelKey != "canasta.remedy.blackThreesNeedCanastas" || o.Remedy.Params["n"] != 1 {
+		t.Errorf("remedy: %+v, want blackThreesNeedCanastas with n=1", o.Remedy)
 	}
 }
 

@@ -440,6 +440,8 @@ export const pl: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Tego układu nie ma na stole',
   'err.CANNOT_MELD_THREE': 'Trójek nigdy się nie wykłada',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Czarne trójki wykłada się tylko jako zagranie opróżniające rękę',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Czarne trójki wykłada się tylko przy wyjściu, a twoja strona nie ma jeszcze do tego kanast',
   'err.CANNOT_DISCARD_RED_THREE': 'Czerwonej trójki nie można odrzucić',
   'err.MUST_KEEP_A_CARD': 'Twoja strona nie może jeszcze wyjść — zatrzymaj dwie karty, jedną do odrzucenia i jedną w ręce',
   'err.MUST_MELD_FIRST': 'Najpierw wyłóż otwarcie swojej strony',
@@ -566,6 +568,8 @@ export const pl: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Zrzuć coś innego niż czerwoną trójkę.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Czarne trójki wykłada się tylko przy wychodzeniu: potem możesz zatrzymać najwyżej jedną kartę, do odrzucenia.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Czarne trójki wykłada się tylko przy wyjściu, a twoja strona potrzebuje najpierw jeszcze {n} kanasty po {size} kart. Do tego czasu odrzucona czarna trójka blokuje stos następnemu graczowi.',
   'canasta.remedy.ownMeldsOnly': 'Dokładaj tylko do układów własnej strony.',
   'badge.naturalCanasta': 'Czysta canasta',
   'badge.mixedCanasta': 'Brudna canasta',

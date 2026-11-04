@@ -435,6 +435,8 @@ export const sl: Record<string, string> = {
   'err.NO_SUCH_MELD': 'Te kombinacije ni na mizi',
   'err.CANNOT_MELD_THREE': 'Trojk se nikoli ne polaga',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Črne trojke se položijo le kot poteza, ki izprazni tvojo roko',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Črne trojke se polagajo samo ob izhodu, tvoja stran pa za to še nima kanast',
   'err.CANNOT_DISCARD_RED_THREE': 'Rdeče trojke ni mogoče odvreči',
   'err.MUST_KEEP_A_CARD': 'Tvoja stran še ne more iziti — obdrži dve karti, eno za odmet in eno v roki',
   'err.MUST_MELD_FIRST': 'Najprej položi prvo kombinacijo svoje strani',
@@ -559,6 +561,8 @@ export const sl: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Odvrzi kaj drugega kot rdečo trojko.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Črne trojke se položijo samo ob izhodu: nato smeš obdržati največ eno karto, za odmet.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Črne trojke se polagajo samo kot del izhoda, tvoja stran pa najprej potrebuje še {n} kanasto po {size} kart. Do takrat odvržena črna trojka zaklene kup naslednjemu igralcu.',
   'canasta.remedy.ownMeldsOnly': 'Dopolnjuj samo kombinacije svoje strani.',
   'badge.naturalCanasta': 'Čista kanasta',
   'badge.mixedCanasta': 'Nečista kanasta',

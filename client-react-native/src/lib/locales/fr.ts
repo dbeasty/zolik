@@ -439,6 +439,8 @@ export const fr: Record<string, string> = {
   'err.NO_SUCH_MELD': "Cette combinaison n'est pas sur la table",
   'err.CANNOT_MELD_THREE': 'Les trois ne se posent jamais',
   'err.BLACK_THREE_GO_OUT_ONLY': 'Les trois noirs ne se posent que comme le coup qui vide ta main',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Les trois noirs ne se posent qu’en sortant, et ton camp n’a pas encore les canastas pour sortir',
   'err.CANNOT_DISCARD_RED_THREE': 'Un trois rouge ne peut pas être défaussé',
   'err.MUST_KEEP_A_CARD': 'Ton camp ne peut pas encore sortir — garde deux cartes, une à défausser et une à conserver',
   'err.MUST_MELD_FIRST': "Pose d'abord l'ouverture de ton camp",
@@ -566,6 +568,8 @@ export const fr: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': "Défausse autre chose qu'un trois rouge.",
   'canasta.remedy.blackThreesOnTheWayOut':
     'Les trois noirs ne se posent que pour sortir : ensuite tu peux garder au plus une carte, pour la défausser.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Les trois noirs ne se posent qu’en sortant, et il manque d’abord {n} canasta de {size} cartes à ton camp. D’ici là, défausser un trois noir bloque le talon pour le joueur suivant.',
   'canasta.remedy.ownMeldsOnly': 'Ne complète que les combinaisons de ton propre camp.',
   'badge.naturalCanasta': 'Canasta pure',
   'badge.mixedCanasta': 'Canasta mixte',

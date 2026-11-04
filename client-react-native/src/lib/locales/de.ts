@@ -446,6 +446,8 @@ export const de: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'Dreien werden nie ausgelegt',
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Schwarze Dreien werden nur als der Zug ausgelegt, der deine Hand leert',
+  'err.BLACK_THREES_NEED_CANASTAS':
+    'Schwarze Dreien werden nur beim Rausgehen ausgelegt, und dafür fehlen deiner Seite noch Canastas',
   'err.CANNOT_DISCARD_RED_THREE': 'Eine rote Drei kann nicht abgelegt werden',
   'err.MUST_KEEP_A_CARD': 'Deine Seite kann noch nicht hinausgehen — behalte zwei Karten, eine zum Ablegen und eine zum Halten',
   'err.MUST_MELD_FIRST': 'Leg zuerst die Erstauslage deiner Seite',
@@ -576,6 +578,8 @@ export const de: Record<string, string> = {
   'canasta.remedy.discardNotARedThree': 'Leg etwas anderes ab als eine rote Drei.',
   'canasta.remedy.blackThreesOnTheWayOut':
     'Schwarze Dreien werden nur beim Hinausgehen ausgelegt: danach darfst du höchstens eine Karte behalten, zum Abwerfen.',
+  'canasta.remedy.blackThreesNeedCanastas':
+    'Schwarze Dreien werden nur beim Rausgehen ausgelegt, und dafür fehlen deiner Seite noch {n} Canastas zu je {size} Karten. Bis dahin sperrt eine abgeworfene schwarze Drei den Stapel für den nächsten Spieler.',
   'canasta.remedy.ownMeldsOnly': 'Leg nur an Auslagen deiner eigenen Seite an.',
   'badge.naturalCanasta': 'Reine Canasta',
   'badge.mixedCanasta': 'Unreine Canasta',
