@@ -158,7 +158,7 @@ const BASE_PANEL = {
 const FULL_CARD = 2.5;
 
 const BASE_BUTTON_MIN_WIDTH = 92;
-const BASE_STACKED_CORNER = 26;
+const BASE_STACKED_CORNER = 19;
 
 /**
  * Breakpoints chosen against a real 375×812 phone viewport, where a 13-card

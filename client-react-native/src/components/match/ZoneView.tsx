@@ -1227,7 +1227,7 @@ function zoneStyles(m: Metrics, s: Skin) {
     markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
     foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
-    toggleGlyph: { color: colors.accentButton, fontSize: 13, lineHeight: 16, fontWeight: '700', textAlign: 'center', marginBottom: 2 },
+    toggleGlyph: { color: colors.accentButton, fontSize: 11, lineHeight: 11, fontWeight: '700', textAlign: 'center', marginTop: -2, marginBottom: 1 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     back: {

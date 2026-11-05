@@ -132,7 +132,7 @@ async function tapArrow(page: Page, id: string, testId: string) {
   await page.mouse.click(x, y);
 }
 
-for (const width of [1280, 375]) {
+for (const width of [1280, 900, 375]) {
   test(`a meld shows an expand arrow closed and a collapse arrow open (${width}px)`, async ({ page, request }) => {
     const { matchId, host } = await seededTable(request);
     await openMatch(page, host, matchId, width);
