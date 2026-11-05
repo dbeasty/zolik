@@ -1592,6 +1592,7 @@ export const fi: Record<string, string> = {
   'rules.standIn.record': 'Peli, jonka botti pelasi puolestasi, jää historiaasi, mutta sitä ei lasketa voitoksi eikä tappioksi.',
   'rules.standIn.wait': 'Jos pelaajan yhteys katkeaa, pöytä odottaa hänen paluutaan.',
   'banner.offline': 'Olet offline-tilassa. Yhdistetään uudelleen…',
+  'banner.useThisTab': 'Käytä tätä välilehteä',
   'banner.serverOffline': 'Palvelin ({name}) on offline-tilassa. Peli on tauolla, eikä mitään menetetä.',
   'banner.waitingFor': 'Odotetaan: {name}.',
   'banner.botIn': 'Botti pelaa hänen puolestaan {time} kuluttua.',

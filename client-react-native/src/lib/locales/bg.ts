@@ -1594,6 +1594,7 @@ export const bg: Record<string, string> = {
   'rules.standIn.record': 'Игра, която бот е изиграл вместо теб, остава в историята ти, но не се брои нито за победа, нито за загуба.',
   'rules.standIn.wait': 'Ако връзката на играч прекъсне, масата чака да се върне.',
   'banner.offline': 'Офлайн сте. Свързване отново…',
+  'banner.useThisTab': 'Използвай този раздел',
   'banner.serverOffline': 'Сървърът ({name}) е офлайн. Играта е на пауза и нищо не се губи.',
   'banner.waitingFor': 'Изчаква се {name}.',
   'banner.botIn': 'След {time} бот ще играе вместо него.',

@@ -1586,6 +1586,7 @@ export const et: Record<string, string> = {
   'rules.standIn.record': 'Mäng, mille bot sinu eest mängis, jääb ajalukku, kuid ei loe võiduks ega kaotuseks.',
   'rules.standIn.wait': 'Kui mängija ühendus katkeb, ootab laud tema naasmist.',
   'banner.offline': 'Oled võrguühenduseta. Ühendan uuesti…',
+  'banner.useThisTab': 'Kasuta seda vahekaarti',
   'banner.serverOffline': 'Server ({name}) on võrgust väljas. Mäng on peatatud ja midagi ei lähe kaduma.',
   'banner.waitingFor': 'Ootame mängijat {name}.',
   'banner.botIn': 'Bot hakkab tema eest mängima {time} pärast.',

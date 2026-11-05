@@ -239,7 +239,7 @@ function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, notice, send: sendRaw, clearError, clearNotice } = useMatchSocket(url, client);
+  const { state, error, connected, displaced, reclaim, notice, send: sendRaw, clearError, clearNotice } = useMatchSocket(url, client);
 
   // The guided lesson this table was dealt for, if it was one. Every move
   // that actually leaves for the table is reported to it (so it counts the
@@ -2443,6 +2443,8 @@ function MatchScreen() {
         seats={view.seats ?? []}
         viewerId={viewerId}
         connected={connected}
+        displaced={displaced}
+        onReclaim={reclaim}
         serverGone={offline?.serverGone ? { name: serverName } : undefined}
         notice={notice}
         onDismissNotice={clearNotice}

@@ -1583,6 +1583,7 @@ export const lt: Record<string, string> = {
   'rules.standIn.record': 'Žaidimas, kurį už tave žaidė botas, lieka istorijoje, bet nelaikomas nei pergale, nei pralaimėjimu.',
   'rules.standIn.wait': 'Jei žaidėjui nutrūksta ryšys, stalas laukia, kol jis grįš.',
   'banner.offline': 'Esi neprisijungęs. Jungiamasi iš naujo…',
+  'banner.useThisTab': 'Naudoti šį skirtuką',
   'banner.serverOffline': 'Serveris ({name}) neprisijungęs. Žaidimas sustabdytas, niekas neprarandama.',
   'banner.waitingFor': 'Laukiama: {name}.',
   'banner.botIn': 'Po {time} už jį žais botas.',

@@ -29,7 +29,7 @@ export type SocketLike = {
   readonly readyState: number;
   onopen: (() => void) | null;
   onmessage: ((ev: { data: string }) => void) | null;
-  onclose: ((ev?: { code?: number }) => void) | null;
+  onclose: ((ev?: { code?: number; reason?: string }) => void) | null;
   onerror: (() => void) | null;
   send(data: string): void;
   close(): void;

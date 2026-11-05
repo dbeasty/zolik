@@ -1579,6 +1579,7 @@ export const sv: Record<string, string> = {
   'rules.standIn.record': 'Ett parti som en bot spelade åt dig finns kvar i din historik men räknas varken som vinst eller förlust.',
   'rules.standIn.wait': 'Om en spelare tappar anslutningen väntar bordet tills de är tillbaka.',
   'banner.offline': 'Du är offline. Återansluter…',
+  'banner.useThisTab': 'Använd den här fliken',
   'banner.serverOffline': 'Servern ({name}) är offline. Spelet är pausat och inget går förlorat.',
   'banner.waitingFor': 'Väntar på {name}.',
   'banner.botIn': 'Om {time} spelar en bot åt dem.',

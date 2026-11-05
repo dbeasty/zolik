@@ -28,6 +28,16 @@ export type MatchSocketState = {
   error: { code: string; message?: string; ruleIds?: string[] } | null;
   connected: boolean;
   /**
+   * The server closed this socket because a newer connection for the same
+   * player took the seat — another tab, another device, a test session
+   * signed in as them. Reconnecting on its own would only steal the seat
+   * back and start a tug-of-war, so the socket stays closed until the player
+   * asks for the seat back with `reclaim`.
+   */
+  displaced: boolean;
+  /** Take the seat back from whichever connection displaced this one. */
+  reclaim: () => void;
+  /**
    * Something the server told this player once, about their own seat, that
    * the board alone does not say — `stand_in_ended` when they come back to a
    * seat a bot has been playing for them. Cleared with `clearNotice`.
@@ -58,6 +68,17 @@ function withToken(url: string, token: string): string {
   return url.replace(TOKEN_PARAM, (_, prefix: string) => prefix + encodeURIComponent(token));
 }
 
+/**
+ * One console line per connection event, so "why is this tab offline?" has an
+ * answer in DevTools after the fact. The token is cut out of the address:
+ * the console is pasted into bug reports.
+ */
+function logSocket(event: string, url: string, detail?: Record<string, unknown>): void {
+  const where = url.replace(TOKEN_PARAM, '$1…').replace(/^.*?\/ws\//, '/ws/');
+  // eslint-disable-next-line no-console
+  console.info(`[match socket] ${event} ${where}`, ...(detail ? [detail] : []));
+}
+
 function tokenOf(url: string): string | null {
   const m = TOKEN_PARAM.exec(url);
   return m ? decodeURIComponent(m[2]) : null;
@@ -81,6 +102,10 @@ export function useMatchSocket(
   );
   const [connected, setConnected] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [displaced, setDisplaced] = useState(false);
+  // Bumped by `reclaim`: a new run of the effect is a fresh chain, with none
+  // of the displaced one's verdict carried over.
+  const [claim, setClaim] = useState(0);
   const wsRef = useRef<SocketLike | null>(null);
   // Reconnect attempts, reset once an open socket has stayed open for a
   // while (see STABLE_MS below) rather than the instant it opens. Kept in a
@@ -89,6 +114,7 @@ export function useMatchSocket(
 
   useEffect(() => {
     if (!url) return;
+    setDisplaced(false);
     // Whether *this* run of the effect has been torn down.
     //
     // Deliberately a plain local rather than a ref shared with the next run,
@@ -170,6 +196,7 @@ export function useMatchSocket(
 
     const open = () => {
       if (torn) return;
+      logSocket('connecting', current, { attempt: attemptRef.current });
       const ws = client.openSocket(current);
       socket = ws;
       wsRef.current = ws;
@@ -178,6 +205,7 @@ export function useMatchSocket(
       ws.onopen = () => {
         opened = true;
         renewed = false;
+        logSocket('open', current);
         setConnected(true);
         if (stableTimer) clearTimeout(stableTimer);
         stableTimer = setTimeout(() => {
@@ -213,6 +241,7 @@ export function useMatchSocket(
       ws.onclose = (ev) => {
         if (stableTimer) clearTimeout(stableTimer);
         if (torn) return;
+        logSocket('closed', current, { code: ev?.code, reason: ev?.reason || undefined, wasOpen: opened });
         // The server closes with this code on purpose, when a newer
         // connection for this same player — another tab, most likely — has
         // already taken the seat. Reconnecting here would only trade the
@@ -221,16 +250,21 @@ export function useMatchSocket(
         // leaving a stale board on screen with a spinner that never resolves.
         if (ev?.code === WS_CLOSE_DISPLACED) {
           terminal = true;
-          setError({ code: 'DISPLACED' });
+          setDisplaced(true);
+          logSocket('displaced: another connection holds this seat; not reconnecting', current);
         }
         setConnected(false);
         // The refusal is already on screen and is the last word; reconnecting
         // would only fetch it again, for ever.
-        if (terminal) return;
+        if (terminal) {
+          if (ev?.code !== WS_CLOSE_DISPLACED) logSocket('not reconnecting: refusal is final', current);
+          return;
+        }
         void (async () => {
           if (torn || socket !== ws) return;
           if (!opened && (await renewToken())) {
             // A refusal the new token answers; there is nothing to wait out.
+            logSocket('token renewed; retrying now', current);
             if (!torn && socket === ws) open();
             return;
           }
@@ -242,6 +276,7 @@ export function useMatchSocket(
               setError({ code: 'SERVER_BUSY' });
               delay = busyBackoff(attemptRef.current);
               attemptRef.current += 1;
+              logSocket('server busy; retrying', current, { inMs: delay });
               // A newer socket may have been opened while the probe was out
               // (the app coming back to the foreground does that). Scheduling
               // another would run two chains side by side.
@@ -253,6 +288,7 @@ export function useMatchSocket(
           }
           delay = jitteredBackoff(attemptRef.current);
           attemptRef.current += 1;
+          logSocket('retrying', current, { inMs: delay });
           if (!torn && socket === ws) timer = setTimeout(open, delay);
         })();
       };
@@ -274,6 +310,7 @@ export function useMatchSocket(
       if (timer) clearTimeout(timer);
       timer = null;
       attemptRef.current = 0;
+      logSocket('foreground; reconnecting now', current);
       open();
     });
 
@@ -289,7 +326,7 @@ export function useMatchSocket(
       if (wsRef.current === socket) wsRef.current = null;
       setConnected(false);
     };
-  }, [url, client]);
+  }, [url, client, claim]);
 
   const send = useCallback((action: MatchAction) => {
     const ws = wsRef.current;
@@ -311,6 +348,12 @@ export function useMatchSocket(
 
   const clearError = useCallback(() => setError(null), []);
   const clearNotice = useCallback(() => setNotice(null), []);
+  const reclaim = useCallback(() => {
+    attemptRef.current = 0;
+    setDisplaced(false);
+    setError(null);
+    setClaim((n) => n + 1);
+  }, []);
 
-  return { state, error, connected, notice, send, clearError, clearNotice };
+  return { state, error, connected, displaced, reclaim, notice, send, clearError, clearNotice };
 }

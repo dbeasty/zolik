@@ -322,6 +322,7 @@
  "banner.offline": "You’re offline. Reconnecting…",
  "banner.serverOffline": "The server ({name}) is offline. The game is paused and nothing is lost.",
  "banner.standIn": "A bot is playing for {name} until they’re back.",
+ "banner.useThisTab": "Use this tab",
  "banner.waitingFor": "Waiting for {name}.",
  "blackjack.badge.blackjack": "Blackjack",
  "blackjack.badge.bust": "Bust",
