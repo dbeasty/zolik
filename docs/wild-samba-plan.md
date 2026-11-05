@@ -25,8 +25,9 @@ two canastas to go out, 10 000 to win) except where it says otherwise.
   - dirty — a **dirty samba**, **700**.
 
 ### 1.2 The 2s meld
-- A meld made of 2s, one per side. It may also hold jokers, under the group
-  limits: at most 2 jokers, at least twice as many 2s as jokers.
+- A meld made of 2s, one per side. It may also hold jokers, in any mix and
+  with no ratio: three jokers alone may start it (changed 2026-11-05; it was
+  at most 2 jokers, at least twice as many 2s as jokers).
 - Seven cards is a canasta and counts toward the two needed to go out:
   - all 2s — **2250** (Samba's 1500 + 50%);
   - with jokers — **1500**.

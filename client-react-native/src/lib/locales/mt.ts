@@ -179,7 +179,7 @@ export const mt: Record<string, string> = {
   'canasta.rules.canasta': "Canasta hija kombinazzjoni ta' {n} karti jew aktar tal-istess valur.",
   'canasta.rules.sequences': "Kombinazzjoni tista' tkun ukoll sekwenza: tliet karti jew aktar tal-istess kulur wara xulxin, qatt b'joker fosthom.",
   'canasta.rules.dirtySequences': "Kombinazzjoni tista' tkun ukoll sekwenza: minn tliet sa seba' karti tal-istess kulur wara xulxin. Il-karti salvaġġi jistgħu jieħdu post karti neqsin, l-aktar tnejn u qatt aktar minn nofs l-għadd tal-karti naturali. Seba' karti b'karta salvaġġa fosthom huma samba mħallta, li tiswa {n}.",
-  'canasta.rules.wildMeld': "Ladarba n-naħa tiegħek tkun fetħet, tista' tniżżel kombinazzjoni waħda ta' tnejnijiet, b'jokers magħhom l-aktar nofs l-għadd tat-tnejnijiet. Seba' karti huma canasta: {n} jekk huma kollha tnejnijiet, {mixed} b'jokers.",
+  'canasta.rules.wildMeld': "Ladarba n-naħa tiegħek tkun fetħet, tista' tniżżel kombinazzjoni waħda ta' tnejnijiet u jokers imħallta kif trid: tlett jokers ukoll jgħoddu. Seba' karti huma canasta: {n} jekk huma kollha tnejnijiet, {mixed} b'jokers.",
   'canasta.rules.rearrange': "Fid-dawra tiegħek, ladarba n-naħa tiegħek tkun fetħet, tista' tmexxi karti bejn il-kombinazzjonijiet tan-naħa tiegħek stess, sakemm kull kombinazzjoni tibqa' valida. Canasta li tinkiser b'dan il-mod ma tibqax canasta.",
   'canasta.rules.poach': "Fid-dawra tiegħek, ladarba n-naħa tiegħek tkun fetħet, tista' tibdel karta naturali minn idejk mal-karta salvaġġa li qed tieħu postha fi kwalunkwe kombinazzjoni fuq il-mejda, u żżomm is-salvaġġa.",
   'canasta.rules.topOnlyCapture': "Kull meta tista' tieħu l-munzell tal-iskart, tista' minflok tieħu biss il-karta ta' fuq, imniżżla bl-istess mod, u tħalli l-bqija tal-munzell.",

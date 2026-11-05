@@ -173,7 +173,7 @@ export const sv: Record<string, string> = {
   'canasta.rules.canasta': 'En canasta är en kombination av {n} eller fler kort av samma valör.',
   'canasta.rules.sequences': 'En kombination kan också vara en sekvens: tre eller fler kort i samma färg i följd, aldrig med ett vilt kort bland dem.',
   'canasta.rules.dirtySequences': 'En kombination kan också vara en sekvens: tre till sju kort i samma färg i följd. Vildkort får ersätta saknade kort, högst två och aldrig fler än hälften så många som de naturliga korten. Sju kort med ett vildkort i är en oren samba och ger {n}.',
-  'canasta.rules.wildMeld': 'När din sida har gjort sin första utläggning får den lägga en kombination av tvåor, med högst hälften så många jokrar som tvåor. Sju kort är en canasta: {n} med bara tvåor, {mixed} med jokrar.',
+  'canasta.rules.wildMeld': 'När din sida har gjort sin första utläggning får den lägga en kombination av tvåor och jokrar i valfri blandning: tre jokrar räcker. Sju kort är en canasta: {n} med bara tvåor, {mixed} med jokrar.',
   'canasta.rules.rearrange': 'Under din tur, när din sida har gjort sin första utläggning, får du flytta kort mellan din sidas egna kombinationer så länge varje kombination förblir giltig. En canasta som bryts på det sättet är inte längre en canasta.',
   'canasta.rules.poach': 'Under din tur, när din sida har gjort sin första utläggning, får du byta ett naturligt kort från handen mot vildkortet som ersätter det i valfri kombination på bordet, och behålla vildkortet.',
   'canasta.rules.topOnlyCapture': 'När du skulle kunna ta kasthögen får du i stället ta bara det översta kortet, utlagt på samma sätt, och låta resten av högen ligga kvar.',

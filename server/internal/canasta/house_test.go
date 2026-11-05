@@ -164,6 +164,70 @@ func TestWildMeld(t *testing.T) {
 		}
 	})
 
+	t.Run("three jokers start it, and 2s join them past any ratio", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Hands["p1"] = []string{"JOKER1", "JOKER1", "JOKER2", "2C", "2D", "KS", "QS", "9D"}
+		})
+		raw, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"JOKER1", "JOKER1", "JOKER2"}})
+		if code != "" {
+			t.Fatalf("three jokers: %s", code)
+		}
+		s := mustDecode(t, raw)
+		m := s.Teams[0].Melds[0]
+		if m.Kind != meldWild || m.naturals() != 0 || m.wilds() != 3 {
+			t.Fatalf("meld %+v", m)
+		}
+		if _, code := apply(t, raw, "p1", module.Action{Verb: VerbLayOff, Cards: []string{"2C", "2D"}, Target: m.ID}); code != "" {
+			t.Fatalf("2s onto three jokers: %s", code)
+		}
+	})
+
+	t.Run("a hand of three jokers is offered the meld", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Hands["p1"] = []string{"JOKER1", "JOKER1", "JOKER2", "KS", "QS", "9D"}
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := offerByID(offers, OfferLayMeld+":wild")
+		if o == nil || !o.Enabled || len(o.Source.Submit) != 3 {
+			t.Fatalf("no meld of wilds:\n%s", module.DescribeOffers(offers))
+		}
+	})
+
+	// Three 2s used to fit the kings' offer as well as the meld of wilds, so
+	// the Meld control could not settle on one and stayed grey. A group's
+	// wilds now say they need a natural of the rank beside them.
+	t.Run("a group's wilds ask for a natural", func(t *testing.T) {
+		raw := canastaXTable(func(s *GameState) {
+			s.Hands["p1"] = []string{"2D", "2H", "2S", "KC", "KD", "JOKER1", "9D"}
+		})
+		offers, err := New().LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := offerByID(offers, OfferLayMeld+":K")
+		if o == nil {
+			t.Fatalf("no kings:\n%s", module.DescribeOffers(offers))
+		}
+		for _, p := range o.Source.Placements {
+			if !isWild(p.Card) {
+				if len(p.Requires) != 0 {
+					t.Errorf("natural %s needs company %v", p.Card, p.Requires)
+				}
+				continue
+			}
+			ways := append([][]string{p.Requires}, p.Alternatives...)
+			if len(ways) != 2 || ways[0][0] != "KC" || ways[1][0] != "KD" {
+				t.Errorf("wild %s: ways %v, want one king or the other", p.Card, ways)
+			}
+		}
+		if len(o.Source.Placements) != len(o.Source.Cards) {
+			t.Errorf("placements %d for %d cards", len(o.Source.Placements), len(o.Source.Cards))
+		}
+	})
+
 	t.Run("seven 2s pay 2250, with jokers 1500, and both count to go out", func(t *testing.T) {
 		r := canastaXRules()
 		clean := Meld{Kind: meldWild, Rank: rankTwo, Cards: []string{"2C", "2D", "2H", "2S", "2C", "2D", "2H"}}

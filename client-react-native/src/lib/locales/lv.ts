@@ -179,7 +179,7 @@ export const lv: Record<string, string> = {
   'canasta.rules.canasta': 'Kanasta ir kombinācija no {n} vai vairāk vienādas vērtības kārtīm.',
   'canasta.rules.sequences': 'Kombinācija var būt arī secība: trīs vai vairāk vienas masts kārtis pēc kārtas, nekad ar džokeru starp tām.',
   'canasta.rules.dirtySequences': 'Kombinācija var būt arī secība: no trim līdz septiņām vienas masts kārtīm pēc kārtas. Džokeri var aizstāt trūkstošās kārtis, ne vairāk kā divas un nekad vairāk par pusi no dabisko kāršu skaita. Septiņas kārtis ar džokeru starp tām ir netīra samba, kas ir {n} vērta.',
-  'canasta.rules.wildMeld': 'Kad tava puse ir izlikusi pirmo kombināciju, tā drīkst izlikt vienu divnieku kombināciju ar džokeriem blakus, ne vairāk kā pusi no divnieku skaita. Septiņas kārtis ir kanasta: {n}, ja tie ir tikai divnieki, {mixed} ar džokeriem.',
+  'canasta.rules.wildMeld': 'Kad tava puse ir izlikusi pirmo kombināciju, tā drīkst izlikt vienu divnieku un džokeru kombināciju jebkādā attiecībā: der arī trīs džokeri. Septiņas kārtis ir kanasta: {n}, ja tie ir tikai divnieki, {mixed} ar džokeriem.',
   'canasta.rules.rearrange': 'Savā gājienā, kad tava puse ir izlikusi pirmo kombināciju, vari pārvietot kārtis starp savas puses kombinācijām, ja vien katra kombinācija paliek derīga. Šādi izjaukta kanasta vairs nav kanasta.',
   'canasta.rules.poach': 'Savā gājienā, kad tava puse ir izlikusi pirmo kombināciju, vari apmainīt dabisku kārti no rokas pret džokeru, kas to aizstāj jebkurā kombinācijā uz galda, un paturēt džokeru.',
   'canasta.rules.topOnlyCapture': 'Ikreiz, kad varētu paņemt izmešanas kaudzi, tā vietā vari paņemt tikai tās augšējo kārti, izliktu tādā pašā veidā, un pārējo kaudzi atstāt.',

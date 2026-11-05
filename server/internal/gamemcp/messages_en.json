@@ -541,7 +541,7 @@
  "canasta.rules.turnDiscard": "The discard is what ends a turn, so you always need a card to spare for it.",
  "canasta.rules.twoCanastasToGoOut": "Your side needs two completed canastas before it may go out.",
  "canasta.rules.wildLimit": "A meld may hold at most {wilds} wild cards, and never fewer than {naturals} natural ones.",
- "canasta.rules.wildMeld": "Once your side has opened it may lay one meld of 2s, with jokers beside them at most half as many as the 2s. Seven cards is a canasta: {n} if all 2s, {mixed} with jokers.",
+ "canasta.rules.wildMeld": "Once your side has opened it may lay one meld of 2s and jokers, in any mix: three jokers will do. Seven cards is a canasta: {n} if all 2s, {mixed} with jokers.",
  "canasta.rules.wildRatio": "A meld needs {n} natural cards for every wild one, and never more than {wilds} wilds in all.",
  "canasta.seat.canastas": "Canastas",
  "canasta.seat.notOpened": "Not opened",

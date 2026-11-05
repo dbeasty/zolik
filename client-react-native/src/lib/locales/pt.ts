@@ -180,7 +180,7 @@ export const pt: Record<string, string> = {
   'canasta.rules.canasta': 'Uma canastra é uma combinação de {n} ou mais cartas do mesmo valor.',
   'canasta.rules.sequences': 'Uma combinação também pode ser uma sequência: três ou mais cartas do mesmo naipe seguidas, nunca com um joker no meio.',
   'canasta.rules.dirtySequences': 'Uma combinação também pode ser uma sequência: de três a sete cartas seguidas do mesmo naipe. Os curingas podem ocupar o lugar de cartas em falta, no máximo dois e nunca mais de metade das cartas naturais. Sete cartas com um curinga são uma samba suja, que vale {n}.',
-  'canasta.rules.wildMeld': 'Depois de o teu lado abrir, pode baixar uma combinação de duques, com jokers ao lado no máximo metade dos duques. Sete cartas são uma canastra: {n} se forem só duques, {mixed} com jokers.',
+  'canasta.rules.wildMeld': 'Depois de o teu lado abrir, pode baixar uma combinação de duques e jokers em qualquer proporção: bastam três jokers. Sete cartas são uma canastra: {n} se forem só duques, {mixed} com jokers.',
   'canasta.rules.rearrange': 'Na tua vez, depois de o teu lado abrir, podes mover cartas entre as combinações do teu próprio lado, desde que todas continuem válidas. Uma canastra desfeita assim deixa de ser canastra.',
   'canasta.rules.poach': 'Na tua vez, depois de o teu lado abrir, podes trocar uma carta natural da tua mão pelo curinga que a substitui em qualquer combinação na mesa, e ficar com o curinga.',
   'canasta.rules.topOnlyCapture': 'Sempre que puderes levar o monte de descartes, podes em vez disso tirar só a carta do topo, baixada da mesma maneira, e deixar o resto do monte.',

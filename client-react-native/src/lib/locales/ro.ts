@@ -180,7 +180,7 @@ export const ro: Record<string, string> = {
   'canasta.rules.canasta': 'O canastă este o combinație de {n} sau mai multe cărți de aceeași valoare.',
   'canasta.rules.sequences': 'O combinație poate fi și o secvență: trei sau mai multe cărți de aceeași culoare la rând, niciodată cu un joker între ele.',
   'canasta.rules.dirtySequences': 'O combinație poate fi și o secvență: de la trei la șapte cărți de aceeași culoare la rând. Cărțile wild pot ține locul cărților lipsă, cel mult două și niciodată mai mult de jumătate din numărul cărților naturale. Șapte cărți cu un wild printre ele formează o samba murdară, care valorează {n}.',
-  'canasta.rules.wildMeld': 'După ce partea ta a deschis, poate pune jos o combinație de doiari, cu jokeri alături, cel mult jumătate cât doiarii. Șapte cărți formează o canastă: {n} dacă sunt numai doiari, {mixed} cu jokeri.',
+  'canasta.rules.wildMeld': 'După ce partea ta a deschis, poate pune jos o combinație de doiari și jokeri în orice proporție: ajung și trei jokeri. Șapte cărți formează o canastă: {n} dacă sunt numai doiari, {mixed} cu jokeri.',
   'canasta.rules.rearrange': 'În tura ta, după ce partea ta a deschis, poți muta cărți între combinațiile propriei tale părți, atâta timp cât fiecare combinație rămâne validă. O canastă desfăcută astfel nu mai este canastă.',
   'canasta.rules.poach': 'În tura ta, după ce partea ta a deschis, poți schimba o carte naturală din mână cu cartea wild care îi ține locul în orice combinație de pe masă și poți păstra wild-ul.',
   'canasta.rules.topOnlyCapture': 'Ori de câte ori ai putea lua teancul de aruncate, poți lua în schimb doar cartea de deasupra, pusă jos la fel, și lăsa restul teancului.',
