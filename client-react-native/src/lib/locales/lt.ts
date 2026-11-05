@@ -177,7 +177,7 @@ export const lt: Record<string, string> = {
   'canasta.rules.canasta': 'Kanasta — tai {n} ar daugiau tos pačios vertės kortų derinys.',
   'canasta.rules.sequences': 'Derinys gali būti ir seka: trys ar daugiau tos pačios rūšies kortų iš eilės, niekada su džokeriu tarp jų.',
   'canasta.rules.dirtySequences': 'Derinys gali būti ir seka: nuo trijų iki septynių tos pačios rūšies kortų iš eilės. Laukinės kortos gali pakeisti trūkstamas kortas, ne daugiau kaip dvi ir niekada daugiau nei pusė natūralių kortų skaičiaus. Septynios kortos su laukine korta tarp jų yra nešvari samba, verta {n}.',
-  'canasta.rules.wildMeld': 'Kai tavo pusė jau išdėjo pirmąjį derinį, ji gali išdėti vieną dvejetų derinį su džokeriais šalia, ne daugiau kaip pusė dvejetų skaičiaus. Septynios kortos yra kanasta: {n}, jei vien dvejetai, {mixed} su džokeriais.',
+  'canasta.rules.wildMeld': 'Kai tavo pusė jau išdėjo pirmąjį derinį, ji gali išdėti vieną dvejetų ir džokerių derinį bet kokiu santykiu: tinka ir trys džokeriai. Septynios kortos yra kanasta: {n}, jei vien dvejetai, {mixed} su džokeriais.',
   'canasta.rules.rearrange': 'Savo ėjimo metu, kai tavo pusė jau išdėjo pirmąjį derinį, gali perkelti kortas tarp savo pusės derinių, jei kiekvienas derinys lieka taisyklingas. Taip išardyta kanasta nebėra kanasta.',
   'canasta.rules.poach': 'Savo ėjimo metu, kai tavo pusė jau išdėjo pirmąjį derinį, gali iškeisti natūralią kortą iš rankos į laukinę kortą, kuri ją pakeičia bet kuriame ant stalo esančiame derinyje, ir pasilikti laukinę kortą.',
   'canasta.rules.topOnlyCapture': 'Kai tik galėtum paimti atmetimo krūvelę, vietoj to gali paimti tik viršutinę jos kortą, išdėtą tuo pačiu būdu, o likusią krūvelę palikti.',

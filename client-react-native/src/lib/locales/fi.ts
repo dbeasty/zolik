@@ -179,7 +179,7 @@ export const fi: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta on yhdistelmä, jossa on {n} tai useampi samanarvoinen kortti.',
   'canasta.rules.sequences': 'Yhdistelmä voi olla myös jono: kolme tai useampi saman maan kortti peräkkäin, ei koskaan jokeria mukana.',
   'canasta.rules.dirtySequences': 'Yhdistelmä voi olla myös jono: kolmesta seitsemään saman maan korttia peräkkäin. Jokerit voivat korvata puuttuvia kortteja, enintään kaksi eikä koskaan yli puolta luonnollisten korttien määrästä. Seitsemän korttia, joiden joukossa on jokeri, on epäpuhdas samba, arvoltaan {n}.',
-  'canasta.rules.wildMeld': 'Kun puolesi on avannut, se saa laskea yhden kakkosista koostuvan yhdistelmän, jonka rinnalla saa olla jokereita enintään puolet kakkosten määrästä. Seitsemän korttia on canasta: {n}, jos kaikki ovat kakkosia, {mixed} jokerien kanssa.',
+  'canasta.rules.wildMeld': 'Kun puolesi on avannut, se saa laskea yhden kakkosten ja jokereiden yhdistelmän missä suhteessa tahansa: kolme jokeriakin käy. Seitsemän korttia on canasta: {n}, jos kaikki ovat kakkosia, {mixed} jokereiden kanssa.',
   'canasta.rules.rearrange': 'Vuorollasi, kun puolesi on avannut, saat siirtää kortteja oman puolesi yhdistelmien välillä, kunhan jokainen yhdistelmä pysyy sääntöjen mukaisena. Näin rikottu canasta ei ole enää canasta.',
   'canasta.rules.poach': 'Vuorollasi, kun puolesi on avannut, saat vaihtaa kädestäsi luonnollisen kortin siihen jokeriin, joka sitä korvaa missä tahansa pöydän yhdistelmässä, ja pitää jokerin.',
   'canasta.rules.topOnlyCapture': 'Aina kun voisit ottaa poistopinon, voit sen sijaan ottaa vain päällimmäisen kortin, laskettuna samalla tavalla, ja jättää muun pinon paikalleen.',

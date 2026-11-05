@@ -181,7 +181,7 @@ export const es: Record<string, string> = {
   'canasta.rules.canasta': 'Una canasta es una combinación de {n} o más cartas del mismo valor.',
   'canasta.rules.sequences': 'Una combinación también puede ser una escalera: tres o más cartas del mismo palo seguidas, nunca con un comodín entre ellas.',
   'canasta.rules.dirtySequences': 'Una combinación también puede ser una escalera: de tres a siete cartas seguidas del mismo palo. Los comodines pueden ocupar el lugar de cartas que falten, como mucho dos y nunca más de la mitad que cartas naturales. Siete cartas con un comodín forman una samba sucia, que vale {n}.',
-  'canasta.rules.wildMeld': 'Cuando tu bando ya ha abierto, puede bajar una combinación de doses, con jokers al lado como mucho la mitad que doses. Siete cartas forman una canasta: {n} si son todo doses, {mixed} con jokers.',
+  'canasta.rules.wildMeld': 'Cuando tu bando ya ha abierto, puede bajar una combinación de doses y jokers en cualquier proporción: bastan tres jokers. Siete cartas forman una canasta: {n} si son todo doses, {mixed} con jokers.',
   'canasta.rules.rearrange': 'En tu turno, si tu bando ya ha abierto, puedes mover cartas entre las combinaciones de tu propio bando, siempre que todas sigan siendo válidas. Una canasta que se rompa así deja de ser canasta.',
   'canasta.rules.poach': 'En tu turno, si tu bando ya ha abierto, puedes cambiar una carta natural de tu mano por el comodín que la sustituye en cualquier combinación de la mesa, y quedarte con el comodín.',
   'canasta.rules.topOnlyCapture': 'Siempre que puedas llevarte el montón de descarte, puedes tomar solo su carta superior, bajándola de la misma forma, y dejar el resto del montón.',

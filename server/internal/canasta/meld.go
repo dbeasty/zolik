@@ -388,8 +388,8 @@ func layOffCards(r ruleset, hand []string, m *Meld) []string {
 	var out []string
 	for _, c := range hand {
 		if m.Kind == meldWild {
-			// The 2s are this meld's own rank; jokers are its wilds.
-			if rankOf(c) == rankTwo || (rankOf(c) == rankJoker && m.wilds() < r.MaxWilds && room > 0) {
+			// Any wild, 2 or joker, while the meld has room.
+			if isWild(c) && room > 0 {
 				out = append(out, c)
 			}
 			continue

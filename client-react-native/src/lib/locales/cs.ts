@@ -178,7 +178,7 @@ export const cs: Record<string, string> = {
   'canasta.rules.canasta': 'Kanasta je kombinace {n} a více karet stejné hodnoty.',
   'canasta.rules.sequences': 'Kombinace může být i postupka: tři a více karet stejné barvy za sebou, nikdy se žolíkem mezi nimi.',
   'canasta.rules.dirtySequences': 'Kombinace může být i postupka: tři až sedm karet jedné barvy za sebou. Žolíky mohou nahradit chybějící karty, nejvýš dva a nikdy víc než polovina počtu přirozených karet. Sedm karet se žolíkem je nečistá samba za {n}.',
-  'canasta.rules.wildMeld': 'Jakmile vaše strana vyložila první kombinaci, smí vyložit jednu kombinaci dvojek, k nimž smí přidat žolíky, nejvýš polovinu počtu dvojek. Sedm karet je kanasta: {n} ze samých dvojek, {mixed} se žolíky.',
+  'canasta.rules.wildMeld': 'Jakmile vaše strana vyložila první kombinaci, smí vyložit jednu kombinaci dvojek a žolíků v libovolném poměru: stačí i tři žolíci. Sedm karet je kanasta: {n} ze samých dvojek, {mixed} se žolíky.',
   'canasta.rules.rearrange': 'Ve svém tahu, jakmile vaše strana vyložila první kombinaci, můžete přesouvat karty mezi vlastními kombinacemi své strany, pokud každá kombinace zůstane platná. Takto rozbitá kanasta už kanastou není.',
   'canasta.rules.poach': 'Ve svém tahu, jakmile vaše strana vyložila první kombinaci, můžete vyměnit přirozenou kartu z ruky za žolíkovou kartu, která ji zastupuje v kterékoli kombinaci na stole, a žolíkovou kartu si nechat.',
   'canasta.rules.topOnlyCapture': 'Kdykoli byste si mohli vzít odhazovací balíček, můžete si místo toho vzít jen jeho vrchní kartu, vyloženou stejným způsobem, a zbytek balíčku nechat ležet.',

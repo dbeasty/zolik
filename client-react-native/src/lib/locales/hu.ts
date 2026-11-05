@@ -183,7 +183,7 @@ export const hu: Record<string, string> = {
   'canasta.rules.canasta': 'A canasta {n} vagy több azonos értékű lapból álló kombináció.',
   'canasta.rules.sequences': 'Egy kombináció sor is lehet: három vagy több azonos színű lap egymás után, soha nem jokerrel közte.',
   'canasta.rules.dirtySequences': 'Egy kombináció sor is lehet: három–hét azonos színű lap egymás után. A zsokerek pótolhatják a hiányzó lapokat, legfeljebb kettő, és sosem több, mint a természetes lapok fele. A hét lapból álló sor, amelyben zsoker van, vegyes samba, és {n} pontot ér.',
-  'canasta.rules.wildMeld': 'Ha az oldalad már nyitott, kiteríthet egy kettesekből álló kombinációt, mellettük legfeljebb feleannyi jokerrel, mint ahány kettes van. Hét lap kanasztát alkot: csupa kettesből {n}, jokerekkel {mixed}.',
+  'canasta.rules.wildMeld': 'Ha az oldalad már nyitott, kiteríthet egy kettesekből és jokerekből álló kombinációt, tetszőleges arányban: három joker is elég. Hét lap kanasztát alkot: csupa kettesből {n}, jokerekkel {mixed}.',
   'canasta.rules.rearrange': 'A körödben, ha az oldalad már nyitott, lapokat helyezhetsz át az oldalad saját kombinációi között, amíg minden kombináció szabályos marad. Az így megbontott kanaszta már nem kanaszta.',
   'canasta.rules.poach': 'A körödben, ha az oldalad már nyitott, kicserélhetsz egy természetes lapot a kezedből arra a zsokerre, amely őt helyettesíti bármelyik asztalon lévő kombinációban, és megtarthatod a zsokert.',
   'canasta.rules.topOnlyCapture': 'Valahányszor elvihetnéd a dobópaklit, ehelyett csak a felső lapját is elveheted, ugyanúgy kiterítve, és a pakli többi részét otthagyhatod.',

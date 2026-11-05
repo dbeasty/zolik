@@ -181,7 +181,7 @@ export const pl: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta to układ {n} lub więcej kart tej samej wartości.',
   'canasta.rules.sequences': 'Układ może być też sekwensem: trzy lub więcej kart tego samego koloru po kolei, nigdy z jokerem w środku.',
   'canasta.rules.dirtySequences': 'Układ może być też sekwensem: od trzech do siedmiu kart tego samego koloru po kolei. Jokery mogą zastępować brakujące karty, najwyżej dwa i nigdy więcej niż połowa liczby kart naturalnych. Siedem kart z jokerem w środku to brudna samba warta {n}.',
-  'canasta.rules.wildMeld': 'Gdy twoja strona już się wyłożyła, może wyłożyć jeden układ z dwójek, z jokerami obok w liczbie najwyżej połowy dwójek. Siedem kart to canasta: {n}, jeśli same dwójki, {mixed} z jokerami.',
+  'canasta.rules.wildMeld': 'Gdy twoja strona już się wyłożyła, może wyłożyć jeden układ z dwójek i jokerów w dowolnej proporcji: wystarczą trzy jokery. Siedem kart to canasta: {n}, jeśli same dwójki, {mixed} z jokerami.',
   'canasta.rules.rearrange': 'W swojej kolejce, gdy twoja strona już się wyłożyła, możesz przenosić karty między układami swojej strony, o ile każdy układ pozostaje poprawny. Canasta rozbita w ten sposób przestaje być canastą.',
   'canasta.rules.poach': 'W swojej kolejce, gdy twoja strona już się wyłożyła, możesz wymienić naturalną kartę z ręki na jokera, który ją zastępuje w dowolnym układzie na stole, i zatrzymać jokera.',
   'canasta.rules.topOnlyCapture': 'Zawsze gdy mógłbyś wziąć stos odrzuconych, możesz zamiast tego wziąć tylko wierzchnią kartę, wyłożoną w ten sam sposób, a resztę stosu zostawić.',

@@ -179,7 +179,7 @@ export const it: Record<string, string> = {
   'canasta.rules.canasta': 'Una canasta è una combinazione di {n} o più carte dello stesso valore.',
   'canasta.rules.sequences': 'Una combinazione può anche essere una scala: tre o più carte dello stesso seme in fila, mai con un jolly tra loro.',
   'canasta.rules.dirtySequences': 'Una combinazione può anche essere una scala: da tre a sette carte dello stesso seme in fila. Le matte possono sostituire le carte mancanti, al massimo due e mai più della metà delle carte naturali. Sette carte con una matta formano una samba sporca, che vale {n}.',
-  'canasta.rules.wildMeld': 'Quando la tua parte ha aperto, può calare una combinazione di due, affiancati da jolly al massimo la metà dei due. Sette carte sono una canasta: {n} se tutti due, {mixed} con i jolly.',
+  'canasta.rules.wildMeld': 'Quando la tua parte ha aperto, può calare una combinazione di due e jolly in qualsiasi proporzione: bastano tre jolly. Sette carte sono una canasta: {n} se tutti due, {mixed} con i jolly.',
   'canasta.rules.rearrange': 'Nel tuo turno, quando la tua parte ha aperto, puoi spostare carte tra le combinazioni della tua parte, purché ognuna resti valida. Una canasta spezzata così non è più una canasta.',
   'canasta.rules.poach': 'Nel tuo turno, quando la tua parte ha aperto, puoi scambiare una carta naturale della tua mano con la matta che la sostituisce in qualsiasi combinazione sul tavolo, e tenerti la matta.',
   'canasta.rules.topOnlyCapture': 'Ogni volta che potresti prendere la pila degli scarti, puoi invece prendere solo la carta in cima, calandola allo stesso modo, e lasciare il resto della pila.',

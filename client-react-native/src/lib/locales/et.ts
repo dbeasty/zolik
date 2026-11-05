@@ -178,7 +178,7 @@ export const et: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta on {n} või enama sama väärtusega kaardi kombinatsioon.',
   'canasta.rules.sequences': 'Kombinatsioon võib olla ka jada: kolm või rohkem sama masti kaarti järjest, mitte kunagi jokkeriga vahel.',
   'canasta.rules.dirtySequences': 'Kombinatsioon võib olla ka jada: kolm kuni seitse sama masti kaarti järjest. Jokkerid võivad asendada puuduvaid kaarte, kõige rohkem kaks ja mitte kunagi üle poole naturaalsete kaartide arvust. Seitse kaarti, mille seas on jokker, on segasamba ja annab {n}.',
-  'canasta.rules.wildMeld': 'Kui sinu pool on avanud, võib ta panna lauale ühe kahtede kombinatsiooni, mille kõrval on jokkereid kõige rohkem pool kahtede arvust. Seitse kaarti on kanasta: {n}, kui kõik on kahed, {mixed} jokkeritega.',
+  'canasta.rules.wildMeld': 'Kui sinu pool on avanud, võib ta panna lauale ühe kahtede ja jokkerite kombinatsiooni mis tahes vahekorras: ka kolm jokkerit sobib. Seitse kaarti on kanasta: {n}, kui kõik on kahed, {mixed} jokkeritega.',
   'canasta.rules.rearrange': 'Oma käigul, kui sinu pool on avanud, võid tõsta kaarte oma poole kombinatsioonide vahel, kuni iga kombinatsioon jääb reeglipäraseks. Nii lõhutud kanasta ei ole enam kanasta.',
   'canasta.rules.poach': 'Oma käigul, kui sinu pool on avanud, võid vahetada naturaalse kaardi oma käest jokkeri vastu, mis seda kaarti mõnes laual olevas kombinatsioonis asendab, ja jokkeri endale jätta.',
   'canasta.rules.topOnlyCapture': 'Alati, kui saaksid võtta viskepaki, võid selle asemel võtta ainult selle pealmise kaardi, pannes selle lauale samamoodi, ja jätta ülejäänud paki alles.',

@@ -179,7 +179,7 @@ export const sk: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta je kombinácia {n} alebo viacerých kariet rovnakej hodnoty.',
   'canasta.rules.sequences': 'Kombinácia môže byť aj postupka: tri a viac kariet rovnakej farby za sebou, nikdy so žolíkom medzi nimi.',
   'canasta.rules.dirtySequences': 'Kombinácia môže byť aj postupka: tri až sedem kariet jednej farby za sebou. Divoké karty môžu nahradiť chýbajúce karty, najviac dve a nikdy viac než polovica počtu prirodzených kariet. Sedem kariet s divokou kartou je nečistá samba za {n}.',
-  'canasta.rules.wildMeld': 'Keď tvoja strana vyložila prvú kombináciu, smie vyložiť jednu kombináciu dvojok so žolíkmi, ktorých je najviac polovica počtu dvojok. Sedem kariet je kanasta: {n} zo samých dvojok, {mixed} so žolíkmi.',
+  'canasta.rules.wildMeld': 'Keď tvoja strana vyložila prvú kombináciu, smie vyložiť jednu kombináciu dvojok a žolíkov v ľubovoľnom pomere: stačia aj traja žolíci. Sedem kariet je kanasta: {n} zo samých dvojok, {mixed} so žolíkmi.',
   'canasta.rules.rearrange': 'Vo svojom ťahu, keď tvoja strana vyložila prvú kombináciu, môžeš presúvať karty medzi vlastnými kombináciami svojej strany, ak každá kombinácia ostane platná. Takto rozbitá kanasta už nie je kanastou.',
   'canasta.rules.poach': 'Vo svojom ťahu, keď tvoja strana vyložila prvú kombináciu, môžeš vymeniť prirodzenú kartu z ruky za divokú kartu, ktorá ju zastupuje v ktorejkoľvek kombinácii na stole, a divokú kartu si nechať.',
   'canasta.rules.topOnlyCapture': 'Kedykoľvek by si mohol vziať odhadzovaciu kôpku, môžeš namiesto toho vziať iba jej vrchnú kartu, vyloženú rovnakým spôsobom, a zvyšok kôpky nechať ležať.',

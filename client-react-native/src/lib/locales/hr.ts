@@ -178,7 +178,7 @@ export const hr: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta je kombinacija od {n} ili više karata iste vrijednosti.',
   'canasta.rules.sequences': 'Kombinacija može biti i niz: tri ili više karata iste boje u nizu, nikad s džokerom među njima.',
   'canasta.rules.dirtySequences': 'Kombinacija može biti i niz: tri do sedam karata iste boje u nizu. Džoker karte smiju zamijeniti karte koje nedostaju, najviše dvije i nikad više od polovice broja prirodnih karata. Sedam karata s džokerom među njima je nečista samba, vrijedna {n}.',
-  'canasta.rules.wildMeld': 'Kad tvoja strana otvori, smije položiti jednu kombinaciju dvojki, uz najviše upola manje džokera nego dvojki. Sedam karata je kanasta: {n} ako su sve dvojke, {mixed} s džokerima.',
+  'canasta.rules.wildMeld': 'Kad tvoja strana otvori, smije položiti jednu kombinaciju dvojki i džokera u bilo kojem omjeru: dovoljna su i tri džokera. Sedam karata je kanasta: {n} ako su sve dvojke, {mixed} s džokerima.',
   'canasta.rules.rearrange': 'U svom potezu, kad je tvoja strana otvorila, smiješ premještati karte između vlastitih kombinacija svoje strane, dok god svaka kombinacija ostaje valjana. Kanasta razbijena na taj način više nije kanasta.',
   'canasta.rules.poach': 'U svom potezu, kad je tvoja strana otvorila, smiješ zamijeniti prirodnu kartu iz ruke za džoker kartu koja je zamjenjuje u bilo kojoj kombinaciji na stolu, i zadržati džoker kartu.',
   'canasta.rules.topOnlyCapture': 'Kad god bi mogao uzeti hrpu odbačenih, umjesto toga smiješ uzeti samo njezinu gornju kartu, položenu na isti način, a ostatak hrpe ostaviti.',

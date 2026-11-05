@@ -218,27 +218,24 @@ func checkWildLimits(r ruleset, naturals, wilds int) error {
 
 // --- the meld of 2s --------------------------------------------------------------
 
-// isWildMeld is whether a list of cards asks to be the meld of 2s: wild cards
-// only, and at least one of them a 2.
+// isWildMeld is whether a list of cards asks to be the meld of wilds: wild
+// cards only, 2s and jokers in any mix — three jokers may start it.
 func isWildMeld(r ruleset, cards []string) bool {
 	if !r.WildMeld || len(cards) == 0 {
 		return false
 	}
-	twos := 0
 	for _, c := range cards {
 		if !isWild(c) {
 			return false
 		}
-		if rankOf(c) == rankTwo {
-			twos++
-		}
 	}
-	return twos > 0
+	return true
 }
 
-// validateWildMeld is the meld of 2s: the 2s are its naturals and the jokers
-// its wilds, under the variation's group limits. It closes at seven where a
-// group does.
+// validateWildMeld is the meld of wilds: any 2s and jokers, three or more,
+// with no ratio between them. It closes at seven where a group does. Which of
+// them are "natural" matters only to the canasta it makes: all 2s is the
+// clean one, any joker the mixed one (Meld.naturals).
 func validateWildMeld(r ruleset, cards []string) error {
 	if len(cards) < minMeldSize {
 		return errCode(ErrMeldTooSmall)
@@ -246,16 +243,12 @@ func validateWildMeld(r ruleset, cards []string) error {
 	if r.GroupCanastaCloses && len(cards) > canastaSize {
 		return errCode(ErrMeldTooLarge)
 	}
-	twos := 0
 	for _, c := range cards {
-		switch {
-		case rankOf(c) == rankTwo:
-			twos++
-		case rankOf(c) != rankJoker:
+		if !isWild(c) {
 			return errCode(ErrMeldMixedRanks)
 		}
 	}
-	return checkWildLimits(r, twos, len(cards)-twos)
+	return nil
 }
 
 // wildMeld is the side's meld of 2s, if it has one.
@@ -898,9 +891,9 @@ func dirtyRunCandidates(r ruleset, hand []string, t *Team) []candidate {
 	return out
 }
 
-// wildMeldCandidate is the meld of 2s a hand could lay, or nil: every 2 it
+// wildMeldCandidate is the meld of wilds a hand could lay, or nil: every 2 it
 // holds (to seven where a group closes there), padded with jokers only if the
-// 2s alone are too few.
+// 2s alone are too few — so three jokers and no 2s is a candidate too.
 func wildMeldCandidate(r ruleset, hand []string, t *Team) *candidate {
 	if !r.WildMeld || t == nil || !t.HasMelded || t.wildMeld() != nil {
 		return nil
@@ -915,9 +908,6 @@ func wildMeldCandidate(r ruleset, hand []string, t *Team) *candidate {
 		}
 	}
 	twos, jokers = sortedCards(twos), sortedCards(jokers)
-	if len(twos) == 0 {
-		return nil
-	}
 	cards := append([]string(nil), twos...)
 	if r.GroupCanastaCloses && len(cards) > canastaSize {
 		cards = cards[:canastaSize]

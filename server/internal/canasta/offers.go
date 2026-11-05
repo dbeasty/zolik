@@ -303,6 +303,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			o := &offers[len(offers)-1]
 			o.Source.Placements = dirtyRunPlacements(c, hand)
 		}
+		if c.Kind != meldRun && c.Kind != meldWild {
+			o := &offers[len(offers)-1]
+			o.Source.Placements = groupPlacements(c)
+		}
 		laid++
 	}
 	// Going out on a set of black threes is a real, if rare, move, and it has
@@ -985,6 +989,42 @@ func dirtyRunPlacements(c candidate, hand []string) []module.Placement {
 	}
 	for _, w := range handWilds(hand) {
 		out = append(out, module.Placement{Card: w, Requires: naturals})
+	}
+	return out
+}
+
+// groupPlacements says of a group's offer that its wilds come with a natural
+// of the rank. Without it three 2s fitted the kings' offer, the jacks' and the
+// meld of wilds alike, the Meld control could not tell which was meant, and
+// it stayed grey over a hand holding a perfectly good meld of 2s. Any one
+// natural is company enough to tell the offers apart; how many a group needs
+// is the engine's to say when the meld is sent.
+func groupPlacements(c candidate) []module.Placement {
+	var naturals, wilds []string
+	for _, card := range c.selectable() {
+		if isWild(card) {
+			wilds = append(wilds, card)
+		} else {
+			naturals = append(naturals, card)
+		}
+	}
+	if len(wilds) == 0 || len(naturals) == 0 {
+		return nil
+	}
+	var ways [][]string
+	seen := map[string]bool{}
+	for _, n := range naturals {
+		if !seen[n] {
+			seen[n] = true
+			ways = append(ways, []string{n})
+		}
+	}
+	out := make([]module.Placement, 0, len(naturals)+len(wilds))
+	for _, n := range naturals {
+		out = append(out, module.Placement{Card: n})
+	}
+	for _, w := range wilds {
+		out = append(out, module.Placement{Card: w, Requires: ways[0], Alternatives: ways[1:]})
 	}
 	return out
 }

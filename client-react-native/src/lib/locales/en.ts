@@ -187,7 +187,7 @@ export const en: Record<string, string> = {
   'canasta.rules.canasta': 'A canasta is a meld of {n} or more cards of the same rank.',
   'canasta.rules.sequences': 'A meld can also be a sequence: three or more cards of the same suit in a row, never with a wild card among them.',
   'canasta.rules.dirtySequences': 'A meld can also be a sequence: three to seven cards of one suit in a row. Wild cards may stand in for missing cards, at most two and never more than half as many as the natural cards. Seven with a wild in them is a dirty samba, worth {n}.',
-  'canasta.rules.wildMeld': 'Once your side has opened it may lay one meld of 2s, with jokers beside them at most half as many as the 2s. Seven cards is a canasta: {n} if all 2s, {mixed} with jokers.',
+  'canasta.rules.wildMeld': 'Once your side has opened it may lay one meld of 2s and jokers, in any mix: three jokers will do. Seven cards is a canasta: {n} if all 2s, {mixed} with jokers.',
   'canasta.rules.rearrange': 'On your turn, once your side has opened, you may move cards between your side\'s own melds, as long as every meld stays legal. A canasta broken this way is no longer a canasta.',
   'canasta.rules.poach': 'On your turn, once your side has opened, you may swap a natural card from your hand for the wild card it stands for in any meld on the table, and keep the wild.',
   'canasta.rules.topOnlyCapture': 'Whenever you could take the discard pile, you may take only its top card instead, melded the same way, and leave the rest of the pile.',

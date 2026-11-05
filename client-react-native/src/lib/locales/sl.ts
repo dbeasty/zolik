@@ -178,7 +178,7 @@ export const sl: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta je kombinacija {n} ali več kart iste vrednosti.',
   'canasta.rules.sequences': 'Kombinacija je lahko tudi zaporedje: tri ali več kart iste barve po vrsti, nikoli z jokerjem med njimi.',
   'canasta.rules.dirtySequences': 'Kombinacija je lahko tudi zaporedje: tri do sedem kart iste barve po vrsti. Divje karte lahko nadomestijo manjkajoče karte, največ dve in nikoli več kot polovica števila naravnih kart. Sedem kart z divjo karto vmes je nečista samba, vredna {n}.',
-  'canasta.rules.wildMeld': 'Ko je tvoja stran odprla, lahko položi eno kombinacijo dvojk, ob njih pa največ pol toliko jokerjev kot dvojk. Sedem kart je kanasta: {n} iz samih dvojk, {mixed} z jokerji.',
+  'canasta.rules.wildMeld': 'Ko je tvoja stran odprla, lahko položi eno kombinacijo dvojk in jokerjev v poljubnem razmerju: dovolj so tudi trije jokerji. Sedem kart je kanasta: {n} iz samih dvojk, {mixed} z jokerji.',
   'canasta.rules.rearrange': 'Na svoji potezi, ko je tvoja stran odprla, lahko premikaš karte med lastnimi kombinacijami svoje strani, dokler vsaka kombinacija ostane veljavna. Tako razbita kanasta ni več kanasta.',
   'canasta.rules.poach': 'Na svoji potezi, ko je tvoja stran odprla, lahko naravno karto iz roke zamenjaš za divjo karto, ki jo nadomešča v katerikoli kombinaciji na mizi, in divjo karto obdržiš.',
   'canasta.rules.topOnlyCapture': 'Kadar bi lahko vzel kup odvrženih, lahko namesto tega vzameš le njegovo vrhnjo karto, položeno na enak način, ostanek kupa pa pustiš.',
