@@ -652,6 +652,25 @@ export function ZoneView({
                     : {}) as object)}
                   testID={`group-toggle-${g.id}`}
                 >
+                  {/* A spread-open meld says it can be folded back up: the
+                      same tap does it, but nothing on the cards hinted that
+                      it would. Drawn above the cards, where the tap that
+                      opened it landed — under them, a tall run pushed it off
+                      the bottom of the screen. Only while the tap is the meld's own — a live
+                      drop target hands it to the drop. Decoration: the
+                      toggle's own name already says "collapse". */}
+                  {groupOpen && !groupPressable && g.cards.length > 1 ? (
+                    <Text
+                      pointerEvents="none"
+                      style={styles.collapseGlyph}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no"
+                      {...((Platform.OS === 'web' ? { 'aria-hidden': true } : {}) as object)}
+                      testID={`group-collapse-${g.id}`}
+                    >
+                      ▲
+                    </Text>
+                  ) : null}
                   <View style={styles.stackedCards}>
                     {Array.from({ length: hidden }, (_, h) => (
                       <View
@@ -1207,6 +1226,7 @@ function zoneStyles(m: Metrics, s: Skin) {
     markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
     foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
+    collapseGlyph: { color: colors.accentButton, fontSize: 13, lineHeight: 16, fontWeight: '700', textAlign: 'center', marginBottom: 2 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     back: {
