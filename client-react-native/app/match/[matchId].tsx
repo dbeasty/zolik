@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { isMeldLift } from '@/src/lib/meldLift';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   Animated,
@@ -1040,11 +1041,7 @@ function MatchScreen() {
   const selectedCards = cardsForSelection(heldSlots, selected);
 
   // Which offers take their cards out of a meld rather than out of a hand.
-  // Read off the offer's own source zone — the server says where a move's
-  // cards come from — so no game is named here.
-  // A move whose cards the module has already named (`submit`) is a lift —
-  // solitaire's, below — not a choice made card by card.
-  const fromMeld = (o: ActionOffer) => o.source?.zone === 'from_meld' && !o.source?.submit?.length;
+  const fromMeld = isMeldLift;
   // Everything a hand selection could be for: the whole list, less the moves
   // that start on the table.
   // A tile lying loose in a tray is lifted the same way, except that the offer

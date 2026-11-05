@@ -393,6 +393,29 @@ export function OfferBar({
  * `FoldedOffer` counterpart does: the selection settles it, or the press is
  * handed to `onAmbiguous` to point at targets on the board.
  */
+/**
+ * Which of the strip's distinct, enabled offers get a pill, and how many go
+ * behind the "+N" tail.
+ *
+ * A take-back always gets one. Modules list their undo offers last on purpose
+ * (a bot reading the list in order must reach every ordinary move first), so
+ * a plain "first `max`" cut dropped exactly the control a player reaches for
+ * after a meld they did not mean: in CanastaX, Discard / Meld / Add to meld /
+ * Swap for wild filled the strip and "Undo meld" became an unexplained "+1".
+ * Undo pills keep their place at the end; ordinary offers fill what is left.
+ */
+export function glancePills(distinct: ActionOffer[], max: number): { shown: ActionOffer[]; rest: number } {
+  const undos = distinct.filter((o) => o.undo).slice(0, max);
+  const room = Math.max(0, max - undos.length);
+  const keep = new Set<ActionOffer>(undos);
+  for (const o of distinct) {
+    if (keep.size >= undos.length + room) break;
+    if (!o.undo) keep.add(o);
+  }
+  const shown = distinct.filter((o) => keep.has(o));
+  return { shown, rest: distinct.length - shown.length };
+}
+
 export function OfferGlance({
   offers,
   selectedCards = [],
@@ -442,8 +465,7 @@ export function OfferGlance({
   const distinct = [...byKey.values()];
   if (!distinct.length) return null;
 
-  const shown = distinct.slice(0, max);
-  const rest = distinct.length - shown.length;
+  const { shown, rest } = glancePills(distinct, max);
 
   const fire = (offer: ActionOffer) => {
     const cards = offer.composite || (offer.source?.minCards ?? 0) > 0 ? pickCards(offer, selectedCards) : undefined;
