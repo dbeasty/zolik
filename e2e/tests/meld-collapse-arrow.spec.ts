@@ -4,8 +4,8 @@ import { API_BASE } from '../helpers/env';
 
 /**
  * Tapping a meld spreads its cards open and tapping it again folds them back,
- * but nothing on an open meld said the second tap existed. An open meld now
- * draws a ▲ above its cards (`group-collapse-<id>`); a closed one draws none.
+ * but nothing on a meld said so. A closed meld now draws a ▼ above its cards
+ * (`group-expand-<id>`) and an open one a ▲ (`group-collapse-<id>`).
  *
  * Seeded through the debug-state hatch, as `canasta-folded-face` does, so the
  * melds are on the table on the first frame.
@@ -113,32 +113,45 @@ async function openMatch(page: Page, host: any, matchId: string, width: number) 
 
 const SHOTS = process.env.ZOLIK_E2E_SHOTS;
 
+async function tapArrow(page: Page, id: string, testId: string) {
+  const arrow = page.getByTestId(testId);
+  await expect(arrow).toBeVisible();
+  await arrow.scrollIntoViewIfNeeded();
+  const box = (await arrow.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  // The arrow is inside the toggle, so a press on it is the toggle's press.
+  const hit = await page.evaluate(
+    ({ x, y, id }) => !!document.elementFromPoint(x, y)?.closest(`[data-testid="group-toggle-${id}"]`),
+    { x, y, id },
+  );
+  expect(hit).toBe(true);
+  if (SHOTS) {
+    await page.getByTestId(`group-${id}`).screenshot({ path: `${SHOTS}/${testId}-${page.viewportSize()!.width}.png` });
+  }
+  await page.mouse.click(x, y);
+}
+
 for (const width of [1280, 375]) {
-  test(`an open meld shows a collapse arrow, and tapping folds it (${width}px)`, async ({ page, request }) => {
+  test(`a meld shows an expand arrow closed and a collapse arrow open (${width}px)`, async ({ page, request }) => {
     const { matchId, host } = await seededTable(request);
     await openMatch(page, host, matchId, width);
 
+    // t0-9 is a plain meld, t0-5 a finished canasta that folds to one card.
     for (const id of ['t0-9', 't0-5']) {
       const toggle = page.getByTestId(`group-toggle-${id}`);
-      const arrow = page.getByTestId(`group-collapse-${id}`);
       await expect(toggle).toBeVisible({ timeout: 15_000 });
-      await expect(arrow).toHaveCount(0);
-
-      await toggle.click();
-      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-      await expect(arrow).toBeVisible();
-      // Inside the toggle, so the arrow is the toggle's own hit area.
-      const box = (await arrow.boundingBox())!;
-      const hit = await page.evaluate(
-        ({ x, y, id }) => !!document.elementFromPoint(x, y)?.closest(`[data-testid="group-toggle-${id}"]`),
-        { x: box.x + box.width / 2, y: box.y + box.height / 2, id },
-      );
-      expect(hit).toBe(true);
-      if (SHOTS) await page.getByTestId(`group-${id}`).screenshot({ path: `${SHOTS}/open-${id}-${width}.png` });
-
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-      await expect(arrow).toHaveCount(0);
+      await expect(page.getByTestId(`group-collapse-${id}`)).toHaveCount(0);
+
+      await tapArrow(page, id, `group-expand-${id}`);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByTestId(`group-expand-${id}`)).toHaveCount(0);
+
+      await tapArrow(page, id, `group-collapse-${id}`);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.getByTestId(`group-collapse-${id}`)).toHaveCount(0);
+      await expect(page.getByTestId(`group-expand-${id}`)).toBeVisible();
     }
   });
 }
