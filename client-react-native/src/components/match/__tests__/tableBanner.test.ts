@@ -32,6 +32,12 @@ describe('tableBanner', () => {
     expect(b?.kind).toBe('offline');
   });
 
+  it('says another tab has the seat, not "reconnecting", when displaced', () => {
+    const b = tableBanner({ ...base, state: table({ status: 'active' }), connected: false, displaced: true });
+    expect(b?.kind).toBe('displaced');
+    expect(b?.text).not.toContain('Reconnecting');
+  });
+
   it('says the server is offline before naming a missing player', () => {
     const b = tableBanner({ ...base, state: table({ status: 'suspended', suspendedPlayer: 'bo' }), serverGone: { name: "Ada's phone" } });
     expect(b?.kind).toBe('server');

@@ -1601,6 +1601,7 @@ export const ro: Record<string, string> = {
   'rules.standIn.record': 'Un joc pe care un bot l-a jucat pentru tine rămâne în istoric, dar nu contează nici ca victorie, nici ca înfrângere.',
   'rules.standIn.wait': 'Dacă un jucător pierde conexiunea, masa așteaptă să revină.',
   'banner.offline': 'Ești offline. Se reconectează…',
+  'banner.useThisTab': 'Folosește această filă',
   'banner.serverOffline': 'Serverul ({name}) este offline. Jocul e în pauză și nu se pierde nimic.',
   'banner.waitingFor': 'Se așteaptă: {name}.',
   'banner.botIn': 'În {time} un bot joacă în locul lui.',

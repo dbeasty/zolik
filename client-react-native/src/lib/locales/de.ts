@@ -1608,6 +1608,7 @@ export const de: Record<string, string> = {
   'rules.standIn.record': 'Eine Partie, die ein Bot für dich gespielt hat, bleibt in deinem Verlauf, zählt aber weder als Sieg noch als Niederlage.',
   'rules.standIn.wait': 'Verliert jemand die Verbindung, wartet der Tisch, bis er zurück ist.',
   'banner.offline': 'Du bist offline. Verbinde neu…',
+  'banner.useThisTab': 'Diesen Tab verwenden',
   'banner.serverOffline': 'Der Server ({name}) ist offline. Das Spiel ist pausiert, nichts geht verloren.',
   'banner.waitingFor': 'Warten auf {name}.',
   'banner.botIn': 'In {time} spielt ein Bot für sie.',

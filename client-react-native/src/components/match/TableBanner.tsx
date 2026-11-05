@@ -13,6 +13,13 @@ type Props = {
   /** Whether this screen's socket is open. */
   connected: boolean;
   /**
+   * This tab's socket was closed because another connection for the same
+   * player took the seat, and it is not reconnecting on its own.
+   */
+  displaced?: boolean;
+  /** Take the seat back from that other connection. */
+  onReclaim?: () => void;
+  /**
    * The table's server is unreachable while this client's own connection is
    * fine — a table hosted on somebody's phone, whose phone has gone away. Its
    * name is who to wait for.
@@ -39,7 +46,7 @@ type Props = {
  * *player* is missing, the table waits for them for as long as it was set up
  * to, and then a bot plays their seat. Only the first that holds is shown.
  */
-export function TableBanner({ state, seats, viewerId, connected, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting }: Props) {
+export function TableBanner({ state, seats, viewerId, connected, displaced, onReclaim, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting }: Props) {
   const counting = !!awaitedAway(state, seats)?.standInAt;
   const now = useNow(counting);
 
@@ -50,7 +57,7 @@ export function TableBanner({ state, seats, viewerId, connected, serverGone, not
     return () => clearTimeout(id);
   }, [notice, onDismissNotice]);
 
-  const b = tableBanner({ state, seats, viewerId, connected, serverGone, notice, now });
+  const b = tableBanner({ state, seats, viewerId, connected, displaced, serverGone, notice, now });
   // The bot banners are information, not an error: the viewer may wave them
   // away. Dismissal is per situation (kind + who), so a different player
   // dropping, or the same one dropping again, shows it afresh.
@@ -64,6 +71,16 @@ export function TableBanner({ state, seats, viewerId, connected, serverGone, not
   if (botBanner && hidden === situation) return null;
   return (
     <Banner tone={b.tone} testID={`table-banner-${b.kind}`} text={b.text}>
+      {b.kind === 'displaced' && onReclaim ? (
+        <Pressable
+          testID="table-banner-reclaim"
+          onPress={onReclaim}
+          style={styles.button}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{t('banner.useThisTab')}</Text>
+        </Pressable>
+      ) : null}
       {b.kind === 'waiting' && onLetBotPlay && b.playerId ? (
         <Pressable
           testID="table-banner-let-bot"
@@ -104,7 +121,7 @@ export function TableBanner({ state, seats, viewerId, connected, serverGone, not
   );
 }
 
-export type BannerKind = 'offline' | 'server' | 'waiting' | 'back' | 'standin';
+export type BannerKind = 'displaced' | 'offline' | 'server' | 'waiting' | 'back' | 'standin';
 
 /**
  * Which banner, if any, and what it says. Pure, so the order the three
@@ -116,6 +133,7 @@ export function tableBanner({
   seats,
   viewerId,
   connected,
+  displaced,
   serverGone,
   notice,
   now,
@@ -124,6 +142,7 @@ export function tableBanner({
   seats: Seat[];
   viewerId: string;
   connected: boolean;
+  displaced?: boolean;
   serverGone?: { name: string };
   notice: string | null;
   now: number;
@@ -132,6 +151,10 @@ export function tableBanner({
   // this player's socket down with it; so it is said before "you are offline",
   // which is only what a dropped socket looks like from here.
   if (serverGone) return { kind: 'server', tone: 'bad', text: t('banner.serverOffline', { name: serverGone.name }) };
+  // Displaced is a closed socket too, but not an offline one: the network is
+  // fine and nothing is retrying. Saying "Reconnecting…" here promised
+  // something that was never going to happen.
+  if (!connected && displaced) return { kind: 'displaced', tone: 'bad', text: t('err.DISPLACED') };
   if (!connected) return { kind: 'offline', tone: 'bad', text: t('banner.offline') };
   const waitingOn = awaitedAway(state, seats);
   if (waitingOn && waitingOn.id !== viewerId) {

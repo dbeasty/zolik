@@ -1599,6 +1599,7 @@ export const hu: Record<string, string> = {
   'rules.standIn.record': 'Az a játszma, amelyet egy bot játszott helyetted, megmarad az előzményeidben, de nem számít se győzelemnek, se vereségnek.',
   'rules.standIn.wait': 'Ha egy játékos kapcsolata megszakad, az asztal megvárja, amíg visszatér.',
   'banner.offline': 'Offline vagy. Újrakapcsolódás…',
+  'banner.useThisTab': 'Ezt a lapot használom',
   'banner.serverOffline': 'A szerver ({name}) offline. A játék szünetel, semmi sem vész el.',
   'banner.waitingFor': 'Várakozás: {name}.',
   'banner.botIn': '{time} múlva egy bot játszik helyette.',

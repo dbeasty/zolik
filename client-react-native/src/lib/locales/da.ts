@@ -1580,6 +1580,7 @@ export const da: Record<string, string> = {
   'rules.standIn.record': 'Et spil, en bot spillede for dig, bliver i din historik, men tæller hverken som sejr eller nederlag.',
   'rules.standIn.wait': 'Mister en spiller forbindelsen, venter bordet på, at de kommer tilbage.',
   'banner.offline': 'Du er offline. Genopretter forbindelsen…',
+  'banner.useThisTab': 'Brug denne fane',
   'banner.serverOffline': 'Serveren ({name}) er offline. Spillet er sat på pause, og intet går tabt.',
   'banner.waitingFor': 'Venter på {name}.',
   'banner.botIn': 'Om {time} spiller en bot for dem.',

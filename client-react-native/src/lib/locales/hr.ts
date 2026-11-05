@@ -1581,6 +1581,7 @@ export const hr: Record<string, string> = {
   'rules.standIn.record': 'Igra koju je bot odigrao umjesto tebe ostaje u povijesti, ali se ne računa ni kao pobjeda ni kao poraz.',
   'rules.standIn.wait': 'Ako igraču pukne veza, stol čeka da se vrati.',
   'banner.offline': 'Niste na mreži. Ponovno povezivanje…',
+  'banner.useThisTab': 'Koristi ovu karticu',
   'banner.serverOffline': 'Poslužitelj ({name}) nije na mreži. Igra je pauzirana i ništa se ne gubi.',
   'banner.waitingFor': 'Čeka se: {name}.',
   'banner.botIn': 'Za {time} umjesto njega igra bot.',

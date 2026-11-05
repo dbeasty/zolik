@@ -1608,6 +1608,7 @@ export const nl: Record<string, string> = {
   'rules.standIn.record': 'Een spel dat een bot voor je speelde, blijft in je geschiedenis maar telt niet als winst of verlies.',
   'rules.standIn.wait': 'Valt iemands verbinding weg, dan wacht de tafel tot ze terug zijn.',
   'banner.offline': 'Je bent offline. Opnieuw verbinden…',
+  'banner.useThisTab': 'Dit tabblad gebruiken',
   'banner.serverOffline': 'De server ({name}) is offline. Het spel is gepauzeerd en er gaat niets verloren.',
   'banner.waitingFor': 'Wachten op {name}.',
   'banner.botIn': 'Over {time} speelt een bot voor hen.',

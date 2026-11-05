@@ -1617,6 +1617,7 @@ export const ga: Record<string, string> = {
   'rules.standIn.record': 'Fanann cluiche a d’imir bota ar do shon i do stair, ach ní áirítear é mar bhua ná mar chailliúint.',
   'rules.standIn.wait': 'Má chailltear nasc imreora, fanann an bord go bhfillfidh siad.',
   'banner.offline': 'Tá tú as líne. Ag athcheangal…',
+  'banner.useThisTab': 'Úsáid an cluaisín seo',
   'banner.serverOffline': 'Tá an freastalaí ({name}) as líne. Tá an cluiche ar sos agus ní chailltear tada.',
   'banner.waitingFor': 'Ag fanacht le {name}.',
   'banner.botIn': 'Imreoidh bota ar a son i gceann {time}.',

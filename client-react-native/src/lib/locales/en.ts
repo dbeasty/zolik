@@ -1609,6 +1609,7 @@ export const en: Record<string, string> = {
   'rules.standIn.record': 'A game a bot played for you stays in your history, but counts as neither a win nor a loss.',
   'rules.standIn.wait': 'If a player’s connection drops, the table waits for them to come back.',
   'banner.offline': 'You’re offline. Reconnecting…',
+  'banner.useThisTab': 'Use this tab',
   'banner.serverOffline': 'The server ({name}) is offline. The game is paused and nothing is lost.',
   'banner.waitingFor': 'Waiting for {name}.',
   'banner.botIn': 'A bot plays for them in {time}.',

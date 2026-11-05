@@ -1582,6 +1582,7 @@ export const sk: Record<string, string> = {
   'rules.standIn.record': 'Hra, ktorú za vás dohral bot, zostane v histórii, ale nepočíta sa ako výhra ani prehra.',
   'rules.standIn.wait': 'Keď hráčovi vypadne pripojenie, stôl čaká, kým sa vráti.',
   'banner.offline': 'Ste offline. Pripájam znova…',
+  'banner.useThisTab': 'Použiť túto kartu',
   'banner.serverOffline': 'Server ({name}) je offline. Hra je pozastavená a nič sa nestratí.',
   'banner.waitingFor': 'Čaká sa na: {name}.',
   'banner.botIn': 'Bot zaňho začne hrať o {time}.',

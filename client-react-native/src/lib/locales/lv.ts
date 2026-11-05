@@ -1582,6 +1582,7 @@ export const lv: Record<string, string> = {
   'rules.standIn.record': 'Spēle, ko tavā vietā spēlēja bots, paliek vēsturē, bet netiek skaitīta ne kā uzvara, ne kā zaudējums.',
   'rules.standIn.wait': 'Ja spēlētājam pazūd savienojums, galds gaida, līdz viņš atgriežas.',
   'banner.offline': 'Tu esi bezsaistē. Atjauno savienojumu…',
+  'banner.useThisTab': 'Izmantot šo cilni',
   'banner.serverOffline': 'Serveris ({name}) ir bezsaistē. Spēle ir apturēta, un nekas netiek zaudēts.',
   'banner.waitingFor': 'Gaida: {name}.',
   'banner.botIn': 'Pēc {time} viņa vietā spēlēs bots.',

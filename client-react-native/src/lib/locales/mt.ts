@@ -1605,6 +1605,7 @@ export const mt: Record<string, string> = {
   'rules.standIn.record': 'Logħba li lagħab bot minflokok tibqa’ fl-istorja tiegħek, iżda ma tgħoddx la bħala rebħa u lanqas bħala telfa.',
   'rules.standIn.wait': 'Jekk il-konnessjoni ta’ plejer taqa’, il-mejda tistenna sakemm jirritorna.',
   'banner.offline': 'M’intix konness. Qed nerġa’ nikkonnettja…',
+  'banner.useThisTab': 'Uża dan it-tab',
   'banner.serverOffline': 'Is-server ({name}) mhux konness. Il-logħba hija f’pawsa u xejn ma jintilef.',
   'banner.waitingFor': 'Qed nistennew lil {name}.',
   'banner.botIn': 'Fi {time} bot jilgħab minfloku.',

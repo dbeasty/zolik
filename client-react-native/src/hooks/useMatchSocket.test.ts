@@ -137,6 +137,8 @@ describe('useMatchSocket', () => {
   let randomSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // The hook narrates every connection event for DevTools; not wanted here.
+    jest.spyOn(console, 'info').mockImplementation(() => {});
     FakeWebSocket.instances = [];
     (global as { WebSocket?: unknown }).WebSocket = FakeWebSocket;
     jest.useFakeTimers();
@@ -288,11 +290,34 @@ describe('useMatchSocket', () => {
     act(() => FakeWebSocket.instances[0].fireClose({ code: WS_CLOSE_DISPLACED }));
     await flushClose();
 
-    expect(probe.hook!.error).toEqual({ code: 'DISPLACED' });
+    expect(probe.hook!.displaced).toBe(true);
     expect(probe.hook!.connected).toBe(false);
 
     act(() => jest.advanceTimersByTime(60_000));
     expect(FakeWebSocket.instances).toHaveLength(1);
+  });
+
+  it('takes the seat back on reclaim, and only then', async () => {
+    // The tab that was displaced says so and waits; pressing "Use this tab"
+    // opens one fresh socket at once, with no backoff left over.
+    const { probe } = renderProbe('ws://table/1?token=a');
+    act(() => FakeWebSocket.instances[0].fireOpen());
+    act(() => FakeWebSocket.instances[0].fireClose({ code: WS_CLOSE_DISPLACED }));
+    await flushClose();
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    act(() => probe.hook!.reclaim());
+    expect(probe.hook!.displaced).toBe(false);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    act(() => FakeWebSocket.instances[1].fireOpen());
+    expect(probe.hook!.connected).toBe(true);
+
+    // An ordinary drop after that reconnects as usual: the displaced verdict
+    // did not carry over into the new chain.
+    act(() => FakeWebSocket.instances[1].fireClose());
+    await flushClose();
+    act(() => jest.advanceTimersByTime(5000));
+    expect(FakeWebSocket.instances.length).toBeGreaterThan(2);
   });
 
   it('surfaces SERVER_BUSY and backs off long when capacity says the server is full', async () => {
