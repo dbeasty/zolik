@@ -284,7 +284,7 @@
    "avatar": 35,
    "avatarCompact": 19
   },
-  "stackedCorner": 23,
+  "stackedCorner": 20,
   "buttonMinWidth": 81
  },
  "600": {
@@ -320,7 +320,7 @@
    "avatar": 35,
    "avatarCompact": 19
   },
-  "stackedCorner": 23,
+  "stackedCorner": 20,
   "buttonMinWidth": 81
  },
  "767": {
@@ -356,7 +356,7 @@
    "avatar": 35,
    "avatarCompact": 19
   },
-  "stackedCorner": 23,
+  "stackedCorner": 20,
   "buttonMinWidth": 81
  },
  "768": {
@@ -392,7 +392,7 @@
    "avatar": 92,
    "avatarCompact": 51
   },
-  "stackedCorner": 60,
+  "stackedCorner": 44,
   "buttonMinWidth": 122
  },
  "800": {
@@ -428,7 +428,7 @@
    "avatar": 96,
    "avatarCompact": 53
   },
-  "stackedCorner": 62,
+  "stackedCorner": 46,
   "buttonMinWidth": 122
  },
  "1024": {
@@ -464,7 +464,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "1280": {
@@ -500,7 +500,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "1366": {
@@ -536,7 +536,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "1440": {
@@ -572,7 +572,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "1600": {
@@ -608,7 +608,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "1920": {
@@ -644,7 +644,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "2560": {
@@ -680,7 +680,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  },
  "3840": {
@@ -716,7 +716,7 @@
    "avatar": 100,
    "avatarCompact": 55
   },
-  "stackedCorner": 65,
+  "stackedCorner": 48,
   "buttonMinWidth": 122
  }
 }
