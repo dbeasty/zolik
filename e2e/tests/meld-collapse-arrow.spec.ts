@@ -144,6 +144,18 @@ for (const width of [1280, 900, 375]) {
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
       await expect(page.getByTestId(`group-collapse-${id}`)).toHaveCount(0);
 
+      // Snug: the arrow sits in the meld's own padding at the top and the
+      // cards start right under it, not a margin further down.
+      const gap = await page.evaluate((id) => {
+        const box = (sel: string) => document.querySelector(`[data-testid="${sel}"]`)!.getBoundingClientRect();
+        const card = document.querySelector(`[data-testid="group-toggle-${id}"] [data-card]`)!.getBoundingClientRect();
+        const g = box(`group-${id}`);
+        const a = box(`group-expand-${id}`);
+        return { above: a.top - g.top, below: card.top - a.bottom };
+      }, id);
+      expect(gap.above).toBeLessThanOrEqual(6);
+      expect(gap.below).toBeLessThanOrEqual(1);
+
       await tapArrow(page, id, `group-expand-${id}`);
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
       await expect(page.getByTestId(`group-expand-${id}`)).toHaveCount(0);
