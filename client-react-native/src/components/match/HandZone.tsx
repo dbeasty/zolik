@@ -19,7 +19,7 @@ import { handCardLabel, handSpokenLabel, type PlayOption } from '@/src/lib/board
 import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
-import { dragLayer } from '@/src/theme';
+import { dragLayer, handOnDragLayer } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 
 /**
@@ -818,10 +818,10 @@ export function HandZone({
 
   // The hand and the row inside it ride up onto the drag layer with the card
   // they are carrying (see `dragLayer`), so a card taken down onto a meld is
-  // drawn over the meld rather than behind it. Only while a card is actually
-  // held: a hand permanently above the board would put its own edge over
-  // every panel below it for no reason.
-  const carrying = held !== null;
+  // drawn over the meld rather than behind it. On the web only while a card
+  // is actually held; on iOS and Android always, because raising them once
+  // the card is up cancels the drag (see `handOnDragLayer`).
+  const carrying = handOnDragLayer(held !== null ? {} : null);
 
   return (
     <Panel

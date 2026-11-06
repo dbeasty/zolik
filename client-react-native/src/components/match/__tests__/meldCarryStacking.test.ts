@@ -103,10 +103,22 @@ describe('carrying a card off a meld on iOS', () => {
 });
 
 describe('the hand on the drag layer', () => {
-  it('goes up only for a card that came out of it', () => {
-    expect(handOnDragLayer(null)).toBe(false);
-    expect(handOnDragLayer({})).toBe(true);
-    expect(handOnDragLayer({ fromMeld: 't0-K' })).toBe(false);
-    expect(handOnDragLayer({ fromTable: true })).toBe(false);
+  it('on the web, goes up only for a card that came out of it', () => {
+    expect(handOnDragLayer(null, 'web')).toBe(false);
+    expect(handOnDragLayer({}, 'web')).toBe(true);
+    expect(handOnDragLayer({ fromMeld: 't0-K' }, 'web')).toBe(false);
+    expect(handOnDragLayer({ fromTable: true }, 'web')).toBe(false);
+  });
+
+  // Raised once a card is up, the hand's views are reordered under the
+  // finger and iOS cancels the pan: a card dragged along the fan was let go
+  // two moves after it lifted. So it never changes there.
+  it('on iOS and Android, is up before any touch and stays up', () => {
+    for (const os of ['ios', 'android']) {
+      expect(handOnDragLayer(null, os)).toBe(true);
+      expect(handOnDragLayer({}, os)).toBe(true);
+      expect(handOnDragLayer({ fromMeld: 't0-K' }, os)).toBe(true);
+      expect(handOnDragLayer({ fromTable: true }, os)).toBe(true);
+    }
   });
 });
