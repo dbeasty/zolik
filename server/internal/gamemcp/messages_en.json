@@ -2534,6 +2534,7 @@
  "server.thisPhone": "Server: this phone",
  "server.thisPhone@desktop": "Server: this computer",
  "settings.back": "Back",
+ "settings.done": "Done",
  "settings.face.account": "Kept with your account, so it follows you to another device.",
  "settings.face.device": "Kept on this device. Sign in to carry it with you.",
  "settings.face.heading": "Your face at the table",

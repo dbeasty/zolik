@@ -1,4 +1,4 @@
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { heading } from '@/src/a11y/props';
@@ -7,6 +7,7 @@ import { Screen } from '@/src/components/Screen';
 import { CLIENT_COMMIT, CLIENT_VERSION } from '@/src/config';
 import { useServerBuild } from '@/src/hooks/useServerBuild';
 import { useLocale } from '@/src/hooks/useLocale';
+import { goBack } from '@/src/lib/goBack';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -68,7 +69,7 @@ export default function AboutScreen() {
 
       <LegalLinks />
 
-      <Pressable style={{ marginTop: 16 }} role="button" onPress={() => router.back()}>
+      <Pressable style={{ marginTop: 16 }} role="button" onPress={goBack}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>

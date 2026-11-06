@@ -10,6 +10,7 @@ import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { loadGuestId, useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
+import { goBack } from '@/src/lib/goBack';
 import { guestNameFor } from '@/src/lib/guestName';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
@@ -125,7 +126,7 @@ export default function GuestScreen() {
       >
         <Text style={shared.buttonText}>{busy ? '…' : t('verb.continue')}</Text>
       </Pressable>
-      <Pressable role="button" onPress={() => router.back()}>
+      <Pressable role="button" onPress={goBack}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>

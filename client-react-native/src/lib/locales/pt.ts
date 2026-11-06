@@ -1097,6 +1097,7 @@ export const pt: Record<string, string> = {
   'settings.legal.status': 'O que aceitaste ao jogar, e o que é guardado sobre ti.',
   'settings.signIn': 'Iniciar sessão',
   'settings.back': 'Voltar',
+  'settings.done': 'Concluído',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

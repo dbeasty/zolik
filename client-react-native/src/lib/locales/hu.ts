@@ -1096,6 +1096,7 @@ export const hu: Record<string, string> = {
   'settings.legal.status': 'Mihez járultál hozzá a játékkal, és mit tárolunk rólad.',
   'settings.signIn': 'Bejelentkezés',
   'settings.back': 'Vissza',
+  'settings.done': 'Kész',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

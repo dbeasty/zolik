@@ -1102,6 +1102,7 @@ export const mt: Record<string, string> = {
   'settings.legal.status': "Ma' xiex qbilt billi lgħabt, u x'jinżamm dwarek.",
   'settings.signIn': 'Idħol',
   'settings.back': 'Lura',
+  'settings.done': 'Lest',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

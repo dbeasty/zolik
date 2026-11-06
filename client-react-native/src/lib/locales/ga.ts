@@ -1112,6 +1112,7 @@ export const ga: Record<string, string> = {
   'settings.legal.status': 'Cad ar aontaigh tú leis tríd an imirt, agus cad a stóráiltear fút.',
   'settings.signIn': 'Sínigh isteach',
   'settings.back': 'Ar ais',
+  'settings.done': 'Déanta',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the
