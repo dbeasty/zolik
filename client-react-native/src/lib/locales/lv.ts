@@ -1080,6 +1080,7 @@ export const lv: Record<string, string> = {
   'settings.legal.status': 'Kam tu spēlējot piekriti un kas par tevi tiek glabāts.',
   'settings.signIn': 'Pierakstīties',
   'settings.back': 'Atpakaļ',
+  'settings.done': 'Gatavs',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

@@ -1085,6 +1085,7 @@ export const et: Record<string, string> = {
   'settings.legal.status': 'Millega sa mängides nõustusid ja mida sinu kohta säilitatakse.',
   'settings.signIn': 'Logi sisse',
   'settings.back': 'Tagasi',
+  'settings.done': 'Valmis',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

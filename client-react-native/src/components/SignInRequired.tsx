@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { heading } from '@/src/a11y/props';
 import { Screen } from '@/src/components/Screen';
 import { useLocale } from '@/src/hooks/useLocale';
+import { goBack } from '@/src/lib/goBack';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -40,7 +41,7 @@ export function SignInRequired({ title }: { title: string }) {
       >
         <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
       </Pressable>
-      <Pressable role="button" onPress={() => router.back()}>
+      <Pressable role="button" onPress={goBack}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>

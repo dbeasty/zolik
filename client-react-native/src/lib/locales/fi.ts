@@ -1088,6 +1088,7 @@ export const fi: Record<string, string> = {
   'settings.legal.status': 'Mihin suostuit pelaamalla ja mitä sinusta tallennetaan.',
   'settings.signIn': 'Kirjaudu sisään',
   'settings.back': 'Takaisin',
+  'settings.done': 'Valmis',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

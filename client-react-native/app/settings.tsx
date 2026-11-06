@@ -12,6 +12,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useSkinControls } from '@/src/hooks/useSkin';
+import { goBack } from '@/src/lib/goBack';
 import { t } from '@/src/lib/i18n';
 import { SoundSettings } from '@/src/sound/SoundSettings';
 import { NotificationSettings } from '@/src/notify/NotificationSettings';
@@ -132,8 +133,10 @@ export default function SettingsScreen() {
           <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
         </Pressable>
       ) : null}
-      <Pressable role="button" onPress={() => router.back()}>
-        <Text style={shared.status}>{t('settings.back')}</Text>
+      {/* Done, not Save: every choice above is kept the moment it is made, so
+          a button that claimed to save them would say they were not. */}
+      <Pressable style={shared.button} role="button" testID="settings-done" onPress={goBack}>
+        <Text style={shared.buttonText}>{t('settings.done')}</Text>
       </Pressable>
     </Screen>
   );

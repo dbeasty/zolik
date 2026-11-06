@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
+import { goBack } from '@/src/lib/goBack';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -43,7 +44,7 @@ export default function MoreScreen() {
         onPress={() => router.push('/stats')}
       />
 
-      <Pressable style={{ marginTop: 16 }} role="button" onPress={() => router.back()}>
+      <Pressable style={{ marginTop: 16 }} role="button" onPress={goBack}>
         <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>

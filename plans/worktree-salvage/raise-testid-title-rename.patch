@@ -1,0 +1,66 @@
+diff --git a/client-react-native/src/components/match/OfferBar.tsx b/client-react-native/src/components/match/OfferBar.tsx
+index 86567a01..6580d437 100644
+--- a/client-react-native/src/components/match/OfferBar.tsx
++++ b/client-react-native/src/components/match/OfferBar.tsx
+@@ -243,7 +243,10 @@ export function OfferBar({
+                   controls apart; otherwise the verb, which covers most
+                   offers. */}
+               <Text
+-                testID={`offer-${offer.id}-title`}
++                // Not "offer-…": e2e specs find controls by that prefix, and
++                // a text node inside the button matching it counted every
++                // control twice.
++                testID={`title-${offer.id}`}
+                 style={[styles.buttonText, (!offer.enabled || !ready) && styles.ghostText]}
+               >
+                 {headline
+@@ -422,7 +425,7 @@ export function OfferGlance({
+             style={[styles.glancePill, !ready && styles.ghost]}
+           >
+             <Text
+-              testID={`offer-glance-${o.id}-title`}
++              testID={`glance-title-${o.id}`}
+               style={[styles.glancePillText, !ready && styles.ghostText]}
+               numberOfLines={1}
+             >
+diff --git a/docs/amount-on-the-button-plan.md b/docs/amount-on-the-button-plan.md
+index bbac0325..61f2eb82 100644
+--- a/docs/amount-on-the-button-plan.md
++++ b/docs/amount-on-the-button-plan.md
+@@ -42,7 +42,7 @@ know that 483 belonged on the button and a Rummy Tiles split position did not.
+ |---|---|
+ | Go `TestRaiseOfferQuickChoices` / `TestBettingOfferQuickChoices` | Both amount params are marked `Headline`. |
+ | Jest `src/api/headline.test.ts` | The default is named before any input; the title follows the slider/stepper and quick-choice values; out-of-range values are clamped; **the title matches the value `submissionFor` sends** for the same input; a non-headline int param and a param-less offer keep their verb. |
+-| Playwright `generic-shell.spec.ts`, "a numeric control…" | Checks the button's **rendered text** (`offer-raise-title`) after dealing, a stepper press, a quick choice, max, dragging the slider to the minimum, and typing past the range. |
++| Playwright `generic-shell.spec.ts`, "a numeric control…" | Checks the button's **rendered text** (`title-raise`) after dealing, a stepper press, a quick choice, max, dragging the slider to the minimum, and typing past the range. |
+ 
+ Checked against the old behaviour: with the title change reverted, the e2e test
+ fails with `Received string: "Raise"`. With the fix, it passes on repeated runs.
+diff --git a/e2e/tests/generic-shell.spec.ts b/e2e/tests/generic-shell.spec.ts
+index 998845a5..7b113d98 100644
+--- a/e2e/tests/generic-shell.spec.ts
++++ b/e2e/tests/generic-shell.spec.ts
+@@ -363,7 +363,7 @@ test.describe('one shell, every game', () => {
+     // setting it. It used to read "Raise" over a slider set to 483 — the
+     // player had to trust the press read the right number. Checked against
+     // the title's own text, the thing on screen, not the field beside it.
+-    const title = page.getByTestId('offer-raise-title');
++    const title = page.getByTestId('title-raise');
+     const namesAmount = async (n: number, how: string) =>
+       expect(title, `the raise button should name ${n} after ${how}`).toHaveText(
+         new RegExp(`\\b${n}$`),
+@@ -450,12 +450,12 @@ test.describe('one shell, every game', () => {
+     const target = Math.min(min + 7, max);
+     await value.fill(String(target));
+     await value.press('Enter');
+-    await expect(page.getByTestId('offer-raise-title')).toHaveText(new RegExp(`\\b${target}$`));
++    await expect(page.getByTestId('title-raise')).toHaveText(new RegExp(`\\b${target}$`));
+ 
+     const toggle = page.getByTestId('panel-toggle-zone:controls');
+     await toggle.click();
+     await expect(page.getByTestId('action-bar')).toHaveCount(0);
+-    const pill = page.getByTestId('offer-glance-raise-title');
++    const pill = page.getByTestId('glance-title-raise');
+     await expect(pill, 'the pill should name the amount set in the bar').toHaveText(
+       new RegExp(`\\b${target}$`),
+     );

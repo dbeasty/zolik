@@ -1082,6 +1082,7 @@ export const hr: Record<string, string> = {
   'settings.legal.status': 'Na što si igranjem pristao i što se o tebi pohranjuje.',
   'settings.signIn': 'Prijava',
   'settings.back': 'Natrag',
+  'settings.done': 'Gotovo',
 
   // A translated interface over an English notice is a worse lie than an
   // English interface, so the document says so itself rather than letting the

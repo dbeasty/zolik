@@ -96,7 +96,7 @@ import {
 import { useNoShrink } from '@/src/hooks/useNoShrink';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { lastCardColourOfKey } from '@/src/lib/cards';
-import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection } from '@/src/lib/hand';
+import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection, type Slot } from '@/src/lib/hand';
 import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
@@ -288,9 +288,26 @@ function MatchScreen() {
   // hand is deliberately narrow; see `endsHandFor`.
   const a11yPrefs = useA11yPrefs();
   const [confirming, setConfirming] = useState<MatchAction | null>(null);
+  // Which copies in the fan a move plays — a pair of identical cards is two
+  // slots, and the cards a move sends name neither. Filled in below, once the
+  // hand's slots exist: the drag's own slots when one carried the cards, the
+  // selection otherwise. `useHandOrder` retires these when the push arrives.
+  const played = useRef<{
+    dragged: string[] | null;
+    selected: ReadonlySet<string>;
+    held: Slot[];
+    retire?: (slotIds: Iterable<string>) => void;
+  }>({ dragged: null, selected: new Set(), held: [] });
   const send = useCallback(
     (action: MatchAction) => {
+      const p = played.current;
+      const preferred = p.dragged ?? [...p.selected];
+      p.dragged = null;
       if (guide && !guide.allow(action)) return;
+      if (action.cards?.length && preferred.length) {
+        const ids = new Set(preferred);
+        p.retire?.(slotsForCards(p.held.filter((s) => ids.has(s.id)), action.cards));
+      }
       if (a11yPrefs.confirmFinal && state) {
         const me = session?.userId ?? '';
         const hands = (state.view?.zones ?? []).filter((z) => z.kind === 'hand' && z.ownerId === me);
@@ -346,7 +363,7 @@ function MatchScreen() {
   // Keyed by match, so an arrangement is remembered across a reload but never
   // carried into a different deal, where it would mean nothing.
   const [autoArrange, setAutoArrange] = useAutoArrange();
-  const { slotsFor, move, autoSelectIds } = useHandOrder(
+  const { slotsFor, move, retire, autoSelectIds } = useHandOrder(
     myHands,
     matchId ? String(matchId) : undefined,
     autoArrange,
@@ -442,6 +459,9 @@ function MatchScreen() {
   );
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
+  played.current.held = heldSlots;
+  played.current.selected = selected;
+  played.current.retire = retire;
 
   // A card that just arrived in hand, with nothing else about it changing, is
   // the one thing in the fan a player didn't have a moment ago — see
@@ -1481,6 +1501,7 @@ function MatchScreen() {
     // The card was carried there by hand — its journey has been made, so the
     // planner must not fly it a second time (see `flightPlan`).
     dragSentAt.current = Date.now();
+    played.current.dragged = current.slotIds;
     send(action);
     clearSelection();
     return true;
@@ -1606,6 +1627,8 @@ function MatchScreen() {
     }
     const { options, partial, refusal } = playOptionsFor(handOffers, cards, zones, state.players, viewerId);
     if (options.length === 1) {
+      // The selection set just above has not rendered yet, so say which copy.
+      played.current.dragged = selected.has(slotId) ? [...selected] : [slotId];
       playOption(options[0]!, cards);
       return;
     }
