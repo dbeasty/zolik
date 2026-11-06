@@ -575,6 +575,8 @@ export function ZoneView({
               : groupOpen
                 ? stackedCardBox(metrics)
                 : metrics.stackedCorner;
+            // Whether this meld draws its ▼/▲ (see where it is drawn).
+            const showsArrow = !groupPressable && g.cards.length > 1;
             const mark = changedGroups?.get(g.id);
             // Which of this group's cards to ring: the added ones, matched
             // from the end, since a card added to a group lands last more
@@ -660,7 +662,7 @@ export function ZoneView({
                       Only while the tap is the meld's own — a live drop
                       target hands it to the drop. Decoration: the toggle's
                       own name already says "show" or "collapse". */}
-                  {!groupPressable && g.cards.length > 1 ? (
+                  {showsArrow ? (
                     <Text
                       pointerEvents="none"
                       style={styles.toggleGlyph}
@@ -672,7 +674,10 @@ export function ZoneView({
                       {groupOpen ? '▲' : '▼'}
                     </Text>
                   ) : null}
-                  <View style={styles.stackedCards}>
+                  {/* The arrow takes the place of the cards' own top margin,
+                      so the space under it is the card's ring and no more —
+                      about the meld's own padding above it. */}
+                  <View style={[styles.stackedCards, showsArrow && styles.stackedUnderArrow]}>
                     {Array.from({ length: hidden }, (_, h) => (
                       <View
                         key={`${g.id}-hidden-${h}`}
@@ -1128,6 +1133,7 @@ function zoneStyles(m: Metrics, s: Skin) {
     // width instead of stretching to the group box's, which matters once
     // groups sit side by side (below) rather than each spanning full width.
     stackedCards: { flexDirection: 'column', alignItems: 'flex-start', marginTop: 6 },
+    stackedUnderArrow: { marginTop: 0 },
     // Pulls every card but the first up into the one above it, leaving just
     // its top corner (rank + suit) showing.
     stackedOverlap: { marginTop: -(stackedCardBox(m) - m.stackedCorner) },
@@ -1227,7 +1233,7 @@ function zoneStyles(m: Metrics, s: Skin) {
     markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
     foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
-    toggleGlyph: { color: colors.accentButton, fontSize: 11, lineHeight: 11, fontWeight: '700', textAlign: 'center', marginTop: -2, marginBottom: 1 },
+    toggleGlyph: { color: colors.accentButton, fontSize: 11, lineHeight: 11, fontWeight: '700', textAlign: 'center' },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     back: {
