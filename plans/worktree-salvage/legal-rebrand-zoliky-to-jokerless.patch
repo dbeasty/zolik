@@ -1,0 +1,156 @@
+diff --git a/client-react-native/src/legal/privacy.cs.ts b/client-react-native/src/legal/privacy.cs.ts
+index 42c4d85f..49e2ad7c 100644
+--- a/client-react-native/src/legal/privacy.cs.ts
++++ b/client-react-native/src/legal/privacy.cs.ts
+@@ -22,7 +22,7 @@ export const privacyCs: LegalDocument = {
+       id: 'no-tracking',
+       heading: 'Žádná analytika, žádné reklamy, žádné sledování',
+       body: [
+-        'Žolíky neobsahují žádnou analytickou službu, žádnou reklamní síť ani žádné sledovací pixely. Neprofilujeme tě, nesledujeme tě na jiných webech a tvoje údaje neprodáváme ani nesdílíme pro cizí účely.',
++        'Jokerless neobsahuje žádnou analytickou službu, žádnou reklamní síť ani žádné sledovací pixely. Neprofilujeme tě, nesledujeme tě na jiných webech a tvoje údaje neprodáváme ani nesdílíme pro cizí účely.',
+         'Následuje všechno, co hra opravdu ukládá, a proč.',
+       ],
+     },
+@@ -32,7 +32,7 @@ export const privacyCs: LegalDocument = {
+       body: [
+         'Abychom tě poznali u stolu: tvoje jméno, zvolený obrázek, kdy účet vznikl, kdy byl naposledy k vidění, a tvoje nastavení hry.',
+         'Pokud se přihlašuješ e-mailem: tvoji e-mailovou adresu a údaj, zda byla ověřena. Dokud je přihlašovací kód platný, ukládáme s ním i IP adresu, ze které o něj bylo požádáno, aby šlo odhalit opakované zneužití. Kód i tato adresa se automaticky smažou, jakmile kód vyprší — deset minut po odeslání.',
+-        'Pokud se přihlašuješ přes poskytovatele, například Google: identifikátor, který tvůj účet v Žolíkách spojuje s tímto poskytovatelem, a e-mailovou adresu, kterou nám poskytovatel předá. Tvoje heslo u něj nikdy nevidíme.',
++        'Pokud se přihlašuješ přes poskytovatele, například Google: identifikátor, který tvůj účet v Jokerless spojuje s tímto poskytovatelem, a e-mailovou adresu, kterou nám poskytovatel předá. Tvoje heslo u něj nikdy nevidíme.',
+         'U starších účtů se jménem a heslem: otisk hesla. Přečíst ho neumíme.',
+         'Abychom mohli ukázat výsledky: výsledky tvých zápasů, tvoje statistiky a tvoje místo v žebříčku.',
+         'Pokud hraješ jako host: náhodný identifikátor uložený ve tvém zařízení, aby sis mezi návštěvami udržel stejnou tvář. Na naší straně o tobě neuchováváme nic nad rámec toho, co stůl potřebuje, dokud u něj sedíš.',
+diff --git a/client-react-native/src/legal/privacy.en.ts b/client-react-native/src/legal/privacy.en.ts
+index d4a0516f..d6ddeaf8 100644
+--- a/client-react-native/src/legal/privacy.en.ts
++++ b/client-react-native/src/legal/privacy.en.ts
+@@ -33,7 +33,7 @@ export const privacyEn: LegalDocument = {
+       id: 'no-tracking',
+       heading: 'No analytics, no ads, no tracking',
+       body: [
+-        'Žolíky contains no analytics service, no advertising network, and no tracking pixels. We do not profile you, we do not follow you across other sites, and we do not sell or share your data for anyone else’s purposes.',
++        'Jokerless contains no analytics service, no advertising network, and no tracking pixels. We do not profile you, we do not follow you across other sites, and we do not sell or share your data for anyone else’s purposes.',
+         'What follows is everything the game does store, and why.',
+       ],
+     },
+@@ -43,7 +43,7 @@ export const privacyEn: LegalDocument = {
+       body: [
+         'To recognise you at a table: your display name, your avatar choice, when the account was created, when it was last seen, and your game preferences.',
+         'If you sign in by email: your email address and whether it has been verified. While a sign-in code is outstanding we also store the IP address it was requested from, so that repeated abuse can be spotted. The code and that address are deleted automatically when the code expires, ten minutes after it is sent.',
+-        'If you sign in with a provider such as Google: an identifier linking your Žolíky account to that provider, and the email address the provider gives us. We never see your password with that provider.',
++        'If you sign in with a provider such as Google: an identifier linking your Jokerless account to that provider, and the email address the provider gives us. We never see your password with that provider.',
+         'On older username accounts: a hashed password. We cannot read it.',
+         'To show results: your match results, your statistics, and your position on the leaderboard.',
+         'If you play as a guest: a random identifier stored on your own device, so you keep the same face between visits. Nothing about you is kept on our side beyond what a table needs while you are sitting at it.',
+diff --git a/client-react-native/src/legal/terms.cs.ts b/client-react-native/src/legal/terms.cs.ts
+index 9cf1e329..7bec3f17 100644
+--- a/client-react-native/src/legal/terms.cs.ts
++++ b/client-react-native/src/legal/terms.cs.ts
+@@ -16,16 +16,16 @@ export const termsCs: LegalDocument = {
+   sections: [
+     {
+       id: 'who',
+-      heading: 'Kdo Žolíky provozuje',
++      heading: 'Kdo provozuje Jokerless',
+       body: [
+-        'Žolíky jsou bezplatná online karetní hra, kterou provozuje {operator} („my“). Hraním tyto podmínky přijímáš. Pokud je nepřijímáš, nehraj.',
++        'Jokerless je bezplatná online karetní hra, kterou provozuje {operator} („my“). Hraním tyto podmínky přijímáš. Pokud je nepřijímáš, nehraj.',
+       ],
+     },
+     {
+       id: 'as-is',
+       heading: 'Hra je poskytována, jak stojí a leží',
+       body: [
+-        'Neposkytujeme žádnou záruku, že Žolíky budou dostupné, bez výpadků nebo bez chyb, ani že jsou pravidla naprogramována bez omylů.',
++        'Neposkytujeme žádnou záruku, že Jokerless bude dostupný, bez výpadků nebo bez chyb, ani že jsou pravidla naprogramována bez omylů.',
+         'Kteroukoli část hry můžeme kdykoli a bez předchozího upozornění změnit, pozastavit nebo ukončit a můžeme odstranit neaktivní účty.',
+       ],
+     },
+@@ -33,7 +33,7 @@ export const termsCs: LegalDocument = {
+       id: 'no-money',
+       heading: 'Žádné skutečné peníze',
+       body: [
+-        'V Žolíkách se nesází, nic se nekupuje a nejsou v nich žádné výhry. Nejde o hazardní hru.',
++        'V Jokerless se nesází, nic se nekupuje a nejsou v něm žádné výhry. Nejde o hazardní hru.',
+         'Žetony, body a pořadí jsou virtuální. Nemají žádnou peněžní hodnotu a nelze je směnit za peníze ani za nic jiného.',
+       ],
+     },
+@@ -63,17 +63,17 @@ export const termsCs: LegalDocument = {
+       id: 'liability',
+       heading: 'Odpovědnost za škodu',
+       body: [
+-        'V nejširším rozsahu, který právo připouští, neodpovídáme za žádnou újmu vzniklou používáním Žolíků, včetně ztráty dat, ztráty postupu, ztráty času nebo nedostupnosti hry.',
++        'V nejširším rozsahu, který právo připouští, neodpovídáme za žádnou újmu vzniklou používáním Jokerless, včetně ztráty dat, ztráty postupu, ztráty času nebo nedostupnosti hry.',
+         'Nic v těchto podmínkách neomezuje odpovědnost, kterou omezit nelze — zejména za újmu na životě a na zdraví, za podvod a za úmysl a hrubou nedbalost. Jsi-li spotřebitel, tvá zákonná práva tím nejsou dotčena.',
+       ],
+     },
+     {
+       id: 'source',
+-      heading: 'Žolíky jsou svobodný software',
++      heading: 'Jokerless je svobodný software',
+       body: [
+-        'Žolíky jsou licencovány pod GNU Affero General Public License, verze 3. Můžeš je volně používat, zkoumat, šířit i měnit za podmínek, které tato licence stanoví — včetně výše uvedeného vyloučení záruk, které je stejně tak jejím zněním jako naším.',
+-        'Úplný zdrojový kód verze, která tu běží, najdeš na {source}. Tento odstavec existuje kvůli článku 13 té licence: protože se k Žolíkům dostáváš po síti, a ne tak, že by sis je instaloval, musí ti být zdrojový kód nabídnut přímo tady na obrazovce, a ne jen tomu, kdo si stáhne kopii.',
+-        'Pokud provozuješ upravené Žolíky a necháš na nich hrát další lidi po síti, tatáž licence po tobě žádá, abys jim svůj zdrojový kód nabídl stejným způsobem.',
++        'Jokerless je licencován pod GNU Affero General Public License, verze 3. Můžeš ho volně používat, zkoumat, šířit i měnit za podmínek, které tato licence stanoví — včetně výše uvedeného vyloučení záruk, které je stejně tak jejím zněním jako naším.',
++        'Úplný zdrojový kód verze, která tu běží, najdeš na {source}. Tento odstavec existuje kvůli článku 13 té licence: protože se k Jokerless dostáváš po síti, a ne tak, že by sis ho instaloval, musí ti být zdrojový kód nabídnut přímo tady na obrazovce, a ne jen tomu, kdo si stáhne kopii.',
++        'Pokud provozuješ upravený Jokerless a necháš na něm hrát další lidi po síti, tatáž licence po tobě žádá, abys jim svůj zdrojový kód nabídl stejným způsobem.',
+       ],
+     },
+     {
+diff --git a/client-react-native/src/legal/terms.en.ts b/client-react-native/src/legal/terms.en.ts
+index b4a3a844..213ceee0 100644
+--- a/client-react-native/src/legal/terms.en.ts
++++ b/client-react-native/src/legal/terms.en.ts
+@@ -21,16 +21,16 @@ export const termsEn: LegalDocument = {
+   sections: [
+     {
+       id: 'who',
+-      heading: 'Who runs Žolíky',
++      heading: 'Who runs Jokerless',
+       body: [
+-        'Žolíky is a free online card game operated by {operator} ("we", "us"). By playing you accept these terms. If you do not accept them, do not play.',
++        'Jokerless is a free online card game operated by {operator} ("we", "us"). By playing you accept these terms. If you do not accept them, do not play.',
+       ],
+     },
+     {
+       id: 'as-is',
+       heading: 'The game is provided as is',
+       body: [
+-        'We give no warranty that Žolíky will be available, uninterrupted, or free of errors, or that its rules are implemented without mistakes.',
++        'We give no warranty that Jokerless will be available, uninterrupted, or free of errors, or that its rules are implemented without mistakes.',
+         'We may change, suspend, or discontinue any part of the game, and may remove inactive accounts, at any time and without notice.',
+       ],
+     },
+@@ -38,7 +38,7 @@ export const termsEn: LegalDocument = {
+       id: 'no-money',
+       heading: 'No real money',
+       body: [
+-        'Žolíky involves no wagering, no purchases, and no prizes. It is not a gambling service.',
++        'Jokerless involves no wagering, no purchases, and no prizes. It is not a gambling service.',
+         'Chips, scores, and standings are virtual. They have no monetary value and cannot be exchanged for money or for anything else.',
+       ],
+     },
+@@ -68,17 +68,17 @@ export const termsEn: LegalDocument = {
+       id: 'liability',
+       heading: 'Liability',
+       body: [
+-        'To the fullest extent permitted by law, we are not liable for any loss or damage arising from your use of Žolíky, including lost data, lost progress, lost time, or the game being unavailable.',
++        'To the fullest extent permitted by law, we are not liable for any loss or damage arising from your use of Jokerless, including lost data, lost progress, lost time, or the game being unavailable.',
+         'Nothing in these terms limits liability that cannot lawfully be limited — including liability for death or personal injury caused by negligence, for fraud, or for intent and gross negligence. If you are a consumer, your mandatory statutory rights are unaffected.',
+       ],
+     },
+     {
+       id: 'source',
+-      heading: 'Žolíky is free software',
++      heading: 'Jokerless is free software',
+       body: [
+-        'Žolíky is licensed under the GNU Affero General Public License, version 3. You are free to use it, study it, share it, and change it, on the terms that licence sets out — including the warranty disclaimer above, which is its wording as much as ours.',
+-        'The complete source of the version running here is at {source}. Section 13 of that licence is why this paragraph exists: because you reach Žolíky over a network rather than by installing it, the source has to be offered to you here, on the screen, and not only to whoever downloads a copy.',
+-        'If you run a modified Žolíky and let other people play it over a network, that licence requires you to offer them your source in the same way.',
++        'Jokerless is licensed under the GNU Affero General Public License, version 3. You are free to use it, study it, share it, and change it, on the terms that licence sets out — including the warranty disclaimer above, which is its wording as much as ours.',
++        'The complete source of the version running here is at {source}. Section 13 of that licence is why this paragraph exists: because you reach Jokerless over a network rather than by installing it, the source has to be offered to you here, on the screen, and not only to whoever downloads a copy.',
++        'If you run a modified Jokerless and let other people play it over a network, that licence requires you to offer them your source in the same way.',
+       ],
+     },
+     {

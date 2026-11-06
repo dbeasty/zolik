@@ -1,0 +1,270 @@
+diff --git a/server/internal/canasta/engine.go b/server/internal/canasta/engine.go
+index 045d36c4..affa13fb 100644
+--- a/server/internal/canasta/engine.go
++++ b/server/internal/canasta/engine.go
+@@ -357,6 +357,20 @@ type pileOption struct {
+ // offer list, and by the stock-exhaustion check — so those three cannot come
+ // to different conclusions about whether a pile is takeable.
+ func pileTakeOptions(s *GameState, playerID string) []pileOption {
++	var out []pileOption
++	for _, opt := range pileCaptures(s, playerID) {
++		if captureLeavesPlayable(s, playerID, opt) == nil {
++			out = append(out, opt)
++		}
++	}
++	return out
++}
++
++// pileCaptures is pileTakeOptions before the last question: whether the
++// player could still end their turn afterwards. Kept apart so the offer list
++// can explain a capture refused only for that reason, rather than pointing at
++// a different capture the player never had.
++func pileCaptures(s *GameState, playerID string) []pileOption {
+ 	r := s.rules()
+ 	top := s.top()
+ 	if top == "" {
+@@ -460,6 +474,44 @@ func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
+ 	return laid+reachableValue(r, rest, t) >= r.meldFloor(t.Score)
+ }
+ 
++// captureLeavesPlayable is checkLeavesPlayable for a capture, judged on the
++// table as it would stand afterwards: the hand less the cards melded with the
++// top card, plus everything buried under it except red threes (they go to the
++// row), and the canastas the capture itself might complete.
++//
++// A capture normally fills a hand, but not always. Laying the top card onto a
++// meld when it is the only card in the pile adds nothing, so a player holding
++// a single card would take it and then have no discard that is not going out
++// — the same dead end applyTakeTop refuses, reached by the other door.
++func captureLeavesPlayable(s *GameState, playerID string, opt pileOption) error {
++	r := s.rules()
++	t := s.team(playerID)
++	held, _ := removeCards(s.Hands[playerID], opt.Cards)
++	n := len(held)
++	for _, c := range s.DiscardPile[:len(s.DiscardPile)-1] {
++		if !isRedThree(c) {
++			n++
++		}
++	}
++
++	var into *Meld
++	if opt.MeldID != "" {
++		_, into = s.findMeld(opt.MeldID)
++	} else {
++		into = t.openGroup(r, rankOf(s.top()))
++	}
++	before := 0
++	if into != nil {
++		before = len(into.Cards)
++	}
++	after := before + 1 + len(opt.Cards)
++	canastas := t.canastas()
++	if before < canastaSize && after >= canastaSize {
++		canastas++
++	}
++	return leavesPlayable(n, canastas >= s.CanastasToGoOut)
++}
++
+ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+ 	r := s.rules()
+ 	if s.Phase != phaseDraw {
+@@ -547,6 +599,13 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
+ 		}
+ 	}
+ 
++	// Last, because it is the one refusal that is about the turn rather than
++	// the capture: every other reason says this capture is wrong, this one
++	// says it is right and would strand you.
++	if err := captureLeavesPlayable(s, playerID, pileOption{MeldID: target, Cards: fromHand}); err != nil {
++		return nil, err
++	}
++
+ 	// Snapshotted before anything moves, so an undo — see PileTaken — can put
+ 	// it all back exactly rather than reconstructing it from what the table
+ 	// looks like afterward.
+@@ -1122,13 +1181,17 @@ func noteInitialMeld(s *GameState, t *Team) {
+ // to discard and one to keep. Fewer, and the player would be unable to finish
+ // their turn at all — the dead end this rule exists to prevent.
+ func checkLeavesPlayable(s *GameState, t *Team, rest []string) error {
+-	if len(rest) >= 2 {
+-		return nil
+-	}
+-	if canGoOut(s, t) {
++	return leavesPlayable(len(rest), canGoOut(s, t))
++}
++
++// leavesPlayable is checkLeavesPlayable's rule on its own, for a caller that
++// has to work out the hand size and the canasta count for a table that does
++// not exist yet (captureLeavesPlayable).
++func leavesPlayable(held int, canGoOut bool) error {
++	if held >= 2 || canGoOut {
+ 		return nil
+ 	}
+-	if len(rest) == 0 {
++	if held == 0 {
+ 		return errCode(ErrCannotGoOutYet)
+ 	}
+ 	return errCode(ErrMustKeepACard)
+diff --git a/server/internal/canasta/offers.go b/server/internal/canasta/offers.go
+index f9c312c8..5918dc94 100644
+--- a/server/internal/canasta/offers.go
++++ b/server/internal/canasta/offers.go
+@@ -158,10 +158,16 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
+ 	if took == 0 {
+ 		// Say why, using the engine's own refusal for the capture a player
+ 		// would most plausibly attempt.
++		//
++		// A capture that is legal in itself but would leave the turn with no
++		// way to end is the most plausible of all: it is the one the player
++		// can see, so its refusal is the one they are owed.
++		attempt := module.Action{Verb: VerbTakePile, Cards: plausibleCapture(s, playerID)}
++		if blocked := pileCaptures(s, playerID); len(blocked) > 0 {
++			attempt = module.Action{Verb: VerbTakePile, Cards: blocked[0].Cards, Target: blocked[0].MeldID}
++		}
+ 		o := module.ActionOffer{ID: OfferTakePile, Verb: VerbTakePile}
+-		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
+-			Verb: VerbTakePile, Cards: plausibleCapture(s, playerID),
+-		})
++		o.Enabled, o.WhyNot = probe(m, raw, playerID, attempt)
+ 		o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
+ 		offers = append(offers, o)
+ 	}
+diff --git a/server/internal/canasta/pile_meld_capture_test.go b/server/internal/canasta/pile_meld_capture_test.go
+index 8313b26b..e0e663ad 100644
+--- a/server/internal/canasta/pile_meld_capture_test.go
++++ b/server/internal/canasta/pile_meld_capture_test.go
+@@ -319,3 +319,134 @@ func TestRulesStateThePileCapture(t *testing.T) {
+ 		})
+ 	}
+ }
++
++// A capture must leave the turn a way to end, as every other move must.
++//
++// Laying the top card onto a meld when it is the whole pile puts nothing in the
++// hand, so a player holding one card would take it and then have only a
++// discard that is going out — which a side without its canastas may not do.
++// The only move left was undoing the capture, and bots strip undos, so a bot
++// table stalled there. The offer is withheld, Apply refuses, and the disabled
++// control carries the refusal that is actually true.
++func TestCaptureThatWouldStrandTheHandIsRefused(t *testing.T) {
++	kings := func(s *GameState) {
++		s.Phase = phaseDraw
++		s.CanastasToGoOut = 1
++		s.Teams[0].HasMelded = true
++		s.Teams[0].Melds = []Meld{{
++			ID: meldID(0, "K"), TeamID: 0, Kind: meldSet, Rank: "K",
++			Cards: []string{"KS", "KC", "KD"},
++		}}
++		s.DiscardPile = []string{"KH"}
++		s.Hands["p1"] = []string{"8C"}
++	}
++	queens := func(s *GameState) {
++		s.Phase = phaseDraw
++		s.CanastasToGoOut = 1
++		s.Teams[0].HasMelded = true
++		s.Teams[0].Melds = []Meld{{
++			ID: meldID(0, "Q"), TeamID: 0, Kind: meldSet, Rank: "Q",
++			Cards: []string{"QS", "QC", "QD"},
++		}}
++		s.DiscardPile = []string{"KH"}
++	}
++	canasta := Meld{
++		ID: meldID(0, "7"), TeamID: 0, Kind: meldSet, Rank: "7",
++		Cards: []string{"7S", "7C", "7D", "7H", "7S", "7C", "7D"},
++	}
++
++	cases := []struct {
++		name   string
++		mutate func(s *GameState)
++		action module.Action
++		want   string
++	}{
++		{
++			name:   "onto a meld, holding one card",
++			mutate: kings,
++			action: module.Action{Verb: VerbTakePile, Target: meldID(0, "K")},
++			want:   ErrMustKeepACard,
++		},
++		{
++			name: "from hand, left holding one card",
++			mutate: func(s *GameState) {
++				queens(s)
++				s.Hands["p1"] = []string{"KC", "KD", "8C"}
++			},
++			action: module.Action{Verb: VerbTakePile, Cards: []string{"KC", "KD"}},
++			want:   ErrMustKeepACard,
++		},
++		{
++			name: "from hand, left holding nothing",
++			mutate: func(s *GameState) {
++				queens(s)
++				s.Hands["p1"] = []string{"KC", "KD"}
++			},
++			action: module.Action{Verb: VerbTakePile, Cards: []string{"KC", "KD"}},
++			want:   ErrCannotGoOutYet,
++		},
++		{
++			name: "a buried card is one to keep",
++			mutate: func(s *GameState) {
++				kings(s)
++				s.DiscardPile = []string{"5C", "KH"}
++			},
++			action: module.Action{Verb: VerbTakePile, Target: meldID(0, "K")},
++		},
++		{
++			name: "a buried red three is not",
++			mutate: func(s *GameState) {
++				kings(s)
++				s.DiscardPile = []string{"3H", "KH"}
++			},
++			action: module.Action{Verb: VerbTakePile, Target: meldID(0, "K")},
++			want:   ErrMustKeepACard,
++		},
++		{
++			name: "a side with its canastas may go down to one",
++			mutate: func(s *GameState) {
++				kings(s)
++				s.Teams[0].Melds = append(s.Teams[0].Melds, canasta)
++			},
++			action: module.Action{Verb: VerbTakePile, Target: meldID(0, "K")},
++		},
++		{
++			name: "a capture that completes the canasta counts it",
++			mutate: func(s *GameState) {
++				kings(s)
++				s.Teams[0].Melds[0].Cards = []string{"KS", "KC", "KD", "KS", "KC", "KD"}
++			},
++			action: module.Action{Verb: VerbTakePile, Target: meldID(0, "K")},
++		},
++	}
++
++	for _, tc := range cases {
++		t.Run(tc.name, func(t *testing.T) {
++			raw := twoHanded(tc.mutate)
++
++			offers, err := New().LegalActions(raw, "p1")
++			if err != nil {
++				t.Fatal(err)
++			}
++			var enabled bool
++			for _, o := range offers {
++				if o.Verb == VerbTakePile && o.Enabled {
++					enabled = true
++				}
++			}
++			if enabled != (tc.want == "") {
++				t.Errorf("take_pile enabled = %v, want %v", enabled, tc.want == "")
++			}
++			if tc.want != "" {
++				o := offerByID(offers, OfferTakePile)
++				if o == nil || o.WhyNot != tc.want {
++					t.Errorf("disabled offer %+v, want WhyNot %s", o, tc.want)
++				}
++			}
++
++			if _, got := apply(t, raw, "p1", tc.action); got != tc.want {
++				t.Errorf("Apply: got %q, want %q", got, tc.want)
++			}
++		})
++	}
++}

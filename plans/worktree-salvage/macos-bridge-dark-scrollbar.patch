@@ -1,0 +1,28 @@
+diff --git a/client-macos/Resources/bridge.js b/client-macos/Resources/bridge.js
+index 5509265a..c8efec99 100644
+--- a/client-macos/Resources/bridge.js
++++ b/client-macos/Resources/bridge.js
+@@ -19,6 +19,23 @@
+     return handler.postMessage(msg);
+   }
+ 
++  // ---- scroll bars ------------------------------------------------------------
++  // The scroll bar is WebKit's own, so it follows the person's System
++  // Settings (Show scroll bars: automatically, when scrolling, or always;
++  // click in the scroll bar to jump or scroll). The only thing the page adds
++  // is that it is a dark page, so the native bar is drawn for a dark ground
++  // (a light knob) rather than the near-invisible dark one.
++  (function () {
++    var add = function () {
++      var el = document.createElement('style');
++      el.setAttribute('data-jokerless', 'color-scheme');
++      el.textContent = ':root{color-scheme:dark}';
++      (document.head || document.documentElement).appendChild(el);
++    };
++    if (document.head) add();
++    else document.addEventListener('DOMContentLoaded', add);
++  })();
++
+   // ---- base64 ---------------------------------------------------------------
+ 
+   function bytesToBase64(bytes) {
