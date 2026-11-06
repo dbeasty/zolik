@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { handCards, tapCard } from '../helpers/drag';
 import { API_BASE, asViewer } from '../helpers/env';
+import { clearHandSelection } from '../helpers/hand';
+import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
  * Picking a particular card, when two of them look identical.
@@ -65,14 +67,18 @@ async function handOf(request: Ctx, t: Table): Promise<string[]> {
  * more likely to mean the deck stopped containing duplicates than that the
  * test was unlucky; either way it says so rather than quietly passing.
  */
-async function tableHoldingAPair(request: Ctx) {
-  for (let attempt = 0; attempt < 15; attempt++) {
+async function tableHoldingAPair(request: Ctx, apart = false) {
+  for (let attempt = 0; attempt < 30; attempt++) {
     const table = await newTable(request);
     const hand = await handOf(request, table);
-    const pair = hand.find((c, i) => hand.indexOf(c) !== i);
+    const pair = hand.find(
+      (c, i) =>
+        hand.indexOf(c) !== i &&
+        (!apart || (!c.startsWith('JOKER') && i - hand.indexOf(c) > 1)),
+    );
     if (pair) return { ...table, pair };
   }
-  throw new Error('dealt 15 hands from a multi-deck shoe without a single duplicate card');
+  throw new Error('dealt 30 hands from a multi-deck shoe without a single duplicate card');
 }
 
 async function openMatch(page: Page, host: any, matchId: string) {
@@ -143,6 +149,40 @@ test.describe('choosing cards out of a hand', () => {
     // dropped every copy at once.
     expect(await isSelected(page, first)).toBe(false);
     expect(await isSelected(page, twin)).toBe(true);
+  });
+
+  test('discarding one of two identical cards takes that one out of the fan, not its twin', async ({
+    page,
+    request,
+  }) => {
+    // The push after a discard only says one 7♥ went, not which. The fan used
+    // to drop the later copy whatever was picked, so discarding the left one
+    // of a pair made the right one vanish. Only visible when something sits
+    // between the two, hence a pair dealt apart.
+    test.setTimeout(90_000);
+    const table = await tableHoldingAPair(request, true);
+    await openMatch(page, table.host, table.matchId);
+    await handCards(page);
+
+    await waitForOfferEnabled(page, 'offer-draw:deck');
+    await page.getByTestId('offer-draw:deck').click();
+    await expect.poll(async () => (await handCards(page)).length).toBeGreaterThan(0);
+    await clearHandSelection(page);
+
+    const shown = await handCards(page);
+    const first = shown.indexOf(table.pair);
+    const twin = shown.lastIndexOf(table.pair);
+    expect(twin - first, `the ${table.pair} pair sits apart in ${shown.join(' ')}`).toBeGreaterThan(1);
+
+    await tapCard(page, card(page, first));
+    expect(await isSelected(page, first)).toBe(true);
+    expect(await isSelected(page, twin)).toBe(false);
+    const discard = page.getByTestId('offer-discard');
+    await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
+    await discard.click();
+
+    const expected = shown.filter((_, i) => i !== first);
+    await expect.poll(() => handCards(page)).toEqual(expected);
   });
 
   test('tapping a card still selects and deselects it at all', async ({ page, request }) => {

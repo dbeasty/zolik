@@ -62,12 +62,18 @@ export function useHandOrder(zones: Zone[], matchId?: string, auto = false) {
     .join('|');
   const [lastSignature, setLastSignature] = useState<string | null>(null);
 
+  // The slots the player last played, so the push that takes those cards away
+  // takes these copies — see `arrangeSlots`. Kept until a push retires them
+  // (a refused move leaves them here until the next play replaces them).
+  const leaving = useRef<ReadonlySet<string>>(new Set());
+
   /** Reconciles one zone against a push, restoring a stored order if one is owed. */
   const reconcile = useCallback((zone: Zone, previous: Slot[]): Slot[] => {
     const slots = arrangeSlots(
       previous,
       (zone.cards ?? []).map((c) => c.card),
       (card) => `${zone.id}#${minted.current++}:${card}`,
+      leaving.current,
     );
     const stored = saved.current?.[zone.id];
     if (!stored || restoredZones.current.has(zone.id) || slots.length === 0) return slots;
@@ -128,6 +134,8 @@ export function useHandOrder(zones: Zone[], matchId?: string, auto = false) {
     }
     setOrder(next);
     if (drawn.length) setAutoSelectIds(drawn);
+    const held = new Set(Object.values(next).flatMap((slots) => slots.map((s) => s.id)));
+    leaving.current = new Set([...leaving.current].filter((id) => held.has(id)));
   }
 
   // Nothing is written until what was already stored has been read, or the
@@ -199,5 +207,10 @@ export function useHandOrder(zones: Zone[], matchId?: string, auto = false) {
     setOrder((prev) => ({ ...prev, [zoneId]: moveSlot(prev[zoneId] ?? [], from, to) }));
   }, []);
 
-  return { slotsFor, move, autoSelectIds };
+  /** Names the slots a move about to be sent plays, for the push that takes them. */
+  const retire = useCallback((slotIds: Iterable<string>) => {
+    leaving.current = new Set(slotIds);
+  }, []);
+
+  return { slotsFor, move, retire, autoSelectIds };
 }

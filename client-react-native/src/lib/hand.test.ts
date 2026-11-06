@@ -61,6 +61,25 @@ describe('arrangeSlots', () => {
     expect(afterPlayingOne.map((s) => s.id)).toEqual([held[0].id, held[2].id]);
   });
 
+  it('retires the copy the player played, not whichever comes first', () => {
+    const held = arrangeSlots([], ['7H', 'KD', '7H'], minter());
+
+    // The player picked the first 7♥ and discarded it; the push only says one
+    // 7♥ went. The second one must be the one left in the fan.
+    const after = arrangeSlots(held, ['KD', '7H'], minter('late'), new Set([held[0].id]));
+
+    expect(after.map((s) => s.id)).toEqual([held[1].id, held[2].id]);
+  });
+
+  it('ignores a leaving slot whose card the push did not take', () => {
+    const held = arrangeSlots([], ['7H', '7H'], minter());
+
+    // A push from someone else's move arrives before ours lands.
+    const after = arrangeSlots(held, ['7H', '7H'], minter('late'), new Set([held[1].id]));
+
+    expect(after.map((s) => s.id)).toEqual(held.map((s) => s.id));
+  });
+
   it('appends a drawn card at the end rather than disturbing the arrangement', () => {
     const arranged = slots('KD', '7H', 'AS');
 

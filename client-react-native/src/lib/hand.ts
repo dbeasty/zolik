@@ -49,17 +49,38 @@ export type Rect = { x: number; y: number; width: number; height: number };
  *
  * Matching is by multiset, so a pair of identical cards keeps two slots and
  * playing one of them retires exactly one.
+ *
+ * Which one is `leaving`'s to say: the slots the player just played. The push
+ * only says a 7♥ went, not which of the two, and without this the later copy
+ * in the fan always vanished — so picking the left one of a pair and
+ * discarding it took the right one off the screen instead.
  */
 export function arrangeSlots(
   previous: Slot[],
   incoming: string[],
   mint: (card: string) => string,
+  leaving: ReadonlySet<string> = new Set(),
 ): Slot[] {
   const unplaced = new Map<string, number>();
   for (const card of incoming) unplaced.set(card, (unplaced.get(card) ?? 0) + 1);
 
+  // How many copies of each card this push took away.
+  const gone = new Map<string, number>();
+  for (const slot of previous) gone.set(slot.card, (gone.get(slot.card) ?? 0) + 1);
+  for (const [card, n] of unplaced) gone.set(card, (gone.get(card) ?? 0) - n);
+  // The slots the player played go first, as far as the push took that card.
+  const retired = new Set<string>();
+  for (const slot of previous) {
+    const n = gone.get(slot.card) ?? 0;
+    if (n > 0 && leaving.has(slot.id)) {
+      retired.add(slot.id);
+      gone.set(slot.card, n - 1);
+    }
+  }
+
   const kept: Slot[] = [];
   for (const slot of previous) {
+    if (retired.has(slot.id)) continue;
     const left = unplaced.get(slot.card) ?? 0;
     if (left > 0) {
       kept.push(slot);
