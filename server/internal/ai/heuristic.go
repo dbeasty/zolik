@@ -383,18 +383,68 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 	return combo, ok
 }
 
-// CanGoDown reports whether a player who is not yet down could lay an opening
-// this turn from hand. It is the question a pickup before going down turns
-// on: the engine refuses every discard after one until the player is down
-// (rules.ErrDiscardCardNotMelded).
+// CanGoDownUsing reports whether a player who is not yet down could lay an
+// opening this turn from hand with card in it. It is the question a pickup
+// before going down turns on: the card taken off the pile has to go into the
+// melds that take the player down (rules.ErrDiscardCardNotMelded), and an
+// opening the hand already held without it makes the take pointless.
 //
 // The search spends its steps from *budget, which the caller shares across
 // every hand it asks about so that the whole question has one bound. It errs
 // towards yes: a search that runs out of budget has not shown the opening is
 // impossible, and the caller uses a no to withhold a legal move.
-func CanGoDown(state rules.GameState, playerID string, hand []string, budget *int) bool {
-	_, ok, inconclusive := initialMeldPlan(state, playerID, hand, "", budget, false)
+func CanGoDownUsing(state rules.GameState, playerID string, hand []string, card string, budget *int) bool {
+	_, ok, inconclusive := initialMeldPlan(state, playerID, hand, card, budget, false)
 	return ok || inconclusive
+}
+
+// PickupFits reports whether a player who is already down has somewhere to
+// put card this turn: onto a meld already on the table (anyone's), or into a
+// new meld with cards from hand, which holds the hand as it would be after
+// the take — card included. A new meld that would leave nothing to discard on
+// a deal that ends on a discard does not count.
+//
+// Each meld validated costs one step from *budget, shared like
+// CanGoDownUsing's, and an exhausted budget answers yes for the same reason.
+func PickupFits(state rules.GameState, hand []string, card string, budget *int) bool {
+	cfg := state.Rules
+	if extendsAnyLiveMeld(card, state.Melds, cfg) {
+		return true
+	}
+	others := removeCardsOnce(hand, []string{card})
+	minSet, minRun := meldSizes(cfg)
+	sizes := []int{minSet}
+	if minRun != minSet {
+		sizes = append(sizes, minRun)
+	}
+	final := cfg.IsFinalDeal(state.GameNumber)
+	fits := false
+	for _, k := range sizes {
+		if k < 1 || k-1 > len(others) || (!final && len(hand)-k < 1) {
+			continue
+		}
+		cand := make([]string, k)
+		cand[k-1] = card
+		forEachCombination(len(others), k-1, func(idx []int) bool {
+			if *budget <= 0 {
+				fits = true
+				return false
+			}
+			*budget--
+			for i, v := range idx {
+				cand[i] = others[v]
+			}
+			if _, err := rules.ValidateMeld(cand, cfg); err == nil {
+				fits = true
+				return false
+			}
+			return true
+		})
+		if fits {
+			return true
+		}
+	}
+	return false
 }
 
 // initialMeldPlan is findInitialMeldPlanRequiring, also saying whether a

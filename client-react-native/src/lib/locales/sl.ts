@@ -53,7 +53,7 @@ export const sl: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Na mizi potrebuješ niz brez jokerja, da se šteješ za položenega',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokončaj polaganje ali ga razveljavi, preden odvržeš',
   'err.DISCARD_CARD_NOT_MELDED': 'Karta, ki si jo pobral, mora v tvojo kombinacijo',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'S to karto v tej potezi ne moreš izložiti',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Ta karta v tej potezi ne sodi v nobeno kombinacijo",
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokerja ni mogoče odvreči',
   'err.NOTHING_TO_UNDO': 'Ni ničesar za razveljaviti',
   'err.NOTHING_FITS_HERE': 'Nobena tvoja karta ne sodi sem',
@@ -474,6 +474,8 @@ export const sl: Record<string, string> = {
   'zolik.rules.section.layoff': 'Dodajanje h kombinacijam',
   'zolik.rules.pickup.obligation':
     'Dokler nisi položen, mora biti karta, vzeta s kupa odvrženih, uporabljena v kombinaciji, s katero v tej potezi položiš.',
+  'zolik.rules.pickup.useful':
+    "Karto s kupa odvrženih vzameš samo zato, da jo odigraš v isti potezi: h kombinaciji na mizi ali v novo — preden izložiš, v kombinacije, s katerimi izložiš.",
   'zolik.rules.pickup.noReturn':
     'Karte, vzete s kupa odvrženih, v isti potezi ni dovoljeno znova odvreči — odigraj jo ali jo obdrži.',
   'zolik.rules.wilds.setLimit': 'Skupina ne sme vsebovati več jokerjev kot naravnih kart.',

@@ -53,7 +53,7 @@ export const da: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Du skal have en jokerfri række på bordet for at tælle som lagt ud',
   'err.INCOMPLETE_INITIAL_MELD': 'Gør din udlægning færdig, eller fortryd den, før du smider ud',
   'err.DISCARD_CARD_NOT_MELDED': 'Kortet, du samlede op, skal indgå i din kombination',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Du kan ikke melde ud med det kort i denne tur',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Det kort passer ikke i nogen melding i denne tur",
   'err.JOKER_DISCARD_FORBIDDEN': 'En joker må ikke smides ud',
   'err.NOTHING_TO_UNDO': 'Der er intet at fortryde',
   'err.NOTHING_FITS_HERE': 'Ingen af dine kort passer her',
@@ -470,6 +470,8 @@ export const da: Record<string, string> = {
   'zolik.rules.section.layoff': 'At lægge til kombinationer',
   'zolik.rules.pickup.obligation':
     'Før du er lagt ud, skal et kort taget fra kastebunken bruges i den kombination, du lægger ud med i denne tur.',
+  'zolik.rules.pickup.useful':
+    "Et kort tages kun fra kasserbunken for at blive spillet i samme tur: på en melding på bordet eller i en ny — før du har meldt ud, i de meldinger, du melder ud med.",
   'zolik.rules.pickup.noReturn':
     'Et kort, du tog fra kastebunken, må ikke smides ud igen i samme tur — spil det eller behold det.',
   'zolik.rules.wilds.setLimit': 'En gruppe må ikke indeholde flere jokere end naturlige kort.',

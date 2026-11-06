@@ -53,7 +53,7 @@ export const et: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Selleks et sind loetaks väljas olevaks, on sul lauale vaja jokkerita jada',
   'err.INCOMPLETE_INITIAL_MELD': 'Lõpeta väljapanek või võta see tagasi, enne kui viskad',
   'err.DISCARD_CARD_NOT_MELDED': 'Võetud kaart peab minema sinu kombinatsiooni',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Selle kaardiga ei saa sa sel käigul maha käia',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Sellel kaardil pole sel käigul ühtegi kombinatsiooni",
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokkerit ei tohi ära visata',
   'err.NOTHING_TO_UNDO': 'Midagi pole tagasi võtta',
   'err.NOTHING_FITS_HERE': 'Ükski sinu kaart siia ei sobi',
@@ -476,6 +476,8 @@ export const et: Record<string, string> = {
   'zolik.rules.section.layoff': 'Kombinatsioonidele lisamine',
   'zolik.rules.pickup.obligation':
     'Enne kui oled väljas, tuleb viskepakist võetud kaart kasutada selles kombinatsioonis, millega sa sel käigul välja lähed.',
+  'zolik.rules.pickup.useful':
+    "Kaardi võtab äraviskepakist ainult selleks, et see samal käigul mängida: laual oleva kombinatsiooni juurde või uude — enne mahakäimist nendesse kombinatsioonidesse, millega maha käid.",
   'zolik.rules.pickup.noReturn':
     'Viskepakist võetud kaarti ei tohi samal käigul uuesti ära visata — mängi see välja või hoia alles.',
   'zolik.rules.wilds.setLimit': 'Grupis ei tohi olla rohkem jokkereid kui loomulikke kaarte.',

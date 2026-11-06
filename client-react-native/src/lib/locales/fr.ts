@@ -53,7 +53,7 @@ export const fr: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Il te faut une suite sans joker sur la table pour être considéré comme posé',
   'err.INCOMPLETE_INITIAL_MELD': 'Termine ta pose, ou annule-la, avant de défausser',
   'err.DISCARD_CARD_NOT_MELDED': 'La carte ramassée doit entrer dans ta combinaison',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Tu ne peux pas poser avec cette carte ce tour-ci',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Cette carte ne trouve place dans aucune combinaison ce tour-ci",
   'err.JOKER_DISCARD_FORBIDDEN': 'Un joker ne peut pas être défaussé',
   'err.NOTHING_TO_UNDO': 'Rien à annuler',
   'err.NOTHING_FITS_HERE': 'Aucune de tes cartes ne va ici',
@@ -478,6 +478,8 @@ export const fr: Record<string, string> = {
   'zolik.rules.section.layoff': 'Ajouter aux combinaisons',
   'zolik.rules.pickup.obligation':
     "Avant d'être posé, une carte prise dans la défausse doit servir dans la combinaison avec laquelle tu te poses ce tour-ci.",
+  'zolik.rules.pickup.useful':
+    "On ne prend une carte de la défausse que pour la jouer dans le même tour : sur une combinaison de la table ou dans une nouvelle — avant d'avoir posé, dans les combinaisons avec lesquelles tu poses.",
   'zolik.rules.pickup.noReturn':
     'Une carte prise dans la défausse ne peut pas y retourner le même tour — joue-la ou garde-la.',
   'zolik.rules.wilds.setLimit': 'Un groupe ne peut pas contenir plus de jokers que de cartes naturelles.',

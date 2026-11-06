@@ -65,8 +65,10 @@ func refusalRules(cfg rules.RulesConfig, code string) []string {
 		return []string{"zolik.rules.deck.reshuffle"}
 
 	// --- what a pickup obliges you to do ----------------------------------
-	case rules.ErrDiscardCardNotMelded, errPickupUnplayable:
+	case rules.ErrDiscardCardNotMelded:
 		return []string{"zolik.rules.pickup.obligation", pickupModeRule(cfg)}
+	case errPickupUnplayable:
+		return []string{"zolik.rules.pickup.useful", pickupModeRule(cfg)}
 	case rules.ErrDiscardTakenCard:
 		return []string{"zolik.rules.pickup.noReturn"}
 	case rules.ErrIncompleteInitialMeld:

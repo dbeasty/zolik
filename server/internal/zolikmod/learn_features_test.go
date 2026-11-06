@@ -124,32 +124,25 @@ func TestLearnDiscardAwayFromCleanRun(t *testing.T) {
 	}
 }
 
-// Once down, a pickup that makes no meld and lays off nowhere is still a
-// candidate (the adapter no longer judges it), marked as building when it
-// joins a card of its suit in hand — while the deal's pickups are few.
+// Once down, a pickup that makes no meld and lays off nowhere is not offered
+// (gatePickup), so it is never a candidate either — the trained seat plays
+// from the same offers a person sees. A pickup that makes a meld still is.
 func TestLearnLoosePickupOnceDown(t *testing.T) {
-	setup := func(pickups int) (*Module, module.State, string) {
-		return learnPosition(t, varClassic, 2, func(s *matchState, me, _ string) {
-			s.Rules.Hands[me] = []string{"6H", "KD", "2C", "9C"}
-			s.Rules.DiscardPile = []string{"TC", "4C", "8H"}
-			s.Rules.RoundReqMet[me] = true
-			s.Ledger.Pickups = map[string]int{me: pickups}
-		})
-	}
-	m, raw, me := setup(0)
-	c, ok := takeOf(candidatesAt(t, m, raw, me), "8H")
+	m, raw, me := learnPosition(t, varClassic, 2, func(s *matchState, me, _ string) {
+		s.Rules.Hands[me] = []string{"6H", "KD", "2C", "9C", "8D", "8S"}
+		s.Rules.DiscardPile = []string{"TC", "4C", "8H"}
+		s.Rules.RoundReqMet[me] = true
+	})
+	cands := candidatesAt(t, m, raw, me)
+	c, ok := takeOf(cands, "8H")
 	if !ok {
-		t.Fatal("a down seat is not offered 8H")
+		t.Fatal("a down seat is not offered 8H, which makes a set of eights")
 	}
-	if c.Features[fMakesMeld] != 0 || c.Features[fBuilds] != 1 {
-		t.Errorf("8H to 6H: makes %v builds %v, want a building card", c.Features[fMakesMeld], c.Features[fBuilds])
+	if c.Features[fMakesMeld] != 1 {
+		t.Errorf("8H with 8D 8S: makes %v, want a meld", c.Features[fMakesMeld])
 	}
-	if _, ok := takeOf(candidatesAt(t, m, raw, me), "4C"); !ok {
-		t.Error("the deeper 4C is not offered")
-	}
-	m, raw, me = setup(maxLoosePickups)
-	if _, ok := takeOf(candidatesAt(t, m, raw, me), "8H"); ok {
-		t.Errorf("a loose pickup offered after %d this deal", maxLoosePickups)
+	if _, ok := takeOf(cands, "4C"); ok {
+		t.Error("the deeper 4C is offered, though nothing it brings lands anywhere")
 	}
 }
 

@@ -53,7 +53,7 @@ export const hr: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Treba ti niz bez džokera na stolu da bi se računao kao spušten',
   'err.INCOMPLETE_INITIAL_MELD': 'Dovrši spuštanje ili ga poništi prije nego što odbaciš',
   'err.DISCARD_CARD_NOT_MELDED': 'Karta koju si uzeo mora ući u tvoju kombinaciju',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'S tom kartom ne možeš izići u ovom potezu',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Ta karta ovog poteza ne pristaje ni u jednu kombinaciju",
   'err.JOKER_DISCARD_FORBIDDEN': 'Džoker se ne može odbaciti',
   'err.NOTHING_TO_UNDO': 'Nema se što poništiti',
   'err.NOTHING_FITS_HERE': 'Nijedna tvoja karta ne ide ovdje',
@@ -476,6 +476,8 @@ export const hr: Record<string, string> = {
   'zolik.rules.section.layoff': 'Dodavanje kombinacijama',
   'zolik.rules.pickup.obligation':
     'Dok nisi spušten, karta uzeta s hrpe odbačenih mora se upotrijebiti u kombinaciji kojom se u ovom potezu spuštaš.',
+  'zolik.rules.pickup.useful':
+    "Karta se s hrpe za odbacivanje uzima samo da bi se odigrala u istom potezu: na kombinaciju na stolu ili u novu — prije izlaska, u kombinacije kojima izlaziš.",
   'zolik.rules.pickup.noReturn':
     'Karta uzeta s hrpe odbačenih ne smije se ponovno odbaciti u istom potezu — odigraj je ili je zadrži.',
   'zolik.rules.wilds.setLimit': 'Grupa ne smije sadržavati više džokera nego prirodnih karata.',

@@ -53,7 +53,7 @@ export const pl: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Potrzebujesz na stole sekwensu bez jokera, żeby liczyć się jako wyłożony',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokończ wykładanie albo je cofnij, zanim odrzucisz kartę',
   'err.DISCARD_CARD_NOT_MELDED': 'Podniesiona karta musi trafić do twojego układu',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Tą kartą nie możesz się wyłożyć w tej turze',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Ta karta nie pasuje w tej turze do żadnego układu",
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokera nie można odrzucić',
   'err.NOTHING_TO_UNDO': 'Nie ma czego cofać',
   'err.NOTHING_FITS_HERE': 'Żadna z twoich kart tu nie pasuje',
@@ -479,6 +479,8 @@ export const pl: Record<string, string> = {
   'zolik.rules.section.layoff': 'Dokładanie do układów',
   'zolik.rules.pickup.obligation':
     'Zanim będziesz wyłożony, karta wzięta ze stosu odrzuconych musi trafić do układu, którym wykładasz się w tej kolejce.',
+  'zolik.rules.pickup.useful':
+    "Kartę ze stosu odrzuconych bierze się tylko po to, by zagrać ją w tej samej turze: do układu na stole albo w nowy — zanim się wyłożysz, w układy, którymi się wykładasz.",
   'zolik.rules.pickup.noReturn':
     'Karty wziętej ze stosu odrzuconych nie wolno odrzucić w tej samej kolejce — zagraj ją albo zatrzymaj.',
   'zolik.rules.wilds.setLimit': 'Grupa nie może zawierać więcej jokerów niż kart naturalnych.',

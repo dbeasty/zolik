@@ -53,7 +53,7 @@ export const fi: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Tarvitset pöytään jokerittoman suoran, jotta sinut lasketaan alas laskeneeksi',
   'err.INCOMPLETE_INITIAL_MELD': 'Viimeistele laskusi tai peru se ennen kuin poistat kortin',
   'err.DISCARD_CARD_NOT_MELDED': 'Nostamasi kortin on mentävä yhdistelmääsi',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Et voi avata tällä kortilla tällä vuorolla',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Kortti ei sovi mihinkään yhdistelmään tällä vuorolla",
   'err.JOKER_DISCARD_FORBIDDEN': 'Jokeria ei voi poistaa',
   'err.NOTHING_TO_UNDO': 'Ei ole mitään peruttavaa',
   'err.NOTHING_FITS_HERE': 'Mikään korteistasi ei sovi tähän',
@@ -475,6 +475,8 @@ export const fi: Record<string, string> = {
   'zolik.rules.section.layoff': 'Yhdistelmiin lisääminen',
   'zolik.rules.pickup.obligation':
     'Ennen kuin olet laskenut alas, poistopinosta otettu kortti on käytettävä siihen yhdistelmään, jolla lasket alas tällä vuorolla.',
+  'zolik.rules.pickup.useful':
+    "Kortin saa ottaa poistopakasta vain pelatakseen sen samalla vuorolla: pöydän yhdistelmään tai uuteen yhdistelmään — ennen avaamista niihin yhdistelmiin, joilla avaat.",
   'zolik.rules.pickup.noReturn':
     'Poistopinosta ottamaasi korttia ei saa poistaa uudelleen samalla vuorolla — pelaa se tai pidä se.',
   'zolik.rules.wilds.setLimit': 'Ryhmässä ei saa olla enempää jokereita kuin luonnollisia kortteja.',

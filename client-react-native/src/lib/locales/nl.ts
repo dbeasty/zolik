@@ -53,7 +53,7 @@ export const nl: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Je hebt een jokervrije reeks op tafel nodig om als uitgelegd te tellen',
   'err.INCOMPLETE_INITIAL_MELD': 'Maak je leg af, of draai hem terug, voordat je aflegt',
   'err.DISCARD_CARD_NOT_MELDED': 'De kaart die je pakte moet in je combinatie',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Met die kaart kun je deze beurt niet uitkomen',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Die kaart past deze beurt in geen enkele combinatie",
   'err.JOKER_DISCARD_FORBIDDEN': 'Een joker mag niet afgelegd worden',
   'err.NOTHING_TO_UNDO': 'Er is niets om ongedaan te maken',
   'err.NOTHING_FITS_HERE': 'Geen van je kaarten past hier',
@@ -482,6 +482,8 @@ export const nl: Record<string, string> = {
   'zolik.rules.section.layoff': 'Aanleggen bij combinaties',
   'zolik.rules.pickup.obligation':
     'Zolang je niet uitgelegd bent, moet een kaart die je van de aflegstapel neemt gebruikt worden in de combinatie waarmee je deze beurt uitlegt.',
+  'zolik.rules.pickup.useful':
+    "Een kaart neem je alleen van de aflegstapel om hem dezelfde beurt te spelen: aan een combinatie op tafel of in een nieuwe — voordat je uitgekomen bent, in de combinaties waarmee je uitkomt.",
   'zolik.rules.pickup.noReturn':
     'Een kaart die je van de aflegstapel nam, mag in dezelfde beurt niet opnieuw afgelegd worden — speel hem of houd hem.',
   'zolik.rules.wilds.setLimit': 'Een groep mag niet meer jokers bevatten dan natuurlijke kaarten.',

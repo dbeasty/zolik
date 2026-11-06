@@ -62,8 +62,8 @@ func TestPickupIsWithheldWhenNoOpeningFollows(t *testing.T) {
 	if o.WhyNot != string(errPickupUnplayable) {
 		t.Errorf("whyNot = %q", o.WhyNot)
 	}
-	if !slices.Contains(o.RuleIDs, "zolik.rules.pickup.obligation") {
-		t.Errorf("ruleIds = %v, want the pickup obligation", o.RuleIDs)
+	if !slices.Contains(o.RuleIDs, "zolik.rules.pickup.useful") {
+		t.Errorf("ruleIds = %v, want the useful-pickup rule", o.RuleIDs)
 	}
 	if o.RemedyOfferID != rules.OfferDrawDeck {
 		t.Errorf("remedy offer = %q, want the stock", o.RemedyOfferID)
@@ -96,11 +96,47 @@ func TestPickupListsOnlyThePileCardsThatOpen(t *testing.T) {
 	}
 }
 
-// Once down a pickup owes nothing, so any card may be taken.
-func TestPickupIsFreeOnceDown(t *testing.T) {
+// Once down, a card is offered only if it goes somewhere: QH with nothing on
+// the table and nothing in hand to meld it with would just sit in the hand.
+func TestPickupIsWithheldOnceDownWhenTheCardFitsNowhere(t *testing.T) {
 	o := pickupOffer(t, pickupPosition([]string{"4S", "3D", "9C"}, []string{"QH"}, true))
+	if o.Enabled {
+		t.Fatalf("pickup enabled for a down player with nowhere to put QH")
+	}
+	if o.WhyNot != string(errPickupUnplayable) {
+		t.Errorf("whyNot = %q", o.WhyNot)
+	}
+	if !slices.Contains(o.RuleIDs, "zolik.rules.pickup.useful") {
+		t.Errorf("ruleIds = %v, want the useful-pickup rule", o.RuleIDs)
+	}
+	if o.RemedyOfferID != rules.OfferDrawDeck {
+		t.Errorf("remedy offer = %q, want the stock", o.RemedyOfferID)
+	}
+}
+
+func TestPickupIsOfferedOnceDownWhenItLaysOff(t *testing.T) {
+	gs := pickupPosition([]string{"4S", "3D", "9C"}, []string{"QH"}, true)
+	gs.Melds = map[string][][]string{"p2": {{"9H", "TH", "JH"}}}
+	gs.MeldMeta = map[string][]rules.MeldInfo{"p2": {{MeldID: "m1", Type: rules.MeldRun}}}
+	o := pickupOffer(t, gs)
 	if !o.Enabled {
-		t.Fatalf("pickup disabled (%s) for a player already down", o.WhyNot)
+		t.Fatalf("pickup disabled (%s) though QH extends 9-10-J of hearts", o.WhyNot)
+	}
+}
+
+func TestPickupIsOfferedOnceDownWhenItMakesANewMeld(t *testing.T) {
+	o := pickupOffer(t, pickupPosition([]string{"QS", "QD", "9C"}, []string{"QH"}, true))
+	if !o.Enabled {
+		t.Fatalf("pickup disabled (%s) though QH makes a set of queens", o.WhyNot)
+	}
+}
+
+// A new meld that empties the hand leaves nothing to discard, so it is no
+// use on a deal that has to end on a discard.
+func TestPickupIsWithheldOnceDownWhenTheMeldLeavesNoDiscard(t *testing.T) {
+	o := pickupOffer(t, pickupPosition([]string{"QS", "QD"}, []string{"QH"}, true))
+	if o.Enabled {
+		t.Fatalf("pickup enabled though melding QH would leave nothing to discard")
 	}
 }
 
@@ -117,12 +153,12 @@ func TestPickupStaysOfferedWhenTheSearchGivesUp(t *testing.T) {
 	}
 }
 
-// The engine clears the debt with any opening, not only one holding the card
-// taken, so a pickup that leaves an opening is offered even when the taken
-// card has no place in it. Withholding it would refuse a move the engine takes.
-func TestPickupIsOfferedWhenTheOpeningDoesNotUseTheCard(t *testing.T) {
+// Before going down the taken card has to be in the opening, as the written
+// rule says. A hand that opens on its own gains nothing from a card the
+// opening leaves behind, so the take is not offered.
+func TestPickupIsWithheldWhenTheOpeningDoesNotUseTheCard(t *testing.T) {
 	o := pickupOffer(t, pickupPosition([]string{"JH", "QH", "KH", "4S"}, []string{"2C"}, false))
-	if !o.Enabled {
-		t.Fatalf("pickup disabled (%s) though J-Q-K of hearts opens after it", o.WhyNot)
+	if o.Enabled {
+		t.Fatalf("pickup enabled though 2C has no place in the J-Q-K opening")
 	}
 }

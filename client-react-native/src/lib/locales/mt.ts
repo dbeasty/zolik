@@ -53,7 +53,7 @@ export const mt: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Għandek bżonn sekwenza mingħajr joker fuq il-mejda biex titqies li niżżilt',
   'err.INCOMPLETE_INITIAL_MELD': 'Temm it-tniżżil tiegħek, jew ħassru, qabel ma tarmi',
   'err.DISCARD_CARD_NOT_MELDED': 'Il-karta li ġbidt trid tidħol fil-kombinazzjoni tiegħek',
-  'err.DISCARD_PICKUP_UNPLAYABLE': "Ma tistax tinżel b'dik il-karta f'din id-dawra",
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Dik il-karta m'għandhiex post f'kombinazzjoni f'din id-dawra",
   'err.JOKER_DISCARD_FORBIDDEN': 'Joker ma jistax jintrema',
   'err.NOTHING_TO_UNDO': "M'hemm xejn x'iġġib lura",
   'err.NOTHING_FITS_HERE': 'L-ebda karta tiegħek ma tmur hawn',
@@ -480,6 +480,8 @@ export const mt: Record<string, string> = {
   'zolik.rules.section.layoff': "Żieda ma' kombinazzjonijiet",
   'zolik.rules.pickup.obligation':
     "Qabel ma tkun niżżilt, karta meħuda mill-munzell tal-iskart trid tintuża fil-kombinazzjoni li biha tniżżel f'din id-dawra.",
+  'zolik.rules.pickup.useful':
+    "Karta tittieħed mill-munzell tar-rimi biss biex tintlagħab fl-istess dawra: fuq kombinazzjoni fuq il-mejda jew f'waħda ġdida — qabel ma tinżel, fil-kombinazzjonijiet li tinżel bihom.",
   'zolik.rules.pickup.noReturn':
     "Karta li ħadt mill-munzell tal-iskart ma tistax terġa' tintrema fl-istess dawra — ilgħabha jew żommha.",
   'zolik.rules.wilds.setLimit': 'Grupp ma jistax ikollu aktar jokers milli karti naturali.',

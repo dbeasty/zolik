@@ -1034,8 +1034,8 @@ func candidateOf(steps []rules.Action, f []float32) learn.Candidate {
 // to go into the opening this turn (rules.ErrDiscardCardNotMelded) — so it is
 // offered only together with an opening that spends it, found from the
 // position the pickup actually produces. Once down a pickup carries no
-// obligation, and every one is offered: whether a card that lands nowhere yet
-// is worth a turn is the policy's to learn, not this file's to decide.
+// obligation, but the offers it reads (gatePickup) only hold a card that lays
+// off or makes a meld this turn: the seat plays from what a person is offered.
 func (b *builder) draws(offers []module.ActionOffer) []learn.Candidate {
 	var out []learn.Candidate
 	for _, o := range offers {
@@ -1132,9 +1132,11 @@ func (b *builder) pileTakes(drawable []string) []learn.Candidate {
 		if !b.down && !makes {
 			continue
 		}
-		// Once down any pickup is legal, and every one is offered — but a
-		// loose one (a card that neither makes a meld with the hand nor lays
-		// off) only while this deal's pickups are few. Not a judgement of the
+		// Once down the offers already leave out a card that lands nowhere
+		// (gatePickup), so this rarely fires; it stays as the bound for the
+		// cases that search gave up on. A loose one (a card that neither makes
+		// a meld with the hand nor lays off) only while this deal's pickups
+		// are few. Not a judgement of the
 		// card: a bound on the deal. With every loose pickup open, a table of
 		// down seats can trade the pile round for ever without a card leaving
 		// the stock; random self-play did, for tens of thousands of actions.

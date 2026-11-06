@@ -53,7 +53,7 @@ export const ro: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Ai nevoie de o scară fără joker pe masă ca să fii considerat coborât',
   'err.INCOMPLETE_INITIAL_MELD': 'Termină coborârea, sau anuleaz-o, înainte să arunci',
   'err.DISCARD_CARD_NOT_MELDED': 'Cartea pe care ai luat-o trebuie să intre în combinația ta',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Nu poți să te întinzi cu cartea asta în tura aceasta',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Cartea asta nu are loc în nicio formație în tura aceasta",
   'err.JOKER_DISCARD_FORBIDDEN': 'Un joker nu poate fi aruncat',
   'err.NOTHING_TO_UNDO': 'Nu e nimic de anulat',
   'err.NOTHING_FITS_HERE': 'Niciuna dintre cărțile tale nu merge aici',
@@ -477,6 +477,8 @@ export const ro: Record<string, string> = {
   'zolik.rules.section.layoff': 'Adăugarea la combinații',
   'zolik.rules.pickup.obligation':
     'Până cobori, o carte luată din teancul de aruncate trebuie folosită în combinația cu care cobori în această tură.',
+  'zolik.rules.pickup.useful':
+    "O carte se ia din teancul de cărți aruncate doar pentru a fi jucată în aceeași tură: la o formație de pe masă sau într-una nouă — înainte să te întinzi, în formațiile cu care te întinzi.",
   'zolik.rules.pickup.noReturn':
     'O carte luată din teancul de aruncate nu poate fi aruncată din nou în aceeași tură — joac-o sau ține-o.',
   'zolik.rules.wilds.setLimit': 'Un grup nu poate avea mai mulți jokeri decât cărți naturale.',
