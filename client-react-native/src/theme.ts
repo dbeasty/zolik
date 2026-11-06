@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { STARTUP_HIGH_CONTRAST } from '@/src/a11y/startupContrast';
 import { classic } from '@/src/skins/classic';
@@ -72,17 +72,29 @@ export const dropArmed = classic.dropArmed;
 export const dragLayer = { zIndex: 100 } as const;
 
 /**
- * Whether the hand goes up onto `dragLayer` for the drag in flight: only when
- * the card came out of the hand.
+ * Whether the hand sits on `dragLayer` — on the web, only while a card from
+ * it is in flight; on iOS and Android, always.
  *
- * A card carried off a meld or the table is not inside the hand, so raising
- * the hand does nothing for it — and on iOS a zIndex that changes mid-gesture
- * reorders the board's native views, taking the melds below the hand out of
- * the window and putting them back. That cancels the touch carrying the card:
- * a wild dragged from one meld to another was let go a few frames in.
+ * On iOS a zIndex that changes mid-gesture reorders the board's native views,
+ * taking views out of the window and putting them back, and that cancels the
+ * touch carrying the card. Off a meld: a wild dragged to another meld was let
+ * go a few frames in. Out of the hand: every card dragged along the fan was
+ * let go two moves after it lifted, wherever the finger had got to, which is
+ * why rearranging a hand on a phone felt like the cards would not follow.
+ * So native raises the hand before any touch and never moves it again. That
+ * costs nothing there: in the board's column the hand overlaps no other
+ * panel, so ranking it above them changes nothing until a card is carried out
+ * of it, and floating it is in the dock, which is above the board anyway.
+ *
+ * The web keeps its toggle. It cancels nothing there, and a card carried off
+ * a meld or the table is not inside the hand, so raising the hand would do
+ * nothing for it.
  */
-export function handOnDragLayer(drag: { fromMeld?: string; fromTable?: boolean } | null): boolean {
-  return !!drag && !drag.fromMeld && !drag.fromTable;
+export function handOnDragLayer(
+  drag: { fromMeld?: string; fromTable?: boolean } | null,
+  os: string = Platform.OS,
+): boolean {
+  return os !== 'web' || (!!drag && !drag.fromMeld && !drag.fromTable);
 }
 
 export const shared = StyleSheet.create({
