@@ -217,6 +217,29 @@ test.describe('aiming at a target before choosing the cards', () => {
     }
   });
 
+  test('the lay-off control stays off until the selection fits a meld', async ({ page, request }) => {
+    test.setTimeout(150_000);
+    const { matchId, host } = await tableWithBots(request, 'canasta', 4);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const offer = await playUntilOffered(page, request, matchId, host, 'lay_off');
+    test.skip(!offer, 'no lay-off came up before the deal moved on');
+
+    const eligible = (offer.source?.cards ?? []) as string[];
+    const hand = await serverHand(request, matchId, host);
+    const chosen = hand.find((c) => eligible.includes(c));
+    expect(chosen, 'the hand holds a card this lay-off accepts').toBeTruthy();
+
+    // Something in hand fits, but nothing is picked: the control waits.
+    await resetPending(page);
+    const control = controlFor(page, offer);
+    await expect(control).toBeDisabled();
+
+    await selectOnly(page, [chosen!]);
+    await expect(control).toBeEnabled();
+  });
+
   test('cards first still sends in one tap, arming or no arming', async ({ page, request }) => {
     test.setTimeout(150_000);
     const { matchId, host } = await tableWithBots(request, 'canasta', 4);
