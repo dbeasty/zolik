@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { Tip } from '@/src/a11y/Tip';
 import type { ActionOffer, MatchAction, MatchPlayer, ParamSpec, Zone } from '@/src/api/matchTypes';
@@ -940,20 +941,41 @@ function AmountInput({
 // with the track it draws over.
 const THUMB_SIZE = 18;
 const THUMB_RADIUS = THUMB_SIZE / 2;
+// How far a finger moves sideways before a native drag is the slider's, and
+// how far up or down before it is the page's instead. Both under the scroll
+// view's own ~10 points, so the slider decides before the page does.
+const SLIDER_ACTIVE_X = 4;
+const SLIDER_FAIL_Y = 8;
 
 /**
  * The drag half of a `ParamKindInt` control: any figure in the range under a
  * thumb, next to the stepper's one-unit nudge and the input's exact one.
  *
- * Plain `PanResponder` rather than a slider library — this range is a plain
- * line between two numbers the engine already computed, which a dozen lines
- * of touch handling covers without a native module to keep in step with
- * Expo's own upgrades. Values the handlers need live in a ref rather than a
- * render-time closure: `PanResponder.create` is built once, on the first
- * render, and a handler built then would otherwise keep reading that
- * render's `min`/`max`/`onChange` forever.
+ * Hand-rolled rather than a slider library — this range is a plain line
+ * between two numbers the engine already computed, which a dozen lines of
+ * touch handling covers without a native module to keep in step with Expo's
+ * own upgrades. Values the handlers need live in a ref rather than a
+ * render-time closure: the handlers are built once, on the first render, and
+ * a handler built then would otherwise keep reading that render's
+ * `min`/`max`/`onChange` forever.
+ *
+ * ## Why native drags through gesture-handler
+ *
+ * The slider sits inside the match screen's `ScrollView`. On iOS a JS
+ * responder cannot stop that scroll view: its own native pan recognizer
+ * starts as soon as the finger has moved a few points, and UIKit then
+ * cancels the touch the responder was following. A sideways drag with any
+ * vertical wobble in it scrolled the page and left the stake where it was.
+ * A gesture-handler pan is a native recognizer too, and one that activates
+ * on a few points of *horizontal* movement wins that race, so the scroll
+ * view never begins — while a touch that moves up or down first fails the
+ * pan (`failOffsetY`) and is the page's to scroll, as before. A tap still
+ * puts the thumb where it lands.
+ *
+ * The web keeps the responder: there the browser does the scrolling, and a
+ * responder that refuses to give the touch up is enough.
  */
-function AmountSlider({
+export function AmountSlider({
   name,
   min,
   max,
@@ -997,25 +1019,45 @@ function AmountSlider({
     return Math.min(Math.max(snapped, min), max);
   };
 
+  // Where along the track the touch started, so moves are measured from it
+  // in page coordinates. `locationX` alone is relative to whatever view is
+  // under the finger, which on the thumb is the thumb's own 18 points.
+  const startX = useRef(0);
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e: GestureResponderEvent) => live.current.onChange(valueAtOffset(e.nativeEvent.locationX)),
-      onPanResponderMove: (e: GestureResponderEvent) => live.current.onChange(valueAtOffset(e.nativeEvent.locationX)),
+      // A slider held is a slider being moved: a scroll does not get to take
+      // the touch away from it halfway through.
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (e: GestureResponderEvent) => {
+        startX.current = e.nativeEvent.locationX;
+        live.current.onChange(valueAtOffset(startX.current));
+      },
+      onPanResponderMove: (_e, g) => live.current.onChange(valueAtOffset(startX.current + g.dx)),
     }),
   ).current;
+
+  // Native only — see above. `x` is relative to the track the detector wraps.
+  const gesture = useMemo(() => {
+    const at = (e: { x: number }) => live.current.onChange(valueAtOffset(e.x));
+    return Gesture.Race(
+      Gesture.Pan().runOnJS(true).activeOffsetX([-SLIDER_ACTIVE_X, SLIDER_ACTIVE_X]).failOffsetY([-SLIDER_FAIL_Y, SLIDER_FAIL_Y]).onStart(at).onUpdate(at),
+      Gesture.Tap().runOnJS(true).onEnd(at),
+    );
+    // Built once: `live` is a ref and `valueAtOffset` reads only it.
+  }, []);
 
   const range = Math.max(max - min, 1);
   const ratio = Math.min(Math.max((value - min) / range, 0), 1);
   const centre = centreFor(ratio, width);
 
-  return (
+  const track = (
     <View
       testID={testID}
       style={styles.sliderTrack}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      {...responder.panHandlers}
+      {...(Platform.OS === 'web' ? responder.panHandlers : null)}
       // A slider a finger drags is a slider a keyboard nudges and a screen
       // reader adjusts: the arrows step it, Page keys move a tenth of the
       // range, Home and End go to the ends.
@@ -1065,6 +1107,7 @@ function AmountSlider({
       <View style={[styles.sliderThumb, { left: centre - THUMB_RADIUS }]} />
     </View>
   );
+  return Platform.OS === 'web' ? track : <GestureDetector gesture={gesture}>{track}</GestureDetector>;
 }
 
 /**
@@ -1416,7 +1459,7 @@ function offerBarStyles(m: Metrics, s: Skin) {
   });
 }
 
-type OfferBarStyles = ReturnType<typeof offerBarStyles>;
+export type OfferBarStyles = ReturnType<typeof offerBarStyles>;
 
 /**
  * A press on a control that is off, answered with why.
