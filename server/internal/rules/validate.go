@@ -629,7 +629,13 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// server, but not to a player who watched their card land somewhere
 	// they didn't drop it. Sets have no directionality, so position is
 	// ignored for them.
-	if position == "front" || position == "end" {
+	//
+	// A drop that only buys jokers back (every card took a joker's slot and
+	// nothing was appended) grows neither end, so there is no wrong end to
+	// have named: the KD dropped on JD-QD-JOKER is a swap wherever it
+	// lands. Checking it would refuse both ends — including the one
+	// LegalActions told the client to use.
+	if (position == "front" || position == "end") && len(toAppend) > 0 {
 		if mv.Type == MeldRun {
 			// A card that could equally extend either end of the run (e.g.
 			// a joker) resolves ambiguously by wild count alone. Re-resolve
