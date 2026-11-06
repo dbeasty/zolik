@@ -53,7 +53,7 @@ export const de: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Du brauchst eine jokerfreie Folge auf dem Tisch, bevor du als ausgelegt giltst',
   'err.INCOMPLETE_INITIAL_MELD': 'Beende deine Auslage oder nimm sie zurück, bevor du ablegst',
   'err.DISCARD_CARD_NOT_MELDED': 'Die aufgenommene Karte muss in deine Auslage',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Mit dieser Karte kannst du diese Runde nicht auslegen',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Diese Karte passt diese Runde in keine Kombination",
   'err.JOKER_DISCARD_FORBIDDEN': 'Ein Joker kann nicht abgelegt werden',
   'err.NOTHING_TO_UNDO': 'Nichts rückgängig zu machen',
   'err.NOTHING_FITS_HERE': 'Keine deiner Karten passt hierher',
@@ -485,6 +485,8 @@ export const de: Record<string, string> = {
   'zolik.rules.section.layoff': 'Anlegen',
   'zolik.rules.pickup.obligation':
     'Bevor du ausgelegt bist, muss eine vom Ablagestapel genommene Karte in die Auslage, mit der du in diesem Zug herauskommst.',
+  'zolik.rules.pickup.useful':
+    "Eine Karte wird nur dann vom Ablagestapel genommen, wenn sie in diesem Zug gespielt wird: an eine Kombination auf dem Tisch oder in eine neue — vor dem Auslegen in die Kombinationen, mit denen du auslegst.",
   'zolik.rules.pickup.noReturn':
     'Eine vom Ablagestapel genommene Karte darf im selben Zug nicht wieder abgelegt werden — spiel sie aus oder behalte sie.',
   'zolik.rules.wilds.setLimit': 'Ein Satz darf nicht mehr Joker als natürliche Karten enthalten.',

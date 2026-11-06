@@ -7,23 +7,29 @@ import (
 	"zolik/server/internal/rules"
 )
 
-// gatePickup withdraws the discard-pile pickups that could only strand the
-// player who took them.
+// gatePickup withdraws the discard-pile pickups that would bring the player a
+// card they cannot use.
 //
-// The engine lets a player who is not down take a card off the pile, but then
-// refuses every discard until they are down (rules.ErrDiscardCardNotMelded).
-// A pickup after which no opening exists is a dead end that only an undo gets
-// out of, so it is not offered: the control stays dark rather than inviting a
-// move the turn cannot finish.
+// A card is only worth taking off the pile if it goes somewhere this turn:
 //
-// The question is the one the engine enforces — can the player go down this
-// turn holding what the take brings — not whether the taken card is in the
-// opening. The written rule asks for that too, but the engine accepts any
-// opening, and withholding a move the engine would take is the worse error.
+//   - for a player not yet down, into the opening that takes them down. The
+//     engine refuses every discard after the take until they are down
+//     (rules.ErrDiscardCardNotMelded), so a take with no opening is a dead end
+//     only an undo gets out of — and one whose opening leaves the taken card
+//     in hand is the stock's card bought at the price of telling the table.
+//     The opening has to hold the taken card, as the written rule says;
+//   - for a player already down, onto a meld on the table or into a new meld
+//     with cards in hand. A card that fits nowhere is just the card the
+//     previous player threw away, now held for at least a turn
+//     (rules.ErrDiscardTakenCard) instead of the stock's unknown one.
+//
+// The engine still accepts any of these takes; this decides only what is
+// offered, so the control stays dark rather than inviting a move with no
+// purpose.
 //
 // This is the one offer this adapter decides rather than translates, because
 // the question is a search, and the search lives with the agents.
-// It errs towards offering: a search that cannot prove the opening impossible
+// It errs towards offering: a search that cannot prove the card useless
 // leaves the pickup enabled. The search is bounded per offer build, not per
 // card, because this runs on every broadcast and under any-from-pile one
 // build can ask about every card in the pile.
@@ -33,8 +39,7 @@ func gatePickup(gs rules.GameState, playerID string, offers []rules.ActionOffer)
 
 // errPickupUnplayable is why a pickup is withheld. No validator returns it —
 // the draw itself is legal — so it is this module's own code rather than the
-// engine's: the take could only end in rules.ErrDiscardCardNotMelded and
-// an undo.
+// engine's: the card taken would have nowhere to go this turn.
 const errPickupUnplayable rules.RulesErrorCode = "DISCARD_PICKUP_UNPLAYABLE"
 
 // pickupGateSteps bounds one gatePickup: each step is one candidate meld
@@ -42,9 +47,10 @@ const errPickupUnplayable rules.RulesErrorCode = "DISCARD_PICKUP_UNPLAYABLE"
 const pickupGateSteps = 20000
 
 func gatePickupWithin(gs rules.GameState, playerID string, offers []rules.ActionOffer, steps int) {
-	if gs.CurrentTurn != playerID || gs.Phase != rules.PhaseDraw || gs.RoundReqMet[playerID] {
+	if gs.CurrentTurn != playerID || gs.Phase != rules.PhaseDraw {
 		return
 	}
+	down := gs.RoundReqMet[playerID]
 	for i := range offers {
 		o := &offers[i]
 		if o.ID != rules.OfferDrawDiscard || !o.Enabled || o.Source == nil {
@@ -69,7 +75,13 @@ func gatePickupWithin(gs rules.GameState, playerID string, offers []rules.Action
 				}
 			}
 			combined := append(append([]string(nil), hand...), pile[at:]...)
-			if ai.CanGoDown(st, playerID, combined, &steps) {
+			usable := false
+			if down {
+				usable = ai.PickupFits(st, combined, c, &steps)
+			} else {
+				usable = ai.CanGoDownUsing(st, playerID, combined, c, &steps)
+			}
+			if usable {
 				keep = append(keep, c)
 			} else {
 				refused = append(refused, rules.CardRefusal{Card: c, WhyNot: errPickupUnplayable})

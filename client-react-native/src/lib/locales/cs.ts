@@ -53,7 +53,7 @@ export const cs: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Než budeš dole, musíš mít na stole čistou postupku bez žolíka',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokonči výklad, nebo ho vrať zpět, než odhodíš',
   'err.DISCARD_CARD_NOT_MELDED': 'Vzatá karta musí jít do tvé kombinace',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'S touto kartou tento tah nemůžeš vyložit',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Tuto kartu teď nemáš kam vyložit",
   'err.JOKER_DISCARD_FORBIDDEN': 'Žolíka nelze odhodit',
   'err.NOTHING_TO_UNDO': 'Není co vrátit',
   'err.NOTHING_FITS_HERE': 'Žádná z tvých karet sem nepatří',
@@ -473,6 +473,8 @@ export const cs: Record<string, string> = {
   'zolik.rules.section.layoff': 'Přikládání ke kombinacím',
   'zolik.rules.pickup.obligation':
     'Dokud nejsi dole, musí karta vzatá z odhazovacího balíčku být použita v kombinaci, se kterou v tomto tahu jdeš dolů.',
+  'zolik.rules.pickup.useful':
+    "Kartu z odhazovacího balíčku si bereš jen tehdy, když ji tento tah vyložíš: přiložíš ke kombinaci na stole, nebo s ní vytvoříš novou — dokud nejsi dole, do kombinací, se kterými jdeš dolů.",
   'zolik.rules.pickup.noReturn':
     'Kartu vzatou z odhazovacího balíčku nemůžeš ve stejném tahu odhodit — zahraj ji, nebo si ji nech.',
   'zolik.rules.wilds.setLimit': 'Skupina nesmí mít víc žolíků než přirozených karet.',

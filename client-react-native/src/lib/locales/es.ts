@@ -53,7 +53,7 @@ export const es: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Necesitas una escalera sin comodines en la mesa para contar como bajado',
   'err.INCOMPLETE_INITIAL_MELD': 'Termina tu bajada, o deshazla, antes de descartar',
   'err.DISCARD_CARD_NOT_MELDED': 'La carta que cogiste debe entrar en tu combinación',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'No puedes bajarte con esa carta en este turno',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Esa carta no encaja en ninguna combinación este turno",
   'err.JOKER_DISCARD_FORBIDDEN': 'Un comodín no se puede descartar',
   'err.NOTHING_TO_UNDO': 'No hay nada que deshacer',
   'err.NOTHING_FITS_HERE': 'Ninguna de tus cartas va aquí',
@@ -480,6 +480,8 @@ export const es: Record<string, string> = {
   'zolik.rules.section.layoff': 'Añadir a combinaciones',
   'zolik.rules.pickup.obligation':
     'Antes de estar bajado, una carta cogida del montón de descarte debe usarse en la combinación con la que te bajas este turno.',
+  'zolik.rules.pickup.useful':
+    "Una carta solo se toma del montón de descarte para jugarla en el mismo turno: en una combinación de la mesa o en una nueva — antes de bajarte, en las combinaciones con las que te bajas.",
   'zolik.rules.pickup.noReturn':
     'Una carta cogida del montón de descarte no puede volver a descartarse en el mismo turno — júgala o quédatela.',
   'zolik.rules.wilds.setLimit': 'Un grupo no puede llevar más comodines que cartas naturales.',

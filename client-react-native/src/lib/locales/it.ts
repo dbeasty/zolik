@@ -53,7 +53,7 @@ export const it: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Ti serve una scala senza jolly sul tavolo per risultare calato',
   'err.INCOMPLETE_INITIAL_MELD': 'Completa la calata, o annullala, prima di scartare',
   'err.DISCARD_CARD_NOT_MELDED': 'La carta raccolta deve finire nella tua combinazione',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Non puoi calare con quella carta in questo turno',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Quella carta non trova posto in nessuna combinazione in questo turno",
   'err.JOKER_DISCARD_FORBIDDEN': 'Un jolly non si può scartare',
   'err.NOTHING_TO_UNDO': "Non c'è nulla da annullare",
   'err.NOTHING_FITS_HERE': 'Nessuna delle tue carte va qui',
@@ -476,6 +476,8 @@ export const it: Record<string, string> = {
   'zolik.rules.section.layoff': 'Attaccare alle combinazioni',
   'zolik.rules.pickup.obligation':
     'Finché non sei calato, una carta presa dalla pila degli scarti deve essere usata nella combinazione con cui cali in questo turno.',
+  'zolik.rules.pickup.useful':
+    "Una carta si prende dagli scarti solo per giocarla nello stesso turno: su una combinazione in tavola o in una nuova — prima di aver calato, nelle combinazioni con cui cali.",
   'zolik.rules.pickup.noReturn':
     'Una carta presa dalla pila degli scarti non può essere riscartata nello stesso turno — giocala o tienila.',
   'zolik.rules.wilds.setLimit': 'Un gruppo non può contenere più jolly che carte naturali.',

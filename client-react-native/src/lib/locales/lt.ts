@@ -53,7 +53,7 @@ export const lt: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Kad būtum laikomas išdėjusiu, ant stalo tau reikia sekos be džokerio',
   'err.INCOMPLETE_INITIAL_MELD': 'Užbaik išdėjimą arba jį atšauk, prieš atmesdamas kortą',
   'err.DISCARD_CARD_NOT_MELDED': 'Paimta korta turi patekti į tavo derinį',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Su šia korta šį ėjimą negali išsidėti',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Šiai kortai šį ėjimą nėra vietos jokiame derinyje",
   'err.JOKER_DISCARD_FORBIDDEN': 'Džokerio atmesti negalima',
   'err.NOTHING_TO_UNDO': 'Nėra ko atšaukti',
   'err.NOTHING_FITS_HERE': 'Nė viena tavo korta čia netinka',
@@ -474,6 +474,8 @@ export const lt: Record<string, string> = {
   'zolik.rules.section.layoff': 'Pridėjimas prie derinių',
   'zolik.rules.pickup.obligation':
     'Kol nesi išdėjęs, iš atmetimo krūvelės paimta korta turi būti panaudota tame derinyje, su kuriuo šį ėjimą išsidėstai.',
+  'zolik.rules.pickup.useful':
+    "Korta iš išmestųjų krūvos imama tik tam, kad ji būtų sužaista tą patį ėjimą: prie derinio ant stalo arba į naują — kol nesi išsidėjęs, į derinius, kuriais išsidedi.",
   'zolik.rules.pickup.noReturn':
     'Iš atmetimo krūvelės paimtos kortos to paties ėjimo metu atmesti negalima — sužaisk ją arba pasilik.',
   'zolik.rules.wilds.setLimit': 'Grupėje negali būti daugiau džokerių nei natūralių kortų.',

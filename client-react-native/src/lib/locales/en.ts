@@ -62,7 +62,7 @@ export const en: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'You need a joker-free run on the table before you count as down',
   'err.INCOMPLETE_INITIAL_MELD': 'Finish your lay-down, or undo it, before you discard',
   'err.DISCARD_CARD_NOT_MELDED': 'The card you picked up must go into your meld',
-  'err.DISCARD_PICKUP_UNPLAYABLE': "You can't go down with that card this turn",
+  'err.DISCARD_PICKUP_UNPLAYABLE': "That card has no place in a meld this turn",
   'err.JOKER_DISCARD_FORBIDDEN': "A joker can't be discarded",
   'err.NOTHING_TO_UNDO': 'Nothing to undo',
   'err.NOTHING_FITS_HERE': 'None of your cards go there',
@@ -488,6 +488,8 @@ export const en: Record<string, string> = {
   // See server/internal/zolikmod/ruleindex_test.go.
   'zolik.rules.section.layoff': 'Adding to melds',
   'zolik.rules.pickup.obligation': 'Before you\'re down, a card taken from the discard pile must be used in the meld that takes you down this turn.',
+  'zolik.rules.pickup.useful':
+    "A card is taken from the discard pile only to be played this turn: onto a meld on the table or into a new meld — before you're down, into the melds that take you down.",
   'zolik.rules.pickup.noReturn': 'A card you took from the discard pile can\'t be discarded again on the same turn — play it or keep it.',
   'zolik.rules.wilds.setLimit': 'A set can\'t hold more jokers than natural cards.',
   'zolik.rules.set.maxSize': 'A set can\'t hold more than {n} cards — a joker fills a missing suit, it doesn\'t pad a full one.',

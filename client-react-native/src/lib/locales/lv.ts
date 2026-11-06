@@ -53,7 +53,7 @@ export const lv: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Lai tevi uzskatītu par izlikušos, uz galda vajadzīga secība bez džokera',
   'err.INCOMPLETE_INITIAL_MELD': 'Pabeidz izlikšanu vai atsauc to, pirms izmet kārti',
   'err.DISCARD_CARD_NOT_MELDED': 'Paņemtajai kārtij jānonāk tavā kombinācijā',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Ar šo kārti šajā gājienā nevari izlikt',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Šai kārtij šajā gājienā nav vietas nevienā kombinācijā",
   'err.JOKER_DISCARD_FORBIDDEN': 'Džokeru nedrīkst izmest',
   'err.NOTHING_TO_UNDO': 'Nav ko atsaukt',
   'err.NOTHING_FITS_HERE': 'Neviena no tavām kārtīm šeit neder',
@@ -475,6 +475,8 @@ export const lv: Record<string, string> = {
   'zolik.rules.section.layoff': 'Pievienošana kombinācijām',
   'zolik.rules.pickup.obligation':
     'Kamēr neesi izlicies, no izmešanas kaudzes paņemtā kārts jāizmanto tajā kombinācijā, ar kuru šajā gājienā izliecies.',
+  'zolik.rules.pickup.useful':
+    "Kārti no izmesto kaudzes ņem tikai tāpēc, lai to izspēlētu tajā pašā gājienā: pie kombinācijas uz galda vai jaunā — pirms izlikšanas, kombinācijās, ar kurām izliec.",
   'zolik.rules.pickup.noReturn':
     'No izmešanas kaudzes paņemtu kārti tajā pašā gājienā izmest atkal nedrīkst — izspēlē to vai paturi.',
   'zolik.rules.wilds.setLimit': 'Grupā nedrīkst būt vairāk džokeru nekā dabisko kāršu.',

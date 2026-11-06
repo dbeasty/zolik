@@ -73,6 +73,9 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 		// down nowhere — so a player refused by it was told what had
 		// happened and never why.
 		module.Rule("zolik.rules.pickup.obligation", nil),
+		// Which takes are offered at all: only a card that can be played
+		// this turn (gatePickup).
+		module.Rule("zolik.rules.pickup.useful", nil),
 		module.Rule("zolik.rules.pickup.noReturn", nil),
 		module.Rule("zolik.rules.turn.discard", nil),
 	)

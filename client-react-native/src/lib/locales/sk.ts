@@ -53,7 +53,7 @@ export const sk: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Potrebuješ na stole postupku bez žolíka, aby si sa rátal za vyloženého',
   'err.INCOMPLETE_INITIAL_MELD': 'Dokonči vykladanie alebo ho vráť späť, než odhodíš kartu',
   'err.DISCARD_CARD_NOT_MELDED': 'Karta, ktorú si zobral, musí ísť do tvojej kombinácie',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'S touto kartou v tomto ťahu nemôžeš vyložiť',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Túto kartu teraz nemáš kam vyložiť",
   'err.JOKER_DISCARD_FORBIDDEN': 'Žolíka nemožno odhodiť',
   'err.NOTHING_TO_UNDO': 'Nie je čo vrátiť späť',
   'err.NOTHING_FITS_HERE': 'Žiadna z tvojich kariet sem nepatrí',
@@ -475,6 +475,8 @@ export const sk: Record<string, string> = {
   'zolik.rules.section.layoff': 'Prikladanie ku kombináciám',
   'zolik.rules.pickup.obligation':
     'Kým nie si vyložený, karta vzatá z odhadzovacieho balíčka musí byť použitá v kombinácii, ktorou sa v tomto ťahu vykladáš.',
+  'zolik.rules.pickup.useful':
+    "Kartu z odhadzovacieho balíčka si berieš len vtedy, keď ju v tomto ťahu vyložíš: priložíš ku kombinácii na stole alebo s ňou vytvoríš novú — kým nie si vyložený, do kombinácií, ktorými sa vykladáš.",
   'zolik.rules.pickup.noReturn':
     'Kartu vzatú z odhadzovacieho balíčka nemožno v tom istom ťahu znova odhodiť — zahraj ju alebo si ju nechaj.',
   'zolik.rules.wilds.setLimit': 'Skupina nesmie obsahovať viac žolíkov než prirodzených kariet.',

@@ -53,7 +53,7 @@ export const sv: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Du behöver en jokerfri svit på bordet för att räknas som utlagd',
   'err.INCOMPLETE_INITIAL_MELD': 'Avsluta din utläggning, eller ångra den, innan du kastar',
   'err.DISCARD_CARD_NOT_MELDED': 'Kortet du tog upp måste ingå i din kombination',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Du kan inte gå ut med det kortet den här rundan',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Det kortet passar inte i någon kombination den här rundan",
   'err.JOKER_DISCARD_FORBIDDEN': 'En joker får inte kastas',
   'err.NOTHING_TO_UNDO': 'Det finns inget att ångra',
   'err.NOTHING_FITS_HERE': 'Inget av dina kort passar här',
@@ -468,6 +468,8 @@ export const sv: Record<string, string> = {
   'zolik.rules.section.layoff': 'Lägga till i kombinationer',
   'zolik.rules.pickup.obligation':
     'Innan du är utlagd måste ett kort som tagits från kasthögen användas i den kombination du lägger ut med den här turen.',
+  'zolik.rules.pickup.useful':
+    "Ett kort tas bara från slänghögen för att spelas samma runda: på en kombination på bordet eller i en ny — innan du har gått ut, i kombinationerna du går ut med.",
   'zolik.rules.pickup.noReturn':
     'Ett kort du tagit från kasthögen får inte kastas igen samma tur — spela det eller behåll det.',
   'zolik.rules.wilds.setLimit': 'En grupp får inte innehålla fler jokrar än naturliga kort.',

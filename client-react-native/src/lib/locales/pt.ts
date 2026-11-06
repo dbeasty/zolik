@@ -53,7 +53,7 @@ export const pt: Record<string, string> = {
   'err.NEED_CLEAN_RUN': 'Precisas de uma sequência sem joker na mesa para contares como baixado',
   'err.INCOMPLETE_INITIAL_MELD': 'Termina a tua baixa, ou anula-a, antes de descartares',
   'err.DISCARD_CARD_NOT_MELDED': 'A carta que apanhaste tem de entrar na tua combinação',
-  'err.DISCARD_PICKUP_UNPLAYABLE': 'Não podes baixar com essa carta nesta jogada',
+  'err.DISCARD_PICKUP_UNPLAYABLE': "Essa carta não tem lugar em nenhuma combinação nesta jogada",
   'err.JOKER_DISCARD_FORBIDDEN': 'Um joker não pode ser descartado',
   'err.NOTHING_TO_UNDO': 'Não há nada para anular',
   'err.NOTHING_FITS_HERE': 'Nenhuma das tuas cartas vai aqui',
@@ -478,6 +478,8 @@ export const pt: Record<string, string> = {
   'zolik.rules.section.layoff': 'Juntar a combinações',
   'zolik.rules.pickup.obligation':
     'Antes de estares baixado, uma carta tirada do monte de descartes tem de ser usada na combinação com que baixas nesta jogada.',
+  'zolik.rules.pickup.useful':
+    "Uma carta só se tira do monte de descarte para ser jogada na mesma jogada: numa combinação da mesa ou numa nova — antes de baixares, nas combinações com que baixas.",
   'zolik.rules.pickup.noReturn':
     'Uma carta tirada do monte de descartes não pode ser descartada outra vez na mesma jogada — joga-a ou fica com ela.',
   'zolik.rules.wilds.setLimit': 'Um grupo não pode ter mais jokers do que cartas naturais.',
