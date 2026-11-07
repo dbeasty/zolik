@@ -8,6 +8,7 @@
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "expo": "~56.0.5",
+    "expo-age-range": "~56.0.6",
     "expo-audio": "~56.0.11",
     "expo-constants": "~56.0.16",
     "expo-dev-client": "~56.0.27",

@@ -9,6 +9,7 @@ import { AccountMenu } from '@/src/components/AccountMenu';
 import { IS_DESKTOP, IS_DESKTOP_GAME_WINDOW } from '@/src/config';
 import { useDesktopChrome } from '@/src/hooks/useHydrated';
 import { SessionProvider } from '@/src/context/SessionContext';
+import { AgeGateProvider } from '@/src/age/AgeGate';
 import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
 import { NavArrows, NavHistoryTracker } from '@/src/desktop/NavArrows';
 import { GameWindowGuard, installNavigationRecorder } from '@/src/desktop/windows';
@@ -75,6 +76,9 @@ export default function RootLayout() {
             {/* Which face the player wears. Inside SessionProvider, because
                 a signed-in account's choice outranks the device's — see
                 `src/hooks/useAvatar.tsx`. */}
+            {/* Under-18 mode: which games this player may see — see
+                `src/age/AgeGate.tsx`. Inside SessionProvider, for its client. */}
+            <AgeGateProvider>
             <AvatarProvider>
               {/* Every "come and play" — a table in the room, one a friend
                   opened, the waiting room seating this player — in one queue
@@ -212,6 +216,7 @@ export default function RootLayout() {
               </InviteProvider>
               </TableEventsProvider>
             </AvatarProvider>
+            </AgeGateProvider>
           </SessionProvider>
         </SkinProvider>
       </MetricsProvider>

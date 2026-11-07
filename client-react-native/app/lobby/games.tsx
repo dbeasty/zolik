@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { nearbyAvailable } from '@/modules/zolik-nearby';
 import type { MatchModule } from '@/src/api/matchTypes';
+import { AdultsOnly, GamblingNotice, useAgeGate } from '@/src/age/AgeGate';
 import { FormError } from '@/src/a11y/Field';
 import { heading } from '@/src/a11y/props';
 import { SettleIn } from '@/src/components/match/SettleIn';
@@ -59,6 +60,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
   const [dealing, setDealing] = useState(false);
   const [dealError, setDealError] = useState('');
   const wide = useWide();
+  const age = useAgeGate();
   // This game's tables only: the in-progress ones feed Resume (and, wide, the
   // list beside it), the finished ones the recent results on a wide window.
   const going = useMyTables('unfinished', !!session && !offline, { turns: true });
@@ -94,10 +96,19 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
       </Screen>
     );
   }
-  if (!mod) {
+  // Under 18, a chip game's page is a refusal; while the device is still
+  // being asked, it is only a wait.
+  if (!mod || (mod.simulatedGambling && age.status === 'pending')) {
     return (
       <Screen title={t('nav.games')}>
         <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
+      </Screen>
+    );
+  }
+  if (mod.simulatedGambling && age.status === 'minor') {
+    return (
+      <Screen>
+        <AdultsOnly game={moduleLabel(mod)} />
       </Screen>
     );
   }
@@ -274,6 +285,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
                 : t('lobby.games.players', { n: mod.minPlayers })
               : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
           </Text>
+          <GamblingNotice mod={mod} />
         </View>
         <Pressable
           testID={`rules-${mod.id}`}

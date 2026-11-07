@@ -103,6 +103,7 @@ import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { moduleLabel, moduleName, variationName } from '@/src/lib/gameLabels';
+import { AdultsOnly, useAgeGate } from '@/src/age/AgeGate';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
@@ -175,6 +176,10 @@ const IDLE_NUDGE_MS = 20_000;
  * its own (src/desktop/windows.tsx). Everywhere else this is the screen.
  */
 export default function MatchRoute() {
+  // Under 18, a chip game is refused here — whatever link, invite or seat
+  // brought the player — before a board is ever drawn.
+  const age = useAgeGate();
+  const [gameOf, setGameOf] = useState<{ id: string; label: string } | null>(null);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const seated = useSession().offline;
   // A table reached through a tunnel only this page holds (Bluetooth, the
@@ -182,7 +187,8 @@ export default function MatchRoute() {
   if (IS_DESKTOP_MAIN_WINDOW && (!seated || seatIsShareable(seated))) {
     return <DesktopGameHandoff kind="match" id={String(matchId)} />;
   }
-  return <MatchScreen />;
+  if (gameOf && age.blocks(gameOf.id)) return <AdultsOnly game={gameOf.label} />;
+  return <MatchScreen onModule={age.status === 'minor' ? setGameOf : undefined} />;
 }
 
 /** How long a held pointer over a drop target waits before the board scrolls. */
@@ -190,7 +196,7 @@ const DROP_DWELL_MS = 700;
 /** How long a pointer must rest in an edge band before the board scrolls. */
 const BAND_DWELL_MS = 600;
 
-function MatchScreen() {
+function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: string }) => void } = {}) {
   useLocale();
   const edges = useScreenEdges();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -929,6 +935,12 @@ function MatchScreen() {
     // `heldSlots` is rebuilt every render; `heldKey` is what it says.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, heldKey, selected, autoSelectIds, viewerId]);
+
+  // Which game this is, for the under-18 check in `MatchRoute` — told only
+  // when somebody is listening, which is only for a player under 18.
+  useEffect(() => {
+    if (onModule && state?.moduleId) onModule({ id: state.moduleId, label: moduleName(state.moduleId) });
+  }, [onModule, state?.moduleId]);
 
   // The page's title on the web — the game's name, so a screen reader says
   // where it has arrived and a browser tab says which table it is.

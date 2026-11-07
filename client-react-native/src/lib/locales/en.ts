@@ -1402,6 +1402,10 @@ export const en: Record<string, string> = {
   'match.joinRematch': 'Join the rematch',
   'match.declineRematch': 'No thanks',
   'match.backToGames': 'Back to games',
+  // --- under-18 mode (src/age/AgeGate.tsx) --------------------------------
+  'age.gambling.notice': 'Simulated gambling: played for chips, never real money, and meant for players 18 and over.',
+  'age.gambling.blockedTitle': 'For players 18 and over',
+  'age.gambling.blockedBody': '{game} is played by betting chips, so it isn’t available to players under 18 on this device.',
   'match.table': 'Table',
   'match.opponents': 'Opponents',
   'match.layout.button': 'Layout',

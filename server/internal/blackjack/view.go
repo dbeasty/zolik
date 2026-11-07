@@ -104,6 +104,7 @@ func defaultsFor(id string) map[string]int {
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
 		ID: "blackjack", Label: "Blackjack", MinPlayers: 2, MaxPlayers: 7,
+		SimulatedGambling: true,
 		Variations: []module.VariationSpec{
 			{
 				ID: "vegas", Label: "Vegas Strip",

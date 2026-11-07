@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchModule } from '@/src/api/matchTypes';
+import { useAgeGate } from '@/src/age/AgeGate';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
 import { formatApiError } from '@/src/lib/apiError';
@@ -94,7 +95,13 @@ export function useOrderedModules(): { modules: MatchModule[] | null; error: str
     };
   }, [client, session?.accessToken]);
 
-  return { modules, error };
+  // Under 18, the chip games are not on the list at all.
+  const { hidesFromLists } = useAgeGate();
+  const shown = useMemo(
+    () => (modules ? modules.filter((m) => !hidesFromLists(m)) : null),
+    [modules, hidesFromLists],
+  );
+  return { modules: shown, error };
 }
 
 const styles = StyleSheet.create({

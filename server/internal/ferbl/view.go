@@ -20,11 +20,12 @@ var (
 // Descriptor is Ferbl's self-description.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID:         "ferbl",
-		Label:      "Ferbl",
-		MinPlayers: 2,
-		MaxPlayers: 6,
-		Deck:       module.DeckGerman,
+		ID:                "ferbl",
+		Label:             "Ferbl",
+		MinPlayers:        2,
+		MaxPlayers:        6,
+		Deck:              module.DeckGerman,
+		SimulatedGambling: true,
 		Variations: []module.VariationSpec{{
 			ID:    "classic",
 			Label: "Classic",
