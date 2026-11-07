@@ -99,45 +99,56 @@ id the device holds.
 
 ## Review notes
 
-Paste into App Review Information › Notes:
+Paste into App Review Information › Notes (this is the text entered for
+1.17.5):
 
-> You can play without an account: choose any game on the first screen and
-> "Play against bots", or open the account menu (top right) › Sign in and
-> choose "Play as guest".
+> You can play without an account: on the first screen tap "Continue as
+> guest", enter a display name and tap Continue. Then tap any game and, on
+> its page, "Play now" deals a game against bots straight away.
 >
 > Sign-in is by a one-time code sent to an email address, which a reviewer
-> cannot receive. Please use the demo account below: Sign in › "Sign in with a
-> username instead".
+> cannot receive. Please use the demo account below: account menu (the face,
+> top right) › Sign in › "Sign in with a username instead".
 >
-> Account deletion: account menu (top right) › Account › Delete account ›
-> Delete account. It deletes the account on every device; games already played
-> stay in the other players' history with the seat renamed.
+> Account deletion: account menu (top right) › Account › Delete account, then
+> confirm with Delete account. It deletes the account on every device; games
+> already played stay in the other players' history with the seat renamed.
 >
-> Play offline (on the first screen) needs no internet: "Start an offline
-> table" plays against bots in airplane mode. Playing together without
-> internet needs two devices: on one, Play offline › Start an offline table
-> and let players nearby join; on the other, Play offline › Tables nearby ›
-> Join. The app asks for Local Network and Bluetooth permission only then.
+> Playing offline needs no internet: tap any game, then "Play offline" on its
+> page › "Start an offline table" plays against bots in airplane mode.
+> Playing together without internet needs two devices: on one, Play offline ›
+> Start an offline table (players nearby are told about it); on the other,
+> Play offline › under "Tables nearby", Join (or "Over Bluetooth" › "Look for
+> tables over Bluetooth" › Join). The app asks for Local Network and
+> Bluetooth permission only on the Play offline screen.
 >
 > No real money is involved anywhere. The betting games (poker, blackjack)
 > use chips that cannot be bought, sold or won.
+
+Where each step lives in the client, to re-check before the next submission:
+"Continue as guest", "Sign in" and, before sign-in, "Play offline" are at the
+bottom of the first screen (`app/index.tsx`); "Play now", "Open a table" and
+"Play offline" are on each game's page (`app/lobby/games.tsx`); the offline
+screen is `app/offline.tsx`; the labels are in
+`client-react-native/src/lib/locales/en.ts`.
 
 Demo account: create a username/password account on production for the
 reviewers (Sign in › "Sign in with a username instead" › "Create a
 username/password account"), play one
 game with it so the history is not empty, and enter its username and password
-under Sign-In Information. It has to be created by hand: the app's own test
+under Sign-In Information (never in this doc or the repo). It has to be created by hand: the app's own test
 endpoints are off in production.
 
 ## Screenshots
 
-Required sizes, portrait:
+Required sizes, portrait (what App Store Connect accepts in its required slots):
 
-- iPhone 6.9" (1320 × 2868), e.g. iPhone 17 Pro Max simulator
-- iPad 13" (2064 × 2752), e.g. iPad Pro 13-inch simulator
+- iPhone 6.3" Dynamic Island: 1206 × 2622 (iPhone 17 Pro simulator) or 1179 × 2556 (iPhone 16 / 15 Pro)
+- iPad 13": 2064 × 2752 (iPad Pro 13-inch simulator)
 
-Suggested set (up to ten each): the game picker; a Canasta table mid-game;
-poker; Mariáš; the nearby-play host screen; the rules screen; the game circle.
+The 1.17.5 set, six screens each, in this order: the first screen (the game
+picker); a Canasta table mid-game; poker; Mariáš; the Play offline screen; the
+rules screen. The game circle is a candidate for later sets.
 
 ## Before submitting
 
@@ -145,7 +156,7 @@ poker; Mariáš; the nearby-play host screen; the rules screen; the game circle.
 - [ ] DSA trader status declared (App Store Connect › Business), or the app is not offered in the EU
 - [ ] Demo account created and entered under Sign-In Information
 - [ ] Build uploaded and processed; export compliance already answered in the build (`ITSAppUsesNonExemptEncryption = false`: HTTPS only)
-- [ ] Screenshots for iPhone 6.9" and iPad 13"
+- [ ] Screenshots for iPhone 6.3" and iPad 13"
 - [ ] Age rating questionnaire, App Privacy answers
 - [ ] TestFlight internal test on a real iPhone and iPad before "Submit for Review"
 
