@@ -7,6 +7,7 @@ import { heading } from '@/src/a11y/props';
 import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import { Tip } from '@/src/a11y/Tip';
 import type { MatchModule } from '@/src/api/matchTypes';
+import { AdultsOnly, GamblingNotice, useAgeGate } from '@/src/age/AgeGate';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { LearnButton } from '@/src/guide/LearnButton';
@@ -45,6 +46,7 @@ export default function GameSetupScreen() {
   const asked: Mode = params.mode === 'bots' ? 'bots' : 'table';
   const { client, session } = useSession();
   useLocale();
+  const age = useAgeGate();
 
   const [mod, setMod] = useState<MatchModule | null>(null);
   const [error, setError] = useState('');
@@ -134,10 +136,17 @@ export default function GameSetupScreen() {
       </Screen>
     );
   }
-  if (!mod) {
+  if (!mod || (mod.simulatedGambling && age.status === 'pending')) {
     return (
       <Screen title={t('nav.games')}>
         <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />
+      </Screen>
+    );
+  }
+  if (mod.simulatedGambling && age.status === 'minor') {
+    return (
+      <Screen>
+        <AdultsOnly game={moduleLabel(mod)} />
       </Screen>
     );
   }
@@ -175,6 +184,7 @@ export default function GameSetupScreen() {
               <Text style={styles.rulesLinkText}>{t('nav.rules')} ›</Text>
             </Pressable>
           </View>
+          <GamblingNotice mod={mod} />
 
           {(mod.variations ?? []).length > 1 ? (
             // A radio group with no visible heading of its own — the pills

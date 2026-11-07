@@ -671,6 +671,8 @@ export type MatchModule = {
   label: string;
   minPlayers: number;
   maxPlayers: number;
+  /** Played by staking chips: hidden under 18 in a store build, 18+ everywhere. */
+  simulatedGambling?: boolean;
   variations?: {
     id: string;
     label: string;

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, Text } from 'react-native';
 
 import { FormError } from '@/src/a11y/Field';
 import type { MatchState } from '@/src/api/matchTypes';
+import { AdultsOnly, useAgeGate } from '@/src/age/AgeGate';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -48,6 +49,8 @@ export default function JoinByLinkScreen() {
 
   const [error, setError] = useState('');
   const [table, setTable] = useState<MatchState | null>(null);
+  const [refused, setRefused] = useState('');
+  const age = useAgeGate();
   // One attempt per mount. Without it, React's development double-invoke and
   // every incidental re-render would each fire a join for the same seat.
   const attempted = useRef(false);
@@ -72,10 +75,20 @@ export default function JoinByLinkScreen() {
       // Read before joining, purely so the waiting screen can name the game
       // while the seat is being taken. A failure here is not fatal: joining is
       // the thing that matters, and it will produce the real refusal.
+      let peekModule: string | undefined;
       try {
-        setTable(await client.getMatch(joinCode));
+        const peek = await client.getMatch(joinCode);
+        peekModule = peek.moduleId;
+        setTable(peek);
       } catch {
         /* the join below is the authority on whether this table exists */
+      }
+      // Under 18, a chip game's table is refused before the seat is taken,
+      // not after: a seat taken and then abandoned holds up everybody else.
+      if (await age.refusesJoin(client, peekModule)) {
+        await clearPendingDestination();
+        setRefused(moduleName(peekModule!));
+        return;
       }
 
       const matchId = await client.joinMatch(joinCode);
@@ -91,7 +104,7 @@ export default function JoinByLinkScreen() {
       await clearPendingDestination();
       setError(formatApiError(e, t('a11y.error.joinTable')));
     }
-  }, [client, joinCode, session]);
+  }, [client, joinCode, session, age]);
 
   useEffect(() => {
     // The session is read from storage asynchronously; acting before it has
@@ -101,6 +114,13 @@ export default function JoinByLinkScreen() {
     follow();
   }, [follow, loading]);
 
+  if (refused) {
+    return (
+      <Screen>
+        <AdultsOnly game={refused} />
+      </Screen>
+    );
+  }
   if (error) {
     return (
       <Screen title={t('nav.join')} scroll>

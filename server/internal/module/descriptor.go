@@ -142,6 +142,12 @@ type ModuleDescriptor struct {
 	// Presentational, like Zone.Dealer: a client that ignores it draws French
 	// faces and plays the game exactly as well.
 	Deck string `json:"deck,omitempty"`
+	// SimulatedGambling marks a game played by staking chips: betting
+	// without real money, in the App Store's words. A store client hides it
+	// from players the device reports as under 18, and every client shows
+	// an 18+ notice beside it. Nothing on the server refuses a table on it —
+	// the server has no age to check — so it is a label, not a lock.
+	SimulatedGambling bool `json:"simulatedGambling,omitempty"`
 }
 
 // DeckGerman is the German-suited pack: hearts, bells, acorns and leaves,

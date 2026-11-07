@@ -81,10 +81,11 @@ func resolveVariation(cfg module.MatchConfig) variationDefaults {
 // and the label is the only part a player reads.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID:         "holdem",
-		Label:      "Poker",
-		MinPlayers: 2,
-		MaxPlayers: 9,
+		ID:                "holdem",
+		Label:             "Poker",
+		MinPlayers:        2,
+		MaxPlayers:        9,
+		SimulatedGambling: true,
 		Variations: []module.VariationSpec{
 			{
 				ID:       VarHoldem,

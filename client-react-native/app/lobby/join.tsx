@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Field, FormError } from '@/src/a11y/Field';
 import { heading } from '@/src/a11y/props';
 import type { MatchState } from '@/src/api/matchTypes';
+import { AdultsOnly, useAgeGate } from '@/src/age/AgeGate';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -36,6 +37,8 @@ export default function JoinMatchScreen() {
   const [matchId, setMatchId] = useState(invitedMatchId ?? '');
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState('');
+  const [refused, setRefused] = useState('');
+  const age = useAgeGate();
   // Everybody else who sits down while this player waits for the host.
   useAnnounceArrivals(state?.matchId, state?.players, session?.userId, {
     moduleId: state?.moduleId,
@@ -72,12 +75,32 @@ export default function JoinMatchScreen() {
       return;
     }
     try {
+      // Under 18, a chip game's table is refused before the seat is taken.
+      let peekModule: string | undefined;
+      try {
+        peekModule = (await client.getMatch(trimmed)).moduleId;
+      } catch {
+        /* the join is the authority on whether the table exists */
+      }
+      if (await age.refusesJoin(client, peekModule)) {
+        setRefused(moduleName(peekModule!));
+        return;
+      }
       setMatchId(await client.joinMatch(trimmed));
     } catch (e) {
       setError(formatApiError(e, t('a11y.error.join')));
     }
   }
 
+  // A host may seat a player straight from the waiting room; under 18, a
+  // chip game's table is still not theirs to sit at.
+  if (refused || age.blocks(state?.moduleId)) {
+    return (
+      <Screen>
+        <AdultsOnly game={refused || moduleName(state!.moduleId)} />
+      </Screen>
+    );
+  }
   if (!matchId) {
     return (
       <Screen title={t('nav.join')} scroll>

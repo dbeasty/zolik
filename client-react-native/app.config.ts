@@ -78,6 +78,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
         ITSAppUsesNonExemptEncryption: false,
       },
+      entitlements: {
+        ...config.ios?.entitlements,
+        // Apple's Declared Age Range (iOS 26+), for under-18 mode — see
+        // src/age/AgeGate.tsx. The App ID needs the matching capability.
+        'com.apple.developer.declared-age-range': true,
+      },
     },
     android: {
       ...config.android,
