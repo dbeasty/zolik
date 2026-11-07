@@ -177,6 +177,22 @@
     "PILE_BLOCKED",
     "PILE_EMPTY",
     "PILE_FROZEN",
+    "PINOCHLE_ALREADY_PASSED",
+    "PINOCHLE_BID_STEP",
+    "PINOCHLE_BID_TOO_HIGH",
+    "PINOCHLE_BID_TOO_LOW",
+    "PINOCHLE_BURY_COUNT",
+    "PINOCHLE_MUST_BEAT",
+    "PINOCHLE_MUST_FOLLOW",
+    "PINOCHLE_MUST_TRUMP",
+    "PINOCHLE_NOT_NOW",
+    "PINOCHLE_NO_EXCHANGE",
+    "PINOCHLE_NO_SUCH_MELD",
+    "PINOCHLE_NO_SUCH_SUIT",
+    "PINOCHLE_ONLY_THE_BIDDER",
+    "PINOCHLE_PASS_COUNT",
+    "PINOCHLE_PICK_ONE_CARD",
+    "PINOCHLE_PLAY_HAS_BEGUN",
     "PUSH_UNAVAILABLE",
     "RAISE_TOO_SMALL",
     "RANK_ALREADY_MELDED",
@@ -595,6 +611,7 @@
     "guide.lora.basics.title",
     "guide.marias.basics.title",
     "guide.okobere.basics.title",
+    "guide.pinochle.basics.title",
     "guide.prsi.basics.title",
     "guide.rummytiles.basics.title",
     "guide.sedma.basics.title",
@@ -1110,6 +1127,149 @@
     "okobere.zone.bankerHand",
     "okobere.zone.deck",
     "okobere.zone.hand",
+    "pinochle.badge.melded",
+    "pinochle.fact.cards",
+    "pinochle.fact.double",
+    "pinochle.fact.loses",
+    "pinochle.fact.points",
+    "pinochle.fact.standingBid",
+    "pinochle.header.bid",
+    "pinochle.header.hand",
+    "pinochle.header.sideTaken",
+    "pinochle.header.trump",
+    "pinochle.header.yourMeld",
+    "pinochle.header.yourTaken",
+    "pinochle.offer.bid",
+    "pinochle.offer.bury",
+    "pinochle.offer.dix",
+    "pinochle.offer.draw",
+    "pinochle.offer.exchange",
+    "pinochle.offer.give",
+    "pinochle.offer.pass",
+    "pinochle.offer.play",
+    "pinochle.offer.throwIn",
+    "pinochle.offer.trump",
+    "pinochle.param.bid",
+    "pinochle.param.trump",
+    "pinochle.prompt.bid",
+    "pinochle.prompt.bury",
+    "pinochle.prompt.give",
+    "pinochle.prompt.lead",
+    "pinochle.prompt.leadOrThrowIn",
+    "pinochle.prompt.meld",
+    "pinochle.prompt.play",
+    "pinochle.prompt.trump",
+    "pinochle.remedy.bidAtLeast",
+    "pinochle.remedy.passed",
+    "pinochle.remedy.playHighlighted",
+    "pinochle.remedy.waitFor",
+    "pinochle.round.bid",
+    "pinochle.round.hand",
+    "pinochle.round.made",
+    "pinochle.round.meld",
+    "pinochle.round.redealt",
+    "pinochle.round.set",
+    "pinochle.round.stuck",
+    "pinochle.round.taken",
+    "pinochle.round.thrownIn",
+    "pinochle.round.trump",
+    "pinochle.rules.allPass.redeal",
+    "pinochle.rules.allPass.stuck",
+    "pinochle.rules.auction",
+    "pinochle.rules.beat",
+    "pinochle.rules.bidStep",
+    "pinochle.rules.bidderOut",
+    "pinochle.rules.buriedCount",
+    "pinochle.rules.bury",
+    "pinochle.rules.deal",
+    "pinochle.rules.deck.double",
+    "pinochle.rules.deck.single",
+    "pinochle.rules.defenders.cutthroat",
+    "pinochle.rules.defenders.partnership",
+    "pinochle.rules.draw",
+    "pinochle.rules.end",
+    "pinochle.rules.follow",
+    "pinochle.rules.goal.cutthroat",
+    "pinochle.rules.goal.doubledeck",
+    "pinochle.rules.goal.partnership",
+    "pinochle.rules.goal.twohanded",
+    "pinochle.rules.handTotal",
+    "pinochle.rules.identical",
+    "pinochle.rules.lastTrick",
+    "pinochle.rules.late",
+    "pinochle.rules.lead.bidder",
+    "pinochle.rules.lead.twohanded",
+    "pinochle.rules.made",
+    "pinochle.rules.meld.arounds",
+    "pinochle.rules.meld.classes",
+    "pinochle.rules.meld.dix",
+    "pinochle.rules.meld.doubles",
+    "pinochle.rules.meld.exchange",
+    "pinochle.rules.meld.marriage",
+    "pinochle.rules.meld.needsCounter",
+    "pinochle.rules.meld.needsTrick",
+    "pinochle.rules.meld.onWin",
+    "pinochle.rules.meld.onePerTurn",
+    "pinochle.rules.meld.pinochle",
+    "pinochle.rules.meld.quadruples",
+    "pinochle.rules.meld.royalMarriage",
+    "pinochle.rules.meld.run",
+    "pinochle.rules.meld.shown",
+    "pinochle.rules.meld.staysInHand",
+    "pinochle.rules.meld.triples",
+    "pinochle.rules.order.double",
+    "pinochle.rules.order.single",
+    "pinochle.rules.partners",
+    "pinochle.rules.pass",
+    "pinochle.rules.passFinal",
+    "pinochle.rules.points.classic",
+    "pinochle.rules.points.counters",
+    "pinochle.rules.score.twohanded",
+    "pinochle.rules.section.auction",
+    "pinochle.rules.section.cards",
+    "pinochle.rules.section.deal",
+    "pinochle.rules.section.end",
+    "pinochle.rules.section.goal",
+    "pinochle.rules.section.meld",
+    "pinochle.rules.section.play",
+    "pinochle.rules.section.scoring",
+    "pinochle.rules.set",
+    "pinochle.rules.stockFree",
+    "pinochle.rules.takeWidow",
+    "pinochle.rules.target",
+    "pinochle.rules.throwIn",
+    "pinochle.rules.tiePlaysOn",
+    "pinochle.rules.trump",
+    "pinochle.rules.trumpIn",
+    "pinochle.rules.turnUp",
+    "pinochle.rules.turnUpDix",
+    "pinochle.rules.turns",
+    "pinochle.rules.widow",
+    "pinochle.seat.bid",
+    "pinochle.seat.bidder",
+    "pinochle.seat.dealer",
+    "pinochle.seat.meld",
+    "pinochle.seat.passed",
+    "pinochle.seat.winning",
+    "pinochle.summary.auction",
+    "pinochle.summary.bigMelds",
+    "pinochle.summary.cutthroat",
+    "pinochle.summary.doubledeck",
+    "pinochle.summary.meld",
+    "pinochle.summary.meldAsYouGo",
+    "pinochle.summary.partnership",
+    "pinochle.summary.stock",
+    "pinochle.summary.twohanded",
+    "pinochle.summary.widow",
+    "pinochle.zone.buried",
+    "pinochle.zone.lastTrick",
+    "pinochle.zone.meld",
+    "pinochle.zone.partnerHand",
+    "pinochle.zone.stock",
+    "pinochle.zone.trick",
+    "pinochle.zone.trumpCard",
+    "pinochle.zone.widow",
+    "pinochle.zone.widowTaken",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -1420,6 +1580,10 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "suit.C",
+    "suit.D",
+    "suit.H",
+    "suit.S",
     "verb.discardToClose",
     "verb.drawFromDeck",
     "verb.moveCards",
@@ -1947,6 +2111,82 @@
     "okobere.rules.stake",
     "okobere.rules.turn",
     "okobere.rules.values",
+    "pinochle.remedy.bidAtLeast",
+    "pinochle.remedy.passed",
+    "pinochle.remedy.playHighlighted",
+    "pinochle.remedy.waitFor",
+    "pinochle.rules.allPass.redeal",
+    "pinochle.rules.allPass.stuck",
+    "pinochle.rules.auction",
+    "pinochle.rules.beat",
+    "pinochle.rules.bidStep",
+    "pinochle.rules.bidderOut",
+    "pinochle.rules.buriedCount",
+    "pinochle.rules.bury",
+    "pinochle.rules.deal",
+    "pinochle.rules.deck.double",
+    "pinochle.rules.deck.single",
+    "pinochle.rules.defenders.cutthroat",
+    "pinochle.rules.defenders.partnership",
+    "pinochle.rules.draw",
+    "pinochle.rules.end",
+    "pinochle.rules.follow",
+    "pinochle.rules.goal.cutthroat",
+    "pinochle.rules.goal.doubledeck",
+    "pinochle.rules.goal.partnership",
+    "pinochle.rules.goal.twohanded",
+    "pinochle.rules.handTotal",
+    "pinochle.rules.identical",
+    "pinochle.rules.lastTrick",
+    "pinochle.rules.late",
+    "pinochle.rules.lead.bidder",
+    "pinochle.rules.lead.twohanded",
+    "pinochle.rules.made",
+    "pinochle.rules.meld.arounds",
+    "pinochle.rules.meld.classes",
+    "pinochle.rules.meld.dix",
+    "pinochle.rules.meld.doubles",
+    "pinochle.rules.meld.exchange",
+    "pinochle.rules.meld.marriage",
+    "pinochle.rules.meld.needsCounter",
+    "pinochle.rules.meld.needsTrick",
+    "pinochle.rules.meld.onWin",
+    "pinochle.rules.meld.onePerTurn",
+    "pinochle.rules.meld.pinochle",
+    "pinochle.rules.meld.quadruples",
+    "pinochle.rules.meld.royalMarriage",
+    "pinochle.rules.meld.run",
+    "pinochle.rules.meld.shown",
+    "pinochle.rules.meld.staysInHand",
+    "pinochle.rules.meld.triples",
+    "pinochle.rules.order.double",
+    "pinochle.rules.order.single",
+    "pinochle.rules.partners",
+    "pinochle.rules.pass",
+    "pinochle.rules.passFinal",
+    "pinochle.rules.points.classic",
+    "pinochle.rules.points.counters",
+    "pinochle.rules.score.twohanded",
+    "pinochle.rules.section.auction",
+    "pinochle.rules.section.cards",
+    "pinochle.rules.section.deal",
+    "pinochle.rules.section.end",
+    "pinochle.rules.section.goal",
+    "pinochle.rules.section.meld",
+    "pinochle.rules.section.play",
+    "pinochle.rules.section.scoring",
+    "pinochle.rules.set",
+    "pinochle.rules.stockFree",
+    "pinochle.rules.takeWidow",
+    "pinochle.rules.target",
+    "pinochle.rules.throwIn",
+    "pinochle.rules.tiePlaysOn",
+    "pinochle.rules.trump",
+    "pinochle.rules.trumpIn",
+    "pinochle.rules.turnUp",
+    "pinochle.rules.turnUpDix",
+    "pinochle.rules.turns",
+    "pinochle.rules.widow",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.nameASuit",
@@ -3281,6 +3521,167 @@
     "okobere.seat.total": [
       "n"
     ],
+    "pinochle.fact.cards": [
+      "n",
+      "value"
+    ],
+    "pinochle.fact.loses": [
+      "n",
+      "value"
+    ],
+    "pinochle.fact.points": [
+      "n",
+      "value"
+    ],
+    "pinochle.fact.standingBid": [
+      "n",
+      "value"
+    ],
+    "pinochle.header.bid": [
+      "n",
+      "playerId",
+      "value"
+    ],
+    "pinochle.header.hand": [
+      "n"
+    ],
+    "pinochle.header.sideTaken": [
+      "n",
+      "value"
+    ],
+    "pinochle.header.trump": [
+      "suit"
+    ],
+    "pinochle.header.yourMeld": [
+      "n",
+      "value"
+    ],
+    "pinochle.header.yourTaken": [
+      "n",
+      "value"
+    ],
+    "pinochle.prompt.bid": [
+      "n"
+    ],
+    "pinochle.prompt.bury": [
+      "n"
+    ],
+    "pinochle.prompt.give": [
+      "n",
+      "playerId"
+    ],
+    "pinochle.remedy.bidAtLeast": [
+      "n"
+    ],
+    "pinochle.remedy.waitFor": [
+      "playerId"
+    ],
+    "pinochle.round.bid": [
+      "n",
+      "playerId"
+    ],
+    "pinochle.round.meld": [
+      "n",
+      "value"
+    ],
+    "pinochle.round.taken": [
+      "n",
+      "value"
+    ],
+    "pinochle.round.trump": [
+      "suit"
+    ],
+    "pinochle.rules.allPass.stuck": [
+      "n"
+    ],
+    "pinochle.rules.auction": [
+      "n"
+    ],
+    "pinochle.rules.bidStep": [
+      "max",
+      "n"
+    ],
+    "pinochle.rules.bury": [
+      "n"
+    ],
+    "pinochle.rules.deal": [
+      "n"
+    ],
+    "pinochle.rules.end": [
+      "n"
+    ],
+    "pinochle.rules.handTotal": [
+      "n"
+    ],
+    "pinochle.rules.lastTrick": [
+      "n"
+    ],
+    "pinochle.rules.meld.arounds": [
+      "aces",
+      "jacks",
+      "kings",
+      "queens"
+    ],
+    "pinochle.rules.meld.dix": [
+      "n"
+    ],
+    "pinochle.rules.meld.doubles": [
+      "aces",
+      "jacks",
+      "kings",
+      "pinochle",
+      "queens",
+      "run"
+    ],
+    "pinochle.rules.meld.exchange": [
+      "n"
+    ],
+    "pinochle.rules.meld.marriage": [
+      "n"
+    ],
+    "pinochle.rules.meld.pinochle": [
+      "n"
+    ],
+    "pinochle.rules.meld.quadruples": [
+      "aces",
+      "jacks",
+      "kings",
+      "pinochle",
+      "queens"
+    ],
+    "pinochle.rules.meld.royalMarriage": [
+      "n"
+    ],
+    "pinochle.rules.meld.run": [
+      "n"
+    ],
+    "pinochle.rules.meld.triples": [
+      "aces",
+      "jacks",
+      "kings",
+      "pinochle",
+      "queens"
+    ],
+    "pinochle.rules.pass": [
+      "n"
+    ],
+    "pinochle.rules.target": [
+      "n"
+    ],
+    "pinochle.rules.turnUpDix": [
+      "n"
+    ],
+    "pinochle.rules.widow": [
+      "n"
+    ],
+    "pinochle.seat.bid": [
+      "n",
+      "value"
+    ],
+    "pinochle.seat.meld": [
+      "n",
+      "value"
+    ],
     "prompt.canastasNeeded": [
       "n"
     ],
@@ -3650,6 +4051,18 @@
       "team",
       "value",
       "winners"
+    ],
+    "suit.C": [
+      "value"
+    ],
+    "suit.D": [
+      "value"
+    ],
+    "suit.H": [
+      "value"
+    ],
+    "suit.S": [
+      "value"
     ],
     "zolik.hint.discardLocked": [
       "n"
@@ -4100,6 +4513,49 @@
     "okobere.seat.chips",
     "okobere.seat.stake",
     "okobere.seat.total",
+    "pinochle.fact.cards",
+    "pinochle.fact.loses",
+    "pinochle.fact.points",
+    "pinochle.fact.standingBid",
+    "pinochle.header.bid",
+    "pinochle.header.hand",
+    "pinochle.header.sideTaken",
+    "pinochle.header.trump",
+    "pinochle.header.yourMeld",
+    "pinochle.header.yourTaken",
+    "pinochle.prompt.bid",
+    "pinochle.prompt.bury",
+    "pinochle.prompt.give",
+    "pinochle.remedy.bidAtLeast",
+    "pinochle.remedy.waitFor",
+    "pinochle.round.bid",
+    "pinochle.round.meld",
+    "pinochle.round.taken",
+    "pinochle.round.trump",
+    "pinochle.rules.allPass.stuck",
+    "pinochle.rules.auction",
+    "pinochle.rules.bidStep",
+    "pinochle.rules.bury",
+    "pinochle.rules.deal",
+    "pinochle.rules.end",
+    "pinochle.rules.handTotal",
+    "pinochle.rules.lastTrick",
+    "pinochle.rules.meld.arounds",
+    "pinochle.rules.meld.dix",
+    "pinochle.rules.meld.doubles",
+    "pinochle.rules.meld.exchange",
+    "pinochle.rules.meld.marriage",
+    "pinochle.rules.meld.pinochle",
+    "pinochle.rules.meld.quadruples",
+    "pinochle.rules.meld.royalMarriage",
+    "pinochle.rules.meld.run",
+    "pinochle.rules.meld.triples",
+    "pinochle.rules.pass",
+    "pinochle.rules.target",
+    "pinochle.rules.turnUpDix",
+    "pinochle.rules.widow",
+    "pinochle.seat.bid",
+    "pinochle.seat.meld",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
@@ -4204,6 +4660,10 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "suit.C",
+    "suit.D",
+    "suit.H",
+    "suit.S",
     "zolik.hint.discardLocked",
     "zolik.hint.meldPoints",
     "zolik.hint.runsNeeded",
