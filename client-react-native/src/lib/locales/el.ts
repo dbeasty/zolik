@@ -1197,10 +1197,10 @@ export const el: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Κράτα τα στατιστικά σου σε όλες τις συσκευές',
-  'auth.login.continueWithEmail': 'Συνέχεια με email',
+  'auth.login.continueWithEmail': 'Στείλε μου κωδικό σύνδεσης με email',
   'auth.login.usernameInstead': "Σύνδεση με όνομα χρήστη αντ' αυτού",
   'auth.email.title': 'Σύνδεση με email',
-  'auth.email.subtitle': 'Θα σου στείλουμε έναν κωδικό μιας χρήσης',
+  'auth.email.subtitle': 'Δεν χρειάζεται συνθηματικό. Θα σου στείλουμε με email έναν κωδικό μιας χρήσης για να συνδεθείς.',
   'auth.email.address': 'Διεύθυνση email',
   'auth.email.send': 'Αποστολή κωδικού',
   'auth.email.codeTitle': 'Βάλε τον κωδικό',
@@ -3462,6 +3462,7 @@ export const el: Record<string, string> = {
   'a11y.table.seatUpTip': 'Μία θέση πάνω',
   'a11y.table.seatDownTip': 'Μία θέση κάτω',
   'a11y.auth.register': 'Εγγραφή',
+  'a11y.auth.showPassword': 'Εμφάνιση κωδικού πρόσβασης',
   'a11y.board.region.hand': 'Το χέρι σου',
   'a11y.board.region.table': 'Τραπέζι',
   'a11y.board.region.seats': 'Παίκτες',

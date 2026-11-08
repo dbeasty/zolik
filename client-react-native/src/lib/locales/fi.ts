@@ -1167,10 +1167,10 @@ export const fi: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Säilytä tilastosi kaikilla laitteilla',
-  'auth.login.continueWithEmail': 'Jatka sähköpostilla',
+  'auth.login.continueWithEmail': 'Lähetä kirjautumiskoodi sähköpostiin',
   'auth.login.usernameInstead': 'Kirjaudu sen sijaan käyttäjänimellä',
   'auth.email.title': 'Kirjautuminen sähköpostilla',
-  'auth.email.subtitle': 'Lähetämme sinulle kertakäyttöisen koodin',
+  'auth.email.subtitle': 'Salasanaa ei tarvita. Lähetämme sinulle sähköpostiin kertakäyttöisen kirjautumiskoodin.',
   'auth.email.address': 'Sähköpostiosoite',
   'auth.email.send': 'Lähetä koodi',
   'auth.email.codeTitle': 'Syötä koodi',
@@ -3430,6 +3430,7 @@ export const fi: Record<string, string> = {
   'a11y.table.seatUpTip': 'Paikka ylöspäin',
   'a11y.table.seatDownTip': 'Paikka alaspäin',
   'a11y.auth.register': 'Rekisteröidy',
+  'a11y.auth.showPassword': 'Näytä salasana',
   'a11y.board.region.hand': 'Kätesi',
   'a11y.board.region.table': 'Pöytä',
   'a11y.board.region.seats': 'Pelaajat',

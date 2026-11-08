@@ -1159,10 +1159,10 @@ export const sk: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Maj svoje štatistiky na všetkých zariadeniach',
-  'auth.login.continueWithEmail': 'Pokračovať e-mailom',
+  'auth.login.continueWithEmail': 'Poslať prihlasovací kód e-mailom',
   'auth.login.usernameInstead': 'Prihlásiť sa radšej menom',
   'auth.email.title': 'Prihlásenie e-mailom',
-  'auth.email.subtitle': 'Pošleme ti jednorazový kód',
+  'auth.email.subtitle': 'Heslo nie je potrebné. Pošleme ti e-mailom jednorazový kód na prihlásenie.',
   'auth.email.address': 'E-mailová adresa',
   'auth.email.send': 'Poslať kód',
   'auth.email.codeTitle': 'Zadaj kód',
@@ -3424,6 +3424,7 @@ export const sk: Record<string, string> = {
   'a11y.table.seatUpTip': 'Posunúť o miesto vyššie',
   'a11y.table.seatDownTip': 'Posunúť o miesto nižšie',
   'a11y.auth.register': 'Registrovať sa',
+  'a11y.auth.showPassword': 'Zobraziť heslo',
   'a11y.board.region.hand': 'Tvoje karty',
   'a11y.board.region.table': 'Stôl',
   'a11y.board.region.seats': 'Hráči',

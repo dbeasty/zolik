@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
-import { Field, FormError } from '@/src/a11y/Field';
+import { Field, FormError, PasswordField } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
@@ -38,6 +38,10 @@ export default function RegisterScreen() {
         label={t('auth.register.username')}
         placeholder={t('auth.register.username')}
         autoCapitalize="none"
+        // An iPhone keyboard otherwise offers to split a name like this one
+        // into two words, and the server then finds no such account.
+        autoCorrect={false}
+        spellCheck={false}
         autoComplete="username"
         value={username}
         onChangeText={setUsername}
@@ -51,10 +55,9 @@ export default function RegisterScreen() {
         value={email}
         onChangeText={setEmail}
       />
-      <Field
+      <PasswordField
         label={t('auth.register.password')}
         placeholder={t('auth.register.password')}
-        secureTextEntry
         autoComplete="new-password"
         value={password}
         onChangeText={setPassword}

@@ -1159,10 +1159,10 @@ export const lv: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Saglabā savu statistiku visās ierīcēs',
-  'auth.login.continueWithEmail': 'Turpināt ar e-pastu',
+  'auth.login.continueWithEmail': 'Sūtīt man pieteikšanās kodu e-pastā',
   'auth.login.usernameInstead': 'Pierakstīties labāk ar lietotājvārdu',
   'auth.email.title': 'Pierakstīšanās ar e-pastu',
-  'auth.email.subtitle': 'Nosūtīsim tev vienreizēju kodu',
+  'auth.email.subtitle': 'Parole nav vajadzīga. Nosūtīsim tev e-pastā vienreizēju pieteikšanās kodu.',
   'auth.email.address': 'E-pasta adrese',
   'auth.email.send': 'Nosūtīt kodu',
   'auth.email.codeTitle': 'Ievadi kodu',
@@ -3420,6 +3420,7 @@ export const lv: Record<string, string> = {
   'a11y.table.seatUpTip': 'Pārvietot vienu vietu augstāk',
   'a11y.table.seatDownTip': 'Pārvietot vienu vietu zemāk',
   'a11y.auth.register': 'Reģistrēties',
+  'a11y.auth.showPassword': 'Rādīt paroli',
   'a11y.board.region.hand': 'Tavas kārtis',
   'a11y.board.region.table': 'Galds',
   'a11y.board.region.seats': 'Spēlētāji',

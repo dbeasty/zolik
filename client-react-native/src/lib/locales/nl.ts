@@ -1185,10 +1185,10 @@ export const nl: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Houd je statistieken op al je apparaten',
-  'auth.login.continueWithEmail': 'Doorgaan met e-mail',
+  'auth.login.continueWithEmail': 'Mail mij een inlogcode',
   'auth.login.usernameInstead': 'In plaats daarvan met een gebruikersnaam aanmelden',
   'auth.email.title': 'Aanmelden met e-mail',
-  'auth.email.subtitle': 'We mailen je een eenmalige code',
+  'auth.email.subtitle': 'Geen wachtwoord nodig. We mailen je een eenmalige code om in te loggen.',
   'auth.email.address': 'E-mailadres',
   'auth.email.send': 'Code versturen',
   'auth.email.codeTitle': 'Voer de code in',
@@ -3450,6 +3450,7 @@ export const nl: Record<string, string> = {
   'a11y.table.seatUpTip': 'Een plaats omhoog',
   'a11y.table.seatDownTip': 'Een plaats omlaag',
   'a11y.auth.register': 'Registreren',
+  'a11y.auth.showPassword': 'Wachtwoord tonen',
   'a11y.board.region.hand': 'Je hand',
   'a11y.board.region.table': 'Tafel',
   'a11y.board.region.seats': 'Spelers',

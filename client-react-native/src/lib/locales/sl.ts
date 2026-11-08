@@ -1155,10 +1155,10 @@ export const sl: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Obdrži svojo statistiko na vseh napravah',
-  'auth.login.continueWithEmail': 'Nadaljuj z e-pošto',
+  'auth.login.continueWithEmail': 'Pošlji mi kodo za prijavo po e-pošti',
   'auth.login.usernameInstead': 'Prijavi se raje z uporabniškim imenom',
   'auth.email.title': 'Prijava z e-pošto',
-  'auth.email.subtitle': 'Poslali ti bomo enkratno kodo',
+  'auth.email.subtitle': 'Geslo ni potrebno. Po e-pošti ti bomo poslali enkratno kodo za prijavo.',
   'auth.email.address': 'E-poštni naslov',
   'auth.email.send': 'Pošlji kodo',
   'auth.email.codeTitle': 'Vnesi kodo',
@@ -3419,6 +3419,7 @@ export const sl: Record<string, string> = {
   'a11y.table.seatUpTip': 'Premakni za en sedež višje',
   'a11y.table.seatDownTip': 'Premakni za en sedež nižje',
   'a11y.auth.register': 'Registracija',
+  'a11y.auth.showPassword': 'Pokaži geslo',
   'a11y.board.region.hand': 'Tvoje karte',
   'a11y.board.region.table': 'Miza',
   'a11y.board.region.seats': 'Igralci',

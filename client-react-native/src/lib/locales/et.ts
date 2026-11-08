@@ -1164,10 +1164,10 @@ export const et: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Hoia oma statistikat kõigis seadmetes',
-  'auth.login.continueWithEmail': 'Jätka e-postiga',
+  'auth.login.continueWithEmail': 'Saada mulle sisselogimiskood e-postiga',
   'auth.login.usernameInstead': 'Logi selle asemel sisse kasutajanimega',
   'auth.email.title': 'Sisselogimine e-postiga',
-  'auth.email.subtitle': 'Saadame sulle ühekordse koodi',
+  'auth.email.subtitle': 'Parooli pole vaja. Saadame sulle e-postiga ühekordse sisselogimiskoodi.',
   'auth.email.address': 'E-posti aadress',
   'auth.email.send': 'Saada kood',
   'auth.email.codeTitle': 'Sisesta kood',
@@ -3424,6 +3424,7 @@ export const et: Record<string, string> = {
   'a11y.table.seatUpTip': 'Koha võrra üles',
   'a11y.table.seatDownTip': 'Koha võrra alla',
   'a11y.auth.register': 'Registreeru',
+  'a11y.auth.showPassword': 'Näita parooli',
   'a11y.board.region.hand': 'Sinu käsi',
   'a11y.board.region.table': 'Laud',
   'a11y.board.region.seats': 'Mängijad',

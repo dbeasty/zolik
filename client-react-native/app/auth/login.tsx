@@ -73,20 +73,23 @@ export default function LoginScreen() {
 
       <Pressable
         role="button"
-        style={shared.buttonSecondary}
+        style={[shared.button, shared.buttonSecondary]}
         onPress={() => router.push('/auth/email')}
         disabled={busyProvider !== null}
       >
-        <Text style={shared.buttonTextSecondary}>{t('auth.login.continueWithEmail')}</Text>
+        <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('auth.login.continueWithEmail')}</Text>
+      </Pressable>
+
+      <Pressable
+        role="button"
+        style={[shared.button, shared.buttonSecondary]}
+        onPress={() => router.push('/auth/username-login')}
+        disabled={busyProvider !== null}
+      >
+        <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('auth.login.usernameInstead')}</Text>
       </Pressable>
 
       {error ? <FormError message={error} /> : null}
-
-      <View style={{ marginTop: 24 }}>
-        <Pressable role="button" onPress={() => router.push('/auth/username-login')}>
-          <Text style={shared.status}>{t('auth.login.usernameInstead')}</Text>
-        </Pressable>
-      </View>
     </Screen>
   );
 }

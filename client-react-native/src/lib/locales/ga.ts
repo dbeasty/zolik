@@ -1191,10 +1191,10 @@ export const ga: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Coinnigh do chuid staitisticí ar gach gléas',
-  'auth.login.continueWithEmail': 'Lean ar aghaidh le ríomhphost',
+  'auth.login.continueWithEmail': 'Seol cód sínithe isteach chugam i ríomhphost',
   'auth.login.usernameInstead': 'Sínigh isteach le hainm úsáideora ina ionad sin',
   'auth.email.title': 'Sínigh isteach le ríomhphost',
-  'auth.email.subtitle': 'Seolfaimid cód aonuaire chugat',
+  'auth.email.subtitle': 'Níl pasfhocal de dhíth. Seolfaimid cód aonuaire chugat i ríomhphost chun síniú isteach.',
   'auth.email.address': 'Seoladh ríomhphoist',
   'auth.email.send': 'Seol an cód',
   'auth.email.codeTitle': 'Cuir an cód isteach',
@@ -3455,6 +3455,7 @@ export const ga: Record<string, string> = {
   'a11y.table.seatUpTip': 'Bog suíochán suas',
   'a11y.table.seatDownTip': 'Bog suíochán síos',
   'a11y.auth.register': 'Cláraigh',
+  'a11y.auth.showPassword': 'Taispeáin an pasfhocal',
   'a11y.board.region.hand': 'Do lámh',
   'a11y.board.region.table': 'Bord',
   'a11y.board.region.seats': 'Imreoirí',

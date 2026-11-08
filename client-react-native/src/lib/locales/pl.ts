@@ -1166,10 +1166,10 @@ export const pl: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Zachowaj statystyki na wszystkich urządzeniach',
-  'auth.login.continueWithEmail': 'Kontynuuj e-mailem',
+  'auth.login.continueWithEmail': 'Wyślij mi kod logowania e-mailem',
   'auth.login.usernameInstead': 'Zaloguj się zamiast tego nazwą użytkownika',
   'auth.email.title': 'Logowanie e-mailem',
-  'auth.email.subtitle': 'Wyślemy ci jednorazowy kod',
+  'auth.email.subtitle': 'Hasło nie jest potrzebne. Wyślemy ci e-mailem jednorazowy kod do logowania.',
   'auth.email.address': 'Adres e-mail',
   'auth.email.send': 'Wyślij kod',
   'auth.email.codeTitle': 'Wpisz kod',
@@ -3431,6 +3431,7 @@ export const pl: Record<string, string> = {
   'a11y.table.seatUpTip': 'Przesuń o miejsce w górę',
   'a11y.table.seatDownTip': 'Przesuń o miejsce w dół',
   'a11y.auth.register': 'Zarejestruj się',
+  'a11y.auth.showPassword': 'Pokaż hasło',
   'a11y.board.region.hand': 'Twoja ręka',
   'a11y.board.region.table': 'Stół',
   'a11y.board.region.seats': 'Gracze',

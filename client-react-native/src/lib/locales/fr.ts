@@ -1181,10 +1181,10 @@ export const fr: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Garde tes statistiques sur tous tes appareils',
-  'auth.login.continueWithEmail': "Continuer avec l'e-mail",
+  'auth.login.continueWithEmail': 'Recevoir un code de connexion par e-mail',
   'auth.login.usernameInstead': 'Se connecter avec un identifiant à la place',
   'auth.email.title': 'Connexion par e-mail',
-  'auth.email.subtitle': "Nous t'enverrons un code à usage unique",
+  'auth.email.subtitle': "Pas besoin de mot de passe. Nous t'enverrons par e-mail un code à usage unique pour te connecter.",
   'auth.email.address': 'Adresse e-mail',
   'auth.email.send': 'Envoyer le code',
   'auth.email.codeTitle': 'Saisis le code',
@@ -3450,6 +3450,7 @@ export const fr: Record<string, string> = {
   'a11y.table.seatUpTip': 'Monter d’une place',
   'a11y.table.seatDownTip': 'Descendre d’une place',
   'a11y.auth.register': 'S’inscrire',
+  'a11y.auth.showPassword': 'Afficher le mot de passe',
   'a11y.board.region.hand': 'Ta main',
   'a11y.board.region.table': 'Table',
   'a11y.board.region.seats': 'Joueurs',

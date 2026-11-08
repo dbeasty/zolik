@@ -1161,10 +1161,10 @@ export const lt: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Išsaugok statistiką visuose įrenginiuose',
-  'auth.login.continueWithEmail': 'Tęsti su el. paštu',
+  'auth.login.continueWithEmail': 'Atsiųsti prisijungimo kodą el. paštu',
   'auth.login.usernameInstead': 'Prisijungti vietoj to naudotojo vardu',
   'auth.email.title': 'Prisijungimas el. paštu',
-  'auth.email.subtitle': 'Atsiųsime tau vienkartinį kodą',
+  'auth.email.subtitle': 'Slaptažodžio nereikia. El. paštu atsiųsime tau vienkartinį prisijungimo kodą.',
   'auth.email.address': 'El. pašto adresas',
   'auth.email.send': 'Siųsti kodą',
   'auth.email.codeTitle': 'Įvesk kodą',
@@ -3421,6 +3421,7 @@ export const lt: Record<string, string> = {
   'a11y.table.seatUpTip': 'Perkelti viena vieta aukščiau',
   'a11y.table.seatDownTip': 'Perkelti viena vieta žemiau',
   'a11y.auth.register': 'Registruotis',
+  'a11y.auth.showPassword': 'Rodyti slaptažodį',
   'a11y.board.region.hand': 'Tavo kortos',
   'a11y.board.region.table': 'Stalas',
   'a11y.board.region.seats': 'Žaidėjai',

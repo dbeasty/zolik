@@ -1176,10 +1176,10 @@ export const ro: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Păstrează-ți statisticile pe toate dispozitivele',
-  'auth.login.continueWithEmail': 'Continuă cu e-mailul',
+  'auth.login.continueWithEmail': 'Trimite-mi un cod de conectare pe e-mail',
   'auth.login.usernameInstead': 'Autentifică-te mai degrabă cu un nume de utilizator',
   'auth.email.title': 'Autentificare cu e-mail',
-  'auth.email.subtitle': 'Îți trimitem un cod de unică folosință',
+  'auth.email.subtitle': 'Nu ai nevoie de parolă. Îți trimitem pe e-mail un cod de unică folosință pentru conectare.',
   'auth.email.address': 'Adresă de e-mail',
   'auth.email.send': 'Trimite codul',
   'auth.email.codeTitle': 'Introdu codul',
@@ -3443,6 +3443,7 @@ export const ro: Record<string, string> = {
   'a11y.table.seatUpTip': 'Mută cu un loc mai sus',
   'a11y.table.seatDownTip': 'Mută cu un loc mai jos',
   'a11y.auth.register': 'Înregistrare',
+  'a11y.auth.showPassword': 'Afișează parola',
   'a11y.board.region.hand': 'Mâna ta',
   'a11y.board.region.table': 'Masă',
   'a11y.board.region.seats': 'Jucători',

@@ -1181,10 +1181,10 @@ export const mt: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Żomm l-istatistika tiegħek fuq kull apparat',
-  'auth.login.continueWithEmail': 'Kompli bl-email',
+  'auth.login.continueWithEmail': 'Ibagħtuli kodiċi tad-dħul bl-email',
   'auth.login.usernameInstead': "Idħol minflok b'isem tal-utent",
   'auth.email.title': 'Dħul bl-email',
-  'auth.email.subtitle': "Nibagħtulek kodiċi ta' darba",
+  'auth.email.subtitle': "M'għandekx bżonn password. Nibagħtulek bl-email kodiċi ta' darba biex tidħol.",
   'auth.email.address': 'Indirizz tal-email',
   'auth.email.send': 'Ibgħat il-kodiċi',
   'auth.email.codeTitle': 'Daħħal il-kodiċi',
@@ -3443,6 +3443,7 @@ export const mt: Record<string, string> = {
   'a11y.table.seatUpTip': 'Itla’ post wieħed',
   'a11y.table.seatDownTip': 'Inżel post wieħed',
   'a11y.auth.register': 'Irreġistra',
+  'a11y.auth.showPassword': 'Uri l-password',
   'a11y.board.region.hand': 'Idek',
   'a11y.board.region.table': 'Mejda',
   'a11y.board.region.seats': 'Plejers',

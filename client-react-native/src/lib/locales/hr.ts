@@ -1160,10 +1160,10 @@ export const hr: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Zadrži svoju statistiku na svim uređajima',
-  'auth.login.continueWithEmail': 'Nastavi e-poštom',
+  'auth.login.continueWithEmail': 'Pošalji mi kôd za prijavu e-poštom',
   'auth.login.usernameInstead': 'Prijavi se radije korisničkim imenom',
   'auth.email.title': 'Prijava e-poštom',
-  'auth.email.subtitle': 'Poslat ćemo ti jednokratni kôd',
+  'auth.email.subtitle': 'Lozinka nije potrebna. E-poštom ćemo ti poslati jednokratni kôd za prijavu.',
   'auth.email.address': 'Adresa e-pošte',
   'auth.email.send': 'Pošalji kôd',
   'auth.email.codeTitle': 'Upiši kôd',
@@ -3423,6 +3423,7 @@ export const hr: Record<string, string> = {
   'a11y.table.seatUpTip': 'Pomakni za mjesto gore',
   'a11y.table.seatDownTip': 'Pomakni za mjesto dolje',
   'a11y.auth.register': 'Registriraj se',
+  'a11y.auth.showPassword': 'Prikaži lozinku',
   'a11y.board.region.hand': 'Tvoja ruka',
   'a11y.board.region.table': 'Stol',
   'a11y.board.region.seats': 'Igrači',

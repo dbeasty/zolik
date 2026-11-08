@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
-import { Field, FormError } from '@/src/a11y/Field';
+import { Field, FormError, PasswordField } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
@@ -11,12 +11,8 @@ import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
 /**
- * Legacy username/password sign-in.
- *
- * Kept as a fallback path rather than the front door: it exists for accounts
- * created before email/OAuth sign-in shipped, and for the SSH/TUI client's
- * login, which reuses the same server endpoint. New accounts should use
- * `/auth/login`.
+ * Username and password sign-in, one of the ways in offered by `/auth/login`.
+ * The SSH/TUI client's login reuses the same server endpoint.
  */
 export default function UsernameLoginScreen() {
   useLocale();
@@ -45,14 +41,17 @@ export default function UsernameLoginScreen() {
         label={t('auth.register.username')}
         placeholder={t('auth.register.username')}
         autoCapitalize="none"
+        // An iPhone keyboard otherwise offers to split a name like this one
+        // into two words, and the server then finds no such account.
+        autoCorrect={false}
+        spellCheck={false}
         autoComplete="username"
         value={username}
         onChangeText={setUsername}
       />
-      <Field
+      <PasswordField
         label={t('auth.register.password')}
         placeholder={t('auth.register.password')}
-        secureTextEntry
         autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
