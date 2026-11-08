@@ -680,6 +680,13 @@ export type MatchModule = {
     label: string;
     summary?: Fact[];
     defaults?: Record<string, number>;
+    /**
+     * This variation's own seat range, where it narrows the module's: four
+     * for Partnership Pinochle on a module that seats two to four. Absent
+     * means the module's range.
+     */
+    minPlayers?: number;
+    maxPlayers?: number;
   }[];
   options?: {
     name: string;

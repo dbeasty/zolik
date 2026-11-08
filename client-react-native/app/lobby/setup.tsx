@@ -152,7 +152,7 @@ export default function GameSetupScreen() {
   }
 
   const spec = mod.variations?.find((v) => v.id === variation);
-  const choices = botChoices(mod);
+  const choices = botChoices(mod, variation);
 
   return (
     <Screen>
@@ -229,9 +229,9 @@ export default function GameSetupScreen() {
                   <Pressable
                     key={n}
                     testID={`bots-${mod.id}-${n}`}
-                    {...radioProps(botCount(mod, bots) === n)}
+                    {...radioProps(botCount(mod, bots, variation) === n)}
                     onPress={() => setBots(n)}
-                    style={[styles.pill, botCount(mod, bots) === n && styles.pillOn]}
+                    style={[styles.pill, botCount(mod, bots, variation) === n && styles.pillOn]}
                   >
                     <Text style={styles.pillText}>{n}</Text>
                   </Pressable>
