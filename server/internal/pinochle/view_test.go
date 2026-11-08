@@ -50,6 +50,10 @@ func TestMeldIsOnTheTableForTheFirstTrick(t *testing.T) {
 	if z == nil || len(z.Groups) != 1 || z.Groups[0].Kind != MeldPinochle {
 		t.Fatalf("p2's pinochle is not on the table: %+v", z)
 	}
+	// Its points ride with its name, so the seat's total can be read off the table.
+	if z.Groups[0].Value != "40" {
+		t.Fatalf("p2's pinochle shows %q, want its 40 points", z.Groups[0].Value)
+	}
 	if seat := vm.SeatOf("p1"); seat == nil || len(seat.Facts) == 0 || seat.Facts[len(seat.Facts)-1].Params["n"] != 20 {
 		t.Fatalf("p1's meld total is not on its seat: %+v", seat)
 	}

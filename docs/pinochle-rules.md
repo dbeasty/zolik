@@ -36,6 +36,7 @@ Every id below is `pinochle.rules.<id>`.
 | `order.single` / `order.double` | Rank within a suit: A T K Q J 9 (no 9 on the double pack). |
 | `points.counters` 🔧 | Default. Aces, tens and kings are counters, 10 each. |
 | `points.classic` 🔧 | A 11, T 10, K 4, Q 3, J 2. The hand is worth the same under either option. |
+| `points.blank` / `points.blankDouble` / `points.nine` | What scores nothing, said outright: Q, J and 9 under counters (Q and J on the double pack), the 9 under classic. |
 | `lastTrick` | The last trick is worth 10 more (20 on the double pack): 250 a hand, or 500 on the double pack. |
 | `auction` 🔧 | Bidding starts left of the dealer. The minimum is 250 (500 on the double pack). |
 | `bidStep` | Each bid beats the last by a multiple of 10. |
@@ -46,7 +47,9 @@ Every id below is `pinochle.rules.<id>`.
 | `takeWidow`, `bury` | Cutthroat. The widow is shown to all and goes into the bidder's hand. The bidder buries 3, and any counters among them score for the bidder. |
 | `pass` 🔧 | Partnership tables. The bidder's partner passes N to the bidder, who passes N back. Off by default. |
 | `meld.*` | Run 150. Royal marriage 40. Marriage 20. Dix 10. Arounds: A 100, K 80, Q 60, J 40. Pinochle 40. Doubles: run 1500; aces 1000, kings 800, queens 600, jacks 400; pinochle 300. Triples and quadruples on the double pack: aces 1500 and 2000, kings 1200 and 1600, queens 900 and 1200, jacks 600 and 800; pinochle 600 and 900. |
+| `meld.doublesNeed` | A double needs two of every card in it and scores instead of the single meld: a double run is 1500, not 1650. |
 | `meld.classes` | A card may count in several melds only if they are of different classes: sequence/marriage/dix, arounds, pinochle. A run's K and Q are not also a royal marriage. |
+| `meld.classesExample` | The Q♠ may count in a spade marriage, queens around and a pinochle at once; a second trump K and Q beside a run is still a royal marriage. |
 | `meld.shown` | Three or four players: the meld is counted automatically when trumps are named and shown through the first trick. |
 | `meld.needsTrick` 🔧 / `meld.needsCounter` 🔧 | A side's meld counts only if it takes a trick (default), or a counter. |
 | `lead.bidder` | The bidder leads to the first trick. |
@@ -69,6 +72,8 @@ Every id below is `pinochle.rules.<id>`.
 | `draw` | The winner draws first. |
 | `late`, `meld.staysInHand` | When the stock is gone, melds go back into hand and the last 12 tricks are played under `follow`/`beat`/`trumpIn`. |
 | `score.twohanded` | Meld scores when laid. Tricks score at the end of the hand. The target is 1000 by default. |
+
+On the table, each meld is labelled with its name and its points (`Group.Value`), so a seat's meld total can be read off the cards.
 
 ## Simplifications
 

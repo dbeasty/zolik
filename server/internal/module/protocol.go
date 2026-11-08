@@ -186,6 +186,10 @@ type Group struct {
 	// BadgeKeys are message keys for anything worth marking on the group
 	// ("clean run", "trump"). Keys, never rendered text.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Value is a short figure shown beside the group's badge — what a meld
+	// scores, "150". Already a number as the module counts it; the client
+	// prints it as sent.
+	Value string `json:"value,omitempty"`
 	// Complete marks a group that is finished as far as the player is
 	// concerned — a canasta, not a meld still being built — so a client may
 	// fold it down to take less room. Whether it still takes cards is a

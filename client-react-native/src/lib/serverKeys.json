@@ -1202,8 +1202,10 @@
     "pinochle.rules.made",
     "pinochle.rules.meld.arounds",
     "pinochle.rules.meld.classes",
+    "pinochle.rules.meld.classesExample",
     "pinochle.rules.meld.dix",
     "pinochle.rules.meld.doubles",
+    "pinochle.rules.meld.doublesNeed",
     "pinochle.rules.meld.exchange",
     "pinochle.rules.meld.marriage",
     "pinochle.rules.meld.needsCounter",
@@ -1222,8 +1224,11 @@
     "pinochle.rules.partners",
     "pinochle.rules.pass",
     "pinochle.rules.passFinal",
+    "pinochle.rules.points.blank",
+    "pinochle.rules.points.blankDouble",
     "pinochle.rules.points.classic",
     "pinochle.rules.points.counters",
+    "pinochle.rules.points.nine",
     "pinochle.rules.score.twohanded",
     "pinochle.rules.section.auction",
     "pinochle.rules.section.cards",
@@ -2144,8 +2149,10 @@
     "pinochle.rules.made",
     "pinochle.rules.meld.arounds",
     "pinochle.rules.meld.classes",
+    "pinochle.rules.meld.classesExample",
     "pinochle.rules.meld.dix",
     "pinochle.rules.meld.doubles",
+    "pinochle.rules.meld.doublesNeed",
     "pinochle.rules.meld.exchange",
     "pinochle.rules.meld.marriage",
     "pinochle.rules.meld.needsCounter",
@@ -2164,8 +2171,11 @@
     "pinochle.rules.partners",
     "pinochle.rules.pass",
     "pinochle.rules.passFinal",
+    "pinochle.rules.points.blank",
+    "pinochle.rules.points.blankDouble",
     "pinochle.rules.points.classic",
     "pinochle.rules.points.counters",
+    "pinochle.rules.points.nine",
     "pinochle.rules.score.twohanded",
     "pinochle.rules.section.auction",
     "pinochle.rules.section.cards",
@@ -3550,7 +3560,8 @@
       "value"
     ],
     "pinochle.header.trump": [
-      "suit"
+      "suit",
+      "value"
     ],
     "pinochle.header.yourMeld": [
       "n",
@@ -3632,6 +3643,10 @@
       "pinochle",
       "queens",
       "run"
+    ],
+    "pinochle.rules.meld.doublesNeed": [
+      "double",
+      "single"
     ],
     "pinochle.rules.meld.exchange": [
       "n"
@@ -4543,6 +4558,7 @@
     "pinochle.rules.meld.arounds",
     "pinochle.rules.meld.dix",
     "pinochle.rules.meld.doubles",
+    "pinochle.rules.meld.doublesNeed",
     "pinochle.rules.meld.exchange",
     "pinochle.rules.meld.marriage",
     "pinochle.rules.meld.pinochle",

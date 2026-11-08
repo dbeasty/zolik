@@ -107,12 +107,25 @@ export function groupCardsPhrase(cards: readonly string[]): string {
  * A meld as one sentence: "Run: Five of Hearts to Nine of Hearts, 5 cards,
  * Anna's, complete".
  */
+/**
+ * The lines a group's badges print: each badge key's name, with the group's
+ * value after the last one — "Run 150". A value with no badge stands alone.
+ */
+export function groupBadgeLines(group: Group): string[] {
+  const lines = (group.badgeKeys ?? []).map((b) => label(b));
+  if (group.value) {
+    if (lines.length) lines[lines.length - 1] = `${lines[lines.length - 1]} ${group.value}`;
+    else lines.push(group.value);
+  }
+  return lines;
+}
+
 export function groupSpokenLabel(group: Group, ownerName?: string): string {
   const parts = [t('a11y.board.group.label', { kind: groupKindName(group), cards: groupCardsPhrase(group.cards) })];
   if (group.hidden) parts.push(t('a11y.board.pile.faceDown', { n: group.hidden }));
   if (ownerName) parts.push(t('a11y.board.group.owner', { name: ownerName }));
   if (group.complete) parts.push(t('a11y.board.group.complete'));
-  for (const b of group.badgeKeys ?? []) parts.push(label(b));
+  parts.push(...groupBadgeLines(group));
   return parts.join(', ');
 }
 

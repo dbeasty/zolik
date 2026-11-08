@@ -25,7 +25,7 @@ type Module = {
   label: string;
   minPlayers: number;
   maxPlayers: number;
-  variations?: { id: string; maxPlayers?: number }[];
+  variations?: { id: string; minPlayers?: number; maxPlayers?: number }[];
 };
 
 async function guest(request: Ctx) {
@@ -99,7 +99,10 @@ async function startedTable(request: Ctx, mod: Module, variation: string | undef
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
   const solo = mod.maxPlayers === 1;
-  for (let i = 1; i < (solo ? 1 : Math.max(2, mod.minPlayers)); i++) {
+  // A variation may need more seats than the module's least (Pinochle:
+  // two-handed is 2, partnership 4).
+  const least = mod.variations?.find((v) => v.id === variation)?.minPlayers ?? mod.minPlayers;
+  for (let i = 1; i < (solo ? 1 : Math.max(2, least)); i++) {
     await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: auth });
   }
   const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
@@ -317,7 +320,7 @@ test.describe('every game, every variation, against bots', () => {
       const variations = mod.variations?.length ? mod.variations : [{ id: undefined as any }];
       for (const v of variations) {
         const cap = v.maxPlayers ?? mod.maxPlayers;
-        const seats = Math.min(Math.max(mod.minPlayers, 2), cap);
+        const seats = Math.min(Math.max(v.minPlayers ?? mod.minPlayers, 2), cap);
         const solo = mod.minPlayers === 1 && mod.maxPlayers === 1;
         const label = `${mod.id}/${v.id ?? 'default'}`;
         try {
