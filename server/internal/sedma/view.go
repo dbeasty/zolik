@@ -69,7 +69,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 
 var defaults = map[string]int{
 	OptTarget:                    defaultTarget,
-	OptShowCardPoints:            module.OptOff,
+	OptShowCardPoints:            module.OptOn,
 	module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 	module.OptPauseBetweenRounds: module.OptOn,
 	module.OptStandInAfter:       module.StandInAfterDefault,

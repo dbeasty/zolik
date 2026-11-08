@@ -44,6 +44,9 @@ const (
 	OptPass      = "passCards"
 	OptMeldNeeds = "meldNeeds"
 	OptAllPass   = "allPass"
+	// OptShowCardPoints shows every side's meld and points taken as the hand
+	// is played, the running score; off, each player sees only their own.
+	OptShowCardPoints = "showCardPoints"
 )
 
 // Scoring choices.

@@ -316,7 +316,7 @@ export const nl: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Rondes gewonnen {n}',
-  'zolik.standing.inHand': 'In de hand {n}',
+  'zolik.header.yourHand': 'In de hand {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -587,6 +587,7 @@ export const nl: Record<string, string> = {
   'badge.cleanRun': 'Zuivere reeks',
   'canasta.seat.teamScore': 'Teamstand',
   'canasta.seat.canastas': "Canasta's",
+  'canasta.seat.onTable': 'Op tafel {n}',
   'canasta.seat.toOpen': 'Om te openen',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Street',
@@ -712,6 +713,7 @@ export const nl: Record<string, string> = {
   'ginrummy.fact.discardCard': '{value} afleggen',
   'ginrummy.fact.meldCards': 'Bij {value}',
   'ginrummy.header.hand': 'Hand {n}',
+  'ginrummy.header.yourDeadwood': 'Jouw deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Kloppen',
@@ -807,6 +809,7 @@ export const nl: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Ruil de joker voor precies de steen waar hij voor staat.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Voorraad {n}',
+  'rummytiles.header.yourHand': 'In de hand {n}',
   'rummytiles.header.round': 'Ronde {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Ronde',
@@ -2999,6 +3002,7 @@ export const nl: Record<string, string> = {
   'pinochle.seat.passed': 'Gepast',
   'pinochle.seat.bid': 'Bod {n}',
   'pinochle.seat.meld': 'Roem {n}',
+  'pinochle.seat.taken': 'Gehaald {n}',
   'pinochle.header.hand': 'Spel {n}',
   'pinochle.header.trump': 'Troef: {suit}',
   'pinochle.header.bid': '{playerId} bood {n}',

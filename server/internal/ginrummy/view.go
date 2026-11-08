@@ -208,6 +208,18 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		{LabelKey: "header.target", Value: strconv.Itoa(s.TargetScore)},
 		{LabelKey: "ginrummy.header.hand", Value: strconv.Itoa(s.HandNumber + 1), Params: map[string]any{"n": s.HandNumber + 1}},
 	}
+	// The hand's running score, for its owner alone: the deadwood they would
+	// knock with — after their best discard when they are holding eleven. It
+	// is a sum over hidden cards, so it never goes on a seat.
+	if hand := s.Hands[viewerID]; hand != nil && s.Status == "active" && s.Knocker == "" {
+		n, _ := Deadwood(hand)
+		if len(hand) > 10 { // holding the drawn card, about to discard
+			n = bestDiscardDeadwood(hand)
+		}
+		vm.Header = append(vm.Header, module.Fact{
+			LabelKey: "ginrummy.header.yourDeadwood", Value: strconv.Itoa(n), Params: map[string]any{"n": n},
+		})
+	}
 
 	if s.Knocker != "" && s.KnockGin {
 		vm.Status = append(vm.Status, module.Fact{

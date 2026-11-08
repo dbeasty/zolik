@@ -319,7 +319,7 @@ export const hu: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Nyert leosztások: {n}',
-  'zolik.standing.inHand': 'Kézben: {n}',
+  'zolik.header.yourHand': 'Kézben: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -589,6 +589,7 @@ export const hu: Record<string, string> = {
   'badge.cleanRun': 'Tiszta sor',
   'canasta.seat.teamScore': 'Csapatpontszám',
   'canasta.seat.canastas': 'Canasták',
+  'canasta.seat.onTable': 'Az asztalon {n}',
   'canasta.seat.toOpen': 'Nyitáshoz',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Kör',
@@ -714,6 +715,7 @@ export const hu: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Dobd el: {value}',
   'ginrummy.fact.meldCards': 'Ehhez: {value}',
   'ginrummy.header.hand': '{n}. leosztás',
+  'ginrummy.header.yourDeadwood': 'Deadwoodod: {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Kopogás',
@@ -808,6 +810,7 @@ export const hu: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Cseréld a zsokert pontosan arra a lapkára, amelyet helyettesít.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Készlet: {n}',
+  'rummytiles.header.yourHand': 'Kézben: {n}',
   'rummytiles.header.round': '{n}. kör',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Kör',
@@ -2992,6 +2995,7 @@ export const hu: Record<string, string> = {
   'pinochle.seat.passed': 'Passz',
   'pinochle.seat.bid': 'Licit {n}',
   'pinochle.seat.meld': 'Bemondás {n}',
+  'pinochle.seat.taken': 'Ütésekben {n}',
   'pinochle.header.hand': '{n}. leosztás',
   'pinochle.header.trump': 'Adu: {suit}',
   'pinochle.header.bid': '{playerId} licitje {n}',

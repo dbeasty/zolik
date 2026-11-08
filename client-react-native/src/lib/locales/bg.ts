@@ -314,7 +314,7 @@ export const bg: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Спечелени раздавания: {n}',
-  'zolik.standing.inHand': 'В ръката: {n}',
+  'zolik.header.yourHand': 'В ръката: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -584,6 +584,7 @@ export const bg: Record<string, string> = {
   'badge.cleanRun': 'Чиста последователност',
   'canasta.seat.teamScore': 'Точки на отбора',
   'canasta.seat.canastas': 'Канасти',
+  'canasta.seat.onTable': 'На масата {n}',
   'canasta.seat.toOpen': 'За отваряне',
   'holdem.header.pot': 'Пот',
   'holdem.header.street': 'Улица',
@@ -709,6 +710,7 @@ export const bg: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Изхвърли {value}',
   'ginrummy.fact.meldCards': 'Към {value}',
   'ginrummy.header.hand': 'Раздаване {n}',
+  'ginrummy.header.yourDeadwood': 'Твоят дедуд {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Джин',
   'ginrummy.kind.knock': 'Чукни',
@@ -804,6 +806,7 @@ export const bg: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Замени жокера точно с плочката, която той замества.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Запас {n}',
+  'rummytiles.header.yourHand': 'В ръката: {n}',
   'rummytiles.header.round': 'Рунд {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Рунд',
@@ -2985,6 +2988,7 @@ export const bg: Record<string, string> = {
   'pinochle.seat.passed': 'Пас',
   'pinochle.seat.bid': 'Обява {n}',
   'pinochle.seat.meld': 'Комбинации {n}',
+  'pinochle.seat.taken': 'Взети {n}',
   'pinochle.header.hand': 'Ръка {n}',
   'pinochle.header.trump': 'Коз: {suit}',
   'pinochle.header.bid': '{playerId} обяви {n}',

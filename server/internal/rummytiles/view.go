@@ -178,6 +178,15 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	if s.TargetScore > 0 {
 		vm.Header = append(vm.Header, module.Fact{LabelKey: "header.target", Value: strconv.Itoa(s.TargetScore)})
 	}
+	// The round's running score, for its owner alone: what their rack would
+	// cost them if the round ended now. A sum over hidden tiles, so never on a
+	// seat.
+	if rack := s.Hands[viewerID]; rack != nil && s.Status == "active" {
+		n := handValue(rack)
+		vm.Header = append(vm.Header, module.Fact{
+			LabelKey: "rummytiles.header.yourHand", Value: strconv.Itoa(n), Params: map[string]any{"n": n},
+		})
+	}
 
 	if s.Status == "active" && s.Hands[viewerID] != nil && !s.InitialMeld[viewerID] {
 		// A standing requirement, not the turn's prompt: the client lists it

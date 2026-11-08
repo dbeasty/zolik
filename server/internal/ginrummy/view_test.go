@@ -104,3 +104,45 @@ func TestView_RoundTripDoesNotChangeWhatIsShown(t *testing.T) {
 		t.Errorf("zone count changed across a round trip: %d vs %d", len(before.Zones), len(after.Zones))
 	}
 }
+
+// The hand's running score is the viewer's deadwood, in their header only:
+// each player's figure is computed from their own cards and no other's.
+func TestView_EachPlayerSeesOnlyTheirOwnDeadwood(t *testing.T) {
+	raw := newMatch(t, 21, module.MatchConfig{})
+	s := stateOf(t, raw)
+	for _, viewer := range s.Players {
+		vm, err := New().View(raw, viewer)
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		want, _ := Deadwood(s.Hands[viewer])
+		if len(s.Hands[viewer]) > 10 {
+			want = bestDiscardDeadwood(s.Hands[viewer])
+		}
+		found := false
+		for _, f := range vm.Header {
+			if f.LabelKey == "ginrummy.header.yourDeadwood" {
+				found = true
+				if f.Params["n"] != want {
+					t.Errorf("%s: deadwood %v, want %d", viewer, f.Params["n"], want)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s: no deadwood in the header: %+v", viewer, vm.Header)
+		}
+		for _, seat := range vm.Seats {
+			for _, f := range seat.Facts {
+				if f.LabelKey == "ginrummy.header.yourDeadwood" {
+					t.Errorf("deadwood on %s's seat", seat.PlayerID)
+				}
+			}
+		}
+	}
+	vm, _ := New().View(raw, "")
+	for _, f := range vm.Header {
+		if f.LabelKey == "ginrummy.header.yourDeadwood" {
+			t.Errorf("an onlooker is told a deadwood: %+v", f)
+		}
+	}
+}

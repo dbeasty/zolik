@@ -18,18 +18,19 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		return nil, module.Error{Code: ErrWrongPlayers, Message: "pinochle " + c.variation + " is played by " + strconv.Itoa(t.seats)}
 	}
 	s := &GameState{
-		Status:      "active",
-		Seed:        seed,
-		Variation:   c.variation,
-		Scoring:     c.scoring,
-		MinBid:      c.minBid,
-		Target:      c.target,
-		PassCount:   c.pass,
-		MeldNeeds:   c.meldNeeds,
-		AllPass:     c.allPass,
-		Pause:       cfg.PauseBetweenRounds(true),
-		FirstDealer: module.StartingSeat(seed, len(players)),
-		Scores:      map[string]int{},
+		Status:         "active",
+		Seed:           seed,
+		Variation:      c.variation,
+		Scoring:        c.scoring,
+		MinBid:         c.minBid,
+		Target:         c.target,
+		PassCount:      c.pass,
+		MeldNeeds:      c.meldNeeds,
+		AllPass:        c.allPass,
+		HideCardPoints: !c.showCardPoints,
+		Pause:          cfg.PauseBetweenRounds(true),
+		FirstDealer:    module.StartingSeat(seed, len(players)),
+		Scores:         map[string]int{},
 	}
 	if !t.partners {
 		s.PassCount = 0

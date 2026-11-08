@@ -368,6 +368,16 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 				module.Fact{LabelKey: "canasta.seat.canastas", Value: strconv.Itoa(t.canastas()),
 					Params: map[string]any{"n": t.canastas()}},
 			)
+			// The deal's running score: what the side's table is worth if the
+			// deal ended now, before going out and before what is caught in
+			// hand — melds, canasta bonuses and red threes, every one of them
+			// face up. A red three counts against a side still short of the
+			// canastas it needs, exactly as the deal's own arithmetic will.
+			if on := onTable(r, t); t.HasMelded || len(t.RedThrees) > 0 {
+				seat.Facts = append(seat.Facts,
+					module.Fact{LabelKey: "canasta.seat.onTable", Value: strconv.Itoa(on),
+						Params: map[string]any{"n": on}})
+			}
 		}
 		vm.Seats = append(vm.Seats, seat)
 	}

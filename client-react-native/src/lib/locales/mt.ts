@@ -316,7 +316,7 @@ export const mt: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Tqassimiet mirbuħa: {n}',
-  'zolik.standing.inHand': "F'idek: {n}",
+  'zolik.header.yourHand': "F'idek: {n}",
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -585,6 +585,7 @@ export const mt: Record<string, string> = {
   'badge.cleanRun': 'Sekwenza nadifa',
   'canasta.seat.teamScore': 'Skor tat-tim',
   'canasta.seat.canastas': 'Canastas',
+  'canasta.seat.onTable': 'Fuq il-mejda {n}',
   'canasta.seat.toOpen': 'Biex tiftaħ',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Rawnd',
@@ -712,6 +713,7 @@ export const mt: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Armi {value}',
   'ginrummy.fact.meldCards': 'Fuq {value}',
   'ginrummy.header.hand': 'Id {n}',
+  'ginrummy.header.yourDeadwood': 'Id-deadwood tiegħek {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Ħabbat',
@@ -808,6 +810,7 @@ export const mt: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Ibdel il-joker bil-madum eżatt li jirrappreżenta.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Borża {n}',
+  'rummytiles.header.yourHand': "F'idek: {n}",
   'rummytiles.header.round': 'Rawnd {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Rawnd',
@@ -2992,6 +2995,7 @@ export const mt: Record<string, string> = {
   'pinochle.seat.passed': 'Għadda',
   'pinochle.seat.bid': 'Offerta {n}',
   'pinochle.seat.meld': 'Kombinazzjonijiet {n}',
+  'pinochle.seat.taken': 'Meħud {n}',
   'pinochle.header.hand': 'Daqqa {n}',
   'pinochle.header.trump': 'Briskla: {suit}',
   'pinochle.header.bid': '{playerId} offra {n}',

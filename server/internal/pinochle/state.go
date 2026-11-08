@@ -25,6 +25,10 @@ type GameState struct {
 	MeldNeeds int  `json:"meldNeeds,omitempty"`
 	AllPass   int  `json:"allPass,omitempty"`
 	Pause     bool `json:"pause,omitempty"`
+	// HideCardPoints is OptShowCardPoints switched off. Stored negated so a
+	// match dealt before the option existed shows the running score, which
+	// is the default.
+	HideCardPoints bool `json:"hideCardPoints,omitempty"`
 
 	// Deal counts hands from zero; the deal passes to the left each hand.
 	Deal        int `json:"deal"`

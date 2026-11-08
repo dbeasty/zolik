@@ -501,3 +501,40 @@ func TestRedThreesStartFolded(t *testing.T) {
 		t.Error("the melds zone is played into and should start open")
 	}
 }
+
+// TestEverySeatShowsItsSidesTableSoFar: the deal's running score rides on
+// every seat of the side it belongs to — melds, canasta bonus and red threes,
+// all face up — and a side with nothing down shows no number at all.
+func TestEverySeatShowsItsSidesTableSoFar(t *testing.T) {
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+			Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}}}
+		s.Teams[0].RedThrees = []string{"3H"}
+	})
+	s, _ := decode(raw)
+	onTableOf := func(vm module.ViewModel, playerID string) string {
+		for _, f := range vm.SeatOf(playerID).Facts {
+			if f.LabelKey == "canasta.seat.onTable" {
+				return f.Value
+			}
+		}
+		return ""
+	}
+	for _, viewer := range s.TurnOrder {
+		vm, err := New().View(raw, viewer)
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		for _, p := range s.TurnOrder {
+			want := ""
+			if s.team(p).ID == 0 {
+				// Seven kings at 10, a natural canasta at 500, one red three at 100.
+				want = "670"
+			}
+			if got := onTableOf(vm, p); got != want {
+				t.Errorf("%s sees %s on the table at %q, want %q", viewer, p, got, want)
+			}
+		}
+	}
+}

@@ -474,6 +474,7 @@
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.notOpened",
+    "canasta.seat.onTable",
     "canasta.seat.teamScore",
     "canasta.seat.toOpen",
     "ferbl.fact.chips",
@@ -532,6 +533,7 @@
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.header.yourDeadwood",
     "ginrummy.move.discarded",
     "ginrummy.move.drewStock",
     "ginrummy.move.knocked",
@@ -1255,6 +1257,7 @@
     "pinochle.seat.dealer",
     "pinochle.seat.meld",
     "pinochle.seat.passed",
+    "pinochle.seat.taken",
     "pinochle.seat.winning",
     "pinochle.summary.auction",
     "pinochle.summary.bigMelds",
@@ -1321,6 +1324,7 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.header.yourHand",
     "rummytiles.move.added",
     "rummytiles.move.committed",
     "rummytiles.move.drew",
@@ -1605,6 +1609,7 @@
     "zolik.badge.jokerOwed",
     "zolik.badge.noReturn",
     "zolik.badge.owedToMeld",
+    "zolik.header.yourHand",
     "zolik.hint.cleanRunNeeded",
     "zolik.hint.discardLocked",
     "zolik.hint.downInOneTurn",
@@ -1686,7 +1691,6 @@
     "zolik.rules.wilds.setLimit",
     "zolik.seat.contractMet",
     "zolik.standing.dealsWon",
-    "zolik.standing.inHand",
     "zone.board",
     "zone.discardPile",
     "zone.drawPile",
@@ -2759,6 +2763,10 @@
       "n",
       "value"
     ],
+    "canasta.seat.onTable": [
+      "n",
+      "value"
+    ],
     "canasta.seat.teamScore": [
       "score",
       "team",
@@ -2841,6 +2849,10 @@
       "value"
     ],
     "ginrummy.header.hand": [
+      "n",
+      "value"
+    ],
+    "ginrummy.header.yourDeadwood": [
       "n",
       "value"
     ],
@@ -3697,6 +3709,10 @@
       "n",
       "value"
     ],
+    "pinochle.seat.taken": [
+      "n",
+      "value"
+    ],
     "prompt.canastasNeeded": [
       "n"
     ],
@@ -3773,6 +3789,10 @@
       "value"
     ],
     "rummytiles.header.round": [
+      "n",
+      "value"
+    ],
+    "rummytiles.header.yourHand": [
       "n",
       "value"
     ],
@@ -4079,6 +4099,9 @@
     "suit.S": [
       "value"
     ],
+    "zolik.header.yourHand": [
+      "n"
+    ],
     "zolik.hint.discardLocked": [
       "n"
     ],
@@ -4207,9 +4230,6 @@
     ],
     "zolik.standing.dealsWon": [
       "n"
-    ],
-    "zolik.standing.inHand": [
-      "n"
     ]
   },
   "labelKeysWithData": [
@@ -4311,6 +4331,7 @@
     "canasta.rules.wildMeld",
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
+    "canasta.seat.onTable",
     "canasta.seat.teamScore",
     "canasta.seat.toOpen",
     "ferbl.fact.chips",
@@ -4336,6 +4357,7 @@
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.header.yourDeadwood",
     "ginrummy.move.discarded",
     "ginrummy.move.drewStock",
     "ginrummy.move.knocked",
@@ -4572,6 +4594,7 @@
     "pinochle.rules.widow",
     "pinochle.seat.bid",
     "pinochle.seat.meld",
+    "pinochle.seat.taken",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
@@ -4594,6 +4617,7 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.header.yourHand",
     "rummytiles.move.added",
     "rummytiles.move.committed",
     "rummytiles.move.drew",
@@ -4680,6 +4704,7 @@
     "suit.D",
     "suit.H",
     "suit.S",
+    "zolik.header.yourHand",
     "zolik.hint.discardLocked",
     "zolik.hint.meldPoints",
     "zolik.hint.runsNeeded",
@@ -4717,8 +4742,7 @@
     "zolik.rules.pickup.locked",
     "zolik.rules.run.maxLength",
     "zolik.rules.set.maxSize",
-    "zolik.standing.dealsWon",
-    "zolik.standing.inHand"
+    "zolik.standing.dealsWon"
   ],
   "declaredOnly": [
     "ADJACENT_WILDS"

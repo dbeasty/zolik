@@ -310,7 +310,7 @@ export const lt: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Laimėta dalijimų: {n}',
-  'zolik.standing.inHand': 'Rankoje: {n}',
+  'zolik.header.yourHand': 'Rankoje: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -575,6 +575,7 @@ export const lt: Record<string, string> = {
   'badge.cleanRun': 'Švari seka',
   'canasta.seat.teamScore': 'Komandos taškai',
   'canasta.seat.canastas': 'Kanastos',
+  'canasta.seat.onTable': 'Ant stalo {n}',
   'canasta.seat.toOpen': 'Atidarymui',
   'holdem.header.pot': 'Bankas',
   'holdem.header.street': 'Ratas',
@@ -699,6 +700,7 @@ export const lt: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Atmesk {value}',
   'ginrummy.fact.meldCards': 'Prie {value}',
   'ginrummy.header.hand': 'Ranka {n}',
+  'ginrummy.header.yourDeadwood': 'Tavo deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Ginas',
   'ginrummy.kind.knock': 'Belsti',
@@ -794,6 +796,7 @@ export const lt: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Iškeisk džokerį būtent į tą plokštelę, kurią jis atstoja.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Atsargos {n}',
+  'rummytiles.header.yourHand': 'Rankoje: {n}',
   'rummytiles.header.round': 'Raundas {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Raundas',
@@ -2970,6 +2973,7 @@ export const lt: Record<string, string> = {
   'pinochle.seat.passed': 'Pasavo',
   'pinochle.seat.bid': 'Pasiūlė {n}',
   'pinochle.seat.meld': 'Deriniai {n}',
+  'pinochle.seat.taken': 'Paimta {n}',
   'pinochle.header.hand': 'Dalijimas {n}',
   'pinochle.header.trump': 'Koziris: {suit}',
   'pinochle.header.bid': '{playerId} pasiūlė {n}',

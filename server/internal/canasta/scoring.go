@@ -82,6 +82,12 @@ func meldCardScore(t *Team) int {
 	return total
 }
 
+// onTable is a side's face-up score so far this deal: the part of the deal's
+// arithmetic that can be read off the table while it is still being played.
+func onTable(r ruleset, t *Team) int {
+	return meldCardScore(t) + canastaScore(r, t) + redThreeScore(r, t)
+}
+
 // scoreDeal computes both partnerships' arithmetic for the deal that just
 // ended and folds it into their running totals.
 //

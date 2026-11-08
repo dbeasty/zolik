@@ -310,7 +310,7 @@ export const sl: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Dobljena deljenja: {n}',
-  'zolik.standing.inHand': 'V roki: {n}',
+  'zolik.header.yourHand': 'V roki: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -574,6 +574,7 @@ export const sl: Record<string, string> = {
   'badge.cleanRun': 'Čisto zaporedje',
   'canasta.seat.teamScore': 'Točke ekipe',
   'canasta.seat.canastas': 'Canaste',
+  'canasta.seat.onTable': 'Na mizi {n}',
   'canasta.seat.toOpen': 'Za odprtje',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Ulica',
@@ -697,6 +698,7 @@ export const sl: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Odvrzi {value}',
   'ginrummy.fact.meldCards': 'Na {value}',
   'ginrummy.header.hand': 'Deljenje {n}',
+  'ginrummy.header.yourDeadwood': 'Tvoj deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Potrkaj',
@@ -791,6 +793,7 @@ export const sl: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Zamenjaj džokerja točno za ploščico, ki jo nadomešča.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Zaloga {n}',
+  'rummytiles.header.yourHand': 'V roki: {n}',
   'rummytiles.header.round': 'Krog {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Krog',
@@ -2968,6 +2971,7 @@ export const sl: Record<string, string> = {
   'pinochle.seat.passed': 'Pas',
   'pinochle.seat.bid': 'Ponudba {n}',
   'pinochle.seat.meld': 'Napovedi {n}',
+  'pinochle.seat.taken': 'Vzeto {n}',
   'pinochle.header.hand': 'Igra {n}',
   'pinochle.header.trump': 'Adut: {suit}',
   'pinochle.header.bid': '{playerId} licitira {n}',

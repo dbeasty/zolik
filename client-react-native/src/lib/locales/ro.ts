@@ -313,7 +313,7 @@ export const ro: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Împărțiri câștigate: {n}',
-  'zolik.standing.inHand': 'În mână: {n}',
+  'zolik.header.yourHand': 'În mână: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -581,6 +581,7 @@ export const ro: Record<string, string> = {
   'badge.cleanRun': 'Secvență curată',
   'canasta.seat.teamScore': 'Scorul echipei',
   'canasta.seat.canastas': 'Canaste',
+  'canasta.seat.onTable': 'Pe masă {n}',
   'canasta.seat.toOpen': 'Pentru deschidere',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Stradă',
@@ -706,6 +707,7 @@ export const ro: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Aruncă {value}',
   'ginrummy.fact.meldCards': 'La {value}',
   'ginrummy.header.hand': 'Mâna {n}',
+  'ginrummy.header.yourDeadwood': 'Deadwood-ul tău {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Bate',
@@ -800,6 +802,7 @@ export const ro: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Schimbă jokerul exact cu piesa pe care o înlocuiește.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Rezervă {n}',
+  'rummytiles.header.yourHand': 'În mână: {n}',
   'rummytiles.header.round': 'Runda {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Rundă',
@@ -2992,6 +2995,7 @@ export const ro: Record<string, string> = {
   'pinochle.seat.passed': 'A spus pas',
   'pinochle.seat.bid': 'Licitează {n}',
   'pinochle.seat.meld': 'Anunțuri {n}',
+  'pinochle.seat.taken': 'Luat {n}',
   'pinochle.header.hand': 'Mâna {n}',
   'pinochle.header.trump': 'Atu: {suit}',
   'pinochle.header.bid': '{playerId} a licitat {n}',

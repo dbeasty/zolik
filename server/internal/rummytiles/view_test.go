@@ -79,3 +79,34 @@ func TestView_RoundTripDoesNotChangeWhatIsShown(t *testing.T) {
 		t.Errorf("zone count changed across a round trip: %d vs %d", len(before.Zones), len(after.Zones))
 	}
 }
+
+// The round's running score is the viewer's own rack value, in their header
+// only, computed from their tiles and nobody else's.
+func TestView_EachPlayerSeesOnlyTheirOwnRackValue(t *testing.T) {
+	raw := newMatch(t, 5, "p1", "p2")
+	s := stateOf(t, raw)
+	for _, viewer := range s.Players {
+		vm, err := New().View(raw, viewer)
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		found := false
+		for _, f := range vm.Header {
+			if f.LabelKey == "rummytiles.header.yourHand" {
+				found = true
+				if want := handValue(s.Hands[viewer]); f.Params["n"] != want {
+					t.Errorf("%s: rack value %v, want %d", viewer, f.Params["n"], want)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s: no rack value in the header: %+v", viewer, vm.Header)
+		}
+	}
+	vm, _ := New().View(raw, "")
+	for _, f := range vm.Header {
+		if f.LabelKey == "rummytiles.header.yourHand" {
+			t.Errorf("an onlooker is told a rack value: %+v", f)
+		}
+	}
+}

@@ -324,7 +324,7 @@ export const ga: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Dáiltí buaite: {n}',
-  'zolik.standing.inHand': 'Sa lámh: {n}',
+  'zolik.header.yourHand': 'Sa lámh: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -594,6 +594,7 @@ export const ga: Record<string, string> = {
   'badge.cleanRun': 'Rith glan',
   'canasta.seat.teamScore': 'Scór na foirne',
   'canasta.seat.canastas': 'Canastaí',
+  'canasta.seat.onTable': 'Ar an mbord {n}',
   'canasta.seat.toOpen': 'Le hoscailt',
   'holdem.header.pot': 'Pota',
   'holdem.header.street': 'Babhta',
@@ -721,6 +722,7 @@ export const ga: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Caith {value}',
   'ginrummy.fact.meldCards': 'Ar {value}',
   'ginrummy.header.hand': 'Lámh {n}',
+  'ginrummy.header.yourDeadwood': 'Do deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Cnag',
@@ -818,6 +820,7 @@ export const ga: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Malartaigh an fear fiáin ar an tíl bheacht a sheasann sé di.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Linn {n}',
+  'rummytiles.header.yourHand': 'Sa lámh: {n}',
   'rummytiles.header.round': 'Babhta {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Babhta',
@@ -3004,6 +3007,7 @@ export const ga: Record<string, string> = {
   'pinochle.seat.passed': 'Lig thart',
   'pinochle.seat.bid': 'Tairiscint {n}',
   'pinochle.seat.meld': 'Cumasc {n}',
+  'pinochle.seat.taken': 'Tógtha {n}',
   'pinochle.header.hand': 'Lámh {n}',
   'pinochle.header.trump': 'Mámh: {suit}',
   'pinochle.header.bid': 'Thairg {playerId} {n}',

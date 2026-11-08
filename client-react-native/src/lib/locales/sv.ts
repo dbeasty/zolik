@@ -305,7 +305,7 @@ export const sv: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Vunna givar {n}',
-  'zolik.standing.inHand': 'På handen {n}',
+  'zolik.header.yourHand': 'På handen {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -572,6 +572,7 @@ export const sv: Record<string, string> = {
   'badge.cleanRun': 'Ren sekvens',
   'canasta.seat.teamScore': 'Lagets poäng',
   'canasta.seat.canastas': 'Canastor',
+  'canasta.seat.onTable': 'På bordet {n}',
   'canasta.seat.toOpen': 'För att öppna',
   'holdem.header.pot': 'Pott',
   'holdem.header.street': 'Gata',
@@ -696,6 +697,7 @@ export const sv: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Kasta {value}',
   'ginrummy.fact.meldCards': 'På {value}',
   'ginrummy.header.hand': 'Giv {n}',
+  'ginrummy.header.yourDeadwood': 'Ditt deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Knacka',
@@ -789,6 +791,7 @@ export const sv: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Byt jokern mot exakt den bricka den står för.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Påse {n}',
+  'rummytiles.header.yourHand': 'På handen {n}',
   'rummytiles.header.round': 'Rond {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Rond',
@@ -2970,6 +2973,7 @@ export const sv: Record<string, string> = {
   'pinochle.seat.passed': 'Passat',
   'pinochle.seat.bid': 'Bud {n}',
   'pinochle.seat.meld': 'Utlagt {n}',
+  'pinochle.seat.taken': 'Taget {n}',
   'pinochle.header.hand': 'Giv {n}',
   'pinochle.header.trump': 'Trumf: {suit}',
   'pinochle.header.bid': '{playerId} bjöd {n}',
