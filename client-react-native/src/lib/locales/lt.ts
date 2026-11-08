@@ -1161,10 +1161,10 @@ export const lt: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Išsaugok statistiką visuose įrenginiuose',
-  'auth.login.continueWithEmail': 'Tęsti su el. paštu',
+  'auth.login.continueWithEmail': 'Atsiųsti prisijungimo kodą el. paštu',
   'auth.login.usernameInstead': 'Prisijungti vietoj to naudotojo vardu',
   'auth.email.title': 'Prisijungimas el. paštu',
-  'auth.email.subtitle': 'Atsiųsime tau vienkartinį kodą',
+  'auth.email.subtitle': 'Slaptažodžio nereikia. El. paštu atsiųsime tau vienkartinį prisijungimo kodą.',
   'auth.email.address': 'El. pašto adresas',
   'auth.email.send': 'Siųsti kodą',
   'auth.email.codeTitle': 'Įvesk kodą',

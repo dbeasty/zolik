@@ -1155,10 +1155,10 @@ export const en: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Keep your statistics across devices',
-  'auth.login.continueWithEmail': 'Continue with email',
+  'auth.login.continueWithEmail': 'Email me a sign-in code',
   'auth.login.usernameInstead': 'Sign in with a username instead',
   'auth.email.title': 'Sign in with email',
-  'auth.email.subtitle': "We'll email you a one-time code",
+  'auth.email.subtitle': "No password needed. We'll email you a one-time code to sign in.",
   'auth.email.address': 'Email address',
   'auth.email.send': 'Send code',
   'auth.email.codeTitle': 'Enter the code',

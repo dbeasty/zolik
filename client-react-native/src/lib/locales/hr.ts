@@ -1160,10 +1160,10 @@ export const hr: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Zadrži svoju statistiku na svim uređajima',
-  'auth.login.continueWithEmail': 'Nastavi e-poštom',
+  'auth.login.continueWithEmail': 'Pošalji mi kôd za prijavu e-poštom',
   'auth.login.usernameInstead': 'Prijavi se radije korisničkim imenom',
   'auth.email.title': 'Prijava e-poštom',
-  'auth.email.subtitle': 'Poslat ćemo ti jednokratni kôd',
+  'auth.email.subtitle': 'Lozinka nije potrebna. E-poštom ćemo ti poslati jednokratni kôd za prijavu.',
   'auth.email.address': 'Adresa e-pošte',
   'auth.email.send': 'Pošalji kôd',
   'auth.email.codeTitle': 'Upiši kôd',

@@ -1181,10 +1181,10 @@ export const fr: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Garde tes statistiques sur tous tes appareils',
-  'auth.login.continueWithEmail': "Continuer avec l'e-mail",
+  'auth.login.continueWithEmail': 'Recevoir un code de connexion par e-mail',
   'auth.login.usernameInstead': 'Se connecter avec un identifiant à la place',
   'auth.email.title': 'Connexion par e-mail',
-  'auth.email.subtitle': "Nous t'enverrons un code à usage unique",
+  'auth.email.subtitle': "Pas besoin de mot de passe. Nous t'enverrons par e-mail un code à usage unique pour te connecter.",
   'auth.email.address': 'Adresse e-mail',
   'auth.email.send': 'Envoyer le code',
   'auth.email.codeTitle': 'Saisis le code',

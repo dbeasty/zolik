@@ -1176,10 +1176,10 @@ export const ro: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Păstrează-ți statisticile pe toate dispozitivele',
-  'auth.login.continueWithEmail': 'Continuă cu e-mailul',
+  'auth.login.continueWithEmail': 'Trimite-mi un cod de conectare pe e-mail',
   'auth.login.usernameInstead': 'Autentifică-te mai degrabă cu un nume de utilizator',
   'auth.email.title': 'Autentificare cu e-mail',
-  'auth.email.subtitle': 'Îți trimitem un cod de unică folosință',
+  'auth.email.subtitle': 'Nu ai nevoie de parolă. Îți trimitem pe e-mail un cod de unică folosință pentru conectare.',
   'auth.email.address': 'Adresă de e-mail',
   'auth.email.send': 'Trimite codul',
   'auth.email.codeTitle': 'Introdu codul',

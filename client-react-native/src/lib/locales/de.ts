@@ -1184,10 +1184,10 @@ export const de: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Behalte deine Statistiken auf allen Geräten',
-  'auth.login.continueWithEmail': 'Mit E-Mail fortfahren',
+  'auth.login.continueWithEmail': 'Anmeldecode per E-Mail senden',
   'auth.login.usernameInstead': 'Stattdessen mit Benutzernamen anmelden',
   'auth.email.title': 'Mit E-Mail anmelden',
-  'auth.email.subtitle': 'Wir schicken dir einen Einmalcode per E-Mail',
+  'auth.email.subtitle': 'Kein Passwort nötig. Wir schicken dir einen Einmalcode per E-Mail zum Anmelden.',
   'auth.email.address': 'E-Mail-Adresse',
   'auth.email.send': 'Code senden',
   'auth.email.codeTitle': 'Code eingeben',

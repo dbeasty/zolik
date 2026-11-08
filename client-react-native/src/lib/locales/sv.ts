@@ -1155,10 +1155,10 @@ export const sv: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Behåll din statistik på alla enheter',
-  'auth.login.continueWithEmail': 'Fortsätt med e-post',
+  'auth.login.continueWithEmail': 'Mejla mig en inloggningskod',
   'auth.login.usernameInstead': 'Logga in med användarnamn i stället',
   'auth.email.title': 'Logga in med e-post',
-  'auth.email.subtitle': 'Vi mejlar dig en engångskod',
+  'auth.email.subtitle': 'Inget lösenord behövs. Vi mejlar dig en engångskod för att logga in.',
   'auth.email.address': 'E-postadress',
   'auth.email.send': 'Skicka kod',
   'auth.email.codeTitle': 'Ange koden',

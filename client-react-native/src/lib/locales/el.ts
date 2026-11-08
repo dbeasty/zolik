@@ -1197,10 +1197,10 @@ export const el: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Κράτα τα στατιστικά σου σε όλες τις συσκευές',
-  'auth.login.continueWithEmail': 'Συνέχεια με email',
+  'auth.login.continueWithEmail': 'Στείλε μου κωδικό σύνδεσης με email',
   'auth.login.usernameInstead': "Σύνδεση με όνομα χρήστη αντ' αυτού",
   'auth.email.title': 'Σύνδεση με email',
-  'auth.email.subtitle': 'Θα σου στείλουμε έναν κωδικό μιας χρήσης',
+  'auth.email.subtitle': 'Δεν χρειάζεται συνθηματικό. Θα σου στείλουμε με email έναν κωδικό μιας χρήσης για να συνδεθείς.',
   'auth.email.address': 'Διεύθυνση email',
   'auth.email.send': 'Αποστολή κωδικού',
   'auth.email.codeTitle': 'Βάλε τον κωδικό',

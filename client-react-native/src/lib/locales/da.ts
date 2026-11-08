@@ -1157,10 +1157,10 @@ export const da: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Behold din statistik på alle enheder',
-  'auth.login.continueWithEmail': 'Fortsæt med e-mail',
+  'auth.login.continueWithEmail': 'Send mig en loginkode på e-mail',
   'auth.login.usernameInstead': 'Log ind med brugernavn i stedet',
   'auth.email.title': 'Log ind med e-mail',
-  'auth.email.subtitle': 'Vi sender dig en engangskode',
+  'auth.email.subtitle': 'Du behøver ingen adgangskode. Vi sender dig en engangskode på e-mail, så du kan logge ind.',
   'auth.email.address': 'E-mailadresse',
   'auth.email.send': 'Send kode',
   'auth.email.codeTitle': 'Indtast koden',

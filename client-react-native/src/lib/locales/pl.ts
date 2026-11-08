@@ -1166,10 +1166,10 @@ export const pl: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Zachowaj statystyki na wszystkich urządzeniach',
-  'auth.login.continueWithEmail': 'Kontynuuj e-mailem',
+  'auth.login.continueWithEmail': 'Wyślij mi kod logowania e-mailem',
   'auth.login.usernameInstead': 'Zaloguj się zamiast tego nazwą użytkownika',
   'auth.email.title': 'Logowanie e-mailem',
-  'auth.email.subtitle': 'Wyślemy ci jednorazowy kod',
+  'auth.email.subtitle': 'Hasło nie jest potrzebne. Wyślemy ci e-mailem jednorazowy kod do logowania.',
   'auth.email.address': 'Adres e-mail',
   'auth.email.send': 'Wyślij kod',
   'auth.email.codeTitle': 'Wpisz kod',

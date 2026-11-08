@@ -1159,10 +1159,10 @@ export const lv: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Saglabā savu statistiku visās ierīcēs',
-  'auth.login.continueWithEmail': 'Turpināt ar e-pastu',
+  'auth.login.continueWithEmail': 'Sūtīt man pieteikšanās kodu e-pastā',
   'auth.login.usernameInstead': 'Pierakstīties labāk ar lietotājvārdu',
   'auth.email.title': 'Pierakstīšanās ar e-pastu',
-  'auth.email.subtitle': 'Nosūtīsim tev vienreizēju kodu',
+  'auth.email.subtitle': 'Parole nav vajadzīga. Nosūtīsim tev e-pastā vienreizēju pieteikšanās kodu.',
   'auth.email.address': 'E-pasta adrese',
   'auth.email.send': 'Nosūtīt kodu',
   'auth.email.codeTitle': 'Ievadi kodu',

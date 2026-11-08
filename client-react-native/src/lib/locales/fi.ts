@@ -1167,10 +1167,10 @@ export const fi: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Säilytä tilastosi kaikilla laitteilla',
-  'auth.login.continueWithEmail': 'Jatka sähköpostilla',
+  'auth.login.continueWithEmail': 'Lähetä kirjautumiskoodi sähköpostiin',
   'auth.login.usernameInstead': 'Kirjaudu sen sijaan käyttäjänimellä',
   'auth.email.title': 'Kirjautuminen sähköpostilla',
-  'auth.email.subtitle': 'Lähetämme sinulle kertakäyttöisen koodin',
+  'auth.email.subtitle': 'Salasanaa ei tarvita. Lähetämme sinulle sähköpostiin kertakäyttöisen kirjautumiskoodin.',
   'auth.email.address': 'Sähköpostiosoite',
   'auth.email.send': 'Lähetä koodi',
   'auth.email.codeTitle': 'Syötä koodi',

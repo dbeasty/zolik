@@ -1159,10 +1159,10 @@ export const sk: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Maj svoje štatistiky na všetkých zariadeniach',
-  'auth.login.continueWithEmail': 'Pokračovať e-mailom',
+  'auth.login.continueWithEmail': 'Poslať prihlasovací kód e-mailom',
   'auth.login.usernameInstead': 'Prihlásiť sa radšej menom',
   'auth.email.title': 'Prihlásenie e-mailom',
-  'auth.email.subtitle': 'Pošleme ti jednorazový kód',
+  'auth.email.subtitle': 'Heslo nie je potrebné. Pošleme ti e-mailom jednorazový kód na prihlásenie.',
   'auth.email.address': 'E-mailová adresa',
   'auth.email.send': 'Poslať kód',
   'auth.email.codeTitle': 'Zadaj kód',

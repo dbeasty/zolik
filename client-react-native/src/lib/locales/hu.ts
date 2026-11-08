@@ -1175,10 +1175,10 @@ export const hu: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Őrizd meg a statisztikáidat minden eszközön',
-  'auth.login.continueWithEmail': 'Folytatás e-maillel',
+  'auth.login.continueWithEmail': 'Belépési kód küldése e-mailben',
   'auth.login.usernameInstead': 'Belépés inkább felhasználónévvel',
   'auth.email.title': 'Belépés e-maillel',
-  'auth.email.subtitle': 'Küldünk egy egyszer használatos kódot',
+  'auth.email.subtitle': 'Nincs szükség jelszóra. E-mailben küldünk egy egyszer használatos belépési kódot.',
   'auth.email.address': 'E-mail-cím',
   'auth.email.send': 'Kód küldése',
   'auth.email.codeTitle': 'Írd be a kódot',

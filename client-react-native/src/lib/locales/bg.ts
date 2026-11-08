@@ -1172,10 +1172,10 @@ export const bg: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Запази статистиката си на всички устройства',
-  'auth.login.continueWithEmail': 'Продължи с имейл',
+  'auth.login.continueWithEmail': 'Изпрати ми код за вход по имейл',
   'auth.login.usernameInstead': 'Влез вместо това с потребителско име',
   'auth.email.title': 'Влизане с имейл',
-  'auth.email.subtitle': 'Ще ти изпратим еднократен код',
+  'auth.email.subtitle': 'Не е нужна парола. Ще ти изпратим по имейл еднократен код за вход.',
   'auth.email.address': 'Имейл адрес',
   'auth.email.send': 'Изпрати код',
   'auth.email.codeTitle': 'Въведи кода',

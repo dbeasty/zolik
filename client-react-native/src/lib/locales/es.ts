@@ -1179,10 +1179,10 @@ export const es: Record<string, string> = {
 
   // --- signing in -----------------------------------------------------------
   'auth.login.subtitle': 'Conserva tus estadísticas en todos tus dispositivos',
-  'auth.login.continueWithEmail': 'Continuar con el correo',
+  'auth.login.continueWithEmail': 'Enviarme un código de acceso por correo',
   'auth.login.usernameInstead': 'Iniciar sesión con un usuario en su lugar',
   'auth.email.title': 'Acceso con correo',
-  'auth.email.subtitle': 'Te enviaremos un código de un solo uso',
+  'auth.email.subtitle': 'No necesitas contraseña. Te enviaremos por correo un código de un solo uso para entrar.',
   'auth.email.address': 'Dirección de correo',
   'auth.email.send': 'Enviar código',
   'auth.email.codeTitle': 'Introduce el código',
