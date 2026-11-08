@@ -311,7 +311,7 @@ export const et: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Võidetud jagamisi: {n}',
-  'zolik.standing.inHand': 'Käes: {n}',
+  'zolik.header.yourHand': 'Käes: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -580,6 +580,7 @@ export const et: Record<string, string> = {
   'badge.cleanRun': 'Puhas jada',
   'canasta.seat.teamScore': 'Meeskonna punktid',
   'canasta.seat.canastas': 'Canastad',
+  'canasta.seat.onTable': 'Laual {n}',
   'canasta.seat.toOpen': 'Avamiseks',
   'holdem.header.pot': 'Pank',
   'holdem.header.street': 'Ring',
@@ -703,6 +704,7 @@ export const et: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Viska ära {value}',
   'ginrummy.fact.meldCards': 'Kombinatsiooni {value}',
   'ginrummy.header.hand': 'Käsi {n}',
+  'ginrummy.header.yourDeadwood': 'Sinu deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Gin',
   'ginrummy.kind.knock': 'Koputa',
@@ -797,6 +799,7 @@ export const et: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Vaheta jokker täpselt selle klotsi vastu, mida ta asendab.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Varu {n}',
+  'rummytiles.header.yourHand': 'Käes: {n}',
   'rummytiles.header.round': 'Voor {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Voor',
@@ -2973,6 +2976,7 @@ export const et: Record<string, string> = {
   'pinochle.seat.passed': 'Passis',
   'pinochle.seat.bid': 'Pakkumine {n}',
   'pinochle.seat.meld': 'Väljapanek {n}',
+  'pinochle.seat.taken': 'Võetud {n}',
   'pinochle.header.hand': 'Jagu {n}',
   'pinochle.header.trump': 'Trumbid: {suit}',
   'pinochle.header.bid': '{playerId} pakkus {n}',

@@ -125,7 +125,7 @@ var variationDefaults = map[string]int{
 	OptRedDoubles:                module.OptOn,
 	OptFlekLimit:                 FlekUnlimited,
 	OptZLidu:                     module.OptOn,
-	OptShowCardPoints:            module.OptOff,
+	OptShowCardPoints:            module.OptOn,
 	OptOpenBetlDurch:             module.OptOff,
 	module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 	module.OptStandInAfter:       module.StandInAfterDefault,

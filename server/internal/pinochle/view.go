@@ -189,9 +189,24 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 					seat.Facts = append(seat.Facts, module.Fact{LabelKey: "pinochle.seat.bid", Value: strconv.Itoa(n), Params: map[string]any{"n": n}})
 				}
 			}
-			if s.meldShown() {
+			// The running score: each seat's meld and its side's points taken,
+			// for the whole of the play rather than only the first trick. Both
+			// are public — the meld was laid face up, the tricks were played
+			// face up — so the option decides only whether the table shows
+			// them or leaves them to be remembered.
+			running := (!s.HideCardPoints || reveal) && (s.Phase == phasePlay || s.Phase == phaseMeld)
+			if s.meldShown() || running && s.Variation != VarTwoHanded {
 				n := s.Melds[p].Total
 				seat.Facts = append(seat.Facts, module.Fact{LabelKey: "pinochle.seat.meld", Value: strconv.Itoa(n), Params: map[string]any{"n": n}})
+			}
+			if running {
+				side := s.side(p)
+				if s.Variation == VarTwoHanded {
+					n := s.MeldScore[side]
+					seat.Facts = append(seat.Facts, module.Fact{LabelKey: "pinochle.seat.meld", Value: strconv.Itoa(n), Params: map[string]any{"n": n}})
+				}
+				n := s.Taken[side]
+				seat.Facts = append(seat.Facts, module.Fact{LabelKey: "pinochle.seat.taken", Value: strconv.Itoa(n), Params: map[string]any{"n": n}})
 			}
 		}
 		vm.Seats = append(vm.Seats, seat)
@@ -208,7 +223,9 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		vm.Header = append(vm.Header, module.Fact{LabelKey: "pinochle.header.bid", Value: strconv.Itoa(s.Bid),
 			Params: map[string]any{"n": s.Bid, "playerId": s.Bidder}})
 	}
-	if playing && seated && (s.Phase == phasePlay || s.Phase == phaseMeld) {
+	// With the running score on the seats, the header's copy of the viewer's
+	// own numbers would only say them twice.
+	if playing && seated && s.HideCardPoints && (s.Phase == phasePlay || s.Phase == phaseMeld) {
 		side := s.side(viewerID)
 		n := s.Taken[side]
 		if s.Variation == VarTwoHanded {

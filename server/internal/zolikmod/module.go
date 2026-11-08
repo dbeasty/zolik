@@ -615,6 +615,13 @@ func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.Vie
 	case contract.RequireCleanRun:
 		vm.Header = append(vm.Header, module.Fact{LabelKey: "header.contract.cleanRunOnly"})
 	}
+	// The deal's running score for the one player it is a secret from nobody
+	// else to keep: what would count against them if the deal ended now.
+	if _, seated := gs.Hands[viewerID]; seated && gs.Status == rules.StatusActive {
+		vm.Header = append(vm.Header, module.Fact{
+			LabelKey: "zolik.header.yourHand", Params: map[string]any{"n": handPenalty(gs, viewerID)},
+		})
+	}
 	if gs.DiscardDrawnCardPendingMeld != "" && gs.CurrentTurn == viewerID {
 		vm.Prompts = append(vm.Prompts, module.Fact{
 			LabelKey: "prompt.pickupMustBeMelded",
@@ -811,8 +818,11 @@ func (m *Module) standingsOf(s *matchState) ([]module.Standing, error) {
 		out[i].Shown = &shown
 		out[i].Facts = []module.Fact{
 			{LabelKey: "zolik.standing.dealsWon", Params: map[string]any{"n": dealsWon[id]}},
-			{LabelKey: "zolik.standing.inHand", Params: map[string]any{"n": handPenalty(gs, id)}},
 		}
+		// What a player is holding, in points, is not here: the scoreboard is
+		// the same for everyone at the table, and a hand's penalty is a sum
+		// over cards only its owner can see — a joker alone moves it by 50.
+		// The owner reads theirs in the header (see View).
 	}
 	return out, nil
 }

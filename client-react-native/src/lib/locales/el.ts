@@ -321,7 +321,7 @@ export const el: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Κερδισμένες μοιρασιές {n}',
-  'zolik.standing.inHand': 'Στο χέρι {n}',
+  'zolik.header.yourHand': 'Στο χέρι {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -592,6 +592,7 @@ export const el: Record<string, string> = {
   'badge.cleanRun': 'Καθαρή σειρά',
   'canasta.seat.teamScore': 'Σκορ ομάδας',
   'canasta.seat.canastas': 'Καναστες',
+  'canasta.seat.onTable': 'Στο τραπέζι {n}',
   'canasta.seat.toOpen': 'Για άνοιγμα',
   'holdem.header.pot': 'Πότ',
   'holdem.header.street': 'Γύρος',
@@ -720,6 +721,7 @@ export const el: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Πέταξε {value}',
   'ginrummy.fact.meldCards': 'Στο {value}',
   'ginrummy.header.hand': 'Μοιρασιά {n}',
+  'ginrummy.header.yourDeadwood': 'Το ντεντγουντ σου {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Τζιν',
   'ginrummy.kind.knock': 'Χτύπα',
@@ -819,6 +821,7 @@ export const el: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Αντάλλαξε τον μπαλαντέρ με ακριβώς το πλακάκι που αντιπροσωπεύει.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Απόθεμα {n}',
+  'rummytiles.header.yourHand': 'Στο χέρι {n}',
   'rummytiles.header.round': 'Γύρος {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Γύρος',
@@ -3011,6 +3014,7 @@ export const el: Record<string, string> = {
   'pinochle.seat.passed': 'Πάσο',
   'pinochle.seat.bid': 'Δήλωση {n}',
   'pinochle.seat.meld': 'Συνδυασμοί {n}',
+  'pinochle.seat.taken': 'Πάρθηκαν {n}',
   'pinochle.header.hand': 'Μοιρασιά {n}',
   'pinochle.header.trump': 'Ατού: {suit}',
   'pinochle.header.bid': '{playerId} δήλωσε {n}',

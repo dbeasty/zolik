@@ -131,6 +131,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: AllPassRedeal, Label: "Throw the hand in and deal again"},
 				},
 			},
+			{
+				Name:  OptShowCardPoints,
+				Type:  module.OptionEnumInt,
+				Label: "Show card points",
+				Help:  "Show every side's meld and points taken as the hand is played. Your own are always shown to you.",
+				Choices: []module.OptionChoice{
+					{Value: module.OptOff, Label: "Hidden"},
+					{Value: module.OptOn, Label: "Shown"},
+				},
+			},
 			module.BotSkillOption(),
 			module.PauseOption(),
 			module.StandInOption(),
@@ -148,6 +158,7 @@ func defaultsFor(variation string) map[string]int {
 		OptPass:                      0,
 		OptMeldNeeds:                 MeldNeedsTrick,
 		OptAllPass:                   AllPassDealerStuck,
+		OptShowCardPoints:            module.OptOn,
 		module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 		module.OptPauseBetweenRounds: module.OptOn,
 		module.OptStandInAfter:       module.StandInAfterDefault,
@@ -155,13 +166,14 @@ func defaultsFor(variation string) map[string]int {
 }
 
 type config struct {
-	variation string
-	scoring   int
-	minBid    int
-	target    int
-	pass      int
-	meldNeeds int
-	allPass   int
+	variation      string
+	scoring        int
+	minBid         int
+	target         int
+	pass           int
+	meldNeeds      int
+	allPass        int
+	showCardPoints bool
 }
 
 func resolve(cfg module.MatchConfig) config {
@@ -172,13 +184,14 @@ func resolve(cfg module.MatchConfig) config {
 	d := defaultsFor(v)
 	opt := func(name string) int { return cfg.Opt(name, d[name]) }
 	c := config{
-		variation: v,
-		scoring:   opt(OptScoring),
-		minBid:    opt(OptMinBid),
-		target:    max(100, opt(OptTarget)),
-		pass:      opt(OptPass),
-		meldNeeds: opt(OptMeldNeeds),
-		allPass:   opt(OptAllPass),
+		variation:      v,
+		scoring:        opt(OptScoring),
+		minBid:         opt(OptMinBid),
+		target:         max(100, opt(OptTarget)),
+		pass:           opt(OptPass),
+		meldNeeds:      opt(OptMeldNeeds),
+		allPass:        opt(OptAllPass),
+		showCardPoints: opt(OptShowCardPoints) == module.OptOn,
 	}
 	if c.scoring != ScoringClassic {
 		c.scoring = ScoringCounters
@@ -198,12 +211,13 @@ func resolve(cfg module.MatchConfig) config {
 // config is the match's options as a lobby would send them.
 func (s *GameState) config() module.MatchConfig {
 	return module.MatchConfig{Variation: s.Variation, Options: module.Options{
-		OptScoring:   s.Scoring,
-		OptMinBid:    s.MinBid,
-		OptTarget:    s.Target,
-		OptPass:      s.PassCount,
-		OptMeldNeeds: s.MeldNeeds,
-		OptAllPass:   s.AllPass,
+		OptScoring:        s.Scoring,
+		OptMinBid:         s.MinBid,
+		OptTarget:         s.Target,
+		OptPass:           s.PassCount,
+		OptMeldNeeds:      s.MeldNeeds,
+		OptAllPass:        s.AllPass,
+		OptShowCardPoints: module.BoolOpt(!s.HideCardPoints),
 	}}
 }
 

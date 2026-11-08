@@ -312,7 +312,7 @@ export const lv: Record<string, string> = {
   // as the keys above: the number lives in the params, and `humanise` would
   // render "Deals Won" with nothing after it.
   'zolik.standing.dealsWon': 'Uzvarēti dalījumi: {n}',
-  'zolik.standing.inHand': 'Rokā: {n}',
+  'zolik.header.yourHand': 'Rokā: {n}',
 
   // --- rounds ---------------------------------------------------------------
   // What a round is called, and what one did. Each of these carries its number
@@ -576,6 +576,7 @@ export const lv: Record<string, string> = {
   'badge.cleanRun': 'Tīra secība',
   'canasta.seat.teamScore': 'Komandas punkti',
   'canasta.seat.canastas': 'Kanastas',
+  'canasta.seat.onTable': 'Uz galda {n}',
   'canasta.seat.toOpen': 'Atklāšanai',
   'holdem.header.pot': 'Banka',
   'holdem.header.street': 'Kārta',
@@ -699,6 +700,7 @@ export const lv: Record<string, string> = {
   'ginrummy.fact.discardCard': 'Izmet {value}',
   'ginrummy.fact.meldCards': 'Pie {value}',
   'ginrummy.header.hand': 'Roka {n}',
+  'ginrummy.header.yourDeadwood': 'Tavs deadwood {n}',
   'ginrummy.round.kind': '{value}',
   'ginrummy.kind.gin': 'Džins',
   'ginrummy.kind.knock': 'Klauvē',
@@ -793,6 +795,7 @@ export const lv: Record<string, string> = {
   'rummytiles.remedy.matchTheJoker': 'Apmaini džokeru tieši pret to kauliņu, ko tas aizstāj.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Krājums {n}',
+  'rummytiles.header.yourHand': 'Rokā: {n}',
   'rummytiles.header.round': 'Raunds {n}',
   'rummytiles.round.kind': '{value}',
   'rummytiles.round.round': 'Raunds',
@@ -2969,6 +2972,7 @@ export const lv: Record<string, string> = {
   'pinochle.seat.passed': 'Pasēja',
   'pinochle.seat.bid': 'Solīja {n}',
   'pinochle.seat.meld': 'Kombinācijas {n}',
+  'pinochle.seat.taken': 'Paņemts {n}',
   'pinochle.header.hand': 'Dalījums {n}',
   'pinochle.header.trump': 'Trumpji: {suit}',
   'pinochle.header.bid': '{playerId} solīja {n}',
