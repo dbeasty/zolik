@@ -257,6 +257,16 @@ function inkWords(): [string, Colour][] {
 }
 
 /** The colour a `lastcard.colour.*` key names — a header's value, a choice's label. */
+/**
+ * The French suit a message key names — `suit.H` is hearts — or undefined for
+ * any other key. A header fact whose value is one of these is a suit in play
+ * (trumps), and is drawn as that suit rather than only named.
+ */
+export function frenchSuitOfKey(key?: string): 'C' | 'D' | 'H' | 'S' | undefined {
+  const m = key ? /^suit\.([CDHS])$/.exec(key) : null;
+  return m ? (m[1] as 'C' | 'D' | 'H' | 'S') : undefined;
+}
+
 export function lastCardColourOfKey(key?: string): Colour | undefined {
   const m = key ? /^lastcard\.colour\.([CTVA])$/.exec(key) : null;
   return m ? (m[1] as Colour) : undefined;

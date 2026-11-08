@@ -20,6 +20,7 @@ import (
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/okobere"
+	"zolik/server/internal/pinochle"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
@@ -113,6 +114,17 @@ func replayables() []replayable {
 		{"sietemedio/abierta", sietemedio.New(), refs("p1", "p2", "p3"),
 			module.MatchConfig{Variation: sietemedio.VarAbierta},
 			[]string{"continue", "stake", "stand", "hit"}, nil},
+		{"pinochle", pinochle.New(), refs("p1", "p2", "p3", "p4"), module.MatchConfig{},
+			[]string{"continue", "pass", "name_trump", "play_card"}, nil},
+		{"pinochle/cutthroat", pinochle.New(), refs("p1", "p2", "p3"),
+			module.MatchConfig{Variation: pinochle.VarCutthroat},
+			[]string{"continue", "pass", "name_trump", "bury", "play_card"}, nil},
+		{"pinochle/twohanded", pinochle.New(), refs("p1", "p2"),
+			module.MatchConfig{Variation: pinochle.VarTwoHanded},
+			[]string{"continue", "meld", "play_card", "draw"}, nil},
+		{"pinochle/doubledeck", pinochle.New(), refs("p1", "p2", "p3", "p4"),
+			module.MatchConfig{Variation: pinochle.VarDoubleDeck},
+			[]string{"continue", "pass", "name_trump", "play_card"}, nil},
 	}
 }
 
@@ -194,7 +206,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 func replayManager() *Manager {
 	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(),
+		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(),
 	)}
 }
 

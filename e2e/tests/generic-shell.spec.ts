@@ -195,6 +195,7 @@ const GAMES = [
     seats: 3,
     options: { rounds: 6, startingStack: 200 },
   },
+  { moduleId: 'pinochle', label: 'Pinochle', seats: 4 },
 ];
 
 test.describe('one shell, every game', () => {
@@ -516,7 +517,7 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
     // The menu is one row per game, and no game's controls.
-    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack', 'sietemedio']) {
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack', 'sietemedio', 'pinochle']) {
       await expect(page.getByTestId(`game-${id}`)).toBeVisible();
     }
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toHaveCount(0);

@@ -814,7 +814,7 @@ export function matchStyles(s: Skin) {
   linkTarget: { minHeight: 24, justifyContent: 'center' },
   rulesLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
   status: { color: colors.muted, fontSize: 12 },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
+  facts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 2 },
   fact: { color: colors.muted, fontSize: 12 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
   statusDotOk: { backgroundColor: colors.success },

@@ -38,6 +38,10 @@ func DefaultCosts() map[Class]time.Duration {
 		// Sedma Hard plays every choice out over 24 sampled deals; the
 		// two-seat table, with the longest stock, is the dearest.
 		{"sedma", "hard", EngineRule}: 1220 * time.Microsecond,
+		// Pinochle Hard plays every candidate out over 10 sampled deals and
+		// solves the last 20 cards exactly; the double-deck table, with 80
+		// cards and the longest rollouts, is the dearest (p95 about 20 ms).
+		{"pinochle", "hard", EngineRule}: 4200 * time.Microsecond,
 		// Šnaps Hard solves the endgame over sampled hands; Šedesát šest,
 		// with six cards a hand, is the dearer variation (p99 6 ms).
 		{"snaps", "hard", EngineRule}: 990 * time.Microsecond,

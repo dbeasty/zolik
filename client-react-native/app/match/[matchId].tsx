@@ -25,6 +25,7 @@ import type { ParamSpec } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { ColourInPlay } from '@/src/components/cards/LastCardInk';
+import { SuitInPlay } from '@/src/components/cards/SuitInPlay';
 import { DeckProvider } from '@/src/lib/deck';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { BoardSheet } from '@/src/components/match/BoardSheet';
@@ -95,7 +96,7 @@ import {
 } from '@/src/lib/flights';
 import { useNoShrink } from '@/src/hooks/useNoShrink';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
-import { lastCardColourOfKey } from '@/src/lib/cards';
+import { frenchSuitOfKey, lastCardColourOfKey } from '@/src/lib/cards';
 import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection, type Slot } from '@/src/lib/hand';
 import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
@@ -2624,6 +2625,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
               // A Last Card colour in play is shown in that colour, not only named.
               lastCardColourOfKey(f.value) ? (
                 <ColourInPlay key={`${f.labelKey}-${i}`} fact={f} style={styles.fact} />
+              ) : frenchSuitOfKey(f.value) ? (
+                // Trumps, drawn as the suit — see SuitInPlay.
+                <SuitInPlay key={`${f.labelKey}-${i}`} fact={f} players={state.players} style={styles.fact} />
               ) : (
                 <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
                   {factText(f, state.players)}

@@ -25,6 +25,7 @@ import lastcard from './lastcard.json';
 import lora from './lora.json';
 import marias from './marias.json';
 import okobere from './okobere.json';
+import pinochle from './pinochle.json';
 import prsi from './prsi.json';
 import rummytiles from './rummytiles.json';
 import sedma from './sedma.json';
@@ -49,6 +50,7 @@ export const GUIDE_TOPICS: Record<string, Topic> = {
   lora,
   marias,
   okobere,
+  pinochle,
   prsi,
   rummytiles,
   sedma,

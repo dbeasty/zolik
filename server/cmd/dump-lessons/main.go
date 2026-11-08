@@ -27,6 +27,7 @@ import (
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/okobere"
+	"zolik/server/internal/pinochle"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
@@ -39,7 +40,7 @@ func main() {
 	mods := []module.GameModule{
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(),
 		blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(),
-		okobere.New(), ferbl.New(), lora.New(), sietemedio.New(),
+		okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(),
 	}
 	all := map[string]bool{}
 	for _, m := range mods {

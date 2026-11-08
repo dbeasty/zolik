@@ -20,6 +20,7 @@ import (
 	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/okobere"
+	"zolik/server/internal/pinochle"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/sedma"
@@ -188,6 +189,42 @@ func allModules() []hosted {
 			players:  refs("p1", "p2", "p3"),
 			cfg:      module.MatchConfig{Variation: sietemedio.VarAbierta, Options: module.Options{sietemedio.OptRounds: 12}},
 			prefer:   []string{"stake", "hit", "stand"},
+			finishes: true,
+		},
+		{
+			name:     "pinochle",
+			rounds:   true,
+			mod:      pinochle.New(),
+			players:  refs("p1", "p2", "p3", "p4"),
+			cfg:      module.MatchConfig{Options: module.Options{pinochle.OptTarget: 1000}},
+			prefer:   []string{"pass", "name_trump", "pass_cards", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "pinochle/cutthroat",
+			rounds:   true,
+			mod:      pinochle.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: pinochle.VarCutthroat, Options: module.Options{pinochle.OptTarget: 1000}},
+			prefer:   []string{"pass", "name_trump", "bury", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "pinochle/twohanded",
+			rounds:   true,
+			mod:      pinochle.New(),
+			players:  refs("p1", "p2"),
+			cfg:      module.MatchConfig{Variation: pinochle.VarTwoHanded},
+			prefer:   []string{"meld", "play_card", "draw"},
+			finishes: true,
+		},
+		{
+			name:     "pinochle/doubledeck",
+			rounds:   true,
+			mod:      pinochle.New(),
+			players:  refs("p1", "p2", "p3", "p4"),
+			cfg:      module.MatchConfig{Variation: pinochle.VarDoubleDeck},
+			prefer:   []string{"pass", "name_trump", "play_card"},
 			finishes: true,
 		},
 		{
