@@ -36,6 +36,29 @@ func TestSeatRangeFallsBackToTheModule(t *testing.T) {
 	}
 }
 
+// A default is a suggestion inside the seat range, never a way out of it.
+func TestDefaultSeatsStaysInsideTheSeatRange(t *testing.T) {
+	d := ModuleDescriptor{
+		MinPlayers:     2,
+		MaxPlayers:     6,
+		DefaultPlayers: 4,
+		Variations: []VariationSpec{
+			{ID: "silent"},
+			{ID: "own", DefaultPlayers: 5},
+			{ID: "pair", MinPlayers: 2, MaxPlayers: 2},
+			{ID: "six", MinPlayers: 6, MaxPlayers: 6},
+		},
+	}
+	for variation, want := range map[string]int{"silent": 4, "own": 5, "pair": 2, "six": 6, "": 4} {
+		if got := d.DefaultSeats(variation); got != want {
+			t.Errorf("DefaultSeats(%q) = %d, want %d", variation, got, want)
+		}
+	}
+	if got := (ModuleDescriptor{MinPlayers: 3, MaxPlayers: 4}).DefaultSeats(""); got != 3 {
+		t.Errorf("a module naming no default = %d, want its smallest table, 3", got)
+	}
+}
+
 func TestVariationAnswersToItsFormerIDs(t *testing.T) {
 	d := ModuleDescriptor{Variations: []VariationSpec{
 		{ID: "a"},

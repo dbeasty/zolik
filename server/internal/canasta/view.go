@@ -50,6 +50,8 @@ func (m *Module) descriptor() module.ModuleDescriptor {
 		Label:      "Canasta",
 		MinPlayers: 2,
 		MaxPlayers: 6,
+		// Two against two: the table Canasta is built around, in every variation.
+		DefaultPlayers: 4,
 		Variations: []module.VariationSpec{
 			{
 				ID:         "classic",

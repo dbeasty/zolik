@@ -21,10 +21,12 @@ var (
 // Descriptor is Oko bere's self-description.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID:                "okobere",
-		Label:             "Oko bere",
-		MinPlayers:        2,
-		MaxPlayers:        6,
+		ID:         "okobere",
+		Label:      "Oko bere",
+		MinPlayers: 2,
+		MaxPlayers: 6,
+		// A banker and three punters, so the bank has a table to play against.
+		DefaultPlayers:    4,
 		Deck:              module.DeckGerman,
 		SimulatedGambling: true,
 		Variations: []module.VariationSpec{{

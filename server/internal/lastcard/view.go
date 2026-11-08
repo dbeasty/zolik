@@ -36,10 +36,11 @@ const (
 // Descriptor is Last Card's self-description.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID:         "lastcard",
-		Label:      "Last Card",
-		MinPlayers: 2,
-		MaxPlayers: 10,
+		ID:             "lastcard",
+		Label:          "Last Card",
+		MinPlayers:     2,
+		MaxPlayers:     10,
+		DefaultPlayers: 4,
 		// Its own pack: the codes are "C-7", "T-S", "W4", and only a client
 		// that knows this deck can draw them.
 		Deck: module.DeckLastCard,

@@ -72,16 +72,22 @@ export function botChoices(mod: MatchModule, variation?: string): number[] {
 }
 
 /**
- * How many bots to seat: what the host picked, clamped to the range above.
- * A clamp rather than a plain read, so a count left over from a game (or a
- * variation) whose range has since moved can never post a seat the server is
- * going to refuse.
+ * How many bots to seat: what the host picked, or else enough to fill the
+ * game's usual table — three for Canasta's four players, five for six-handed
+ * Hold'em — clamped to the range above. A clamp rather than a plain read, so a
+ * count left over from a game (or a variation) whose range has since moved can
+ * never post a seat the server is going to refuse.
+ *
+ * The usual table is the descriptor's, and only ever a fallback: a count the
+ * player picked is saved and wins from then on.
  */
 export function botCount(mod: MatchModule, picked?: number, variation?: string): number {
   const choices = botChoices(mod, variation);
   const lo = choices[0];
   const hi = choices[choices.length - 1];
-  return Math.min(hi, Math.max(lo, picked ?? lo));
+  const spec = variation ? mod.variations?.find((v) => v.id === variation) : undefined;
+  const usual = (spec?.defaultPlayers || mod.defaultPlayers || 0) - 1;
+  return Math.min(hi, Math.max(lo, picked ?? usual));
 }
 
 /** Opens a table, fills every other seat with bots, and deals. */

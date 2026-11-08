@@ -36,7 +36,7 @@ func resolveVariation(cfg module.MatchConfig) variationDefaults {
 // corpus against.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID: "rummytiles", Label: "Rummy Tiles", MinPlayers: 2, MaxPlayers: 4,
+		ID: "rummytiles", Label: "Rummy Tiles", MinPlayers: 2, MaxPlayers: 4, DefaultPlayers: 4,
 		Variations: []module.VariationSpec{
 			{
 				ID: "standard", Label: "Standard",

@@ -33,7 +33,7 @@ func defaultsFor(id string) map[string]int {
 // Descriptor is Siete y Medio's self-description.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID: "sietemedio", Label: "Siete y Medio", MinPlayers: 2, MaxPlayers: 8,
+		ID: "sietemedio", Label: "Siete y Medio", MinPlayers: 2, MaxPlayers: 8, DefaultPlayers: 4,
 		SimulatedGambling: true,
 		// The forty-card Spanish pack. Presentational, like every other deck
 		// on this server: the codes are the ordinary French ones and a client

@@ -79,10 +79,11 @@ func encode(s *matchState) (module.State, error) {
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	d := rules.Descriptor()
 	out := module.ModuleDescriptor{
-		ID:         d.ID,
-		Label:      d.Label,
-		MinPlayers: d.MinPlayers,
-		MaxPlayers: d.MaxPlayers,
+		ID:             d.ID,
+		Label:          d.Label,
+		MinPlayers:     d.MinPlayers,
+		MaxPlayers:     d.MaxPlayers,
+		DefaultPlayers: 4,
 	}
 	for _, p := range d.Profiles {
 		cfg := rules.ResolveConfig(p.Rules)
