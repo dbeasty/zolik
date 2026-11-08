@@ -3420,6 +3420,7 @@ export const lv: Record<string, string> = {
   'a11y.table.seatUpTip': 'Pārvietot vienu vietu augstāk',
   'a11y.table.seatDownTip': 'Pārvietot vienu vietu zemāk',
   'a11y.auth.register': 'Reģistrēties',
+  'a11y.auth.showPassword': 'Rādīt paroli',
   'a11y.board.region.hand': 'Tavas kārtis',
   'a11y.board.region.table': 'Galds',
   'a11y.board.region.seats': 'Spēlētāji',

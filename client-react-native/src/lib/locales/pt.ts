@@ -3444,6 +3444,7 @@ export const pt: Record<string, string> = {
   'a11y.table.seatUpTip': 'Subir um lugar',
   'a11y.table.seatDownTip': 'Descer um lugar',
   'a11y.auth.register': 'Registar',
+  'a11y.auth.showPassword': 'Mostrar palavra-passe',
   'a11y.board.region.hand': 'A tua mão',
   'a11y.board.region.table': 'Mesa',
   'a11y.board.region.seats': 'Jogadores',

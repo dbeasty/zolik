@@ -3440,6 +3440,7 @@ export const it: Record<string, string> = {
   'a11y.table.seatUpTip': 'Sali di un posto',
   'a11y.table.seatDownTip': 'Scendi di un posto',
   'a11y.auth.register': 'Registrati',
+  'a11y.auth.showPassword': 'Mostra password',
   'a11y.board.region.hand': 'La tua mano',
   'a11y.board.region.table': 'Tavolo',
   'a11y.board.region.seats': 'Giocatori',

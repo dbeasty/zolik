@@ -3423,6 +3423,7 @@ export const hr: Record<string, string> = {
   'a11y.table.seatUpTip': 'Pomakni za mjesto gore',
   'a11y.table.seatDownTip': 'Pomakni za mjesto dolje',
   'a11y.auth.register': 'Registriraj se',
+  'a11y.auth.showPassword': 'Prikaži lozinku',
   'a11y.board.region.hand': 'Tvoja ruka',
   'a11y.board.region.table': 'Stol',
   'a11y.board.region.seats': 'Igrači',

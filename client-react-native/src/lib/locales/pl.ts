@@ -3431,6 +3431,7 @@ export const pl: Record<string, string> = {
   'a11y.table.seatUpTip': 'Przesuń o miejsce w górę',
   'a11y.table.seatDownTip': 'Przesuń o miejsce w dół',
   'a11y.auth.register': 'Zarejestruj się',
+  'a11y.auth.showPassword': 'Pokaż hasło',
   'a11y.board.region.hand': 'Twoja ręka',
   'a11y.board.region.table': 'Stół',
   'a11y.board.region.seats': 'Gracze',

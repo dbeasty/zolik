@@ -3462,6 +3462,7 @@ export const el: Record<string, string> = {
   'a11y.table.seatUpTip': 'Μία θέση πάνω',
   'a11y.table.seatDownTip': 'Μία θέση κάτω',
   'a11y.auth.register': 'Εγγραφή',
+  'a11y.auth.showPassword': 'Εμφάνιση κωδικού πρόσβασης',
   'a11y.board.region.hand': 'Το χέρι σου',
   'a11y.board.region.table': 'Τραπέζι',
   'a11y.board.region.seats': 'Παίκτες',

@@ -3443,6 +3443,7 @@ export const mt: Record<string, string> = {
   'a11y.table.seatUpTip': 'Itla’ post wieħed',
   'a11y.table.seatDownTip': 'Inżel post wieħed',
   'a11y.auth.register': 'Irreġistra',
+  'a11y.auth.showPassword': 'Uri l-password',
   'a11y.board.region.hand': 'Idek',
   'a11y.board.region.table': 'Mejda',
   'a11y.board.region.seats': 'Plejers',

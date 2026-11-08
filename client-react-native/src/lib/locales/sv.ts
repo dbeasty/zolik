@@ -3421,6 +3421,7 @@ export const sv: Record<string, string> = {
   'a11y.table.seatUpTip': 'Flytta upp en plats',
   'a11y.table.seatDownTip': 'Flytta ner en plats',
   'a11y.auth.register': 'Registrera',
+  'a11y.auth.showPassword': 'Visa lösenord',
   'a11y.board.region.hand': 'Din hand',
   'a11y.board.region.table': 'Bord',
   'a11y.board.region.seats': 'Spelare',

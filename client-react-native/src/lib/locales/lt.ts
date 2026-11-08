@@ -3421,6 +3421,7 @@ export const lt: Record<string, string> = {
   'a11y.table.seatUpTip': 'Perkelti viena vieta aukščiau',
   'a11y.table.seatDownTip': 'Perkelti viena vieta žemiau',
   'a11y.auth.register': 'Registruotis',
+  'a11y.auth.showPassword': 'Rodyti slaptažodį',
   'a11y.board.region.hand': 'Tavo kortos',
   'a11y.board.region.table': 'Stalas',
   'a11y.board.region.seats': 'Žaidėjai',

@@ -3419,6 +3419,7 @@ export const sl: Record<string, string> = {
   'a11y.table.seatUpTip': 'Premakni za en sedež višje',
   'a11y.table.seatDownTip': 'Premakni za en sedež nižje',
   'a11y.auth.register': 'Registracija',
+  'a11y.auth.showPassword': 'Pokaži geslo',
   'a11y.board.region.hand': 'Tvoje karte',
   'a11y.board.region.table': 'Miza',
   'a11y.board.region.seats': 'Igralci',

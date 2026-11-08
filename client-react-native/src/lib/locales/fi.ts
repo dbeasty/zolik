@@ -3430,6 +3430,7 @@ export const fi: Record<string, string> = {
   'a11y.table.seatUpTip': 'Paikka ylöspäin',
   'a11y.table.seatDownTip': 'Paikka alaspäin',
   'a11y.auth.register': 'Rekisteröidy',
+  'a11y.auth.showPassword': 'Näytä salasana',
   'a11y.board.region.hand': 'Kätesi',
   'a11y.board.region.table': 'Pöytä',
   'a11y.board.region.seats': 'Pelaajat',

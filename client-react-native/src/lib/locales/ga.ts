@@ -3455,6 +3455,7 @@ export const ga: Record<string, string> = {
   'a11y.table.seatUpTip': 'Bog suíochán suas',
   'a11y.table.seatDownTip': 'Bog suíochán síos',
   'a11y.auth.register': 'Cláraigh',
+  'a11y.auth.showPassword': 'Taispeáin an pasfhocal',
   'a11y.board.region.hand': 'Do lámh',
   'a11y.board.region.table': 'Bord',
   'a11y.board.region.seats': 'Imreoirí',

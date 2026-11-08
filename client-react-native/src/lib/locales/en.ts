@@ -3486,6 +3486,7 @@ export const en: Record<string, string> = {
   'a11y.table.seatUpTip': 'Move up a seat',
   'a11y.table.seatDownTip': 'Move down a seat',
   'a11y.auth.register': 'Register',
+  'a11y.auth.showPassword': 'Show password',
   // a11y: board (Phases 2-4) — keys for the match screen
   'a11y.board.region.hand': 'Your hand',
   'a11y.board.region.table': 'Table',

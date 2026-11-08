@@ -3443,6 +3443,7 @@ export const ro: Record<string, string> = {
   'a11y.table.seatUpTip': 'Mută cu un loc mai sus',
   'a11y.table.seatDownTip': 'Mută cu un loc mai jos',
   'a11y.auth.register': 'Înregistrare',
+  'a11y.auth.showPassword': 'Afișează parola',
   'a11y.board.region.hand': 'Mâna ta',
   'a11y.board.region.table': 'Masă',
   'a11y.board.region.seats': 'Jucători',

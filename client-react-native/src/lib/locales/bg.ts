@@ -3436,6 +3436,7 @@ export const bg: Record<string, string> = {
   'a11y.table.seatUpTip': 'Едно място нагоре',
   'a11y.table.seatDownTip': 'Едно място надолу',
   'a11y.auth.register': 'Регистрация',
+  'a11y.auth.showPassword': 'Показване на паролата',
   'a11y.board.region.hand': 'Твоята ръка',
   'a11y.board.region.table': 'Маса',
   'a11y.board.region.seats': 'Играчи',

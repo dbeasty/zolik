@@ -3417,6 +3417,7 @@ export const cs: Record<string, string> = {
   'a11y.table.seatUpTip': 'Posunout o místo nahoru',
   'a11y.table.seatDownTip': 'Posunout o místo dolů',
   'a11y.auth.register': 'Registrovat se',
+  'a11y.auth.showPassword': 'Zobrazit heslo',
   'a11y.board.region.hand': 'Tvoje karty',
   'a11y.board.region.table': 'Stůl',
   'a11y.board.region.seats': 'Hráči',

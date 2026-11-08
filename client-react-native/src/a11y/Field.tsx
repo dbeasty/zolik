@@ -1,8 +1,10 @@
-import { forwardRef, useEffect, useId } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { forwardRef, useEffect, useId, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { announce } from '@/src/a11y/announce';
 import { domId, invalidWhen } from '@/src/a11y/props';
+import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
 /**
@@ -57,6 +59,54 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
 });
 
 /**
+ * A password box with an eye that shows what was typed.
+ *
+ * Starts hidden. While shown the box is an ordinary text box, which on iOS and
+ * Android would capitalise and autocorrect, so both are off here for good: a
+ * password that gets "corrected" fails with nothing on screen to explain it.
+ */
+export const PasswordField = forwardRef<TextInput, Omit<FieldProps, 'secureTextEntry' | 'error'>>(
+  function PasswordField({ style, ...field }, ref) {
+    const [shown, setShown] = useState(false);
+    return (
+      <View>
+        <Field
+          ref={ref}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          {...field}
+          secureTextEntry={!shown}
+          style={[styles.passwordInput, style]}
+        />
+        <Pressable
+          testID="password-visibility"
+          role="switch"
+          aria-checked={shown}
+          aria-label={t('a11y.auth.showPassword')}
+          hitSlop={8}
+          style={styles.eye}
+          onPress={() => setShown((s) => !s)}
+        >
+          <EyeIcon crossed={shown} />
+        </Pressable>
+      </View>
+    );
+  },
+);
+
+/** Open while the password is hidden (press to see it), crossed while it is shown. */
+function EyeIcon({ crossed }: { crossed: boolean }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.muted} strokeWidth={2}>
+      <Path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+      <Circle cx={12} cy={12} r={3} />
+      {crossed ? <Line x1={4} y1={4} x2={20} y2={20} /> : null}
+    </Svg>
+  );
+}
+
+/**
  * An error under a form, spoken when it appears.
  *
  * Native: `announce(…, 'assertive')`, which VoiceOver and TalkBack speak over
@@ -104,4 +154,9 @@ const styles = StyleSheet.create({
   label: { color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 6 },
   hint: { color: colors.muted, fontSize: 13, marginTop: -2, marginBottom: 6 },
   inputInvalid: { borderColor: colors.danger },
+  // Room for the eye, so a long password never runs under it.
+  passwordInput: { paddingRight: 44 },
+  // Pinned from the bottom: the label above the box may wrap to any height.
+  // 12 is the box's own margin under it; 11 centres 22 in the 44 of a box.
+  eye: { position: 'absolute', right: 11, bottom: 12 + 12, width: 22, height: 22 },
 });

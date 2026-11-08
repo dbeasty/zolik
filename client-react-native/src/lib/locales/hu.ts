@@ -3443,6 +3443,7 @@ export const hu: Record<string, string> = {
   'a11y.table.seatUpTip': 'Egy hellyel feljebb',
   'a11y.table.seatDownTip': 'Egy hellyel lejjebb',
   'a11y.auth.register': 'Regisztráció',
+  'a11y.auth.showPassword': 'Jelszó megjelenítése',
   'a11y.board.region.hand': 'A lapjaid',
   'a11y.board.region.table': 'Asztal',
   'a11y.board.region.seats': 'Játékosok',

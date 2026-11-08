@@ -3450,6 +3450,7 @@ export const nl: Record<string, string> = {
   'a11y.table.seatUpTip': 'Een plaats omhoog',
   'a11y.table.seatDownTip': 'Een plaats omlaag',
   'a11y.auth.register': 'Registreren',
+  'a11y.auth.showPassword': 'Wachtwoord tonen',
   'a11y.board.region.hand': 'Je hand',
   'a11y.board.region.table': 'Tafel',
   'a11y.board.region.seats': 'Spelers',

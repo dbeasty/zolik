@@ -3422,6 +3422,7 @@ export const da: Record<string, string> = {
   'a11y.table.seatUpTip': 'Flyt en plads op',
   'a11y.table.seatDownTip': 'Flyt en plads ned',
   'a11y.auth.register': 'Opret konto',
+  'a11y.auth.showPassword': 'Vis adgangskode',
   'a11y.board.region.hand': 'Din hånd',
   'a11y.board.region.table': 'Bord',
   'a11y.board.region.seats': 'Spillere',

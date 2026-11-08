@@ -2,6 +2,7 @@
  "a11y.about.statement": "Accessibility statement",
  "a11y.actionFor": "{action}: {what}",
  "a11y.auth.register": "Register",
+ "a11y.auth.showPassword": "Show password",
  "a11y.auth.signingIn": "Signing you in…",
  "a11y.board.card.by": "{card}, played by {name}",
  "a11y.board.card.cannotPlay": "{card} cannot be played right now",

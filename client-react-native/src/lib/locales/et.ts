@@ -3424,6 +3424,7 @@ export const et: Record<string, string> = {
   'a11y.table.seatUpTip': 'Koha võrra üles',
   'a11y.table.seatDownTip': 'Koha võrra alla',
   'a11y.auth.register': 'Registreeru',
+  'a11y.auth.showPassword': 'Näita parooli',
   'a11y.board.region.hand': 'Sinu käsi',
   'a11y.board.region.table': 'Laud',
   'a11y.board.region.seats': 'Mängijad',

@@ -3445,6 +3445,7 @@ export const es: Record<string, string> = {
   'a11y.table.seatUpTip': 'Subir un asiento',
   'a11y.table.seatDownTip': 'Bajar un asiento',
   'a11y.auth.register': 'Registrarse',
+  'a11y.auth.showPassword': 'Mostrar contraseña',
   'a11y.board.region.hand': 'Tu mano',
   'a11y.board.region.table': 'Mesa',
   'a11y.board.region.seats': 'Jugadores',
