@@ -38,15 +38,34 @@ export function resolveSetup(mod: MatchModule, saved: SavedGameSetup | undefined
 }
 
 /**
- * The bot counts a module can be opened with: enough to reach its minimum
+ * The seat range a table of this variation is dealt with: the variation's own
+ * bounds where it names them, the module's otherwise — the client twin of the
+ * server's `SeatRange`, which is what refuses a deal outside it.
+ */
+export function seatRange(mod: MatchModule, variation?: string): { min: number; max: number } {
+  const spec = variation ? mod.variations?.find((v) => v.id === variation) : undefined;
+  return {
+    min: spec?.minPlayers || mod.minPlayers,
+    max: spec?.maxPlayers || mod.maxPlayers,
+  };
+}
+
+/**
+ * The bot counts a table can be opened with: enough to reach its minimum
  * table at the low end, one short of its maximum at the high end — because
  * one of the seats is the host's. A one-seat game has exactly one answer:
  * none.
+ *
+ * Read from the variation, not the module: Partnership Pinochle is dealt to
+ * four on a module that seats two to four, and Classic Canasta stops at four
+ * on one that seats six. The module's range would offer counts the deal then
+ * refuses.
  */
-export function botChoices(mod: MatchModule): number[] {
-  if (mod.maxPlayers <= 1) return [0];
+export function botChoices(mod: MatchModule, variation?: string): number[] {
+  const { min, max } = seatRange(mod, variation);
+  if (max <= 1) return [0];
   const out: number[] = [];
-  for (let n = Math.max(1, mod.minPlayers - 1); n <= Math.max(1, mod.maxPlayers - 1); n++) {
+  for (let n = Math.max(1, min - 1); n <= Math.max(1, max - 1); n++) {
     out.push(n);
   }
   return out;
@@ -54,11 +73,12 @@ export function botChoices(mod: MatchModule): number[] {
 
 /**
  * How many bots to seat: what the host picked, clamped to the range above.
- * A clamp rather than a plain read, so a count left over from a game whose
- * range has since moved can never post a seat the server is going to refuse.
+ * A clamp rather than a plain read, so a count left over from a game (or a
+ * variation) whose range has since moved can never post a seat the server is
+ * going to refuse.
  */
-export function botCount(mod: MatchModule, picked?: number): number {
-  const choices = botChoices(mod);
+export function botCount(mod: MatchModule, picked?: number, variation?: string): number {
+  const choices = botChoices(mod, variation);
   const lo = choices[0];
   const hi = choices[choices.length - 1];
   return Math.min(hi, Math.max(lo, picked ?? lo));
@@ -70,7 +90,7 @@ export async function dealWithBots(client: ZolikClient, mod: MatchModule, setup:
   // As many bots as asked for, clamped to the seats this module has. The
   // screen does not know what a legal table is for any game — the
   // descriptor does, and the clamp is the only thing reading it.
-  const seats = botCount(mod, setup.bots);
+  const seats = botCount(mod, setup.bots, setup.variation);
   for (let i = 0; i < seats; i++) {
     await client.addBot(matchId);
   }
