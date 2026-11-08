@@ -185,6 +185,21 @@ func TestRulesFollowTheTable(t *testing.T) {
 	if !cut["pinochle.rules.bury"] || cut["pinochle.rules.partners"] {
 		t.Error("cutthroat rules miss the bury, or mention partners")
 	}
+	// What scores nothing is said outright, and matches the pack.
+	part := ids(module.MatchConfig{Variation: VarPartnership})
+	if !part["pinochle.rules.points.blank"] || part["pinochle.rules.points.blankDouble"] {
+		t.Error("counters rules do not say queens, jacks and nines score nothing")
+	}
+	if !part["pinochle.rules.meld.doublesNeed"] || !part["pinochle.rules.meld.classesExample"] {
+		t.Error("meld rules do not explain doubles, or give the sharing example")
+	}
+	classic := ids(module.MatchConfig{Variation: VarPartnership, Options: map[string]int{OptScoring: ScoringClassic}})
+	if !classic["pinochle.rules.points.nine"] || classic["pinochle.rules.points.blank"] {
+		t.Error("classic rules do not say nines score nothing")
+	}
+	if dd := ids(module.MatchConfig{Variation: VarDoubleDeck}); !dd["pinochle.rules.points.blankDouble"] || dd["pinochle.rules.points.blank"] {
+		t.Error("double-deck rules mention nines scoring nothing, in a pack without nines")
+	}
 	dd := ids(module.MatchConfig{Variation: VarDoubleDeck})
 	if dd["pinochle.rules.meld.dix"] || !dd["pinochle.rules.meld.quadruples"] {
 		t.Error("double-deck rules have a dix, or no quadruple melds")

@@ -69,6 +69,8 @@ export type Group = {
   cards: string[];
   /** Keys for anything worth marking on the group. Keys, never text. */
   badgeKeys?: string[];
+  /** A short figure printed with the badge — what a meld scores, "150". */
+  value?: string;
   /**
    * Finished, as far as the player is concerned — a canasta rather than a
    * meld still being built — so it is folded down to take less room. The

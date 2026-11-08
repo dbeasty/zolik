@@ -251,7 +251,10 @@ func (s *GameState) meldZone(p string) (module.Zone, bool) {
 		return z, false
 	}
 	for i, it := range items {
-		g := module.Group{ID: "m" + strconv.Itoa(i), Kind: it.Kind, Cards: it.Cards, BadgeKeys: []string{meldLabelKey(it.Kind)}}
+		// The points ride with the name, so a seat's meld total can be read
+		// off the table instead of added up from the rules.
+		g := module.Group{ID: "m" + strconv.Itoa(i), Kind: it.Kind, Cards: it.Cards,
+			BadgeKeys: []string{meldLabelKey(it.Kind)}, Value: strconv.Itoa(it.Points)}
 		z.Groups = append(z.Groups, g)
 		z.Count += len(it.Cards)
 	}

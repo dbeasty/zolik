@@ -27,7 +27,7 @@ import {
   stackedCardBox,
   type Metrics,
 } from '@/src/lib/layout';
-import { groupSpokenLabel, ownerNameOf, zoneName, zoneSpokenLabel } from '@/src/lib/boardSpeech';
+import { groupBadgeLines, groupSpokenLabel, ownerNameOf, zoneName, zoneSpokenLabel } from '@/src/lib/boardSpeech';
 import { label } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 import { t } from '@/src/lib/i18n';
@@ -801,9 +801,9 @@ export function ZoneView({
                     </Text>
                   </View>
                 ) : null}
-                {(g.badgeKeys ?? []).map((b) => (
-                  <Text key={b} style={styles.badge}>
-                    {label(b)}
+                {groupBadgeLines(g).map((line, bi) => (
+                  <Text key={bi} style={styles.badge} testID={`group-badge-${g.id}-${bi}`}>
+                    {line}
                   </Text>
                 ))}
                 {/* Stands in for a drag once what to send is already chosen —

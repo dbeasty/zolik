@@ -40,10 +40,20 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 		cards = append(cards, module.Rule("pinochle.rules.deck.single", nil))
 		cards = append(cards, module.Rule("pinochle.rules.order.single", nil))
 	}
-	if c.scoring == ScoringClassic {
+	// What scores nothing, said outright: a rule that names only the cards
+	// that count leaves a player to guess about the rest.
+	switch {
+	case c.scoring == ScoringClassic:
 		cards = append(cards, module.Rule("pinochle.rules.points.classic", nil))
-	} else {
+		if t.hasNines() {
+			cards = append(cards, module.Rule("pinochle.rules.points.nine", nil))
+		}
+	case t.hasNines():
 		cards = append(cards, module.Rule("pinochle.rules.points.counters", nil))
+		cards = append(cards, module.Rule("pinochle.rules.points.blank", nil))
+	default:
+		cards = append(cards, module.Rule("pinochle.rules.points.counters", nil))
+		cards = append(cards, module.Rule("pinochle.rules.points.blankDouble", nil))
 	}
 	cards = append(cards, module.Rule("pinochle.rules.lastTrick", map[string]any{"n": t.lastTrick}))
 	cards = append(cards, module.Rule("pinochle.rules.handTotal", map[string]any{"n": t.handTotal(c.scoring)}))
@@ -103,6 +113,7 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 			"run": pointsDoubleRun, "aces": aroundPoints['A'][2], "kings": aroundPoints['K'][2],
 			"queens": aroundPoints['Q'][2], "jacks": aroundPoints['J'][2], "pinochle": pinochlePoints[2],
 		}),
+		module.Rule("pinochle.rules.meld.doublesNeed", map[string]any{"double": pointsDoubleRun, "single": pointsRun}),
 	)
 	if t.copies == 4 {
 		meld = append(meld, module.Rule("pinochle.rules.meld.triples", map[string]any{
@@ -115,6 +126,7 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 		}))
 	}
 	meld = append(meld, module.Rule("pinochle.rules.meld.classes", nil))
+	meld = append(meld, module.Rule("pinochle.rules.meld.classesExample", nil))
 	if two {
 		meld = append(meld,
 			module.Rule("pinochle.rules.meld.onWin", nil),

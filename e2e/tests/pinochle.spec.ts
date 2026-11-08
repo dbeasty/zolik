@@ -342,6 +342,10 @@ test.describe('pinochle', () => {
     const state = await stateFor(request, matchId, host);
     for (const z of state.view.zones.filter((z) => z.id.startsWith('meld:'))) {
       await expect(page.getByTestId(`zone-${z.id}`)).toBeVisible();
+      // Each meld's name carries its points, as the server counted them.
+      for (const g of (z.groups ?? []) as { id: string; value?: string }[]) {
+        await expect(page.getByTestId(`zone-${z.id}`).getByTestId(`group-badge-${g.id}-0`)).toContainText(g.value!);
+      }
     }
     // Trumps are drawn in the header as the suit itself, the one the server named.
     const trumpFact = (state.view as any).header.find((f: any) => f.labelKey === 'pinochle.header.trump');
