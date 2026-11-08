@@ -343,6 +343,12 @@ test.describe('pinochle', () => {
     for (const z of state.view.zones.filter((z) => z.id.startsWith('meld:'))) {
       await expect(page.getByTestId(`zone-${z.id}`)).toBeVisible();
     }
+    // Trumps are drawn in the header as the suit itself, the one the server named.
+    const trumpFact = (state.view as any).header.find((f: any) => f.labelKey === 'pinochle.header.trump');
+    const trumpSuit = String(trumpFact.value).replace('suit.', '');
+    const pill = page.getByTestId(`suit-in-play-${trumpSuit}`);
+    await expect(pill).toBeVisible();
+    await expect(pill).toContainText(/\S/);
 
     // Select the first legal card — by its code, since the pack holds two
     // of it — press Play, and confirm the server moved.

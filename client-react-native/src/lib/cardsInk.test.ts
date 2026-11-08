@@ -29,3 +29,14 @@ describe('lastCardColourOfKey', () => {
     expect(lastCardColourOfKey(undefined)).toBeUndefined();
   });
 });
+
+describe('frenchSuitOfKey', () => {
+  it('reads the suit a key names, and nothing else', () => {
+    const { frenchSuitOfKey } = require('@/src/lib/cards');
+    expect(frenchSuitOfKey('suit.H')).toBe('H');
+    expect(frenchSuitOfKey('suit.S')).toBe('S');
+    expect(frenchSuitOfKey('suit.german.H')).toBeUndefined();
+    expect(frenchSuitOfKey('lastcard.colour.V')).toBeUndefined();
+    expect(frenchSuitOfKey(undefined)).toBeUndefined();
+  });
+});

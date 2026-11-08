@@ -199,7 +199,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 
 	vm.Header = []module.Fact{{LabelKey: "pinochle.header.hand", Params: map[string]any{"n": s.Deal + 1}}}
 	if playing && s.Trump != "" {
-		vm.Header = append(vm.Header, module.Fact{LabelKey: "pinochle.header.trump", Params: map[string]any{"suit": suitKey(s.Trump)}})
+		// The suit's key is the value too, so a client can draw trumps as the
+		// suit itself rather than one more word in the header row.
+		vm.Header = append(vm.Header, module.Fact{LabelKey: "pinochle.header.trump", Value: suitKey(s.Trump),
+			Params: map[string]any{"suit": suitKey(s.Trump)}})
 	}
 	if playing && s.Bid > 0 {
 		vm.Header = append(vm.Header, module.Fact{LabelKey: "pinochle.header.bid", Value: strconv.Itoa(s.Bid),
