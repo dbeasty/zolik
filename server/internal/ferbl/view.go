@@ -24,6 +24,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Label:             "Ferbl",
 		MinPlayers:        2,
 		MaxPlayers:        6,
+		DefaultPlayers:    4,
 		Deck:              module.DeckGerman,
 		SimulatedGambling: true,
 		Variations: []module.VariationSpec{{

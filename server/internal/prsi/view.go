@@ -21,10 +21,11 @@ const (
 // difference without being told.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID:         "prsi",
-		Label:      "Prší",
-		MinPlayers: 2,
-		MaxPlayers: 6,
+		ID:             "prsi",
+		Label:          "Prší",
+		MinPlayers:     2,
+		MaxPlayers:     6,
+		DefaultPlayers: 4,
 		// Prší is a Czech game, dealt from the same German-suited pack as
 		// Mariáš: the queen that names a suit is a svršek.
 		Deck: module.DeckGerman,

@@ -673,6 +673,11 @@ export type MatchModule = {
   label: string;
   minPlayers: number;
   maxPlayers: number;
+  /**
+   * The table this game is dealt at when the player has not picked one,
+   * counting the player. Absent means its smallest table.
+   */
+  defaultPlayers?: number;
   /** Played by staking chips: hidden under 18 in a store build, 18+ everywhere. */
   simulatedGambling?: boolean;
   variations?: {
@@ -687,6 +692,8 @@ export type MatchModule = {
      */
     minPlayers?: number;
     maxPlayers?: number;
+    /** This variation's usual table, where it differs from the module's. */
+    defaultPlayers?: number;
   }[];
   options?: {
     name: string;

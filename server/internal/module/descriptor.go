@@ -113,6 +113,9 @@ type VariationSpec struct {
 	// table and a stuck one.
 	MinPlayers int `json:"minPlayers,omitempty"`
 	MaxPlayers int `json:"maxPlayers,omitempty"`
+	// DefaultPlayers is this variation's own usual table, where it differs
+	// from the module's: Five-Card Draw is five on a module that plays six.
+	DefaultPlayers int `json:"defaultPlayers,omitempty"`
 
 	// Formerly lists retired variation IDs this one still answers to.
 	//
@@ -128,12 +131,18 @@ type VariationSpec struct {
 
 // ModuleDescriptor is a game's whole self-description.
 type ModuleDescriptor struct {
-	ID         string          `json:"id"`
-	Label      string          `json:"label"`
-	MinPlayers int             `json:"minPlayers"`
-	MaxPlayers int             `json:"maxPlayers"`
-	Variations []VariationSpec `json:"variations,omitempty"`
-	Options    []OptionSpec    `json:"options,omitempty"`
+	ID         string `json:"id"`
+	Label      string `json:"label"`
+	MinPlayers int    `json:"minPlayers"`
+	MaxPlayers int    `json:"maxPlayers"`
+	// DefaultPlayers is the table a game is dealt at when the player has not
+	// said otherwise: four for Canasta, on a module that seats two to six.
+	// Only a suggestion, for a lobby's Play now and its bot picker; nothing
+	// refuses a table on it, and a player's own pick always wins over it. Zero
+	// means the smallest table the game can be dealt at.
+	DefaultPlayers int             `json:"defaultPlayers,omitempty"`
+	Variations     []VariationSpec `json:"variations,omitempty"`
+	Options        []OptionSpec    `json:"options,omitempty"`
 	// Deck names the pack the game is played with, where it is not the
 	// French one every game so far has used: DeckGerman for the German-suited
 	// 32 (mariášky). The card codes do not change — "QS" is still the fourth
@@ -245,6 +254,24 @@ func (d ModuleDescriptor) SeatRange(variation string) (min, max int) {
 		max = v.MaxPlayers
 	}
 	return min, max
+}
+
+// DefaultSeats is the table DefaultPlayers suggests for this variation, always
+// inside SeatRange: Partnership Pinochle is four whatever the module suggests,
+// because four is all it can be.
+func (d ModuleDescriptor) DefaultSeats(variation string) int {
+	seats := d.DefaultPlayers
+	if v := d.Variation(variation); v != nil && v.DefaultPlayers > 0 {
+		seats = v.DefaultPlayers
+	}
+	min, max := d.SeatRange(variation)
+	if seats < min {
+		return min
+	}
+	if seats > max {
+		return max
+	}
+	return seats
 }
 
 // Variation returns the named variation's spec, or nil. A retired ID listed

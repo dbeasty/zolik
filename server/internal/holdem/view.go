@@ -81,10 +81,12 @@ func resolveVariation(cfg module.MatchConfig) variationDefaults {
 // and the label is the only part a player reads.
 func (m *Module) Descriptor() module.ModuleDescriptor {
 	return module.ModuleDescriptor{
-		ID:                "holdem",
-		Label:             "Poker",
-		MinPlayers:        2,
-		MaxPlayers:        9,
+		ID:         "holdem",
+		Label:      "Poker",
+		MinPlayers: 2,
+		MaxPlayers: 9,
+		// Six-handed: the usual table online, and a hand never waits on eight bots.
+		DefaultPlayers:    6,
 		SimulatedGambling: true,
 		Variations: []module.VariationSpec{
 			{
@@ -132,6 +134,8 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				ID:         VarDraw,
 				Label:      "Five-Card Draw",
 				MaxPlayers: drawRules.maxSeats,
+				// One short of the six seats: draws come out of a single deck.
+				DefaultPlayers: 5,
 				Summary: []module.Fact{
 					{LabelKey: "holdem.rules.noLimit"},
 					{LabelKey: "holdem.rules.draw.deal"},

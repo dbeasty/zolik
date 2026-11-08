@@ -26,7 +26,9 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Label:      "Sedma",
 		MinPlayers: 2,
 		MaxPlayers: 4,
-		Deck:       module.DeckGerman,
+		// Two against two, the way Sedma is played.
+		DefaultPlayers: 4,
+		Deck:           module.DeckGerman,
 		Variations: []module.VariationSpec{{
 			ID:    "classic",
 			Label: "Classic",

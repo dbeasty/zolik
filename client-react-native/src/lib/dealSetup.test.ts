@@ -22,6 +22,7 @@ const canasta: MatchModule = {
   label: 'Canasta',
   minPlayers: 2,
   maxPlayers: 6,
+  defaultPlayers: 4,
   variations: [
     { id: 'classic', label: 'Classic', maxPlayers: 4 },
     { id: 'samba', label: 'Samba', maxPlayers: 6 },
@@ -29,6 +30,19 @@ const canasta: MatchModule = {
 };
 
 const prsi: MatchModule = { id: 'prsi', label: 'Prší', minPlayers: 2, maxPlayers: 6 };
+
+// Hold'em is six-handed, but its Draw variation names a table of its own.
+const poker: MatchModule = {
+  id: 'holdem',
+  label: 'Poker',
+  minPlayers: 2,
+  maxPlayers: 9,
+  defaultPlayers: 6,
+  variations: [
+    { id: 'holdem', label: 'Hold’em' },
+    { id: 'draw', label: 'Five-Card Draw', maxPlayers: 6, defaultPlayers: 5 },
+  ],
+};
 
 describe('seat range', () => {
   it('is the variation’s where it names one, the module’s otherwise', () => {
@@ -61,6 +75,31 @@ describe('bot count', () => {
     expect(botCount(pinochle, undefined, 'partnership')).toBe(3);
     expect(botCount(pinochle, 1, 'partnership')).toBe(3);
     expect(botCount(canasta, 5, 'classic')).toBe(3);
+  });
+});
+
+describe('the default bot count', () => {
+  it('fills the game’s usual table when nothing has been picked', () => {
+    expect(botCount(canasta, undefined, 'classic')).toBe(3);
+    expect(botCount(canasta, undefined, 'samba')).toBe(3);
+    expect(botCount(poker, undefined, 'holdem')).toBe(5);
+  });
+
+  it('follows the variation, on the same screen, until a count is picked', () => {
+    expect(botCount(poker, undefined, 'draw')).toBe(4);
+    expect(botCount(pinochle, undefined, 'partnership')).toBe(3);
+    expect(botCount(pinochle, undefined, 'cutthroat')).toBe(2);
+    expect(botCount(pinochle, undefined, 'twohanded')).toBe(1);
+  });
+
+  it('gives way to what the player picked, even below the default', () => {
+    expect(botCount(canasta, 1, 'classic')).toBe(1);
+    expect(botCount(poker, 8, 'holdem')).toBe(8);
+    expect(resolveSetup(canasta, { bots: 1 }).bots).toBe(1);
+  });
+
+  it('is the smallest table for a server that does not name one', () => {
+    expect(botCount(prsi)).toBe(1);
   });
 });
 
