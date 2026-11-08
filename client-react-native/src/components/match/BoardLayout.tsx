@@ -368,6 +368,10 @@ export function BoardLayout({
                 viewerId={viewerId}
                 registerDrop={drops.registerDrop}
                 entranceDelays={drops.entranceDelays}
+                activeDrops={drops.activeDrops}
+                refusedDrops={drops.refusedDrops}
+                pressableDrops={drops.pressableDrops}
+                onPressDrop={drops.onPressDrop}
                 {...zonePanelProps(z.id)}
               />
             ))}

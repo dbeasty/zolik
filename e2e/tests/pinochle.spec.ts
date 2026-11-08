@@ -367,5 +367,36 @@ test.describe('pinochle', () => {
       return s.view.zones.find((z) => z.ownerId === host.userId && z.kind === 'hand')!.count;
     }, { timeout: 30_000 }).toBe(handBefore - 1);
     await expect(page.getByTestId(`zone-trick`)).toBeVisible();
+
+    // The table itself takes a picked card, whether it is bare or already has
+    // cards lying on it: a press on a card lying there lands on the table,
+    // not on that card. Real mouse presses, at the point a person would aim
+    // for — a target that is drawn but covered would pass a locator's click on
+    // something else, and pass nothing here.
+    let pressedOnACard = false;
+    for (let i = 0; i < 8 && !pressedOnACard; i++) {
+      await expect.poll(async () => {
+        const s = await stateFor(request, matchId, host);
+        return s.legalActions.find((o) => o.id === 'play')?.enabled ?? false;
+      }, { timeout: 60_000 }).toBe(true);
+      const now = await stateFor(request, matchId, host);
+      const playable = now.legalActions.find((o) => o.id === 'play')!.source!.cards!;
+      const inHand = now.view.zones.find((z) => z.ownerId === host.userId && z.kind === 'hand')!.count;
+      const lying = (now.view.zones.find((z) => z.id === 'trick') as any)?.cards ?? [];
+      await selectOnly(page, [playable[0]]);
+      const target = lying.length
+        ? page.getByTestId(`card-trick-by-${lying[0].by}`)
+        : page.getByTestId('zone-press-trick');
+      await target.scrollIntoViewIfNeeded();
+      await expect(page.getByTestId('zone-press-trick')).toBeVisible();
+      const box = (await target.boundingBox())!;
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect.poll(async () => {
+        const s = await stateFor(request, matchId, host);
+        return s.view.zones.find((z) => z.ownerId === host.userId && z.kind === 'hand')!.count;
+      }, { timeout: 30_000 }).toBe(inHand - 1);
+      pressedOnACard = lying.length > 0;
+    }
+    expect(pressedOnACard).toBe(true);
   });
 });

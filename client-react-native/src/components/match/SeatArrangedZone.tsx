@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Zone } from '@/src/api/matchTypes';
 import { cardSpokenName } from '@/src/a11y/cardNames';
+import { Tip } from '@/src/a11y/Tip';
 import { CardView } from '@/src/components/CardView';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { zoneDropLive } from '@/src/lib/board';
 import { zoneElementId } from '@/src/lib/drops';
 import { t } from '@/src/lib/i18n';
 import { label, playerName } from '@/src/lib/labels';
@@ -38,6 +40,11 @@ type Props = {
   viewerId: string;
   registerDrop?: (elementId: string, node: Measurable | null) => void;
   entranceDelays?: ReadonlyMap<string, number>;
+  /** Where the cards picked or in flight may land — see ZoneView's `activeDrops`. */
+  activeDrops?: ReadonlySet<string>;
+  refusedDrops?: ReadonlySet<string>;
+  pressableDrops?: ReadonlySet<string>;
+  onPressDrop?: (elementId: string, pageY: number) => void;
   panelId: string;
   minimized: boolean;
   onToggleMinimized: () => void;
@@ -50,6 +57,10 @@ export function SeatArrangedZone({
   viewerId,
   registerDrop,
   entranceDelays,
+  activeDrops,
+  refusedDrops,
+  pressableDrops,
+  onPressDrop,
   panelId,
   minimized,
   onToggleMinimized,
@@ -64,61 +75,83 @@ export function SeatArrangedZone({
   const zoneId = zoneElementId(zone.id);
   const entranceDelay = entranceDelays?.get(zoneId) ?? 0;
   const newest = zone.cards?.[zone.cards.length - 1];
+  const title = label(zone.labelKey) || zone.id;
 
   return (
     <Panel
       panelId={panelId}
-      title={label(zone.labelKey) || zone.id}
+      title={title}
       count={zone.count}
       countTestID={`zone-count-${zone.id}`}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
+      live={activeDrops?.has(zoneId) ?? false}
+      refused={refusedDrops?.has(zoneId) ?? false}
+      forceOpen={zoneDropLive(zone, activeDrops, pressableDrops)}
       inline
       testID={`zone-${zone.id}`}
       innerRef={(n) => registerDrop?.(zoneId, n)}
     >
-      <View style={styles.table} testID={`arranged-${zone.id}`}>
-        {placed.map(({ card, at }) => (
-          <View
-            key={`${card.by}-${card.card}`}
-            style={[styles.slot, styles[at]]}
-            ref={(n) => registerDrop?.(seatSlotElementId(zone.id, card.by!), n as unknown as Measurable | null)}
-            testID={`arranged-${zone.id}-${at}`}
-          >
-            <SettleIn kind="settle" delay={card === newest ? entranceDelay : 0}>
-              <CardView
-                card={card.card}
-                faceDown={card.faceDown}
-                testID={`card-${zone.id}-by-${card.by}`}
-                // Where a card lies says who played it; said, it has to be
-                // said in words.
-                a11y={
-                  card.faceDown
-                    ? undefined
-                    : {
-                        label: t('a11y.board.card.by', {
-                          card: cardSpokenName(card.card),
-                          name: card.by === viewerId ? t('match.you') : playerName(players, card.by!),
-                        }),
-                      }
-                }
-              />
-            </SettleIn>
-            {card.by !== viewerId ? (
-              <Text style={[styles.name, at === 'left' ? styles.nameLeft : at === 'right' ? styles.nameRight : null]} numberOfLines={1}>
-                {playerName(players, card.by!)}
-              </Text>
-            ) : null}
-          </View>
-        ))}
-        {/* A card the table has no chair for is still a card the server sent;
-            it goes in the middle rather than nowhere. */}
-        {loose.length > 0 ? (
-          <View style={styles.loose}>
-            {loose.map((c, i) => (
-              <CardView key={`loose-${c.card}-${i}`} card={c.card} faceDown={c.faceDown} compact />
-            ))}
-          </View>
+      <View>
+        <View style={styles.table} testID={`arranged-${zone.id}`}>
+          {placed.map(({ card, at }) => (
+            <View
+              key={`${card.by}-${card.card}`}
+              style={[styles.slot, styles[at]]}
+              ref={(n) => registerDrop?.(seatSlotElementId(zone.id, card.by!), n as unknown as Measurable | null)}
+              testID={`arranged-${zone.id}-${at}`}
+            >
+              <SettleIn kind="settle" delay={card === newest ? entranceDelay : 0}>
+                <CardView
+                  card={card.card}
+                  faceDown={card.faceDown}
+                  testID={`card-${zone.id}-by-${card.by}`}
+                  // Where a card lies says who played it; said, it has to be
+                  // said in words.
+                  a11y={
+                    card.faceDown
+                      ? undefined
+                      : {
+                          label: t('a11y.board.card.by', {
+                            card: cardSpokenName(card.card),
+                            name: card.by === viewerId ? t('match.you') : playerName(players, card.by!),
+                          }),
+                        }
+                  }
+                />
+              </SettleIn>
+              {card.by !== viewerId ? (
+                <Text style={[styles.name, at === 'left' ? styles.nameLeft : at === 'right' ? styles.nameRight : null]} numberOfLines={1}>
+                  {playerName(players, card.by!)}
+                </Text>
+              ) : null}
+            </View>
+          ))}
+          {/* A card the table has no chair for is still a card the server sent;
+              it goes in the middle rather than nowhere. */}
+          {loose.length > 0 ? (
+            <View style={styles.loose}>
+              {loose.map((c, i) => (
+                <CardView key={`loose-${c.card}-${i}`} card={c.card} faceDown={c.faceDown} compact />
+              ))}
+            </View>
+          ) : null}
+        </View>
+        {/* A card picked from the hand is played by pressing the table — any of
+            it, cards already lying there included, since none of them does
+            anything of its own. So this goes over them and spans the frame, not
+            just the seats. Over them matters: a target drawn underneath is
+            visible and unreachable. */}
+        {pressableDrops?.has(zoneId) ? (
+          <Tip text={t('a11y.board.pile.tipPlay')} style={StyleSheet.absoluteFill}>
+            <Pressable
+              testID={`zone-press-${zone.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.board.playSelected', { target: title })}
+              style={StyleSheet.absoluteFill}
+              onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
+            />
+          </Tip>
         ) : null}
       </View>
     </Panel>
@@ -165,7 +198,19 @@ function arrangedStyles(m: Metrics, s: Skin, seats: number) {
   return StyleSheet.create({
     table: { width, height, alignSelf: 'center' },
     // As wide as the card; the name tag under it may be wider, centred on it.
-    slot: { position: 'absolute', width: cw, alignItems: 'center', overflow: 'visible' },
+    //
+    // Its own layer on the web. The Mac app once drew a left-hand card as a
+    // sliver with no name tag, the cut exactly 512 device pixels in from the
+    // window's edge: a WebKit tile boundary, across which only one tile got
+    // the paint. A layer this small is not split into tiles at all. Seen once
+    // and not reproduced, so this is the likely cure rather than a proven one.
+    slot: {
+      position: 'absolute',
+      width: cw,
+      alignItems: 'center',
+      overflow: 'visible',
+      ...(Platform.OS === 'web' ? ({ willChange: 'transform' } as object) : null),
+    },
     bottom: place.bottom,
     top: place.top,
     left: place.left,
