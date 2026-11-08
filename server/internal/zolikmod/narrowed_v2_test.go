@@ -14,14 +14,15 @@ import (
 // card inference was appended to the state and to every candidate, so
 // learn.Narrowed hands the network the prefix it was trained on.
 //
-// The claim is checked against the build the model was trained for, not
-// argued. testdata/zolik-v2-choices.json.gz was recorded on the
-// claude/zolik-adapter-v2 branch (v2choices_test.go, unchanged, run there):
-// eight matches across classic two-seat, floor-35 four-seat and continental
-// three-seat, the network in one seat and the heuristic in the others, and
-// for every step the fingerprint of the network's input and the move it
-// chose. Replayed here through the narrowed game, every decision must see
-// the same bits and make the same choice.
+// The claim is checked against a build that has the model's own encoder, not
+// argued. testdata/zolik-v2-choices.json.gz was recorded on one (see
+// TestRecordV2Fixture for how): today's rules with the inference never
+// computed, rather than computed and cut off. Eight matches across classic
+// two-seat, floor-35 four-seat and continental three-seat, the network in one
+// seat and the heuristic in the others, and for every step the fingerprint of
+// the network's input and the move it chose. Replayed here through the
+// narrowed game, every decision must see the same bits and make the same
+// choice.
 func TestNarrowedV2ChoosesAsOnItsOwnEncoder(t *testing.T) {
 	b, _, ok := models.Hard("zolik")
 	if !ok {

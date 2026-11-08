@@ -11,15 +11,21 @@ import (
 	"testing"
 
 	"zolik/server/internal/learn"
+	"zolik/server/internal/learn/models"
 	"zolik/server/internal/module"
 )
 
 // This file records and replays a sweep of real Žolíky decisions, so that a
 // network trained for one encoder can be shown to choose exactly as it did on
 // that encoder's own build after the encoder has grown. It compiles unchanged
-// on the build that recorded testdata/zolik-v2-choices.json.gz (the
-// claude/zolik-adapter-v2 branch, encoder 900/62), which is the point: the
-// recording and the check are the same code on either side of the change.
+// on a build with the 900/62 encoder, which is the point: the recording and
+// the check are the same code on either side of the change.
+//
+// testdata/zolik-v2-choices.json.gz was first recorded on the build the model
+// was trained on (the claude/zolik-adapter-v2 branch, since deleted), and
+// re-recorded under the rules of 2026-11 by TestRecordV2Fixture. The build
+// that re-recorded it also replayed the first recording, as far as the rules
+// still allowed, and saw the same bits and made the same choices.
 
 // v2Fixture is a sweep of matches, every step of every one recorded with what
 // the network made of the position.
@@ -192,12 +198,11 @@ func v2Record(t *testing.T, g learn.Game, p *learn.Policy, modelSHA string) v2Fi
 // candidates) and how many steps were replayed in all.
 //
 // A match whose recording offers moves this build no longer does ends there,
-// counted as replayed up to that step. The rules have moved on since the
-// recording — a joker on the table can now only be bought back by the card
-// whose place it holds, where the recording let either end card of a run do
-// it — and the build that recorded the fixture is gone, so it cannot be
-// recorded again. Fewer candidates is only ever the rules closing a move;
-// more, or the same number seen differently, is still a failure.
+// counted as replayed up to that step, so that closing a move does not fail
+// the test by itself. Fewer candidates is only ever the rules closing a move;
+// more, or the same number seen differently, is still a failure. If the rules
+// close enough that too little is replayed, record the fixture again
+// (TestRecordV2Fixture).
 func v2Check(t *testing.T, g learn.Game, p *learn.Policy, fx v2Fixture) (asked, steps int) {
 	t.Helper()
 	m := New()
@@ -246,6 +251,46 @@ nextMatch:
 		}
 	}
 	return asked, steps
+}
+
+// TestRecordV2Fixture writes the fixture to the path in
+// ZOLIK_RECORD_V2_FIXTURE, and is skipped without it.
+//
+// It refuses to run on this encoder. Recording through the narrowed game and
+// replaying through the narrowed game compares that code with itself, and
+// would pass whatever the narrowing did to the network's input. So record from
+// a throwaway worktree with the inference taken out of learn.go, leaving the
+// rules and the candidate search as they are:
+//
+//   - learnState = offInfer
+//   - learnCand = fDistAfter + 1
+//   - in EncodeFor, drop the ai.Infer call and the encodeInference loop
+//   - in newBuilder, drop the ai.Infer call
+//   - in markCard, drop the two lines that set fInferNext and fInferAny
+//
+// Before trusting that worktree, run TestNarrowedV2ChoosesAsOnItsOwnEncoder's
+// v2Check there against the fixture being replaced: what the rules still allow
+// of it must replay clean. Then copy the new file into testdata here.
+func TestRecordV2Fixture(t *testing.T) {
+	path := os.Getenv("ZOLIK_RECORD_V2_FIXTURE")
+	if path == "" {
+		t.Skip("set ZOLIK_RECORD_V2_FIXTURE to record")
+	}
+	b, _, ok := models.Hard("zolik")
+	if !ok {
+		t.Fatal("no shipped zolik model")
+	}
+	p, err := learn.LoadEmbedded("zolik", b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := learnGame{}
+	if p.Net().StateDim != g.StateDim() || p.Net().CandDim != g.CandDim() {
+		t.Fatalf("this encoder is %d/%d and the model reads %d/%d: record on a build with the model's own encoder (see this test's comment)",
+			g.StateDim(), g.CandDim(), p.Net().StateDim, p.Net().CandDim)
+	}
+	sum := sha256.Sum256(b)
+	writeV2Fixture(t, path, v2Record(t, g, p, hex.EncodeToString(sum[:])))
 }
 
 func itoa(n int64) string { b, _ := json.Marshal(n); return string(b) }
