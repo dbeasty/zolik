@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { Tip } from '@/src/a11y/Tip';
 import { t } from '@/src/lib/i18n';
 import { hush } from '@/src/sound/player';
 import { setSoundPref, useSoundPrefs } from '@/src/sound/prefs';
+import { SoundIcon } from '@/src/sound/SoundIcon';
 import { colors } from '@/src/theme';
 
 /**
@@ -19,7 +20,6 @@ export function SoundToggle() {
         testID="sound-toggle"
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityState={{ selected: enabled }}
         onPress={() => {
           if (enabled) hush();
           void setSoundPref('enabled', !enabled);
@@ -27,7 +27,7 @@ export function SoundToggle() {
         hitSlop={8}
         style={styles.button}
       >
-        <Text style={[styles.glyph, !enabled && styles.off]}>{enabled ? '🔊' : '🔇'}</Text>
+        <SoundIcon enabled={enabled} size={18} color={colors.text} />
       </Pressable>
     </Tip>
   );
@@ -35,6 +35,4 @@ export function SoundToggle() {
 
 const styles = StyleSheet.create({
   button: { minWidth: 28, minHeight: 28, alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 },
-  glyph: { fontSize: 16, color: colors.text },
-  off: { opacity: 0.6 },
 });
