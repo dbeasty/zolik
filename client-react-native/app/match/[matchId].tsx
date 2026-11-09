@@ -2542,6 +2542,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
       <BoardMetricsProvider metrics={metrics}>
       <ScrollView
         ref={scrollRef}
+        // The raise box sits low on the board; keep it clear of the keyboard.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         // Wide enough for the table and no wider. On a large monitor the felt
         // runs to both edges (it is drawn behind everything) while the board
         // itself stops at a table's width — without this, a player's hand and
@@ -2896,7 +2899,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
               {/* Between rounds the one control the module still offers belongs
                   here, with the settlement it acts on, rather than under a hand
                   that cannot be played. See `controlsPanel`. */}
-              {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
+              {paused && seatedHere ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
               </>
             ) : null
           }
@@ -2911,15 +2914,18 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           styles={styles}
           zonePanelProps={zonePanelProps}
           dropProps={dropProps}
+          // Somebody watching holds no hand and has no move: they were shown an
+          // empty "Your hand" and a row of dead buttons, each saying "It's not
+          // your turn".
           hand={
-            docked ? null : (
+            docked || !seatedHere ? null : (
               <GuideTarget guide={guide} anchor="hand">
                 {handPanel}
               </GuideTarget>
             )
           }
           controls={
-            paused || docked ? null : (
+            paused || docked || !seatedHere ? null : (
               <GuideTarget guide={guide} anchor="actionBar">
                 <View {...opening.anchor('controls')}>{controlsPanel}</View>
               </GuideTarget>

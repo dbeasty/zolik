@@ -49,6 +49,9 @@ export function Screen({ title, subtitle, children, scroll, wide }: Props) {
           // edge of every full-width button, so the bar ran over them.
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          // iOS does not move a scroller out of the keyboard's way by itself,
+          // and a field low on the page (the join code) ended up behind it.
+          automaticallyAdjustKeyboardInsets
           // A Tab stop on the web, so the arrow keys and Page Down scroll a
           // screen of prose — the rules, a legal notice — that has no control
           // of its own to put focus inside it (WCAG 2.1.1; axe

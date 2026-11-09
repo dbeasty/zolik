@@ -74,7 +74,8 @@ export function useOrderedModules(): { modules: MatchModule[] | null; error: str
       try {
         const fetched = await client.modules();
         let playCounts: Record<string, number> | undefined;
-        if (session?.accessToken) {
+        // A guest has no lifetime record: the server refuses them one by design.
+        if (session?.accessToken && !session.isGuest) {
           try {
             const stats = await client.getStats();
             playCounts = {};

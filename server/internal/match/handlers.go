@@ -1382,7 +1382,18 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if _, err := bson.ObjectIDFromHex(matchID); err != nil {
-		http.Error(w, "invalid match id", http.StatusBadRequest)
+		// A cut-off or mistyped link. Refused over the socket, in the words the
+		// client treats as final: a browser cannot read the status of a refused
+		// upgrade, so a plain HTTP 400 looked to it like a dropped connection
+		// and left the screen on "Connecting…" for ever, retrying.
+		conn, err := h.upgrader.Upgrade(w, req, nil)
+		if err != nil {
+			return
+		}
+		_ = conn.WriteJSON(map[string]any{
+			"type": "error", "code": "MATCH_NOT_FOUND", "message": matchID,
+		})
+		_ = conn.Close()
 		return
 	}
 
