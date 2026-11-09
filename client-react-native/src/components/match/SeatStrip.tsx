@@ -344,7 +344,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             </View>
             <Text
               style={[styles.name, styles.nameCrowded]}
-              numberOfLines={1}
+              numberOfLines={2}
               {...((Platform.OS === 'web' ? {} : { accessibilityLabel: spoken }) as object)}
             >
               {name}
@@ -650,7 +650,7 @@ const SEAT_GAP = 8;
 const SEAT_MIN = 116;
 const SEAT_MIN_CROWDED = 104;
 /** What a name and a bot's badge need beside a face, with the gaps and padding. */
-const SEAT_NAME_ROOM = 230;
+const SEAT_NAME_ROOM = 260;
 
 /**
  * Whether a tile's name goes on a line of its own under the face. Past four

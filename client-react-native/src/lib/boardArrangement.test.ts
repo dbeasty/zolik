@@ -1,4 +1,4 @@
-import {
+import { preferredPreset,
   asDrawn,
   canMove,
   clampSplit,
@@ -144,5 +144,21 @@ describe('boardArrangement', () => {
     const narrow = asDrawn(side, false, true);
     expect(narrow.columns).toEqual([preset('stacked', true).columns[0], []]);
     expect(columnsToDraw(narrow, false, ALL, true).columns[0]).toEqual(narrow.columns[0]);
+  });
+});
+
+describe('the layout a board has until one is picked', () => {
+  it('is the table beside the hand in a Mac game window with the width', () => {
+    expect(preferredPreset(true, true)).toBe('beside');
+    expect(normalize(null, true, preferredPreset(true, true))).toEqual(preset('beside', true));
+  });
+
+  it('is one column anywhere else', () => {
+    expect(preferredPreset(true, false)).toBe('stacked');
+    expect(preferredPreset(false, true)).toBe('stacked');
+  });
+
+  it('keeps a layout the player chose over it', () => {
+    expect(normalize(preset('stacked', true), true, 'beside')).toEqual(preset('stacked', true));
   });
 });

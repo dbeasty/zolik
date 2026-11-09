@@ -82,6 +82,7 @@ export default function MainMenu() {
   useLocale();
   const desktopChrome = useDesktopChrome();
   const wide = useWide();
+  const [sideInUse, setSideInUse] = useState(false);
   // Read here rather than in the rows so the side panel and the tiles agree
   // about what a player has going without asking twice.
   const tables = useMyTables('unfinished', true, { turns: true });
@@ -138,13 +139,18 @@ export default function MainMenu() {
     <Screen title="Jokerless" subtitle={offline ? t('offline.subtitle') : undefined} scroll wide={wide}>
       <StartHero />
       {wide ? (
-        <View style={styles.wideCols}>
+        <View style={[styles.wideCols, !sideInUse && styles.wideColsAlone]}>
           <View style={styles.wideMain}>
-            <GameRows tables={tables} columns={3} />
+            <GameRows tables={tables} columns={sideInUse ? 3 : 4} />
             {below}
           </View>
-          <View style={styles.wideSide}>
-            <SidePanel tables={tables} finished={finished} />
+          {/* Empty until there is an invite, a table or a result to show, and
+              then it takes no room: the games have the window to themselves.
+              Still mounted, because what is inside decides. */}
+          <View style={sideInUse ? styles.wideSide : styles.wideSideEmpty}>
+            <View onLayout={(e) => setSideInUse(e.nativeEvent.layout.height > 0)}>
+              <SidePanel tables={tables} finished={finished} />
+            </View>
           </View>
         </View>
       ) : (
@@ -506,6 +512,8 @@ const styles = StyleSheet.create({
   wideCols: { flexDirection: 'row', gap: 24, alignItems: 'flex-start' },
   wideMain: { flex: 7, minWidth: 0 },
   wideSide: { flex: 4, minWidth: 0 },
+  wideSideEmpty: { width: 0, overflow: 'hidden' },
+  wideColsAlone: { gap: 0 },
   panelCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,

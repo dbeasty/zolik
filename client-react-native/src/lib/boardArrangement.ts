@@ -84,14 +84,24 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
 export const DEFAULT_PRESET: PresetId = 'stacked';
 
 /**
+ * The layout a board has until the player picks one. A Mac game window has the
+ * width and not the height: stacked, Hold'em needs some 916 points from the
+ * piles to the controls, so the table goes beside the hand. Everywhere else,
+ * and in a game window too narrow for two columns, stays one column.
+ */
+export function preferredPreset(gameWindow: boolean, roomForTwo: boolean): PresetId {
+  return gameWindow && roomForTwo ? 'beside' : DEFAULT_PRESET;
+}
+
+/**
  * A stored arrangement made whole: unknown regions dropped, duplicates kept
  * once, and any region it does not mention put back where its preset has it
  * — so an arrangement saved before a region existed still draws that region.
  * Anything unreadable is the default.
  */
-export function normalize(raw: unknown, holdsHand: boolean): Arrangement {
+export function normalize(raw: unknown, holdsHand: boolean, fallback: PresetId = DEFAULT_PRESET): Arrangement {
   const r = raw as Partial<Arrangement> | null | undefined;
-  const presetId = r && PRESETS.includes(r.preset as PresetId) ? (r.preset as PresetId) : DEFAULT_PRESET;
+  const presetId = r && PRESETS.includes(r.preset as PresetId) ? (r.preset as PresetId) : fallback;
   const base = preset(presetId, holdsHand);
   if (!r || !r.custom || !Array.isArray(r.columns) || r.columns.length !== 2) return base;
   const seen = new Set<RegionId>();

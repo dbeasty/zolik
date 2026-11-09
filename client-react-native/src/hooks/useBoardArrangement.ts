@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { IS_DESKTOP_GAME_WINDOW } from '@/src/config';
 import { loadArrangement, saveArrangement } from '@/src/lib/arrangementStore';
 import {
   asDrawn,
-  DEFAULT_PRESET,
   move as moveRegion,
   moveTo as moveRegionTo,
   normalize,
+  preferredPreset,
   preset as presetArrangement,
   type Arrangement,
   type Move,
@@ -45,7 +46,8 @@ export function useBoardArrangement(moduleId: string | undefined, holdsHand: boo
     };
   }, [moduleId]);
 
-  const arrangement = useMemo(() => normalize(stored, holdsHand), [stored, holdsHand]);
+  const preferred = preferredPreset(IS_DESKTOP_GAME_WINDOW, roomForTwo);
+  const arrangement = useMemo(() => normalize(stored, holdsHand, preferred), [stored, holdsHand, preferred]);
 
   const commit = useCallback(
     (next: Arrangement | null) => {
@@ -56,8 +58,8 @@ export function useBoardArrangement(moduleId: string | undefined, holdsHand: boo
   );
 
   const choose = useCallback(
-    (id: PresetId) => commit(id === DEFAULT_PRESET ? null : presetArrangement(id, holdsHand)),
-    [commit, holdsHand],
+    (id: PresetId) => commit(id === preferred ? null : presetArrangement(id, holdsHand)),
+    [commit, holdsHand, preferred],
   );
   const move = useCallback(
     (region: RegionId, m: Move, present: ReadonlySet<RegionId>) =>
