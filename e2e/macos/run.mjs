@@ -18,7 +18,7 @@
 //   ZOLIK_E2E_MACOS_APP   the .app to test (default client-macos/build/Jokerless.app)
 //   ZOLIK_E2E_KEEP=1      keep the work folder (screenshots, logs) even on success
 import { execFile, execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -381,6 +381,22 @@ async function main() {
     expect(v.csp >= 2, `only ${v.csp} policy violations were reported`);
     expect(/not a Jokerless server/.test(v.outside), `fetch to example.com: ${v.outside}`);
     expect(!v.nativeSocket, 'WebSocket is still the engine’s own');
+  }, [a]);
+
+  await step('the app’s own sounds load in the web view', async () => {
+    // The media engine asks for byte ranges; an app:// that ignored them left
+    // the whole app silent, with only a rejected play() to show for it.
+    const sound = readdirSync(path.join(SOURCE_APP, 'Contents/Resources/web/assets/assets/sounds')).find((f) => f.startsWith('card.'));
+    const v = await a.js(`
+      const audio = new Audio(${JSON.stringify(`/assets/assets/sounds/${sound}`)});
+      return await new Promise((resolve) => {
+        audio.onloadeddata = () => resolve({ loaded: true, duration: audio.duration });
+        audio.onerror = () => resolve({ loaded: false, code: audio.error && audio.error.code });
+        setTimeout(() => resolve({ loaded: false, code: 'timeout' }), 8000);
+        audio.load();
+      });
+    `);
+    expect(v.loaded && v.duration > 0, `the sound did not load: ${JSON.stringify(v)}`);
   }, [a]);
 
   await step('signs in as a guest; the title bar, not the page, carries Back and Forward', async () => {
