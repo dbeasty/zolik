@@ -1963,7 +1963,7 @@ export const sv: Record<string, string> = {
   'notify.banner.seated': 'Du har fått en plats vid ett bord',
   'notify.banner.fromCircle': 'Från din spelkrets',
   'notify.banner.known': 'Ni har spelat tillsammans förut',
-  'notify.banner.nearbyDetail': 'På en telefon nära dig',
+  'notify.banner.nearbyDetail': 'På en enhet nära dig',
   'notify.banner.nearbyDetail@desktop': 'På en enhet nära dig',
   'notify.banner.seatedDetail': 'En värd valde dig från väntrummet',
   'notify.banner.more': '+{n} till',

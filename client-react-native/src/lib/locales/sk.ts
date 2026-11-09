@@ -1966,7 +1966,7 @@ export const sk: Record<string, string> = {
   'notify.banner.seated': 'Posadili vás k stolu',
   'notify.banner.fromCircle': 'Z vášho herného kruhu',
   'notify.banner.known': 'Už ste spolu hrali',
-  'notify.banner.nearbyDetail': 'Na telefóne vo vašej blízkosti',
+  'notify.banner.nearbyDetail': 'Na zariadení vo vašej blízkosti',
   'notify.banner.nearbyDetail@desktop': 'Na zariadení vo vašej blízkosti',
   'notify.banner.seatedDetail': 'Hostiteľ si vás vybral z čakárne',
   'notify.banner.more': '+{n} ďalšie',

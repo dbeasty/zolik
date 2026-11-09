@@ -177,6 +177,17 @@ export function expire(state: QueueState, now: number): QueueState {
 }
 
 /** What the banner shows: the newest invite that has not had its turn. */
+/**
+ * Sitting down at a nearby table answers its invite, however it was joined. The
+ * watcher stops reporting a host once seated there, but what it already reported
+ * stayed up, offering the table the player was at.
+ */
+export function seatedAtHost(state: QueueState, instanceId: string): QueueState {
+  const atHost = (i: Invite) => i.target.kind === 'nearby' && i.target.instanceId === instanceId;
+  if (!state.invites.some(atHost)) return state;
+  return { ...state, invites: state.invites.filter((i) => !atHost(i)) };
+}
+
 export function bannerInvite(state: QueueState): Invite | null {
   return state.invites.find((i) => !i.shelved) ?? null;
 }

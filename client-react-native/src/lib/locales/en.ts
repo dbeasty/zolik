@@ -2002,7 +2002,7 @@ export const en: Record<string, string> = {
   'notify.banner.seated': 'You have been seated at a table',
   'notify.banner.fromCircle': 'From your game circle',
   'notify.banner.known': 'You have played together before',
-  'notify.banner.nearbyDetail': 'On a phone near you',
+  'notify.banner.nearbyDetail': 'On a device near you',
   'notify.banner.nearbyDetail@desktop': 'On a device near you',
   'notify.banner.seatedDetail': 'A host picked you from the waiting room',
   'notify.banner.more': '+{n} more',

@@ -1970,7 +1970,7 @@ export const et: Record<string, string> = {
   'notify.banner.seated': 'Sind pandi laua taha',
   'notify.banner.fromCircle': 'Sinu mänguringist',
   'notify.banner.known': 'Olete varem koos mänginud',
-  'notify.banner.nearbyDetail': 'Sinu lähedal olevas telefonis',
+  'notify.banner.nearbyDetail': 'Sinu lähedal olevas seadmes',
   'notify.banner.nearbyDetail@desktop': 'Sinu lähedal olevas seadmes',
   'notify.banner.seatedDetail': 'Võõrustaja valis su ooteruumist',
   'notify.banner.more': '+{n} veel',

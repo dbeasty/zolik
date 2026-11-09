@@ -2008,7 +2008,7 @@ export const el: Record<string, string> = {
   'notify.banner.seated': 'Σας έβαλαν σε ένα τραπέζι',
   'notify.banner.fromCircle': 'Από τον κύκλο παιχνιδιού σας',
   'notify.banner.known': 'Έχετε παίξει μαζί στο παρελθόν',
-  'notify.banner.nearbyDetail': 'Σε ένα τηλέφωνο κοντά σας',
+  'notify.banner.nearbyDetail': 'Σε μια συσκευή κοντά σας',
   'notify.banner.nearbyDetail@desktop': 'Σε μια συσκευή κοντά σας',
   'notify.banner.seatedDetail': 'Ένας οικοδεσπότης σάς επέλεξε από την αίθουσα αναμονής',
   'notify.banner.more': '+{n} ακόμη',

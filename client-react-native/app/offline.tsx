@@ -191,6 +191,9 @@ function NotSeated() {
           placeholderTextColor="#8b9cb3"
           value={address}
           onChangeText={setAddress}
+          onSubmitEditing={() => {
+            if (!busy && address.trim()) run(() => joinNearby(address, name.trim()), true);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}

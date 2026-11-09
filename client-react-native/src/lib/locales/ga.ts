@@ -2001,7 +2001,7 @@ export const ga: Record<string, string> = {
   'notify.banner.seated': 'Cuireadh ina shuí thú ag bord',
   'notify.banner.fromCircle': 'Ó do chiorcal cluiche',
   'notify.banner.known': 'D’imir sibh le chéile cheana',
-  'notify.banner.nearbyDetail': 'Ar fhón in aice leat',
+  'notify.banner.nearbyDetail': 'Ar ghléas in aice leat',
   'notify.banner.nearbyDetail@desktop': 'Ar ghléas in aice leat',
   'notify.banner.seatedDetail': 'Roghnaigh óstach thú ón seomra feithimh',
   'notify.banner.more': '+{n} eile',

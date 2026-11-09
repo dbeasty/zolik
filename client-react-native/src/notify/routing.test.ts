@@ -1,4 +1,4 @@
-import { NEARBY_LANDING, followInvite, pathFromPushUrl, planJoin } from '@/src/notify/routing';
+import { bannerStandsAside, NEARBY_LANDING, followInvite, pathFromPushUrl, planJoin } from '@/src/notify/routing';
 import { subjectKeyForSeat, subjectKeyForSession } from '@/src/notify/subjectKey';
 import type { Invite } from '@/src/notify/types';
 
@@ -100,5 +100,19 @@ describe('subject keys', () => {
   it('keys a session by whether it is a guest', () => {
     expect(subjectKeyForSession({ userId: 'abc', isGuest: true })).toBe('guest:abc');
     expect(subjectKeyForSession({ userId: 'abc', isGuest: false })).toBe('user:abc');
+  });
+});
+
+describe('bannerStandsAside', () => {
+  it('keeps off the forms and the screen that already lists nearby tables', () => {
+    for (const path of ['/offline', '/guest', '/auth/login', '/auth/username-login']) {
+      expect(bannerStandsAside(path)).toBe(true);
+    }
+  });
+
+  it('shows everywhere else', () => {
+    for (const path of ['/', '/lobby/games', '/settings', '/offline-history']) {
+      expect(bannerStandsAside(path)).toBe(false);
+    }
   });
 });

@@ -1992,7 +1992,7 @@ export const nl: Record<string, string> = {
   'notify.banner.seated': 'Je bent aan een tafel gezet',
   'notify.banner.fromCircle': 'Uit je spelkring',
   'notify.banner.known': 'Jullie hebben al eens samen gespeeld',
-  'notify.banner.nearbyDetail': 'Op een telefoon bij jou in de buurt',
+  'notify.banner.nearbyDetail': 'Op een apparaat bij jou in de buurt',
   'notify.banner.nearbyDetail@desktop': 'Op een apparaat bij jou in de buurt',
   'notify.banner.seatedDetail': 'Een host heeft je uit de wachtkamer gekozen',
   'notify.banner.more': '+{n} meer',

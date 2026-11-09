@@ -1976,7 +1976,7 @@ export const fi: Record<string, string> = {
   'notify.banner.seated': 'Sinut on istutettu pöytään',
   'notify.banner.fromCircle': 'Pelipiiristäsi',
   'notify.banner.known': 'Olette pelanneet yhdessä ennenkin',
-  'notify.banner.nearbyDetail': 'Lähelläsi olevassa puhelimessa',
+  'notify.banner.nearbyDetail': 'Lähelläsi olevassa laitteessa',
   'notify.banner.nearbyDetail@desktop': 'Lähelläsi olevassa laitteessa',
   'notify.banner.seatedDetail': 'Isäntä valitsi sinut odotushuoneesta',
   'notify.banner.more': '+{n} lisää',

@@ -1967,7 +1967,7 @@ export const lt: Record<string, string> = {
   'notify.banner.seated': 'Jus pasodino prie stalo',
   'notify.banner.fromCircle': 'Iš jūsų žaidimų rato',
   'notify.banner.known': 'Jau esate žaidę kartu',
-  'notify.banner.nearbyDetail': 'Telefone šalia jūsų',
+  'notify.banner.nearbyDetail': 'Įrenginyje šalia jūsų',
   'notify.banner.nearbyDetail@desktop': 'Įrenginyje šalia jūsų',
   'notify.banner.seatedDetail': 'Šeimininkas jus pasirinko iš laukiamojo',
   'notify.banner.more': '+{n} daugiau',

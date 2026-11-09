@@ -1985,7 +1985,7 @@ export const ro: Record<string, string> = {
   'notify.banner.seated': 'Ai fost așezat la o masă',
   'notify.banner.fromCircle': 'Din cercul tău de joc',
   'notify.banner.known': 'Ați mai jucat împreună',
-  'notify.banner.nearbyDetail': 'Pe un telefon din apropiere',
+  'notify.banner.nearbyDetail': 'Pe un dispozitiv din apropiere',
   'notify.banner.nearbyDetail@desktop': 'Pe un dispozitiv din apropiere',
   'notify.banner.seatedDetail': 'O gazdă te-a ales din sala de așteptare',
   'notify.banner.more': '+{n} în plus',

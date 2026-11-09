@@ -2022,7 +2022,7 @@
  "notify.banner.known": "You have played together before",
  "notify.banner.more": "+{n} more",
  "notify.banner.nearby": "{host} is hosting a table nearby",
- "notify.banner.nearbyDetail": "On a phone near you",
+ "notify.banner.nearbyDetail": "On a device near you",
  "notify.banner.nearbyDetail@desktop": "On a device near you",
  "notify.banner.online": "{host} opened a table of {game}",
  "notify.banner.onlineNoGame": "{host} opened a table",

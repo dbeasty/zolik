@@ -1983,7 +1983,7 @@ export const hu: Record<string, string> = {
   'notify.banner.seated': 'Leültettek egy asztalhoz',
   'notify.banner.fromCircle': 'A játékkörödből',
   'notify.banner.known': 'Játszottatok már együtt',
-  'notify.banner.nearbyDetail': 'Egy közeli telefonon',
+  'notify.banner.nearbyDetail': 'Egy közeli eszközön',
   'notify.banner.nearbyDetail@desktop': 'Egy közeli eszközön',
   'notify.banner.seatedDetail': 'Egy házigazda kiválasztott a váróteremből',
   'notify.banner.more': '+{n} további',

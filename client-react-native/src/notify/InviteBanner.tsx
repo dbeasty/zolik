@@ -1,3 +1,4 @@
+import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ import { ARRIVAL_EASING, ms } from '@/src/lib/motion';
 import type { SkinColors } from '@/src/skins/types';
 import { colors } from '@/src/theme';
 import { useInvites } from '@/src/notify/InviteProvider';
+import { bannerStandsAside } from '@/src/notify/routing';
 import { InviteRow, inviteAvatar, inviteDetail, inviteHeadline } from '@/src/notify/InviteRow';
 
 /**
@@ -60,7 +62,8 @@ export function InviteBanner() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
 
-  const shown = inMatch ? null : banner;
+  const pathname = usePathname();
+  const shown = inMatch || bannerStandsAside(pathname) ? null : banner;
   const shownId = shown?.id ?? '';
 
   // The banner's own clock: twenty seconds, then into the list. Restarted

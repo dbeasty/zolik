@@ -1964,7 +1964,7 @@ export const da: Record<string, string> = {
   'notify.banner.seated': 'Du er blevet sat ved et bord',
   'notify.banner.fromCircle': 'Fra din spillekreds',
   'notify.banner.known': 'I har spillet sammen før',
-  'notify.banner.nearbyDetail': 'På en telefon i nærheden',
+  'notify.banner.nearbyDetail': 'På en enhed i nærheden',
   'notify.banner.nearbyDetail@desktop': 'På en enhed i nærheden',
   'notify.banner.seatedDetail': 'En vært valgte dig fra venteværelset',
   'notify.banner.more': '+{n} mere',

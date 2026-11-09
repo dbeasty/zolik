@@ -1989,7 +1989,7 @@ export const mt: Record<string, string> = {
   'notify.banner.seated': 'Tpoġġejt fuq mejda',
   'notify.banner.fromCircle': 'Miċ-ċirku tal-logħob tiegħek',
   'notify.banner.known': 'Diġà lgħabtu flimkien',
-  'notify.banner.nearbyDetail': 'Fuq telefon qribek',
+  'notify.banner.nearbyDetail': 'Fuq apparat qribek',
   'notify.banner.nearbyDetail@desktop': 'Fuq apparat qribek',
   'notify.banner.seatedDetail': 'Ospitanti għażlek mis-sala tal-istennija',
   'notify.banner.more': '+{n} oħra',

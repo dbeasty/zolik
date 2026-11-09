@@ -1982,7 +1982,7 @@ export const it: Record<string, string> = {
   'notify.banner.seated': 'Sei stato fatto sedere a un tavolo',
   'notify.banner.fromCircle': 'Dalla tua cerchia di gioco',
   'notify.banner.known': 'Avete già giocato insieme',
-  'notify.banner.nearbyDetail': 'Su un telefono vicino a te',
+  'notify.banner.nearbyDetail': 'Su un dispositivo vicino a te',
   'notify.banner.nearbyDetail@desktop': 'Su un dispositivo vicino a te',
   'notify.banner.seatedDetail': 'Un host ti ha scelto dalla sala d’attesa',
   'notify.banner.more': '+{n} altri',

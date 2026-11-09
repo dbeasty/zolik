@@ -1966,7 +1966,7 @@ export const lv: Record<string, string> = {
   'notify.banner.seated': 'Tevi nosēdināja pie galda',
   'notify.banner.fromCircle': 'No tava spēļu loka',
   'notify.banner.known': 'Jūs jau esat spēlējuši kopā',
-  'notify.banner.nearbyDetail': 'Tālrunī tavā tuvumā',
+  'notify.banner.nearbyDetail': 'Ierīcē tavā tuvumā',
   'notify.banner.nearbyDetail@desktop': 'Ierīcē tavā tuvumā',
   'notify.banner.seatedDetail': 'Saimnieks tevi izvēlējās no uzgaidāmās telpas',
   'notify.banner.more': '+{n} vēl',

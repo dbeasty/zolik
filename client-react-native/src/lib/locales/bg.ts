@@ -1978,7 +1978,7 @@ export const bg: Record<string, string> = {
   'notify.banner.seated': 'Настанени сте на маса',
   'notify.banner.fromCircle': 'От вашия игрален кръг',
   'notify.banner.known': 'Играли сте заедно преди',
-  'notify.banner.nearbyDetail': 'На телефон близо до вас',
+  'notify.banner.nearbyDetail': 'На устройство близо до вас',
   'notify.banner.nearbyDetail@desktop': 'На устройство близо до вас',
   'notify.banner.seatedDetail': 'Домакин ви избра от чакалнята',
   'notify.banner.more': '+{n} още',

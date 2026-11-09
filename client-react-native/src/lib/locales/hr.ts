@@ -1965,7 +1965,7 @@ export const hr: Record<string, string> = {
   'notify.banner.seated': 'Posjeli su vas za stol',
   'notify.banner.fromCircle': 'Iz vašeg kruga igrača',
   'notify.banner.known': 'Već ste igrali zajedno',
-  'notify.banner.nearbyDetail': 'Na telefonu u vašoj blizini',
+  'notify.banner.nearbyDetail': 'Na uređaju u vašoj blizini',
   'notify.banner.nearbyDetail@desktop': 'Na uređaju u vašoj blizini',
   'notify.banner.seatedDetail': 'Domaćin vas je odabrao iz čekaonice',
   'notify.banner.more': '+{n} više',

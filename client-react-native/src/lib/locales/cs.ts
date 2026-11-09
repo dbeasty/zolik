@@ -1958,7 +1958,7 @@ export const cs: Record<string, string> = {
   'notify.banner.seated': 'Byli jste posazeni ke stolu',
   'notify.banner.fromCircle': 'Z vašeho herního kruhu',
   'notify.banner.known': 'Už jste spolu hráli',
-  'notify.banner.nearbyDetail': 'Na telefonu ve vaší blízkosti',
+  'notify.banner.nearbyDetail': 'Na zařízení ve vaší blízkosti',
   'notify.banner.nearbyDetail@desktop': 'Na zařízení ve vaší blízkosti',
   'notify.banner.seatedDetail': 'Hostitel si vás vybral z čekárny',
   'notify.banner.more': '+{n} další',
