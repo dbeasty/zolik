@@ -635,6 +635,18 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.move.called",
+    "holdem.move.calledAllIn",
+    "holdem.move.checked",
+    "holdem.move.drewMany",
+    "holdem.move.drewOne",
+    "holdem.move.flop",
+    "holdem.move.folded",
+    "holdem.move.raised",
+    "holdem.move.raisedAllIn",
+    "holdem.move.river",
+    "holdem.move.stoodPat",
+    "holdem.move.turn",
     "holdem.offer.discard",
     "holdem.offer.finish",
     "holdem.offer.show",
@@ -2992,6 +3004,47 @@
     "holdem.header.street": [
       "value"
     ],
+    "holdem.move.called": [
+      "n",
+      "player"
+    ],
+    "holdem.move.calledAllIn": [
+      "n",
+      "player"
+    ],
+    "holdem.move.checked": [
+      "player"
+    ],
+    "holdem.move.drewMany": [
+      "n",
+      "player"
+    ],
+    "holdem.move.drewOne": [
+      "player"
+    ],
+    "holdem.move.flop": [
+      "cards"
+    ],
+    "holdem.move.folded": [
+      "player"
+    ],
+    "holdem.move.raised": [
+      "n",
+      "player"
+    ],
+    "holdem.move.raisedAllIn": [
+      "n",
+      "player"
+    ],
+    "holdem.move.river": [
+      "card"
+    ],
+    "holdem.move.stoodPat": [
+      "player"
+    ],
+    "holdem.move.turn": [
+      "card"
+    ],
     "holdem.prompt.draw": [
       "n"
     ],
@@ -4396,6 +4449,18 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.move.called",
+    "holdem.move.calledAllIn",
+    "holdem.move.checked",
+    "holdem.move.drewMany",
+    "holdem.move.drewOne",
+    "holdem.move.flop",
+    "holdem.move.folded",
+    "holdem.move.raised",
+    "holdem.move.raisedAllIn",
+    "holdem.move.river",
+    "holdem.move.stoodPat",
+    "holdem.move.turn",
     "holdem.prompt.draw",
     "holdem.prompt.waitingFor",
     "holdem.quick.allIn",

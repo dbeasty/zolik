@@ -38,6 +38,14 @@ import { EDGE_PAD, type Span } from '@/src/hooks/useEndingScroll';
  *     quietly wrong. So the three pieces are measured in window coordinates at
  *     the moment of aiming — the same thing the drag registry does with the
  *     same nodes, for the same reason.
+ *
+ * A deal gets one movement, with one exception: a card landing on the table
+ * while the table is out of the window. Raising on a phone means scrolling
+ * down to the slider, which takes the table off the top, and every street after
+ * that was dealt where nobody could see it. Only the shortest movement that
+ * shows the table, only when it is hidden, and never while a card is being
+ * carried. `tableCards` counts the cards it means, so a game whose table is
+ * only ever played to in groups never moves for this.
  */
 
 /** Everything about a table that says whether a deal is on, and which one. */
@@ -107,6 +115,22 @@ export function openAt(block: Span, viewport: number, current: number, pad = EDG
   return Math.round((lowest + highest) / 2);
 }
 
+/** What the scroller needs to know about the table's own cards. See the note at the top. */
+export type TableNews = {
+  /** Loose cards on the table right now. */
+  cards: number;
+  /** A card is in hand, so the board must not move under it. */
+  busy?: () => boolean;
+};
+
+/** Whether this update dealt a card onto the table of a deal already being played. */
+export function dealtOntoTable(
+  before: { deal: string | null; cards: number },
+  now: { deal: string | null; cards: number },
+): boolean {
+  return !!now.deal && now.deal === before.deal && now.cards > before.cards;
+}
+
 /** Run something once this update has been laid out. Injectable so the tests can hold time still. */
 export type Scheduler = (run: () => void) => void;
 
@@ -150,6 +174,7 @@ export function useOpeningScroll(
   scrollTo: (y: number) => void,
   view: RefObject<Measurable | null>,
   frame: Scheduler = nextTick,
+  table?: TableNews,
 ): OpeningScroll {
   const deal = state ? dealOf(state) : null;
   const nodes = useRef(new Map<PlayAnchor, Measurable>());
@@ -236,6 +261,51 @@ export function useOpeningScroll(
       if (!landed) aimed.current = before;
     };
   }, [deal, aim, frame]);
+
+  // Read when the card lands rather than captured: only the count is a reason
+  // to run the effect below.
+  const tableBusy = useRef(table?.busy);
+  tableBusy.current = table?.busy;
+  const tableCards = table?.cards ?? 0;
+  const tableSeen = useRef({ deal, cards: tableCards });
+
+  useEffect(() => {
+    const now = { deal, cards: tableCards };
+    const fresh = dealtOntoTable(tableSeen.current, now);
+    tableSeen.current = now;
+    if (!fresh || tableBusy.current?.()) return;
+    let live = true;
+    frame(() => {
+      const scroller = view.current;
+      const head = nodes.current.get('table');
+      if (!live || !scroller || !head) return;
+      let windowTop = 0;
+      let height = 0;
+      let span: Span | null = null;
+      let left = 2;
+      const arrived = () => {
+        if (--left > 0 || !span || height <= 0 || span.bottom <= span.top) return;
+        if (tableBusy.current?.()) return;
+        const at = offset.current;
+        const y = openAt({ top: at + span.top - windowTop, bottom: at + span.bottom - windowTop }, height, at);
+        if (Math.abs(y - at) > 1) scrollTo(y);
+      };
+      scroller.measureInWindow((_x, y, _w, h) => {
+        windowTop = y;
+        height = h;
+        arrived();
+      });
+      head.measureInWindow((_x, y, _w, h) => {
+        // Window coordinates for now; `arrived` turns them into content ones
+        // once the scroller has answered too.
+        span = { top: y, bottom: y + h };
+        arrived();
+      });
+    });
+    return () => {
+      live = false;
+    };
+  }, [deal, tableCards, frame, scrollTo, view]);
 
   const anchor = useCallback(
     (name: PlayAnchor) => ({

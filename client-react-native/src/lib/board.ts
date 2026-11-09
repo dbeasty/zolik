@@ -131,6 +131,18 @@ export function stretchesInRow(zone: Zone): boolean {
   return zone.kind === 'spread' && !(zone.cards ?? []).length;
 }
 
+/**
+ * The loose cards lying on the table for everyone: poker's board. A dealer's
+ * hand is a player of sorts, and a table played in groups — solitaire's columns
+ * — is changed by the player looking at it, so neither is news.
+ */
+export function sharedTableCards(zones: Zone[]): number {
+  return zones.reduce(
+    (n, z) => (z.kind === 'spread' && z.shared && !z.dealer && !z.groups?.length ? n + (z.cards?.length ?? 0) : n),
+    0,
+  );
+}
+
 /** A spread that belongs in the row of what players have laid down. */
 export function isSpreadRowZone(zone: Zone): boolean {
   return zone.kind === 'spread' && !zone.dealer && !zone.shared;

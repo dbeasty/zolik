@@ -60,10 +60,12 @@ export function MoveAnnouncements({
   const setOpen = setMovesOpen;
   // Four lines' room where the window has it; two on a short one, so the
   // pile, the hand and its controls still fit together. Fixed by the window,
-  // never by what is in the box — see below.
+  // never by how much is in the box — see below. With no move to list at all
+  // there is nothing to keep room for: on a phone, four blank lines above the
+  // hand were enough to push the table off the screen.
   const { height } = useWindowDimensions();
   const short = height < SHORT_WINDOW;
-  const linesHeight = !open ? undefined : short ? LINE * 3 : LINE * 5;
+  const linesHeight = !open || moves.length === 0 ? undefined : short ? LINE * 3 : LINE * 5;
   const [hintsOpen, setHintsOpen] = useState(false);
   // Screens stay mounted under the one that replaced them, and a Modal does
   // not hide with its screen: the sheet was left over every other screen.
@@ -214,7 +216,7 @@ export function MoveAnnouncements({
         {/* The moves are a list of their own — the prompts after them are
             not moves, and a list may hold nothing but its items. Spaced the
             way the lines are, so the box looks exactly as it did. */}
-        {open ? (
+        {open && moves.length > 0 ? (
           <ScrollView
             ref={scroller}
             testID="moves-scroll"

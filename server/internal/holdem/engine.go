@@ -382,7 +382,7 @@ func applyCall(s *GameState, seat *Seat) ([]module.Event, error) {
 		seat.AllIn = true
 	}
 	return []module.Event{{Type: "called", Data: map[string]any{
-		"playerId": seat.PlayerID, "amount": owed,
+		"playerId": seat.PlayerID, "amount": owed, "allIn": seat.AllIn,
 	}}}, nil
 }
 
