@@ -1265,7 +1265,13 @@ function isReady(
     return selected.length >= need && fits(offer, selected).ok;
   }
   if ((offer.params ?? []).length > 0) {
-    return (offer.params ?? []).every((p) => (chosen?.[p.name] ?? defaultParam(p)) !== undefined);
+    if (!(offer.params ?? []).every((p) => (chosen?.[p.name] ?? defaultParam(p)) !== undefined)) return false;
+    // A figure to send does not stand in for the cards to send it with: Prší's
+    // Play, which also asks a suit, lit up with nothing selected and then sent
+    // nothing when pressed.
+    if ((offer.source?.minCards ?? 0) === 0) return true;
+    if (selected.length === 0) return (offer.source?.submit ?? []).length > 0;
+    return readyWith(offer, selected).ok;
   }
   return offerSettles(offer, selected);
 }

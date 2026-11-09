@@ -383,6 +383,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // columns to fill.
   const roomForTwo = useWindowDimensions().width >= TWO_COLUMN_MIN_WIDTH;
   const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'), roomForTwo);
+  // A new arrangement moves the panels under a scroller that stays put, and only
+  // once it has been drawn is there anything to measure.
+  const reaimSoon = () => setTimeout(() => opening.reaim(), 120);
   // Arranging the board — ▦ Layout: every region gets a handle and arrows,
   // and the cards take no presses until Done. Not kept: a different match
   // starts playing, not arranging.
@@ -425,8 +428,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     state
       ? {
           current: board.arrangement.custom ? 'custom' : board.arrangement.preset,
-          choose: board.choose,
-          reset: board.reset,
+          choose: (preset) => {
+            board.choose(preset);
+            reaimSoon();
+          },
+          reset: () => {
+            board.reset();
+            reaimSoon();
+          },
           edit: () => setArranging((on) => !on),
         }
       : undefined,
@@ -2493,8 +2502,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         <LayoutEditBar
           arrangement={board.arrangement}
           narrow={!roomForTwo}
-          onChoose={board.choose}
-          onReset={board.reset}
+          onChoose={(preset) => {
+            board.choose(preset);
+            reaimSoon();
+          }}
+          onReset={() => {
+            board.reset();
+            reaimSoon();
+          }}
           onDone={() => setArranging(false)}
         />
       ) : null}
@@ -2543,7 +2558,10 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           },
           boardNoShrink.style,
         ]}
-        onContentSizeChange={boardNoShrink.onContentSizeChange}
+        onContentSizeChange={(w, h) => {
+          boardNoShrink.onContentSizeChange(w, h);
+          opening.scrollProps.onContentSizeChange();
+        }}
         testID="match-screen"
         {...ending.scrollProps}
         // Last, and deliberately: the spread above carries an `onScroll` of
