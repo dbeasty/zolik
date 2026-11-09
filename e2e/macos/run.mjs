@@ -643,7 +643,15 @@ async function main() {
       }
       if (!played) {
         await a.screenshot(`drag-miss-${turn}`);
-        await a.js(`const b = ${LIVE_BUTTONS}; await e2e.click(b.includes('Draw') ? 'Draw' : 'Take four', { exact: true }); await e2e.sleep(2500); return 1`);
+        await a.js(`
+          const word = await e2e.waitFor(() => {
+            const b = ${LIVE_BUTTONS};
+            return ['Draw', 'Take four', 'Keep it', 'Continue', 'Start the next round'].find((w) => b.includes(w)) ?? null;
+          }, 'a way to move the turn on', 30000);
+          await e2e.click(word, { exact: true });
+          await e2e.sleep(2500);
+          return 1;
+        `);
       }
     }
     expect(played, 'no card dragged onto the discard pile with the mouse was played');
@@ -922,6 +930,35 @@ async function main() {
     expect(seat.instanceId === state.host.instanceId && seat.role === 'host', `the app holds seat ${JSON.stringify(seat)}`);
     const seatInfo = await (await fetch(new URL('/nearby/info', seat.baseUrl), { signal: AbortSignal.timeout(3000) })).json();
     expect(seatInfo.instanceId === state.host.instanceId, `the seat's address ${seat.baseUrl} reaches ${JSON.stringify(seatInfo)}`);
+    // Advertising outlives the screen: coming back to it still shows the guests
+    // and the way to stop. The radio is stubbed, since using the real one needs
+    // the person at the Mac to allow it (the opt-in step at the end does that).
+    const ble = await a.js(`
+      const N = ZolikNearbyDesktop;
+      const real = { bleReady: N.bleReady, bleState: N.bleState, bleHostStart: N.bleHostStart, bleHostStop: N.bleHostStop, bleGuestCodes: N.bleGuestCodes };
+      N.bleReady = async () => 'on';
+      N.bleState = () => 'on';
+      N.bleHostStart = async () => {};
+      N.bleHostStop = async () => {};
+      N.bleGuestCodes = () => ['1234'];
+      const shown = (id) => [...document.querySelectorAll('[data-testid="' + id + '"]')].filter((e) => e.getClientRects().length);
+      await e2e.clickTestId('offline-ble-invite');
+      const first = await e2e.waitFor(() => shown('offline-ble-open')[0], 'the open Bluetooth card', 10000);
+      window.__zolikNavigate('/');
+      await e2e.waitForText('No internet needed');
+      await e2e.waitFor(() => !first.isConnected, 'the offline screen to go', 10000);
+      window.__zolikNavigate('/offline');
+      await e2e.waitForText('Your name at the table').catch(() => {});
+      await e2e.sleep(800);
+      const back = { open: shown('offline-ble-open').length, invite: shown('offline-ble-invite').length, code: e2e.text().includes('1234') };
+      if (back.open) {
+        await e2e.clickTestId('offline-ble-stop');
+        await e2e.waitFor(() => shown('offline-ble-invite')[0], 'the invite after stopping', 10000);
+      }
+      Object.assign(N, real);
+      return back;
+    `);
+    expect(ble.open === 1 && ble.invite === 0 && ble.code, `the Bluetooth card after coming back: ${JSON.stringify(ble)}`);
     await a.js(`await e2e.sleep(1000); window.__zolikNavigate('/'); return 1`);
     await a.js(`await e2e.waitForText('No internet needed'); return 1`);
     await a.js(`await e2e.click('Last Card', { exact: true }); return 1`);
@@ -1439,6 +1476,7 @@ async function main() {
     await dead.js(`await e2e.click('Play', { exact: true }); return 1`);
     const text = await dead.js(`await e2e.waitFor(() => /reach the server/.test(e2e.text()) || /dial tcp|Load failed/.test(e2e.text()), 'a load error', 20000); return e2e.text()`);
     expect(/Can.t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
+    expect(text.split('Play offline').length === 2, `the home screen offers Play offline more than once: ${JSON.stringify(text.slice(0, 300))}`);
     await dead.screenshot('unreachable');
   }, [dead]);
 
