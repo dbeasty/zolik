@@ -519,7 +519,7 @@
         line(changed, when(g.updatedAt));
         line(changed, 'by ' + (g.updatedBy || 'unknown'), 'sub');
       } else {
-        line(changed, 'never — off by default', 'sub');
+        line(changed, 'never — on by default', 'sub');
       }
 
       tbody.appendChild(tr);

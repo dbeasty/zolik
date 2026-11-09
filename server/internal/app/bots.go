@@ -15,15 +15,21 @@ import (
 // Whether AI seats play the trained models this binary ships.
 //
 // The switch itself is learn's, in process: an atomic flag per game, read on
-// every bot move. This file is the rest — loading the operator's stored
-// choice into it at boot, and handing the console a way to change both the
+// every bot move. This file is the rest — loading the stored choice, on unless
+// an operator said otherwise, into it at boot, and handing the console a way to change both the
 // store and the switch. Production is one instance, so that is enough; more
 // than one would need each change broadcast (the Redis hub channel) so every
 // instance flips together, and each would still load the store at boot.
 
-// loadHardModels applies the stored settings to the switch. Anything it cannot
-// apply is logged and left off: the default is the heuristic, and a boot must
-// never fail over which bot sits in a seat.
+// loadHardModels puts the AI choice back at boot: what the operator stored, and
+// for a game nobody has ever switched, on. So only an explicit "off" in the
+// console turns a model off, and that outlives anything short of losing the
+// store; losing the store, or a new data directory, brings back the AI rather
+// than quietly taking it away.
+//
+// Anything it cannot apply is logged and left off, and a boot must never fail
+// over which bot sits in a seat. A store it cannot read is treated the same,
+// since it may hold an "off" this boot cannot see.
 func loadHardModels(ctx context.Context, store botsettings.Store) {
 	if store == nil {
 		return
@@ -46,6 +52,17 @@ func loadHardModels(ctx context.Context, store botsettings.Store) {
 		}
 		slog.Info("bots: AI seats play the shipped model", "game", game,
 			"since", s.UpdatedAt, "by", s.UpdatedBy)
+	}
+	for _, m := range learn.HardModels() {
+		if _, chosen := stored[m.Game]; chosen || !m.Embedded || !m.Fits {
+			continue
+		}
+		if _, err := learn.SetHardModel(m.Game, true); err != nil {
+			slog.Warn("bots: shipped model not applied; AI seats play the Hard heuristic",
+				"game", m.Game, "error", err)
+			continue
+		}
+		slog.Info("bots: AI seats play the shipped model", "game", m.Game, "since", "never changed")
 	}
 }
 
