@@ -4,6 +4,7 @@ import { act, create } from 'react-test-renderer';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import {
   dealOf,
+  dealtOntoTable,
   openAt,
   playBlockOf,
   useOpeningScroll,
@@ -148,10 +149,18 @@ function probe(initial: Playing | null, strict = false) {
   let set: (s: Playing | null) => void = () => {};
   let handlers: ReturnType<typeof useOpeningScroll> | null = null;
 
+  let setCards: (n: number) => void = () => {};
+  let busy = false;
+
   function Probe() {
     const [board, setBoard] = React.useState(initial);
     set = setBoard;
-    handlers = useOpeningScroll(board, (y) => moved.push(y), view, (run) => queue.push(run));
+    const [cards, setCardsNow] = React.useState(0);
+    setCards = setCardsNow;
+    handlers = useOpeningScroll(board, (y) => moved.push(y), view, (run) => queue.push(run), {
+      cards,
+      busy: () => busy,
+    });
     return null;
   }
 
@@ -164,6 +173,12 @@ function probe(initial: Playing | null, strict = false) {
   return {
     moved,
     set: (b: Playing | null) => act(() => set(b)),
+    /** Loose cards on the table now. */
+    dealt: (n: number) => act(() => setCards(n)),
+    /** A card in the player's hand, mid-carry. */
+    carrying: (on: boolean) => {
+      busy = on;
+    },
     /** One turn of the scheduler — everything that was waiting when it started. */
     tick: () => {
       const due = queue.splice(0, queue.length);
@@ -212,6 +227,21 @@ function board(p: ReturnType<typeof probe>) {
   p.laidOut('hand', 420, 180);
   p.laidOut('controls', 610, 90);
 }
+
+describe('dealtOntoTable', () => {
+  it('is a new card on the deal already being played', () => {
+    expect(dealtOntoTable({ deal: 'm:1', cards: 3 }, { deal: 'm:1', cards: 4 })).toBe(true);
+  });
+
+  it('is not the next deal, which has its own movement', () => {
+    expect(dealtOntoTable({ deal: 'm:1', cards: 0 }, { deal: 'm:2', cards: 3 })).toBe(false);
+  });
+
+  it('is not cards leaving, nor a table with no deal on', () => {
+    expect(dealtOntoTable({ deal: 'm:1', cards: 5 }, { deal: 'm:1', cards: 0 })).toBe(false);
+    expect(dealtOntoTable({ deal: null, cards: 3 }, { deal: null, cards: 5 })).toBe(false);
+  });
+});
 
 describe('useOpeningScroll', () => {
   // The case that matters most: starting a game navigates straight here, and
@@ -302,5 +332,70 @@ describe('useOpeningScroll', () => {
     const p = probe(null);
     p.tick();
     expect(p.moved).toEqual([]);
+  });
+
+  // Raising on a phone means scrolling down to the slider, which takes the
+  // table off the top; the flop then landed where nobody could see it, and the
+  // deal's one movement was long spent.
+  describe('a card landing on the table', () => {
+    function dealtAndScrolled(y: number) {
+      const p = probe(null);
+      p.set(playing(0));
+      board(p);
+      p.tick();
+      p.moved.length = 0;
+      p.scrolledTo(y);
+      return p;
+    }
+
+    it('brings a table scrolled off the top back, and no further', () => {
+      const p = dealtAndScrolled(900);
+      p.dealt(3);
+      p.tick();
+      expect(p.moved).toEqual([188]);
+    });
+
+    it('does it again for the next street', () => {
+      const p = dealtAndScrolled(900);
+      p.dealt(3);
+      p.tick();
+      p.scrolledTo(900);
+      p.dealt(4);
+      p.tick();
+      expect(p.moved).toEqual([188, 188]);
+    });
+
+    it('leaves a board alone when the table is already in the window', () => {
+      const p = dealtAndScrolled(150);
+      p.dealt(3);
+      p.tick();
+      expect(p.moved).toEqual([]);
+    });
+
+    it('never moves the board under a card being carried', () => {
+      const p = dealtAndScrolled(900);
+      p.carrying(true);
+      p.dealt(3);
+      p.tick();
+      expect(p.moved).toEqual([]);
+    });
+
+    it('does not move for the same cards again', () => {
+      const p = dealtAndScrolled(900);
+      p.dealt(3);
+      p.tick();
+      p.scrolledTo(900);
+      p.dealt(3);
+      p.tick();
+      expect(p.moved).toEqual([188]);
+    });
+
+    it('leaves a table that has stopped between rounds to the ending', () => {
+      const p = dealtAndScrolled(900);
+      p.set(paused(1));
+      p.dealt(5);
+      p.tick();
+      expect(p.moved).toEqual([]);
+    });
   });
 });

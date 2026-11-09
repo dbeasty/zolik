@@ -140,7 +140,7 @@ import { AccountMenu } from '@/src/components/AccountMenu';
 import { seatIsShareable } from '@/src/desktop/seat';
 import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
-import { isTableZone } from '@/src/lib/board';
+import { isTableZone, sharedTableCards } from '@/src/lib/board';
 import { useLocale } from '@/src/hooks/useLocale';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
@@ -765,6 +765,8 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     state,
     goTo,
     scrollRef as unknown as RefObject<Measurable | null>,
+    undefined,
+    { cards: sharedTableCards(state?.view?.zones ?? []), busy: () => dragRef.current !== null },
   );
   // Carrying a card toward a meld the screen has scrolled away from. The hand
   // sits above the melds, so dropping on an opponent's meld (a poach, a

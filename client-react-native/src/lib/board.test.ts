@@ -7,6 +7,7 @@ import {
   isConcealed,
   isSpreadRowZone,
   isTableZone,
+  sharedTableCards,
   sitsBeside,
 } from '@/src/lib/board';
 
@@ -190,5 +191,24 @@ describe('stretchesInRow', () => {
 
   it('keeps a few loose cards at their own size', () => {
     expect(stretchesInRow({ id: 'r', kind: 'spread', count: 1, cards: [{ card: '3H' }] })).toBe(false);
+  });
+});
+
+describe('sharedTableCards', () => {
+  const cards = [{ card: '3H' }, { card: '4H' }, { card: '5H' }];
+
+  it('counts the loose cards on a table everyone shares', () => {
+    expect(sharedTableCards([zone({ kind: 'spread', shared: true, cards, count: 3 })])).toBe(3);
+  });
+
+  it('leaves out hands, a dealer, players\' spreads and a table played in groups', () => {
+    expect(
+      sharedTableCards([
+        zone({ kind: 'hand', cards, count: 3 }),
+        zone({ kind: 'spread', shared: true, dealer: true, cards, count: 3 }),
+        zone({ kind: 'spread', cards, count: 3 }),
+        zone({ kind: 'spread', shared: true, groups: [{ id: 'g', cards: ['3H'] }], cards, count: 3 }),
+      ]),
+    ).toBe(0);
   });
 });
