@@ -18,7 +18,7 @@
 //   ZOLIK_E2E_MACOS_APP   the .app to test (default client-macos/build/Jokerless.app)
 //   ZOLIK_E2E_KEEP=1      keep the work folder (screenshots, logs) even on success
 import { execFile, execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -383,6 +383,22 @@ async function main() {
     expect(!v.nativeSocket, 'WebSocket is still the engine’s own');
   }, [a]);
 
+  await step('the app’s own sounds load in the web view', async () => {
+    // The media engine asks for byte ranges; an app:// that ignored them left
+    // the whole app silent, with only a rejected play() to show for it.
+    const sound = readdirSync(path.join(SOURCE_APP, 'Contents/Resources/web/assets/assets/sounds')).find((f) => f.startsWith('card.'));
+    const v = await a.js(`
+      const audio = new Audio(${JSON.stringify(`/assets/assets/sounds/${sound}`)});
+      return await new Promise((resolve) => {
+        audio.onloadeddata = () => resolve({ loaded: true, duration: audio.duration });
+        audio.onerror = () => resolve({ loaded: false, code: audio.error && audio.error.code });
+        setTimeout(() => resolve({ loaded: false, code: 'timeout' }), 8000);
+        audio.load();
+      });
+    `);
+    expect(v.loaded && v.duration > 0, `the sound did not load: ${JSON.stringify(v)}`);
+  }, [a]);
+
   await step('signs in as a guest; the title bar, not the page, carries Back and Forward', async () => {
     await a.js(`await e2e.click('Play', { exact: true }); return 1`);
     await a.js(`await e2e.click('Continue as guest', { exact: true }); return 1`);
@@ -546,6 +562,10 @@ async function main() {
     const closed = await a.js(tileState('Last Card'));
     expect(!/Playing/.test(closed.badge) && closed.button === 'Resume', `a closed game's tile says ${JSON.stringify(closed)}`);
     await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+    // Coming forward again must not light the arrows: there is nowhere to go from home.
+    await sleep(400);
+    const bar = await a.native('toolbar state');
+    expect(bar.back === false, `Back is lit at home after closing a game window: ${JSON.stringify(bar)}`);
     await a.js(resumeTile('Last Card'));
     const wins = await waitWindows(a, (w) => w.length === 3, 'Resume to reopen the window');
     await on(a, 1);

@@ -1905,6 +1905,7 @@ export const fi: Record<string, string> = {
   'choice.showdownReveal.2': 'Kaikki maksaneet',
   'choice.showdownReveal.1': 'Vain voittaja',
   'home.playOffline': 'Pelaa offline',
+  'home.noServer': 'Palvelimeen ei saada yhteyttä. Tarkista yhteys ja yritä uudelleen.',
   'offline.title': 'Pelaa offline',
   'offline.subtitle': 'Internetiä ei tarvita',
   'offline.body': 'Tämä laite isännöi pöytää itse, joten voit pelata botteja vastaan missä tahansa – jopa lentotilassa.',

@@ -1890,6 +1890,7 @@ export const sl: Record<string, string> = {
   'choice.showdownReveal.2': 'Vsi, ki so plačali',
   'choice.showdownReveal.1': 'Samo zmagovalec',
   'home.playOffline': 'Igraj brez povezave',
+  'home.noServer': 'Strežnik ni dosegljiv. Preverite povezavo in poskusite znova.',
   'offline.title': 'Igraj brez povezave',
   'offline.subtitle': 'Brez interneta',
   'offline.body': 'Ta naprava sama gosti mizo, zato lahko proti botom igrate kjer koli — tudi v načinu za letalo.',

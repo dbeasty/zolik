@@ -1930,6 +1930,7 @@ export const ga: Record<string, string> = {
   'choice.showdownReveal.2': 'Gach duine a d\'íoc',
   'choice.showdownReveal.1': 'An buaiteoir amháin',
   'home.playOffline': 'Imir as líne',
+  'home.noServer': 'Ní féidir an freastalaí a bhaint amach. Seiceáil do nasc agus bain triail eile as.',
   'offline.title': 'Imir as líne',
   'offline.subtitle': 'Níl gá le hidirlíon',
   'offline.body': 'Is é an gléas seo féin a óstálann an bord, mar sin is féidir leat imirt in aghaidh bots áit ar bith — fiú i mód eitleáin.',

@@ -1914,6 +1914,7 @@ export const ro: Record<string, string> = {
   'choice.showdownReveal.2': 'Toți cei care au plătit',
   'choice.showdownReveal.1': 'Doar câștigătorul',
   'home.playOffline': 'Joacă offline',
+  'home.noServer': 'Serverul nu poate fi accesat. Verifică conexiunea și încearcă din nou.',
   'offline.title': 'Joacă offline',
   'offline.subtitle': 'Fără internet',
   'offline.body': 'Acest dispozitiv găzduiește singur masa, așa că poți juca împotriva boților oriunde — chiar și în modul avion.',

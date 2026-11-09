@@ -39,7 +39,16 @@ export function currentOrigin(): string {
   // either absent or has no meaningful location.
   if (Platform.OS !== 'web') return '';
   if (typeof window === 'undefined' || !window.location?.origin) return '';
-  return window.location.origin;
+  return reachableOrigin(window.location.origin);
+}
+
+/**
+ * A page's origin, if anybody else could open it. The Mac app's pages come from
+ * `app://jokerless`, which means nothing on anyone else's device: a link built
+ * on it went into a chat and opened nothing.
+ */
+export function reachableOrigin(origin: string): string {
+  return /^https?:\/\//.test(origin) ? origin : '';
 }
 
 /**

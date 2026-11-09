@@ -1894,6 +1894,7 @@ export const hr: Record<string, string> = {
   'choice.showdownReveal.2': 'Svi koji su platili',
   'choice.showdownReveal.1': 'Samo pobjednik',
   'home.playOffline': 'Igraj izvan mreže',
+  'home.noServer': 'Poslužitelj nije dostupan. Provjerite vezu i pokušajte ponovno.',
   'offline.title': 'Igraj izvan mreže',
   'offline.subtitle': 'Bez interneta',
   'offline.body': 'Ovaj uređaj sam vodi stol, pa možete igrati protiv botova bilo gdje — čak i u načinu rada u zrakoplovu.',

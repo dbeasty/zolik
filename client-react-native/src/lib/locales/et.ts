@@ -1899,6 +1899,7 @@ export const et: Record<string, string> = {
   'choice.showdownReveal.2': 'Kõik vastanud',
   'choice.showdownReveal.1': 'Ainult võitja',
   'home.playOffline': 'Mängi võrguta',
+  'home.noServer': 'Serveriga ei saa ühendust. Kontrolli ühendust ja proovi uuesti.',
   'offline.title': 'Mängi võrguta',
   'offline.subtitle': 'Internetti pole vaja',
   'offline.body': 'See seade peab lauda ise, nii et saad bottide vastu mängida kõikjal – isegi lennurežiimis.',

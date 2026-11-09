@@ -56,8 +56,12 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     if let matchId { gameKey = "\(kind):\(matchId)" }
     web = WebController(
       nearby: nearby, spec: .init(role: role == .main ? .main : .game, matchId: matchId), seat: seat)
+    // A game window is tall enough for the piles, the hand and the row of
+    // controls together, where the screen allows: at 780 the opening scroll
+    // left the controls under the bottom edge in most games.
+    let room = (NSScreen.main?.visibleFrame.height ?? 1000) - 60
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: role == .main ? 1280 : 1100, height: role == .main ? 820 : 780),
+      contentRect: NSRect(x: 0, y: 0, width: role == .main ? 1280 : 1100, height: role == .main ? 820 : min(880, room)),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered, defer: false)
     window.title = "Jokerless"
@@ -198,6 +202,10 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     item.target = self
     item.action = back ? #selector(toolbarBack(_:)) : #selector(toolbarForward(_:))
     toolbarItems[id.rawValue] = item
+    // refreshToolbar decides. Left to validate itself, AppKit lights an item
+    // with an action whenever the window comes forward, so both arrows came on
+    // at home on closing a game window, with neither going anywhere.
+    item.autovalidates = false
     item.isEnabled = back ? web.canBack : web.webView.canGoForward
     return item
   }

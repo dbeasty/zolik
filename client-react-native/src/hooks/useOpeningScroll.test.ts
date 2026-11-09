@@ -195,6 +195,8 @@ function probe(initial: Playing | null, strict = false) {
         handlers!.scrollProps.onScroll({ nativeEvent: { contentOffset: { y } } } as never),
       );
     },
+    reaim: () => act(() => handlers!.reaim()),
+    grew: () => act(() => handlers!.scrollProps.onContentSizeChange()),
     unmount: () => act(() => tree!.unmount()),
   };
 }
@@ -265,6 +267,87 @@ describe('useOpeningScroll', () => {
     p.set({ ...playing(0) });
     p.tick();
     expect(p.moved).toEqual([112]);
+  });
+
+  // Recent moves and the controls fill in after the deal, which pushed the
+  // buttons back under the bottom edge.
+  describe('a board still growing after it was aimed at', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    function aimedAt112() {
+      const p = probe(null);
+      p.set(playing(0));
+      board(p);
+      p.tick();
+      p.scrolledTo(112);
+      p.laidOut('controls', 680, 90);
+      return p;
+    }
+
+    it('follows the controls down', () => {
+      const p = aimedAt112();
+      p.grew();
+      p.tick();
+      expect(p.moved).toEqual([112, 182]);
+    });
+
+    it('stays put when the growth left the play in the window', () => {
+      const p = probe(null);
+      p.set(playing(0));
+      board(p);
+      p.tick();
+      p.scrolledTo(112);
+      p.grew();
+      p.tick();
+      expect(p.moved).toEqual([112]);
+    });
+
+    it('leaves the board alone once the player has moved it', () => {
+      const p = aimedAt112();
+      const later = Date.now() + 1000;
+      jest.spyOn(Date, 'now').mockReturnValue(later);
+      p.scrolledTo(40);
+      p.grew();
+      p.tick();
+      expect(p.moved).toEqual([112]);
+    });
+
+    it('stops following after a moment', () => {
+      const p = aimedAt112();
+      const later = Date.now() + 6000;
+      jest.spyOn(Date, 'now').mockReturnValue(later);
+      p.grew();
+      p.tick();
+      expect(p.moved).toEqual([112]);
+    });
+  });
+
+  it('counts a hand that reaches above the table, as it does beside it', () => {
+    const p = probe(null);
+    p.set(playing(0));
+    p.laidOut('table', 300, 500);
+    p.laidOut('hand', 100, 180);
+    p.laidOut('controls', 290, 90);
+    p.scrolledTo(300);
+    p.tick();
+    // Up to the top of the hand at 100, less the margin; not the table at 300.
+    expect(p.moved).toEqual([88]);
+  });
+
+  // Choosing a layout moves the panels under a scroller that stays put.
+  it('aims again when the board is rearranged, though the deal is the same', () => {
+    const p = probe(null);
+    p.set(playing(0));
+    board(p);
+    p.tick();
+    p.scrolledTo(112);
+    p.laidOut('table', 900, 200);
+    p.laidOut('hand', 1120, 180);
+    p.laidOut('controls', 1400, 90);
+    p.reaim();
+    p.tick();
+    // 900 to 1490 is a little too tall for the window, so the overflow is split.
+    expect(p.moved).toEqual([112, 895]);
   });
 
   it('brings it back when the next round is dealt', () => {

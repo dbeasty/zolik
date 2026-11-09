@@ -1895,6 +1895,7 @@ export const lv: Record<string, string> = {
   'choice.showdownReveal.2': 'Visi, kas izlīdzināja',
   'choice.showdownReveal.1': 'Tikai uzvarētājs',
   'home.playOffline': 'Spēlēt bezsaistē',
+  'home.noServer': 'Serveris nav sasniedzams. Pārbaudiet savienojumu un mēģiniet vēlreiz.',
   'offline.title': 'Spēlēt bezsaistē',
   'offline.subtitle': 'Internets nav vajadzīgs',
   'offline.body': 'Šī ierīce pati uztur galdu, tāpēc vari spēlēt pret robotiem jebkur — pat lidojuma režīmā.',

@@ -1901,6 +1901,7 @@ export const pl: Record<string, string> = {
   'choice.showdownReveal.2': 'Wszyscy, którzy sprawdzili',
   'choice.showdownReveal.1': 'Tylko zwycięzca',
   'home.playOffline': 'Graj offline',
+  'home.noServer': 'Nie można połączyć się z serwerem. Sprawdź połączenie i spróbuj ponownie.',
   'offline.title': 'Graj offline',
   'offline.subtitle': 'Bez internetu',
   'offline.body': 'To urządzenie samo prowadzi stół, więc możesz grać z botami wszędzie — nawet w trybie samolotowym.',

@@ -1907,6 +1907,7 @@ export const bg: Record<string, string> = {
   'choice.showdownReveal.2': 'Всички, които платиха',
   'choice.showdownReveal.1': 'Само победителят',
   'home.playOffline': 'Игра офлайн',
+  'home.noServer': 'Сървърът е недостъпен. Проверете връзката си и опитайте отново.',
   'offline.title': 'Игра офлайн',
   'offline.subtitle': 'Без интернет',
   'offline.body': 'Това устройство само поддържа масата, така че можете да играете срещу ботове навсякъде — дори в самолетен режим.',

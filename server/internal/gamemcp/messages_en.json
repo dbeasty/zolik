@@ -1351,6 +1351,7 @@
  "holdem.unit.chips": "chips",
  "home.continueAsGuest": "Continue as guest",
  "home.guestSuffix": "(guest)",
+ "home.noServer": "Can't reach the server. Check your connection and try again.",
  "home.offlineScoreTable": "Offline score table",
  "home.play": "Play",
  "home.playOffline": "Play offline",

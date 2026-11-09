@@ -240,9 +240,22 @@ function GameRows({ tables, columns }: { tables: StoredTable[] | null; columns: 
 
   if (error) {
     return (
-      <Text testID="games-error" style={shared.error}>
-        {error}
-      </Text>
+      <View>
+        {/* The transport's own words ("fetch failed: ...") say nothing to a
+            player. And with a session, Play offline otherwise lives only on a
+            game's page, which is one of the things this failure has just taken
+            away, so a phone with no connection had no way into its own server. */}
+        <Text testID="games-error" style={shared.error}>
+          {t('home.noServer')}
+        </Text>
+        {nearbyAvailable && !offline ? (
+          <MenuButton
+            label={t('home.playOffline')}
+            secondary
+            onPress={() => router.push('/offline')}
+          />
+        ) : null}
+      </View>
     );
   }
   if (!modules) return <ActivityIndicator aria-label={t('a11y.loading')} color={colors.accent} />;

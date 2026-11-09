@@ -1937,6 +1937,7 @@ export const el: Record<string, string> = {
   'choice.showdownReveal.2': 'Όλοι όσοι πλήρωσαν',
   'choice.showdownReveal.1': 'Μόνο ο νικητής',
   'home.playOffline': 'Παιχνίδι εκτός σύνδεσης',
+  'home.noServer': 'Ο διακομιστής δεν είναι διαθέσιμος. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.',
   'offline.title': 'Παιχνίδι εκτός σύνδεσης',
   'offline.subtitle': 'Χωρίς internet',
   'offline.body': 'Αυτή η συσκευή φιλοξενεί μόνη της το τραπέζι, οπότε μπορείτε να παίξετε με bots παντού — ακόμη και σε λειτουργία πτήσης.',
