@@ -167,6 +167,15 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
       ? Math.max(crowded ? SEAT_MIN_CROWDED : SEAT_MIN, Math.floor((stripWidth - SEAT_GAP * (seats.length - 1)) / seats.length))
       : undefined;
 
+  // The name on a line of its own under the avatar. Past four seats, so the
+  // tile is as wide as its longest line rather than both; wherever the tile is
+  // too narrow to hold the avatar, rank, name and "BOT · Medium" badge in one
+  // row, where every bot's name was cut to "Stead…", or on a tablet to "S…".
+  const nameOwnLine =
+    crowded ||
+    (share !== undefined && share < SEAT_ONE_LINE_MIN) ||
+    (metrics.narrow && seats.some((s) => players.find((p) => p.id === s.playerId)?.isAI));
+
   const tiles = seats.map((seat) => {
     const isMe = seat.playerId === viewerId;
     // Partners of the viewer, not of each other: an opponent pair is still
@@ -324,12 +333,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         ]}
       >
         <View style={seat.active && !stillness ? styles.lifted : undefined}>
-        {crowded || (metrics.narrow && botBadge) ? (
-          // Past four seats: the name on a line of its own under the avatar,
-          // so the tile is as wide as its longest line rather than both. And
-          // a bot's tile on a phone: half a phone's width holds the avatar,
-          // the rank and the "BOT · Medium" badge with five letters to spare,
-          // and every bot's name was cut to "Stead…".
+        {nameOwnLine ? (
           <>
             <View style={styles.nameRow}>
               <BotPress onPress={facePress} testID={faceTestID} name={name} label={faceLabel}>
@@ -647,6 +651,8 @@ type SeatStyles = ReturnType<typeof seatStyles>;
 const SEAT_GAP = 8;
 const SEAT_MIN = 116;
 const SEAT_MIN_CROWDED = 104;
+// Narrower than this a tile cannot hold the avatar, rank, name and badge in a row.
+const SEAT_ONE_LINE_MIN = 320;
 
 /**
  * The dot beside "to play", breathing. The one looping animation on the

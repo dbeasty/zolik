@@ -59,15 +59,18 @@ test('an open table names its game in words, not by its id', async ({ page, requ
   await expect(line).not.toHaveText(/marias|licitovany/);
 });
 
-test("a bot's name is readable on a phone, whole", async ({ page, request }) => {
-  await page.setViewportSize({ width: 393, height: 852 });
+for (const [name, width, height, bots] of [
+  ['a phone', 393, 852, 3],
+  ['a tablet', 820, 1180, 2],
+] as const) test(`a bot's name is readable on ${name}, whole`, async ({ page, request }) => {
+  await page.setViewportSize({ width, height });
   const host = await guest(request);
   await signIn(page, host);
-  const matchId = await startedTable(request, host, 'prsi', 3);
+  const matchId = await startedTable(request, host, 'prsi', bots);
   await page.goto(`/match/${matchId}`);
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
   const seats = page.locator('[data-testid^="seat-bot:"]');
-  await expect(seats).toHaveCount(3, { timeout: 15_000 });
+  await expect(seats).toHaveCount(bots, { timeout: 15_000 });
 
   // Every line of text in a bot's tile is drawn whole: nothing is ellipsized.
   // The names are the longest thing on the tile and were being cut to "Stead…".
@@ -142,4 +145,23 @@ test("the hand's title and its controls never draw over each other on a phone", 
   });
   expect(gap.title).toBe('Твоята ръка');
   if (gap.sameLine) expect(gap.clear).toBeGreaterThanOrEqual(0);
+});
+
+test('the why-not sheet is one readable size on a phone and on a desktop', async ({ browser, request }) => {
+  const sizes: number[] = [];
+  for (const viewport of [{ width: 393, height: 852 }, { width: 1440, height: 900 }]) {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    const host = await guest(request);
+    await signIn(page, host);
+    const matchId = await startedTable(request, host, 'prsi', 1);
+    await page.goto(`/match/${matchId}`);
+    await page.locator('[data-testid^="why-"]:visible').first().click({ force: true, timeout: 30_000 });
+    const close = page.getByTestId('why-close');
+    await expect(close).toBeVisible();
+    sizes.push(await close.locator('div[dir="auto"]').first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize)));
+    await context.close();
+  }
+  // It was 11px on a phone and 35px on a desktop: scaled with the cards.
+  expect(sizes).toEqual([14, 14]);
 });
