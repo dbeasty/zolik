@@ -426,8 +426,17 @@ async function main() {
     }`);
     expect(!page.account, 'the page still shows its own account menu');
     expect(!page.arrows, 'the page still draws its own Back and Forward');
-    const bar = await a.native('toolbar state');
+    let bar = await a.native('toolbar state');
     expect('back' in bar && 'forward' in bar, `the title bar has no arrows: ${JSON.stringify(bar)}`);
+    // Signed in, the form is behind the player: Forward must not lead back to it.
+    for (let i = 0; i < 40 && bar.forward; i++) {
+      await sleep(100);
+      bar = await a.native('toolbar state');
+    }
+    expect(!bar.forward, `Forward is lit at home after signing in: ${JSON.stringify(bar)}`);
+    // A new guest has nothing for the side panel, so the games take the window.
+    const games = await a.js(`await e2e.sleep(400); return document.querySelector('[data-testid="games-list"]').getBoundingClientRect().width / innerWidth`);
+    expect(games > 0.85, `the games take ${games} of the window beside an empty panel`);
     const titles = await a.native('account');
     expect(/· Guest$/.test(titles[0]), `Account menu begins ${JSON.stringify(titles)}`);
     for (const want of ['My games', 'Sign in', 'Sign out']) {
@@ -834,14 +843,15 @@ async function main() {
       }
       throw new Error(`Layout does not tick "${want}": ${JSON.stringify(items)}`);
     };
-    await ticked('Stacked');
-    await a.native('menu Table beside hand');
-    await a.js(`await e2e.waitFor(() => ${stored} === 'beside', 'the layout to be kept', 5000); return 1`);
-    const items = await ticked('Table beside hand');
-    expect(!items.includes('✓ Stacked'), `two presets ticked: ${JSON.stringify(items)}`);
+    // A game window with the width starts with the table beside the hand.
+    await ticked('Table beside hand');
+    await a.native('menu Stacked');
+    await a.js(`await e2e.waitFor(() => ${stored} === 'stacked', 'the layout to be kept', 5000); return 1`);
+    const items = await ticked('Stacked');
+    expect(!items.includes('✓ Table beside hand'), `two presets ticked: ${JSON.stringify(items)}`);
     await a.native('menu Reset layout');
     await a.js(`await e2e.waitFor(() => ${stored} === null, 'the layout to be forgotten', 5000); return 1`);
-    await ticked('Stacked');
+    await ticked('Table beside hand');
     // Off a game there is no board to arrange.
     await on(a, 1);
     const off = await a.native('menuitems Layout');

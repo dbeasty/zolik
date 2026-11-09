@@ -344,7 +344,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             </View>
             <Text
               style={[styles.name, styles.nameCrowded]}
-              numberOfLines={1}
+              numberOfLines={2}
               {...((Platform.OS === 'web' ? {} : { accessibilityLabel: spoken }) as object)}
             >
               {name}
