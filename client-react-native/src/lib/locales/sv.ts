@@ -1892,6 +1892,7 @@ export const sv: Record<string, string> = {
   'choice.showdownReveal.2': 'Alla som synade',
   'choice.showdownReveal.1': 'Bara vinnaren',
   'home.playOffline': 'Spela offline',
+  'home.noServer': 'Det går inte att nå servern. Kontrollera anslutningen och försök igen.',
   'offline.title': 'Spela offline',
   'offline.subtitle': 'Inget internet behövs',
   'offline.body': 'Den här enheten är själv värd för bordet, så du kan spela mot bottar var som helst – även i flygplansläge.',

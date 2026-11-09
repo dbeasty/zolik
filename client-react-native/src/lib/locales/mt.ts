@@ -1918,6 +1918,7 @@ export const mt: Record<string, string> = {
   'choice.showdownReveal.2': 'Kull min ħallas',
   'choice.showdownReveal.1': 'Ir-rebbieħ biss',
   'home.playOffline': 'Ilgħab offline',
+  'home.noServer': 'Ma nistgħux naslu għas-server. Iċċekkja l-konnessjoni u erġa’ pprova.',
   'offline.title': 'Ilgħab offline',
   'offline.subtitle': 'M’hemmx bżonn internet',
   'offline.body': 'Dan l-apparat jospita l-mejda hu stess, allura tista’ tilgħab kontra l-bots kullimkien — anke fil-modalità tal-ajruplan.',

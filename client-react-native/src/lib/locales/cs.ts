@@ -1887,6 +1887,7 @@ export const cs: Record<string, string> = {
   'choice.showdownReveal.2': 'Všichni dohrávající',
   'choice.showdownReveal.1': 'Jen vítěz',
   'home.playOffline': 'Hrát offline',
+  'home.noServer': 'Server není dostupný. Zkontrolujte připojení a zkuste to znovu.',
   'offline.title': 'Hrát offline',
   'offline.subtitle': 'Bez internetu',
   'offline.body': 'Stůl hostí přímo toto zařízení, takže můžete hrát proti botům kdekoli — i v režimu letadla.',

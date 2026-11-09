@@ -1896,6 +1896,7 @@ export const lt: Record<string, string> = {
   'choice.showdownReveal.2': 'Visi likę žaidime',
   'choice.showdownReveal.1': 'Tik laimėtojas',
   'home.playOffline': 'Žaisti neprisijungus',
+  'home.noServer': 'Nepavyksta pasiekti serverio. Patikrinkite ryšį ir bandykite dar kartą.',
   'offline.title': 'Žaisti neprisijungus',
   'offline.subtitle': 'Internetas nereikalingas',
   'offline.body': 'Šis įrenginys pats laiko stalą, todėl su robotais galite žaisti bet kur – net lėktuvo režimu.',

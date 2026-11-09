@@ -1893,6 +1893,7 @@ export const da: Record<string, string> = {
   'choice.showdownReveal.2': 'Alle, der synede',
   'choice.showdownReveal.1': 'Kun vinderen',
   'home.playOffline': 'Spil offline',
+  'home.noServer': 'Kan ikke nå serveren. Tjek din forbindelse, og prøv igen.',
   'offline.title': 'Spil offline',
   'offline.subtitle': 'Intet internet nødvendigt',
   'offline.body': 'Denne enhed er selv vært for bordet, så du kan spille mod bots overalt — også i flytilstand.',

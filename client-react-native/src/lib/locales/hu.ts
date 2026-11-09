@@ -1912,6 +1912,7 @@ export const hu: Record<string, string> = {
   'choice.showdownReveal.2': 'Mindenki, aki megadta',
   'choice.showdownReveal.1': 'Csak a nyertes',
   'home.playOffline': 'Offline játék',
+  'home.noServer': 'A szerver nem érhető el. Ellenőrizd a kapcsolatot, és próbáld újra.',
   'offline.title': 'Offline játék',
   'offline.subtitle': 'Nem kell internet',
   'offline.body': 'Ez az eszköz maga tartja az asztalt, így bárhol játszhatsz botok ellen – akár repülő módban is.',

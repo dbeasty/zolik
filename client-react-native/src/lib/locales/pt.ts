@@ -1915,6 +1915,7 @@ export const pt: Record<string, string> = {
   'choice.showdownReveal.2': 'Todos os que pagaram',
   'choice.showdownReveal.1': 'Apenas o vencedor',
   'home.playOffline': 'Jogar offline',
+  'home.noServer': 'Não foi possível contactar o servidor. Verifica a tua ligação e tenta novamente.',
   'offline.title': 'Jogar offline',
   'offline.subtitle': 'Sem internet',
   'offline.body': 'Este dispositivo aloja a mesa sozinho, por isso pode jogar contra bots em qualquer lado — até em modo de voo.',

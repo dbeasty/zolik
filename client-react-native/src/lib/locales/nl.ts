@@ -1921,6 +1921,7 @@ export const nl: Record<string, string> = {
   'choice.showdownReveal.2': 'Iedereen die meeging',
   'choice.showdownReveal.1': 'Alleen de winnaar',
   'home.playOffline': 'Offline spelen',
+  'home.noServer': 'Kan de server niet bereiken. Controleer je verbinding en probeer het opnieuw.',
   'offline.title': 'Offline spelen',
   'offline.subtitle': 'Geen internet nodig',
   'offline.body': 'Dit apparaat host de tafel zelf, dus je kunt overal tegen bots spelen — zelfs in vliegtuigmodus.',
