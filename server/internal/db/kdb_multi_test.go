@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 // UpdateMulti's contract as callers rely on it: reads see the transaction's
@@ -179,4 +180,46 @@ func TestUpdateMultiRefusesANamespaceItDoesNotHold(t *testing.T) {
 		tx.Put(NSMatchLog, "x", []byte(`{}`))
 		return nil
 	})
+}
+
+// Close holds k.mu while it waits for each namespace's lock, so nothing may
+// wait for k.mu while holding one. UpdateMulti used to look each namespace up
+// between taking the locks: a write caught mid-way by a shutdown held the first
+// lock and waited for k.mu, and Close waited for that lock, for ever. Seen as a
+// test binary hanging in closeRuntimes with a websocket's disconnect in
+// UpdateMulti, about one run in fourteen under load.
+func TestUpdateMultiNeverWaitsForTheDatabaseLockHoldingANamespace(t *testing.T) {
+	k := openTestKDB(t)
+	first := k.ns(NSMatchLog) // the first in sorted order
+
+	// Stop UpdateMulti on its first namespace lock.
+	first.mu.Lock()
+	done := make(chan error, 1)
+	go func() {
+		done <- k.UpdateMulti([]string{NSMatches, NSMatchLog}, func(*MultiTx) error { return nil })
+	}()
+	time.Sleep(100 * time.Millisecond)
+
+	// Now be Close: hold the database lock, then want that namespace's.
+	k.mu.Lock()
+	first.mu.Unlock()
+	// Let UpdateMulti take it, or this would simply win the lock back.
+	time.Sleep(100 * time.Millisecond)
+	deadline := time.Now().Add(3 * time.Second)
+	got := first.mu.TryLock()
+	for !got && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+		got = first.mu.TryLock()
+	}
+	if got {
+		first.mu.Unlock()
+	}
+	k.mu.Unlock()
+	if !got {
+		<-done
+		t.Fatal("UpdateMulti holds a namespace lock while waiting for the database lock")
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("UpdateMulti: %v", err)
+	}
 }

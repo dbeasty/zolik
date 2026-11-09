@@ -983,15 +983,22 @@ type multiOp struct {
 func (k *KDB) UpdateMulti(nss []string, fn func(tx *MultiTx) error) error {
 	names := append([]string(nil), nss...)
 	sort.Strings(names)
+	// Every handle first, then every lock. Looking a namespace up takes k.mu,
+	// and Close holds k.mu while it waits for each namespace's lock, so nothing
+	// may want k.mu while holding one.
 	held := make(map[string]*kdbNamespace, len(names))
 	for _, name := range names {
-		if _, dup := held[name]; dup {
+		if _, dup := held[name]; !dup {
+			held[name] = k.ns(name)
+		}
+	}
+	for i, name := range names {
+		if i > 0 && names[i-1] == name {
 			continue
 		}
-		n := k.ns(name)
+		n := held[name]
 		n.mu.Lock()
 		defer n.mu.Unlock()
-		held[name] = n
 	}
 	// Re-run on a precondition failure for the same reason Update does: with
 	// every lock held, the only thing that can have moved a document under
