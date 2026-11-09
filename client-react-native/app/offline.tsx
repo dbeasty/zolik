@@ -605,7 +605,7 @@ function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
  * guest's own screen says.
  */
 function BluetoothRoom({ name }: { name: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => nearby.bleIsHosting());
   const [codes, setCodes] = useState<string[]>([]);
   const [error, setError] = useState('');
 

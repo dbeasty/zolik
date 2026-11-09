@@ -369,10 +369,24 @@ export async function bleReady(): Promise<BleState> {
 /** Advertises this phone's table over Bluetooth, with the host already up. */
 export async function bleHostStart(name: string): Promise<void> {
   await need().bleHostStart(name);
+  bleHosting = true;
 }
 
 export async function bleHostStop(): Promise<void> {
   await native?.bleHostStop();
+  bleHosting = false;
+}
+
+let bleHosting = false;
+
+/**
+ * Whether this device is advertising its table over Bluetooth. Advertising
+ * outlives the screen that started it, so the screen asks rather than
+ * remembering for itself: coming back to it must still show the guests' check
+ * codes and the way to stop.
+ */
+export function bleIsHosting(): boolean {
+  return bleHosting;
 }
 
 /** The check code of each guest connected over Bluetooth. */
