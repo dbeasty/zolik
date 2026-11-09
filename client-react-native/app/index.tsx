@@ -254,7 +254,8 @@ function GameRows({ tables, columns }: { tables: StoredTable[] | null; columns: 
         <Text testID="games-error" style={shared.error}>
           {t('home.noServer')}
         </Text>
-        {nearbyAvailable && !offline ? (
+        {/* Without a session the menu below already offers it. */}
+        {nearbyAvailable && session && !offline ? (
           <MenuButton
             label={t('home.playOffline')}
             secondary
