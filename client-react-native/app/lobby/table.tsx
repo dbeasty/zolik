@@ -16,6 +16,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { useAnnounceArrivals } from '@/src/notify/TableEvents';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
+import { moduleName, variationName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { ListedCard } from '@/src/notify/ListedCard';
 import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
@@ -259,8 +260,8 @@ export default function TableScreen() {
     <Screen title={t('nav.table')} scroll>
       <ScrollView testID="table-screen">
         <Text testID="table-module" style={shared.status}>
-          {state?.moduleId ?? '…'}
-          {state?.variation ? ` · ${state.variation}` : ''}
+          {state?.moduleId ? moduleName(state.moduleId) : '…'}
+          {state?.moduleId && state.variation ? ` · ${variationName(state.moduleId, state.variation)}` : ''}
         </Text>
 
         {/*
