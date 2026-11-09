@@ -8,6 +8,7 @@ import { Sheet } from '@/src/a11y/Sheet';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, claimedMessage, orderProviders, providerButtonLabel } from '@/src/lib/auth';
+import { forgetForward } from '@/src/desktop/forgetForward';
 import { guestUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
@@ -274,6 +275,7 @@ export default function AccountScreen() {
                 await deleteAccount();
                 // Every other screen was about the account that is gone.
                 router.dismissTo('/');
+                forgetForward();
               });
             }}
             style={[shared.button, modalStyles.dangerButton, modalStyles.actionButton]}

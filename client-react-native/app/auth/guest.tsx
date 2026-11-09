@@ -9,6 +9,7 @@ import { avatarFor } from '@/src/components/avatars/catalogue';
 import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { loadGuestId, useSession } from '@/src/context/SessionContext';
+import { forgetForward } from '@/src/desktop/forgetForward';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
 import { goBack } from '@/src/lib/goBack';
 import { guestNameFor } from '@/src/lib/guestName';
@@ -86,6 +87,7 @@ export default function GuestScreen() {
         // second copy of it pushed on top — which would offer "back" to the
         // first.
         router.dismissTo('/');
+        forgetForward();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error.login'));
