@@ -46,6 +46,12 @@ import { EDGE_PAD, type Span } from '@/src/hooks/useEndingScroll';
  * shows the table, only when it is hidden, and never while a card is being
  * carried. `tableCards` counts the cards it means, so a game whose table is
  * only ever played to in groups never moves for this.
+ *
+ * And a first board is not finished when it arrives. Recent moves gets its first
+ * line and the controls their reasons over the next few seconds, which pushed
+ * the buttons back under the bottom edge after they had been brought into view.
+ * So for a moment after aiming, the board follows its own growth, unless the
+ * player has moved it. See `SETTLE_MS`.
  */
 
 /** Everything about a table that says whether a deal is on, and which one. */
@@ -155,9 +161,17 @@ const nextTick: Scheduler = (run) => {
  */
 const TRIES = 10;
 
+/** How long after aiming the board goes on following its own growth. */
+const SETTLE_MS = 5000;
+/** A scroll this soon after aiming is the aim itself still animating, not the player. */
+const ANIMATION_MS = 700;
+
 export type OpeningScroll = {
   /** Spread onto the board's own ScrollView, alongside the ending's. */
-  scrollProps: { onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void };
+  scrollProps: {
+    onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
+    onContentSizeChange: () => void;
+  };
   /** Spread onto the piece of the board named — see `PlayAnchor`. */
   anchor: (name: PlayAnchor) => { ref: (node: Measurable | null) => void };
   /**
@@ -188,16 +202,22 @@ export function useOpeningScroll(
   // The last deal aimed at. A deal moves the board once; the rest of it is the
   // player's own scrolling and is left alone.
   const aimed = useRef<string | null>(null);
+  // Until when the board follows its own growth, and where it was last sent.
+  const settle = useRef(0);
+  const sent = useRef<{ y: number; at: number } | null>(null);
+  const dealNow = useRef(deal);
+  dealNow.current = deal;
 
   /**
    * Look at the board and move it, telling the caller whether it found one —
    * a deal whose board is not up yet is a miss, and missing is ordinary.
    */
   const aim = useCallback(
-    (settled: (moved: boolean) => void) => {
+    (settled: (moved: boolean) => void, quiet = false) => {
       const scroller = view.current;
       const head = nodes.current.get('table') ?? nodes.current.get('hand');
       const foot = nodes.current.get('controls') ?? nodes.current.get('hand');
+      const hand = nodes.current.get('hand');
       if (!scroller || !head || !foot) {
         settled(false);
         return;
@@ -211,18 +231,31 @@ export function useOpeningScroll(
       let height = 0;
       let top = 0;
       let bottom = 0;
-      let left = 3;
+      // With the table beside the hand, the hand can start above the table and
+      // the controls end above the piles, so the block is whichever reaches furthest.
+      let handTop = Infinity;
+      let handBottom = -Infinity;
+      let left = hand ? 4 : 3;
       const arrived = () => {
         if (--left > 0) return;
         const at = offset.current;
-        const block = { top: at + top - windowTop, bottom: at + bottom - windowTop };
+        const block = {
+          top: at + Math.min(top, handTop) - windowTop,
+          bottom: at + Math.max(bottom, handBottom) - windowTop,
+        };
         // A board caught mid-layout measures as nothing anywhere. Better to
         // look again next frame than to scroll somewhere arbitrary.
         if (height <= 0 || block.bottom <= block.top) {
           settled(false);
           return;
         }
-        scrollTo(openAt(block, height, at));
+        const y = openAt(block, height, at);
+        const now = Date.now();
+        if (!quiet || Math.abs(y - at) > 1) {
+          sent.current = { y, at: now };
+          scrollTo(y);
+        }
+        if (!quiet) settle.current = now + SETTLE_MS;
         settled(true);
       };
 
@@ -237,6 +270,11 @@ export function useOpeningScroll(
       });
       foot.measureInWindow((_x, y, _w, h) => {
         bottom = y + h;
+        arrived();
+      });
+      hand?.measureInWindow((_x, y, _w, h) => {
+        handTop = y;
+        handBottom = y + h;
         arrived();
       });
     },
@@ -328,6 +366,19 @@ export function useOpeningScroll(
       onScroll: useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         offset.current = e.nativeEvent.contentOffset.y;
       }, []),
+      onContentSizeChange: useCallback(() => {
+        const last = sent.current;
+        const now = Date.now();
+        if (!dealNow.current || !last || now >= settle.current) return;
+        // Somewhere else than it was sent, and not on the way there: the
+        // player has taken over, and the board is theirs from here.
+        if (Math.abs(offset.current - last.y) > 2 && now - last.at > ANIMATION_MS) {
+          settle.current = 0;
+          return;
+        }
+        if (table?.busy?.()) return;
+        frame(() => aim(() => {}, true));
+      }, [aim, frame, table]),
     },
     anchor,
     reaim: useCallback(() => frame(() => aim(() => {})), [aim, frame]),

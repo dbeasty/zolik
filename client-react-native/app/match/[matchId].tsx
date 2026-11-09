@@ -383,6 +383,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // columns to fill.
   const roomForTwo = useWindowDimensions().width >= TWO_COLUMN_MIN_WIDTH;
   const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'), roomForTwo);
+  // A new arrangement moves the panels under a scroller that stays put, and only
+  // once it has been drawn is there anything to measure.
+  const reaimSoon = () => setTimeout(() => opening.reaim(), 120);
   // Arranging the board — ▦ Layout: every region gets a handle and arrows,
   // and the cards take no presses until Done. Not kept: a different match
   // starts playing, not arranging.
@@ -427,11 +430,11 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           current: board.arrangement.custom ? 'custom' : board.arrangement.preset,
           choose: (preset) => {
             board.choose(preset);
-            opening.reaim();
+            reaimSoon();
           },
           reset: () => {
             board.reset();
-            opening.reaim();
+            reaimSoon();
           },
           edit: () => setArranging((on) => !on),
         }
@@ -2501,11 +2504,11 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           narrow={!roomForTwo}
           onChoose={(preset) => {
             board.choose(preset);
-            opening.reaim();
+            reaimSoon();
           }}
           onReset={() => {
             board.reset();
-            opening.reaim();
+            reaimSoon();
           }}
           onDone={() => setArranging(false)}
         />
@@ -2552,7 +2555,10 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           },
           boardNoShrink.style,
         ]}
-        onContentSizeChange={boardNoShrink.onContentSizeChange}
+        onContentSizeChange={(w, h) => {
+          boardNoShrink.onContentSizeChange(w, h);
+          opening.scrollProps.onContentSizeChange();
+        }}
         testID="match-screen"
         {...ending.scrollProps}
         // Last, and deliberately: the spread above carries an `onScroll` of
