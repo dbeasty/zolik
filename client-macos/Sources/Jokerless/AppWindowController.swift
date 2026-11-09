@@ -202,6 +202,10 @@ final class AppWindowController: NSWindowController, NSWindowDelegate, NSToolbar
     item.target = self
     item.action = back ? #selector(toolbarBack(_:)) : #selector(toolbarForward(_:))
     toolbarItems[id.rawValue] = item
+    // refreshToolbar decides. Left to validate itself, AppKit lights an item
+    // with an action whenever the window comes forward, so both arrows came on
+    // at home on closing a game window, with neither going anywhere.
+    item.autovalidates = false
     item.isEnabled = back ? web.canBack : web.webView.canGoForward
     return item
   }

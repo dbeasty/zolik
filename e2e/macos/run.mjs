@@ -562,6 +562,10 @@ async function main() {
     const closed = await a.js(tileState('Last Card'));
     expect(!/Playing/.test(closed.badge) && closed.button === 'Resume', `a closed game's tile says ${JSON.stringify(closed)}`);
     await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+    // Coming forward again must not light the arrows: there is nowhere to go from home.
+    await sleep(400);
+    const bar = await a.native('toolbar state');
+    expect(bar.back === false, `Back is lit at home after closing a game window: ${JSON.stringify(bar)}`);
     await a.js(resumeTile('Last Card'));
     const wins = await waitWindows(a, (w) => w.length === 3, 'Resume to reopen the window');
     await on(a, 1);
