@@ -390,6 +390,10 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // and the cards take no presses until Done. Not kept: a different match
   // starts playing, not arranging.
   const [arranging, setArranging] = useState(false);
+  // Read by the opening scroll: a board being rearranged is not to be moved
+  // out from under the handle somebody is reaching for.
+  const arrangingRef = useRef(false);
+  arrangingRef.current = arranging;
   useEffect(() => setArranging(false), [matchId]);
   // The Mac app draws no navigation bar, so Layout stays on the board there.
   const desktopChrome = useDesktopChrome();
@@ -775,7 +779,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     goTo,
     scrollRef as unknown as RefObject<Measurable | null>,
     undefined,
-    { cards: sharedTableCards(state?.view?.zones ?? []), busy: () => dragRef.current !== null },
+    { cards: sharedTableCards(state?.view?.zones ?? []), busy: () => dragRef.current !== null || arrangingRef.current },
   );
   // Carrying a card toward a meld the screen has scrolled away from. The hand
   // sits above the melds, so dropping on an opponent's meld (a poach, a
