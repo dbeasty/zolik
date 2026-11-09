@@ -121,3 +121,25 @@ test('a cut-off match link says the table is gone and offers a way out', async (
   await page.getByTestId('match-gone-leave').click();
   await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 15_000 });
 });
+
+test("the hand's title and its controls never draw over each other on a phone", async ({ page, request }) => {
+  await page.setViewportSize({ width: 393, height: 852 });
+  const host = await guest(request);
+  await signIn(page, host);
+  const matchId = await startedTable(request, host, 'canasta', 3);
+  // Bulgarian: the longest words for both of them. "Your hand" and
+  // "Auto-arrange" overlapped in 11 of the 24 languages.
+  await page.addInitScript(() => window.localStorage.setItem('zolik_locale', 'bg'));
+  await page.goto(`/match/${matchId}`);
+  const box = page.locator(`[data-testid="hand-auto-arrange-hand:${host.userId}"]`);
+  await expect(box).toBeVisible({ timeout: 30_000 });
+  const gap = await box.evaluate((el) => {
+    const panel = el.closest('[data-testid^="zone-hand"]')!;
+    const title = panel.querySelector('div[dir="auto"]')!.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const sameLine = r.top < title.bottom && title.top < r.bottom;
+    return { title: panel.querySelector('div[dir="auto"]')!.textContent, sameLine, clear: r.left - title.right };
+  });
+  expect(gap.title).toBe('Твоята ръка');
+  if (gap.sameLine) expect(gap.clear).toBeGreaterThanOrEqual(0);
+});
