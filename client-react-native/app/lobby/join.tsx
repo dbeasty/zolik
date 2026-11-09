@@ -16,6 +16,7 @@ import { colors, shared } from '@/src/theme';
 import { moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
+import { useHydrated } from '@/src/hooks/useHydrated';
 
 /**
  * Joining a table somebody else opened, by code or by invitation.
@@ -26,6 +27,13 @@ import { useLocale } from '@/src/hooks/useLocale';
  * polls a match and hands over to the one screen that plays all of them.
  */
 export default function JoinMatchScreen() {
+  // The pre-render cannot see the URL's code or match, so nothing here can match
+  // it until mounted: a first paint that disagrees makes React rebuild the page.
+  const hydrated = useHydrated();
+  return hydrated ? <JoinMatchScreenMounted /> : null;
+}
+
+function JoinMatchScreenMounted() {
   useLocale();
   const { client, session } = useSession();
   // A host's invite lands the player here with the match already decided —

@@ -3,6 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Tip } from '@/src/a11y/Tip';
+import { useHydrated } from '@/src/hooks/useHydrated';
 import { t } from '@/src/lib/i18n';
 import { aheadCount, leavingBack, routeChanged, subscribeAhead, takeForward } from '@/src/lib/navHistory';
 import { colors } from '@/src/theme';
@@ -33,6 +34,11 @@ function desktopNav(): DesktopNav | null {
  * toolbar, so it keeps them.
  */
 export function NavArrows() {
+  // The pre-rendered HTML cannot know where it will be shown, and any answer but
+  // "nothing" made React throw away and rebuild every page in a browser tab
+  // (#418). Say nothing until mounted. See `useHydrated`.
+  const hydrated = useHydrated();
+  if (!hydrated) return null;
   if (desktopNav()) return <DesktopArrows />;
   if (inBrowserTab()) return null;
   return <StackArrows />;
@@ -40,7 +46,7 @@ export function NavArrows() {
 
 /** The website in an ordinary browser tab, with the browser's own back and forward. */
 function inBrowserTab(): boolean {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  if (Platform.OS !== 'web') return false;
   const installed =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     // iOS Safari's home-screen apps, which predate display-mode.

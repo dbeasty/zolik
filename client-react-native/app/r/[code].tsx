@@ -10,6 +10,7 @@ import { ZOLIK_BASE_URL } from '@/src/config';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 import { useLocale } from '@/src/hooks/useLocale';
+import { useHydrated } from '@/src/hooks/useHydrated';
 
 /**
  * Where a link to a table on somebody's phone lands: `/r/ABC123`.
@@ -21,6 +22,13 @@ import { useLocale } from '@/src/hooks/useLocale';
  * a pause as the host's phone, rather than as this site being broken.
  */
 export default function JoinRelayScreen() {
+  // The pre-render cannot see the URL's code or match, so nothing here can match
+  // it until mounted: a first paint that disagrees makes React rebuild the page.
+  const hydrated = useHydrated();
+  return hydrated ? <JoinRelayScreenMounted /> : null;
+}
+
+function JoinRelayScreenMounted() {
   useLocale();
   const { session, joinRelay } = useSession();
   const { code: raw } = useLocalSearchParams<{ code: string }>();
