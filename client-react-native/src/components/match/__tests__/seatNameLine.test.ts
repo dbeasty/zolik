@@ -9,6 +9,10 @@ describe('where a seat tile puts the name', () => {
     expect(seatNameNeedsOwnLine(4, 1013, 94)).toBe(true);
   });
 
+  it('under the face at three seats there too, where "Nimble Nikola" lost its end', () => {
+    expect(seatNameNeedsOwnLine(3, 1013, 94)).toBe(true);
+  });
+
   it('beside the face when the share has room for it', () => {
     expect(seatNameNeedsOwnLine(2, 1013, 94)).toBe(false);
     expect(seatNameNeedsOwnLine(4, 1800, 94)).toBe(false);
