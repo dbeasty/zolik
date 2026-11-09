@@ -158,5 +158,6 @@ const styles = StyleSheet.create({
   passwordInput: { paddingRight: 44 },
   // Pinned from the bottom: the label above the box may wrap to any height.
   // 12 is the box's own margin under it; 11 centres 22 in the 44 of a box.
-  eye: { position: 'absolute', right: 11, bottom: 12 + 12, width: 22, height: 22 },
+  // 24 by 24: the smallest target WCAG 2.5.8 allows, and hitSlop does not count.
+  eye: { position: 'absolute', right: 10, bottom: 11 + 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
 });
