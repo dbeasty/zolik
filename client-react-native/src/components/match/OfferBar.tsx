@@ -1598,7 +1598,7 @@ function ReasonLine({
 }) {
   if (!onPress) {
     return (
-      <Text testID={testID} style={styles.why} numberOfLines={2}>
+      <Text testID={testID} style={styles.why}>
         {text}
       </Text>
     );
@@ -1614,7 +1614,7 @@ function ReasonLine({
       // time — was noise, and a small one crowded against its control.
       {...((Platform.OS === 'web' ? { tabIndex: -1, 'aria-hidden': true } : { accessibilityRole: 'button' }) as object)}
     >
-      <Text testID={testID} style={styles.why} numberOfLines={2}>
+      <Text testID={testID} style={styles.why}>
         {text} <Text style={styles.whyMore}>{t('why.open')} ›</Text>
       </Text>
     </Pressable>
