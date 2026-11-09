@@ -997,7 +997,17 @@ async function main() {
   cleanups.push(() => b.quit());
   await step('a second Mac finds the table over Bonjour and joins it', async () => {
     await b.ready();
-    await b.js(`await e2e.click('Play', { exact: true }); return 1`);
+    await b.js(`await e2e.click('Play', { exact: true }); window.__zolikNavigate('/lobby/join'); return 1`);
+    // The table in the room arrives as an invite in the main window, and the
+    // Dock icon counts it while that window is not the one in front.
+    await b.js(`await e2e.waitForText('is hosting a table nearby', 20000); return 1`);
+    let badge = '';
+    for (let i = 0; i < 50 && badge !== '1'; i++) {
+      badge = await b.native('badge');
+      if (badge !== '1') await sleep(100);
+    }
+    expect(badge === '1', `the Dock badge says ${JSON.stringify(badge)} with an invite waiting`);
+    await b.js(`await e2e.click('Not now', { exact: true }); await e2e.waitForGone('is hosting a table nearby', 10000); return 1`);
     await b.native('menu Start an offline table');
     await b.js(`await e2e.waitForText('Mac Host', 20000); return 1`);
     await b.js(`await e2e.fill('Your name at the table', 'Second Mac'); await e2e.click('Join', { exact: true }); return 1`);
@@ -1012,16 +1022,9 @@ async function main() {
       return 1;
     `);
     const code = invite.split('/').pop();
-    // The table in the room arrives as an invite in the main window, and the
-    // Dock icon counts it while that window is not the one in front.
-    await b.js(`await e2e.waitForText('is hosting a table nearby', 20000); return 1`);
-    let badge = '';
-    for (let i = 0; i < 50 && badge !== '1'; i++) {
-      badge = await b.native('badge');
-      if (badge !== '1') await sleep(100);
-    }
-    expect(badge === '1', `the Dock badge says ${JSON.stringify(badge)} with an invite waiting`);
-    await b.js(`await e2e.click('Not now', { exact: true }); await e2e.waitForGone('is hosting a table nearby', 10000); return 1`);
+    // A player seated at the table is not invited to it.
+    await sleep(3000);
+    expect(!(await b.js(`return e2e.hasText('is hosting a table nearby')`)), 'the invite is still up for the table this player sat down at');
     await b.js(`await e2e.fill('Join code or invite link', ${JSON.stringify(code)}); await e2e.click('Join', { exact: true }); return 1`);
     await b.js(`await e2e.waitForText('Players (3)', 20000); return 1`);
     await on(a, 1);
@@ -1435,7 +1438,7 @@ async function main() {
     await dead.ready();
     await dead.js(`await e2e.click('Play', { exact: true }); return 1`);
     const text = await dead.js(`await e2e.waitFor(() => /reach the server/.test(e2e.text()) || /dial tcp|Load failed/.test(e2e.text()), 'a load error', 20000); return e2e.text()`);
-    expect(/Can’t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
+    expect(/Can.t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
     await dead.screenshot('unreachable');
   }, [dead]);
 
