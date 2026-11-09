@@ -169,6 +169,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
       ? Math.max(crowded ? SEAT_MIN_CROWDED : SEAT_MIN, Math.floor((stripWidth - SEAT_GAP * (seats.length - 1)) / seats.length))
       : undefined;
 
+  // On a phone too, at any table with a bot: half a phone's width holds the
+  // avatar, rank and "BOT · Medium" badge with five letters to spare, so a
+  // bot's name was cut to "Stead…". Every tile, so the row lines up.
+  const nameOwnLine =
+    crowded || (metrics.narrow && seats.some((s) => players.find((p) => p.id === s.playerId)?.isAI));
+
   const tiles = seats.map((seat) => {
     const isMe = seat.playerId === viewerId;
     // Partners of the viewer, not of each other: an opponent pair is still
@@ -326,12 +332,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         ]}
       >
         <View style={seat.active && !stillness ? styles.lifted : undefined}>
-        {crowded || (metrics.narrow && botBadge) ? (
-          // Past four seats: the name on a line of its own under the avatar,
-          // so the tile is as wide as its longest line rather than both. And
-          // a bot's tile on a phone: half a phone's width holds the avatar,
-          // the rank and the "BOT · Medium" badge with five letters to spare,
-          // and every bot's name was cut to "Stead…".
+        {nameOwnLine ? (
           <>
             <View style={[styles.nameRow, styles.nameRowCrowded]}>
               <BotPress onPress={facePress} testID={faceTestID} name={name} label={faceLabel}>
