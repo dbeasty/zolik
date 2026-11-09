@@ -6,6 +6,7 @@ import {
   guestUrlFor,
   INVITE_PATH,
   inviteUrlFor,
+  reachableOrigin,
   seatUrlFor,
 } from '@/src/lib/inviteLink';
 
@@ -20,6 +21,20 @@ import {
  */
 
 const SERVER_LINK = 'https://play.limidus.com/join/ABC123';
+
+describe('reachableOrigin', () => {
+  it('is the page itself on the web', () => {
+    expect(reachableOrigin('https://jokerless.com')).toBe('https://jokerless.com');
+    expect(reachableOrigin('http://192.168.1.20:8090')).toBe('http://192.168.1.20:8090');
+  });
+
+  // The Mac app's own scheme: nobody else can open a link built on it, so the
+  // server's public address has to answer instead.
+  it('is nothing in the Mac app', () => {
+    expect(reachableOrigin('app://jokerless')).toBe('');
+    expect(inviteUrlFor({ joinCode: 'ABC123', inviteUrl: SERVER_LINK }, reachableOrigin('app://jokerless'))).toBe(SERVER_LINK);
+  });
+});
 
 describe('inviteUrlFor', () => {
   it('uses the server-minted link when there is no browser origin', () => {
