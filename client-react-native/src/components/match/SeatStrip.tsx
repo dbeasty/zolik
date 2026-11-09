@@ -324,9 +324,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         ]}
       >
         <View style={seat.active && !stillness ? styles.lifted : undefined}>
-        {crowded ? (
+        {crowded || (metrics.narrow && botBadge) ? (
           // Past four seats: the name on a line of its own under the avatar,
-          // so the tile is as wide as its longest line rather than both.
+          // so the tile is as wide as its longest line rather than both. And
+          // a bot's tile on a phone: half a phone's width holds the avatar,
+          // the rank and the "BOT · Medium" badge with five letters to spare,
+          // and every bot's name was cut to "Stead…".
           <>
             <View style={styles.nameRow}>
               <BotPress onPress={facePress} testID={faceTestID} name={name} label={faceLabel}>
