@@ -312,6 +312,10 @@ const tileState = (game) => `
   return { badge: button && button.parentElement ? button.parentElement.innerText : '', button: button ? button.innerText : '' };
 `;
 
+// The controls that can be pressed. Draw is still drawn, greyed out, while a
+// Wild Draw Four waits to be answered, and pressing it changes nothing.
+const LIVE_BUTTONS = `[...document.querySelectorAll('[data-testid^="offer-"]')].filter((b) => b.getAttribute('aria-disabled') !== 'true').map((b) => (b.querySelector('[data-testid$="-title"]') || b).innerText.trim())`;
+
 const DEALT = `
   await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'the match', 20000);
   await e2e.waitFor(() => document.querySelectorAll('[data-card]').length >= 5, 'a dealt hand', 20000);
@@ -471,7 +475,7 @@ async function main() {
     // is answered by taking four rather than by drawing one.
     await a.js(`
       const word = await e2e.waitFor(() => {
-        const b = e2e.buttons();
+        const b = ${LIVE_BUTTONS};
         return b.includes('Draw') ? 'Draw' : b.includes('Take four') ? 'Take four' : null;
       }, 'a way to draw', 20000);
       await e2e.click(word, { exact: true });
@@ -630,7 +634,7 @@ async function main() {
       }
       if (!played) {
         await a.screenshot(`drag-miss-${turn}`);
-        await a.js(`const b = e2e.buttons(); await e2e.click(b.includes('Draw') ? 'Draw' : 'Take four', { exact: true }); await e2e.sleep(2500); return 1`);
+        await a.js(`const b = ${LIVE_BUTTONS}; await e2e.click(b.includes('Draw') ? 'Draw' : 'Take four', { exact: true }); await e2e.sleep(2500); return 1`);
       }
     }
     expect(played, 'no card dragged onto the discard pile with the mouse was played');
