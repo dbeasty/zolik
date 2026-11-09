@@ -160,6 +160,12 @@ export type OpeningScroll = {
   scrollProps: { onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void };
   /** Spread onto the piece of the board named — see `PlayAnchor`. */
   anchor: (name: PlayAnchor) => { ref: (node: Measurable | null) => void };
+  /**
+   * Aim again, for a board the player has just rearranged: the panels moved
+   * and the scroller did not, which can leave the hand and the controls out of
+   * the window at whatever offset the old arrangement was read at.
+   */
+  reaim: () => void;
 };
 
 /**
@@ -324,5 +330,6 @@ export function useOpeningScroll(
       }, []),
     },
     anchor,
+    reaim: useCallback(() => frame(() => aim(() => {})), [aim, frame]),
   };
 }

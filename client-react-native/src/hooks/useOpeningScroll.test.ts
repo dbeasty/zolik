@@ -195,6 +195,7 @@ function probe(initial: Playing | null, strict = false) {
         handlers!.scrollProps.onScroll({ nativeEvent: { contentOffset: { y } } } as never),
       );
     },
+    reaim: () => act(() => handlers!.reaim()),
     unmount: () => act(() => tree!.unmount()),
   };
 }
@@ -265,6 +266,21 @@ describe('useOpeningScroll', () => {
     p.set({ ...playing(0) });
     p.tick();
     expect(p.moved).toEqual([112]);
+  });
+
+  // Choosing a layout moves the panels under a scroller that stays put.
+  it('aims again when the board is rearranged, though the deal is the same', () => {
+    const p = probe(null);
+    p.set(playing(0));
+    board(p);
+    p.tick();
+    p.scrolledTo(112);
+    p.laidOut('table', 900, 200);
+    p.laidOut('controls', 1400, 90);
+    p.reaim();
+    p.tick();
+    // 900 to 1490 is a little too tall for the window, so the overflow is split.
+    expect(p.moved).toEqual([112, 895]);
   });
 
   it('brings it back when the next round is dealt', () => {

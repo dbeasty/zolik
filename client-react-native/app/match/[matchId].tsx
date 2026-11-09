@@ -425,8 +425,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     state
       ? {
           current: board.arrangement.custom ? 'custom' : board.arrangement.preset,
-          choose: board.choose,
-          reset: board.reset,
+          choose: (preset) => {
+            board.choose(preset);
+            opening.reaim();
+          },
+          reset: () => {
+            board.reset();
+            opening.reaim();
+          },
           edit: () => setArranging((on) => !on),
         }
       : undefined,
@@ -2493,8 +2499,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         <LayoutEditBar
           arrangement={board.arrangement}
           narrow={!roomForTwo}
-          onChoose={board.choose}
-          onReset={board.reset}
+          onChoose={(preset) => {
+            board.choose(preset);
+            opening.reaim();
+          }}
+          onReset={() => {
+            board.reset();
+            opening.reaim();
+          }}
           onDone={() => setArranging(false)}
         />
       ) : null}
