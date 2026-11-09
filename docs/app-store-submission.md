@@ -40,7 +40,7 @@ are written in Czech too.
 
 ### Promotional text (170)
 
-Play Canasta, Poker, Gin Rummy, Mariáš and twelve more with friends nearby or online, or against computer opponents. No ads, no purchases.
+Play Canasta, Poker, Gin Rummy, Mariáš and thirteen more with friends nearby or online, or against computer opponents. No ads, no purchases.
 
 ### Keywords (100)
 
@@ -50,8 +50,8 @@ Play Canasta, Poker, Gin Rummy, Mariáš and twelve more with friends nearby or 
 
 Jokerless is a table for classic card games. Sit down with friends online, with the people in the room when there is no internet, or with computer opponents who play every game properly.
 
-SIXTEEN GAMES
-Canasta (with Samba), Hold'em, Omaha and Five-Card Draw poker, Blackjack, Gin Rummy, Rummy Tiles, Last Card, Solitaire, Žolíky, Mariáš, Prší, Sedma, Šnaps, Lóra, Ferbl, Oko bere and Siete y Medio. Each one has its rules written out in the app, with the house rules your family plays by as table options.
+SEVENTEEN GAMES
+Canasta (with Samba), Hold'em, Omaha and Five-Card Draw poker, Blackjack, Gin Rummy, Rummy Tiles, Last Card, Solitaire, Žolíky, Mariáš, Prší, Sedma, Šnaps, Lóra, Ferbl, Oko bere, Siete y Medio and Pinochle. Each one has its rules written out in the app, with the house rules your family plays by as table options.
 
 PLAY WITH PEOPLE NEARBY, NO INTERNET NEEDED
 One phone hosts the table over Wi-Fi or Bluetooth and everyone else joins from theirs. iPhones and Android phones can share a table, and someone without the app can join from a browser on the same Wi-Fi.
@@ -63,7 +63,7 @@ COMPUTER OPPONENTS
 Fill empty seats with bots at the strength you want, from a gentle first game to opponents trained on real play. Ask for a hint when you are stuck.
 
 FAIR AND QUIET
-No ads, no purchases, no chips to buy and nothing to win. Jokerless is not a gambling service. It contains no analytics or tracking, and you can delete your account from inside the app.
+No ads, no purchases, no chips to buy and nothing to win. Jokerless is not a gambling service. It contains no tracking, and you can delete your account from inside the app.
 
 Free software under the GNU AGPL: the source is at https://github.com/dbeasty/zolik.
 
@@ -72,7 +72,7 @@ Free software under the GNU AGPL: the source is at https://github.com/dbeasty/zo
 Answer the questionnaire as follows. Apple works out the rating from the
 answers, so the rating itself is theirs.
 
-- Simulated gambling: **Frequent/Intense**. Poker, Blackjack, Siete y Medio and Oko bere are betting games played for chips. No real money and no prizes; say so where the form allows.
+- Simulated gambling: **Frequent/Intense**. Poker, Blackjack, Siete y Medio, Oko bere and Ferbl are betting games played for chips. No real money and no prizes; say so where the form allows.
 - Everything else (violence, sexual content, profanity, drugs, horror, medical): **None**.
 - Unrestricted web access: **No**.
 - User-generated content: players choose a display name that other players at the same table see. There is no chat or messaging, and no photos or free text beyond the name.
@@ -122,8 +122,22 @@ Paste into App Review Information › Notes (this is the text entered for
 > tables over Bluetooth" › Join). The app asks for Local Network and
 > Bluetooth permission only on the Play offline screen.
 >
-> No real money is involved anywhere. The betting games (poker, blackjack)
-> use chips that cannot be bought, sold or won.
+> No real money is involved anywhere. The betting games (Hold'em, Omaha and
+> Five-Card Draw poker, Blackjack, Siete y Medio, Oko bere and Ferbl) use chips
+> that cannot be bought, sold or won.
+>
+> Under-18 mode (new in this version): at launch the app asks the system for
+> the player's age range with Declared Age Range (iOS 26 and later). If the
+> answer is under 18, or the player declines to share it, those betting games
+> are hidden from every game list, and a link or invite to one opens a screen
+> saying it is for adults only. For everyone else each betting game carries an
+> "18+" simulated-gambling notice. On earlier iOS versions, or if the system
+> gives no answer, the games stay visible with the 18+ notice. We answered
+> Simulated Gambling: Frequent/Intense (18+) because these games are in the
+> app. With under-18 mode in place, may the app be rated 13+ instead? If so, we
+> will change the age rating answers for the next version. To see under-18
+> mode, use a device whose Apple Account is a child account under 18 in Family
+> Sharing.
 
 Where each step lives in the client, to re-check before the next submission:
 "Continue as guest", "Sign in" and, before sign-in, "Play offline" are at the
