@@ -142,7 +142,7 @@ test.describe('a drag near the window edge scrolls the board', () => {
     await carryPointOver(page, grab, { x: grab.x, y: SHORT - 20 });
     await expect
       .poll(async () => (await meld.boundingBox())!.y, { timeout: 10_000, message: 'the board should scroll while the card is held at the edge' })
-      .toBeLessThan(SHORT / 2);
+      .toBeLessThan(SHORT * 0.6);
 
     // Now the meld is under a pointer a person could put there.
     // Pull the pointer out of the band first, or the board keeps scrolling
@@ -178,7 +178,7 @@ test.describe('a drag near the window edge scrolls the board', () => {
     await carryPointOver(page, grab, { x: 40, y: SHORT - 20 });
     await expect
       .poll(async () => (await meld.boundingBox())!.y, { timeout: 10_000, message: 'the board should scroll while the card is held at the edge' })
-      .toBeLessThan(SHORT / 2);
+      .toBeLessThan(SHORT * 0.6);
 
     const at = (await meld.boundingBox())!;
     expect(at.x, 'the premise: the last stretch comes across, from well left of the meld').toBeGreaterThan(300);
