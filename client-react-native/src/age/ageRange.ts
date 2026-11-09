@@ -9,8 +9,8 @@
  *   Apple asks apps to treat it as no answer, and the cautious no-answer for
  *   a betting game is "not for you".
  * - `unknown`: there is nothing to go on — the web, iOS before 26, an
- *   Android device outside Google Play's age-signals regions, or an error.
- *   The games stay, with their 18+ notice: the store rates the whole app
+ *   Android device outside Google Play's age-signals regions, an error, or a
+ *   dev build older than the native module. The games stay, with their 18+ notice: the store rates the whole app
  *   18+, so a device with no age signal is left to that rating.
  * - `pending`: still asking.
  */
