@@ -231,26 +231,26 @@ function sheetStyles(metrics: Metrics, s: Skin) {
       maxHeight: '80%',
     },
     body: { gap: 18 },
-    title: { color: colors.text, fontSize: 17 * metrics.scale, fontWeight: '700' },
+    title: { color: colors.text, fontSize: 17, fontWeight: '700' },
     section: { gap: 6 },
     row: { gap: 6, marginTop: 6 },
     key: {
       color: colors.muted,
-      fontSize: 11 * metrics.scale,
+      fontSize: 11,
       letterSpacing: 1,
       textTransform: 'uppercase',
       fontWeight: '600',
     },
-    value: { color: colors.text, fontSize: 14 * metrics.scale, lineHeight: 20 * metrics.scale },
-    name: { color: colors.text, fontSize: 14 * metrics.scale, fontWeight: '700' },
-    code: { color: colors.text, fontWeight: '700', fontSize: 16 * metrics.scale },
+    value: { color: colors.text, fontSize: 14, lineHeight: 20 },
+    name: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    code: { color: colors.text, fontWeight: '700', fontSize: 16 },
     // A URL is read one character at a time to be checked, so monospace.
     url: {
       color: colors.accent,
-      fontSize: 13 * metrics.scale,
+      fontSize: 13,
       fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
-    error: { color: colors.danger, fontSize: 13 * metrics.scale },
+    error: { color: colors.danger, fontSize: 13 },
     primary: {
       minWidth: metrics.buttonMinWidth,
       backgroundColor: colors.accentButton,
@@ -258,7 +258,7 @@ function sheetStyles(metrics: Metrics, s: Skin) {
       paddingVertical: 11,
       alignItems: 'center',
     },
-    primaryText: { color: colors.onAccent, fontWeight: '700', fontSize: 14 * metrics.scale },
+    primaryText: { color: colors.onAccent, fontWeight: '700', fontSize: 14 },
     ghost: {
       borderWidth: 1,
       borderColor: colors.border,
@@ -266,6 +266,6 @@ function sheetStyles(metrics: Metrics, s: Skin) {
       paddingVertical: 11,
       alignItems: 'center',
     },
-    ghostText: { color: colors.muted, fontWeight: '600', fontSize: 14 * metrics.scale },
+    ghostText: { color: colors.muted, fontWeight: '600', fontSize: 14 },
   });
 }
