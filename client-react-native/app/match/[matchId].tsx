@@ -2527,6 +2527,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
       <BoardMetricsProvider metrics={metrics}>
       <ScrollView
         ref={scrollRef}
+        // The raise box sits low on the board; keep it clear of the keyboard.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         // Wide enough for the table and no wider. On a large monitor the felt
         // runs to both edges (it is drawn behind everything) while the board
         // itself stops at a table's width — without this, a player's hand and
