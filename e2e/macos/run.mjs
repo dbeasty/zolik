@@ -314,7 +314,7 @@ const tileState = (game) => `
 
 // The controls that can be pressed. Draw is still drawn, greyed out, while a
 // Wild Draw Four waits to be answered, and pressing it changes nothing.
-const LIVE_BUTTONS = `[...document.querySelectorAll('[data-testid^="offer-"]')].filter((b) => b.getAttribute('aria-disabled') !== 'true').map((b) => (b.querySelector('[data-testid$="-title"]') || b).innerText.trim())`;
+const LIVE_BUTTONS = `[...document.querySelectorAll('[role="button"][data-testid^="offer-"]')].filter((b) => b.getAttribute('aria-disabled') !== 'true').map((b) => (b.querySelector('[data-testid$="-title"]') || b).innerText.trim())`;
 
 const DEALT = `
   await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'the match', 20000);
