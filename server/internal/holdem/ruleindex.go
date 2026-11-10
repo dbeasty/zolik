@@ -69,8 +69,10 @@ func refusalRules(code string) []string {
 		return []string{"holdem.rules.showYourOwn"}
 
 	// --- getting up ------------------------------------------------------
-	case ErrLeaveTournament:
+	case ErrLeaveTournament, ErrLateJoinTournament:
 		return []string{"holdem.rules.tournament"}
+	case ErrTableFull:
+		return []string{"holdem.rules.cash.join"}
 	case ErrAlreadyLeft:
 		return []string{"holdem.rules.cash.leave"}
 

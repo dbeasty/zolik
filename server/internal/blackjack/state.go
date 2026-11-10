@@ -70,10 +70,12 @@ const ParamAmount = "amount"
 // modules already spell them, so a client words them once.
 const (
 	ErrWrongPlayerCount = "WRONG_PLAYER_COUNT"
-	ErrGameNotActive    = "GAME_NOT_ACTIVE"
-	ErrNotYourTurn      = "NOT_YOUR_TURN"
-	ErrUnknownAction    = "UNKNOWN_ACTION"
-	ErrWrongPhase       = "WRONG_PHASE"
+	// ErrTableFull is a table with all seven boxes taken.
+	ErrTableFull     = "TABLE_FULL"
+	ErrGameNotActive = "GAME_NOT_ACTIVE"
+	ErrNotYourTurn   = "NOT_YOUR_TURN"
+	ErrUnknownAction = "UNKNOWN_ACTION"
+	ErrWrongPhase    = "WRONG_PHASE"
 	// ErrAlreadyLeft is a second "leave" from a seat already got up, or getting up.
 	ErrAlreadyLeft     = "ALREADY_LEFT"
 	ErrNotInRound      = "SEAT_NOT_IN_HAND"
@@ -157,6 +159,9 @@ type Seat struct {
 	// out — sat out, if its player has gone — and gets up when it settles.
 	Left    bool `json:"left,omitempty"`
 	Leaving bool `json:"leaving,omitempty"`
+	// Joining is a player who sat down while a round was being played: out
+	// of it, and in from the next round's betting.
+	Joining bool `json:"joining,omitempty"`
 	// Bot is a seat the server plays, recorded at the deal so a table with no
 	// person left at it can end instead of dealing on to nobody.
 	Bot bool `json:"bot,omitempty"`
@@ -263,7 +268,7 @@ func order(s *GameState) []string {
 	for i := range s.Seats {
 		// A player who got up is not reading the results, and waiting on
 		// them to go on would wait for ever.
-		if s.Seats[i].Left {
+		if s.Seats[i].Left || s.Seats[i].Joining {
 			continue
 		}
 		out = append(out, s.Seats[i].PlayerID)

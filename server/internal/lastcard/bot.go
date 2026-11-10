@@ -118,8 +118,9 @@ func handGain(s *GameState, playerID, card string) int {
 	case s.swapsHands(card):
 		return after - len(s.Hands[shortestOther(s, playerID)])
 	case card == cardWildMayhem:
-		total, n := 0, len(s.TurnOrder)
-		for _, p := range s.TurnOrder {
+		in := s.inPlay()
+		total, n := 0, len(in)
+		for _, p := range in {
 			total += len(s.Hands[p])
 		}
 		total--
@@ -134,7 +135,7 @@ func handGain(s *GameState, playerID, card string) int {
 // the direction of play taking a tie — whom a swap should trade with.
 func shortestOther(s *GameState, playerID string) string {
 	best := ""
-	for i, p := 1, s.nextPlayer(playerID); i < len(s.TurnOrder); i, p = i+1, s.nextPlayer(p) {
+	for i, p := 1, s.nextPlayer(playerID); i < len(s.inPlay()); i, p = i+1, s.nextPlayer(p) {
 		if best == "" || len(s.Hands[p]) < len(s.Hands[best]) {
 			best = p
 		}
@@ -145,7 +146,7 @@ func shortestOther(s *GameState, playerID string) string {
 // nextHandSize is how many cards the next player in the direction of play is
 // holding — their hand's size, never its contents.
 func nextHandSize(s *GameState, playerID string) int {
-	if len(s.TurnOrder) < 2 {
+	if len(s.inPlay()) < 2 {
 		return 1 << 30
 	}
 	return len(s.Hands[s.nextPlayer(playerID)])
@@ -369,7 +370,7 @@ func findOffer(offers []module.ActionOffer, id string) *module.ActionOffer {
 // someoneNearlyOut is whether another player holds two cards or fewer — a
 // count every player can see.
 func someoneNearlyOut(s *GameState, playerID string) bool {
-	for _, p := range s.TurnOrder {
+	for _, p := range s.inPlay() {
 		if p != playerID && len(s.Hands[p]) <= 2 {
 			return true
 		}
