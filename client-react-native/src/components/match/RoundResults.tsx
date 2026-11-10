@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useArrival } from '@/src/hooks/useArrival';
@@ -86,6 +86,16 @@ export const RoundResults = memo(function RoundResults({
   // leaves whatever varies where it varies.
   const { shared, perRound } = useMemo(() => splitSharedFacts(log), [log]);
 
+  // Inside a horizontal ScrollView the table has no width to fill, so it took
+  // its content's natural width: every heading on one line, a two-name team
+  // heading as wide as both names, and the panel scrolling sideways for a
+  // table that would have fitted had its headings wrapped. The table is given
+  // the room it is shown in, so the columns share it and their headings wrap,
+  // and only a table whose columns cannot fit at their minimum width scrolls.
+  const [room, setRoom] = useState(0);
+  const floor = styles.labelCell.width + columns.length * styles.cell.minWidth;
+  const overflows = room > 0 && floor > room;
+
   // Re-played per round, so each result announces itself rather than only the
   // first one of the match.
   const arrival = useArrival(log.rounds.length);
@@ -128,9 +138,10 @@ export const RoundResults = memo(function RoundResults({
           horizontal
           showsHorizontalScrollIndicator
           style={styles.scroller}
-          contentContainerStyle={styles.scrollerContent}
+          contentContainerStyle={[styles.scrollerContent, overflows && styles.scrollerOverflow]}
+          onLayout={(e) => setRoom(e.nativeEvent.layout.width)}
         >
-          <View style={styles.table}>
+          <View style={[styles.table, room > 0 && { width: Math.max(room, floor) }]}>
             <View style={[styles.row, styles.headRow]}>
               <Text style={[styles.cell, styles.labelCell, styles.head]}>
                 {label(log.labelKey)}
@@ -138,7 +149,7 @@ export const RoundResults = memo(function RoundResults({
               {columns.map(({ id, members }) => (
                 <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
                   <Text
-                    numberOfLines={members.length > 1 ? 2 : 1}
+                    numberOfLines={members.length > 1 ? undefined : 2}
                     style={[styles.name, styles.head, id === viewerId && styles.mine]}
                   >
                     {headOf(members)}
@@ -314,6 +325,9 @@ function roundStyles(m: Metrics, s: Skin) {
     // scrolls sideways when it is narrower. Without this it was as wide as its
     // columns' fixed widths and left a third of a desktop panel empty.
     scrollerContent: { flexGrow: 1 },
+    // Room under the last row for the scrollbar, which overlays content on
+    // macOS and iOS and otherwise sits on the totals it scrolls.
+    scrollerOverflow: { paddingBottom: 14 },
     table: { flexGrow: 1 },
     // The same tint the end-of-match banner uses, for the same reason: the
     // thing it has to beat is being mistaken for nothing having happened.
