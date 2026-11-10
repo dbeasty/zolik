@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 
@@ -16,6 +16,7 @@ import { useCardPan } from '@/src/hooks/useCardPan';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { concealedCount, isWideSpread, zoneDropLive } from '@/src/lib/board';
+import { boardScrollY, onBoardScroll } from '@/src/lib/boardScroll';
 import { marksIn, type ChangeMarks } from '@/src/lib/changes';
 import { groupElementId, liftKey, zoneElementId } from '@/src/lib/drops';
 import {
@@ -244,10 +245,31 @@ export function ZoneView({
   // out of the window and back, and that cancels the touch carrying it — the
   // card was let go a few frames into the drag. Native raises a meld before
   // any touch instead, when it is opened to pick from (`styles.carrying`).
-  const [carry, setCarry] = useState<{ where: string; from: number; only?: number[]; dx: number; dy: number } | null>(null);
+  //
+  // `scrolled` is how far the board has scrolled since the pick-up. The
+  // travel is the pointer's, on screen, but the cards are drawn in the
+  // board's content, which the edge autoscroll moves under a pointer that is
+  // standing still — the cards rode off with it, as far as the board went.
+  const [carry, setCarry] = useState<{
+    where: string;
+    from: number;
+    only?: number[];
+    dx: number;
+    dy: number;
+    scrolled: number;
+  } | null>(null);
+  const carrying = carry !== null;
+  useEffect(() => {
+    if (!carrying) return;
+    const from = boardScrollY();
+    return onBoardScroll((y) => setCarry((was) => (was ? { ...was, scrolled: y - from } : was)));
+  }, [carrying]);
   const carriedStyle = (where: string, index: number) =>
     carry && carry.where === where && (carry.only ? carry.only.includes(index) : index >= carry.from)
-      ? { transform: [{ translateX: carry.dx }, { translateY: carry.dy }], ...(Platform.OS === 'web' ? { zIndex: 50 } : null) }
+      ? {
+          transform: [{ translateX: carry.dx }, { translateY: carry.dy + carry.scrolled }],
+          ...(Platform.OS === 'web' ? { zIndex: 50 } : null),
+        }
       : null;
   /** A card wrapped so it can be pressed or dragged, when an offer lifts it. */
   const lift = (where: string, card: string, index: number, child: ReactNode, spoken?: string) =>
@@ -258,7 +280,7 @@ export function ZoneView({
         picked={picked === card}
         onLift={onLift}
         onStart={() => {
-          setCarry({ where, from: index, dx: 0, dy: 0 });
+          setCarry({ where, from: index, dx: 0, dy: 0, scrolled: 0 });
           onLiftDragStart?.(card);
         }}
         onMove={(x, y, dx, dy) => {
@@ -287,7 +309,14 @@ export function ZoneView({
         // The parent says which cards went up with it — a card that cannot
         // leave the meld alone carries its company.
         const carried = onMeldDragStart?.(where, index, card);
-        setCarry({ where, from: index, only: carried ?? (picks.includes(index) ? picks : [index]), dx: 0, dy: 0 });
+        setCarry({
+          where,
+          from: index,
+          only: carried ?? (picks.includes(index) ? picks : [index]),
+          dx: 0,
+          dy: 0,
+          scrolled: 0,
+        });
       }}
       onMove={(x, y, dx, dy) => {
         setCarry((was) => (was ? { ...was, dx, dy } : was));

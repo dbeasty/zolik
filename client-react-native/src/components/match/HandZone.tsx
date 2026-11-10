@@ -16,6 +16,7 @@ import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, splitFan, type Rect, type Slot } from '@/src/lib/hand';
 import { dragPeek, fanOverlaps, fanPitch, type Metrics } from '@/src/lib/layout';
 import { handCardLabel, handSpokenLabel, type PlayOption } from '@/src/lib/boardSpeech';
+import { onBoardScroll } from '@/src/lib/boardScroll';
 import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
@@ -534,6 +535,14 @@ export function HandZone({
   useLayoutEffect(() => {
     if (heldRef.current !== null) reanchor();
   });
+
+  // And every time the board scrolls under a held card. The edge autoscroll
+  // moves the board without anything re-rendering here — the target under
+  // the pointer is often the same one step after step — so the effect above
+  // never ran, and the card rode the row away from the pointer by as far as
+  // the board had scrolled.
+  const holding = held !== null;
+  useEffect(() => (holding ? onBoardScroll(() => reanchor()) : undefined), [holding, reanchor]);
 
   /**
    * Whether a point counts as "in the hand".
