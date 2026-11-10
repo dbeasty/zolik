@@ -92,6 +92,24 @@ describe('tableBanner', () => {
     expect(b?.text).toContain('Bo');
   });
 
+  it('tells a player who stepped out that a bot has their seat, ahead of anyone else away', () => {
+    const players = [
+      { id: 'ada', name: 'Ada', isAI: false, standIn: { skill: 'medium', since: '', by: 'self' } },
+      { id: 'bo', name: 'Bo', isAI: false, standIn: { skill: 'medium', since: '', by: 'timeout' } },
+    ];
+    const b = tableBanner({ ...base, state: table({ players } as Partial<MatchState>) });
+    expect(b?.kind).toBe('steppedOut');
+  });
+
+  it('shows the others a stepped-out player as stood in for', () => {
+    const players = [
+      { id: 'ada', name: 'Ada', isAI: false },
+      { id: 'bo', name: 'Bo', isAI: false, standIn: { skill: 'medium', since: '', by: 'self' } },
+    ];
+    const b = tableBanner({ ...base, state: table({ players } as Partial<MatchState>) });
+    expect(b?.kind).toBe('standin');
+  });
+
   it('says nothing on a table that is simply playing', () => {
     expect(tableBanner({ ...base, state: table() })).toBeNull();
   });

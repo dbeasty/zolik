@@ -57,8 +57,18 @@ func (m *Manager) standInAfter(match models.Match) time.Duration {
 // standInPlaying reports whether the server plays this seat for its player
 // right now: a stand-in is in, its player is away, and somebody else is still
 // at the table to play for.
+//
+// A player who stepped out is the exception to "away": their bot plays while
+// they are still watching, and their being there is somebody to play for.
 func (m *Manager) standInPlaying(match models.Match, p models.Player) bool {
-	return p.StandIn != nil && !m.seatHere(match.ID.Hex(), p.ID) && m.someoneElseHere(match, p.ID)
+	if p.StandIn == nil {
+		return false
+	}
+	here := m.seatHere(match.ID.Hex(), p.ID)
+	if p.StandIn.By == models.StandInSelf {
+		return here || m.someoneElseHere(match, p.ID)
+	}
+	return !here && m.someoneElseHere(match, p.ID)
 }
 
 // someoneElseHere reports whether a person other than this seat's is at the
@@ -231,7 +241,10 @@ func (m *Manager) endStandIn(ctx context.Context, matchID, playerID string) {
 	if err != nil {
 		return
 	}
-	if p := playerByID(e.match.Players, playerID); p == nil || p.StandIn == nil {
+	// A player who stepped out is not back because their socket is: a reload,
+	// or the phone waking in their pocket, would end it under them. They say
+	// when (SetStandIn), or they make a move (handleAction).
+	if p := playerByID(e.match.Players, playerID); p == nil || p.StandIn == nil || p.StandIn.By == models.StandInSelf {
 		e.mu.Unlock()
 		return
 	}
@@ -265,6 +278,17 @@ func (m *Manager) SetStandIn(ctx context.Context, matchID, callerID, seatID stri
 	if playerByID(match.Players, callerID) == nil {
 		e.mu.Unlock()
 		return models.Match{}, module.Error{Code: "NOT_AT_THIS_TABLE", Message: callerID}
+	}
+	// A request about your own seat, at a table that allows stepping out, is
+	// stepping out or back in, host or not: the host's say below is over the
+	// seats of people who are away. Stepping back in is always allowed.
+	if callerID == seatID {
+		self := playerByID(match.Players, seatID)
+		steppedOut := self != nil && self.StandIn != nil && self.StandIn.By == models.StandInSelf
+		allowed := module.MatchConfig{Variation: match.Variation, Options: match.Options}.StepOutAllowed()
+		if allowed || (!on && steppedOut) {
+			return m.stepOutLocked(ctx, e, seatID, on, skill)
+		}
 	}
 	if match.HostID != callerID {
 		e.mu.Unlock()
@@ -345,6 +369,79 @@ func (m *Manager) SetStandIn(ctx context.Context, matchID, callerID, seatID stri
 	saved := e.match
 	e.mu.Unlock()
 	log.Printf("match=%s host=%s stand-in for %s at %s", matchID, callerID, seatID, want)
+	m.Broadcast(saved)
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), saved.ID.Hex())
+	return saved, nil
+}
+
+// stepOutLocked is a player handing their own seat to a stand-in, or taking
+// it back. Called holding e.mu, which it releases.
+//
+// It plays while they are still at the table (standInPlaying), is not ended
+// by their socket coming back (endStandIn), and counts like any stand-in: the
+// seat is in StoodIn, and the match is neither a win nor a loss for them.
+func (m *Manager) stepOutLocked(ctx context.Context, e *liveMatch, seatID string, on bool, skill string) (models.Match, error) {
+	match := e.match
+	target := playerByID(match.Players, seatID)
+	mod := m.registry.Get(match.ModuleID)
+	cfg := module.MatchConfig{Variation: match.Variation, Options: match.Options}
+	if target == nil || target.IsAI {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "STAND_IN_NOT_A_PERSON", Message: seatID}
+	}
+	if !on {
+		if target.StandIn == nil {
+			e.mu.Unlock()
+			return match, nil
+		}
+		if err := m.saveLocked(ctx, e, withStandIn(match, seatID, nil)); err != nil {
+			e.mu.Unlock()
+			return models.Match{}, module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
+		}
+		m.turns.forgetSeat(match.ID.Hex(), seatID)
+		saved := e.match
+		e.mu.Unlock()
+		m.awayMu.Lock()
+		delete(m.standInHeld, match.ID.Hex()+"|"+seatID)
+		m.awayMu.Unlock()
+		log.Printf("match=%s player=%s stepped back in", match.ID.Hex(), seatID)
+		m.Broadcast(saved)
+		m.RunBotsIfNeeded(context.WithoutCancel(ctx), saved.ID.Hex())
+		return saved, nil
+	}
+	if !module.DeclaresStepOut(mod) || !cfg.StepOutAllowed() || m.savedGame(match) {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "STEP_OUT_NOT_ALLOWED", Message: match.ModuleID}
+	}
+	if match.Status != "active" && match.Status != "suspended" {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "MATCH_NOT_ACTIVE"}
+	}
+	want := standInSkill(match)
+	if skill != "" {
+		s, auto := module.ParseSkill(skill)
+		if auto {
+			e.mu.Unlock()
+			return models.Match{}, module.Error{Code: "UNKNOWN_SKILL", Message: skill}
+		}
+		want = s
+	}
+	since := time.Now().UTC()
+	if target.StandIn != nil {
+		since = target.StandIn.Since
+	}
+	match = withStandIn(match, seatID, &models.StandIn{Since: since, Skill: string(want), By: models.StandInSelf})
+	if match.Status == "suspended" && match.SuspendedPlayer == seatID {
+		match = unsuspended(match)
+	}
+	if err := m.saveLocked(ctx, e, match); err != nil {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
+	}
+	m.turns.forgetSeat(match.ID.Hex(), seatID)
+	saved := e.match
+	e.mu.Unlock()
+	log.Printf("match=%s player=%s stepped out, stand-in at %s", saved.ID.Hex(), seatID, want)
 	m.Broadcast(saved)
 	m.RunBotsIfNeeded(context.WithoutCancel(ctx), saved.ID.Hex())
 	return saved, nil

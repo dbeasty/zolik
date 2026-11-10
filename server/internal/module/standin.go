@@ -60,14 +60,56 @@ func DeclaresStandIn(m GameModule) bool {
 // rules screen says what this table does when somebody's connection drops.
 func StandInRules(c MatchConfig) RuleSection {
 	secs := int(c.StandInAfter() / time.Second)
+	var facts []Fact
 	if secs == 0 {
-		return Section("rules.standIn.section",
-			Fact{LabelKey: "rules.standIn.wait"},
+		facts = append(facts, Fact{LabelKey: "rules.standIn.wait"})
+	} else {
+		facts = append(facts,
+			Fact{LabelKey: "rules.standIn.after", Params: map[string]any{"seconds": secs}},
+			Fact{LabelKey: "rules.standIn.return"},
 		)
 	}
-	return Section("rules.standIn.section",
-		Fact{LabelKey: "rules.standIn.after", Params: map[string]any{"seconds": secs}},
-		Fact{LabelKey: "rules.standIn.return"},
-		Fact{LabelKey: "rules.standIn.record"},
-	)
+	if c.StepOutAllowed() {
+		facts = append(facts, Fact{LabelKey: "rules.standIn.stepOut"})
+	}
+	if secs != 0 || c.StepOutAllowed() {
+		facts = append(facts, Fact{LabelKey: "rules.standIn.record"})
+	}
+	return Section("rules.standIn.section", facts...)
+}
+
+// OptStepOut lets a player hand their own seat to a stand-in bot on purpose —
+// to answer the door, put the kettle on — and take it back when they return.
+// The same stand-in as a dropped connection gets, put in by its own player
+// rather than by a clock or the host, and it plays while they watch.
+//
+// Off by default, which is how a table has always behaved: whether a person
+// may leave a bot playing for them is the host's call, made in the lobby.
+// Declared by every game that declares OptStandInAfter, since it is the same
+// bot doing the same job.
+const OptStepOut = "stepOut"
+
+// StepOutOption is the ready-made spec a module drops into its descriptor.
+func StepOutOption() OptionSpec {
+	return OptionSpec{
+		Name:  OptStepOut,
+		Type:  OptionEnumInt,
+		Label: "Step out",
+		Help:  "Let a player hand their seat to a bot while they step away, and take it back when they return.",
+		Choices: []OptionChoice{
+			{Value: OptOff, Label: "Off"},
+			{Value: OptOn, Label: "Allowed"},
+		},
+	}
+}
+
+// StepOutAllowed reads the option. A match created before it existed has no
+// value for it, and does not allow it.
+func (c MatchConfig) StepOutAllowed() bool {
+	return c.Opt(OptStepOut, OptOff) == OptOn
+}
+
+// DeclaresStepOut reports whether a module offers the option at all.
+func DeclaresStepOut(m GameModule) bool {
+	return m != nil && m.Descriptor().Option(OptStepOut) != nil
 }

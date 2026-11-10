@@ -64,7 +64,7 @@ type StandIn struct {
 	Since time.Time `bson:"since" json:"since"`
 	// Skill is how well the stand-in plays, as module.Skill.
 	Skill string `bson:"skill" json:"skill"`
-	// By says what put it there: StandInTimeout or StandInHost.
+	// By says what put it there: StandInTimeout, StandInHost or StandInSelf.
 	By string `bson:"by" json:"by"`
 }
 
@@ -72,6 +72,9 @@ type StandIn struct {
 const (
 	StandInTimeout = "timeout"
 	StandInHost    = "host"
+	// StandInSelf is a player who stepped out (module.OptStepOut). It plays
+	// while they are still at the table, and only they end it.
+	StandInSelf = "self"
 )
 
 type User struct {
