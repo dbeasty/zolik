@@ -745,6 +745,15 @@ func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a
 			e.mu.Unlock()
 			return errStandInEnded
 		}
+	} else if p := playerByID(e.match.Players, playerID); p != nil && p.StandIn != nil && p.StandIn.By == models.StandInSelf {
+		// A player who stepped out and plays a card has stepped back in: the
+		// move is theirs, and so is every one after it. Under the same lock,
+		// so their bot's next move loses the race with errStandInEnded.
+		if err := m.saveLocked(ctx, e, withStandIn(e.match, playerID, nil)); err != nil {
+			e.mu.Unlock()
+			return module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
+		}
+		m.turns.forgetSeat(e.match.ID.Hex(), playerID)
 	}
 	match, rounds, proj, events, err := m.applyLocked(ctx, e, playerID, a)
 	e.mu.Unlock()

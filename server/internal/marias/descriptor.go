@@ -113,6 +113,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			},
 			module.BotSkillOption(),
 			module.StandInOption(),
+			module.StepOutOption(),
 			module.HintsOption(),
 			module.PauseOption(),
 		},
@@ -130,6 +131,7 @@ var variationDefaults = map[string]int{
 	module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 	module.OptStandInAfter:       module.StandInAfterDefault,
 	module.OptHints:              module.OptOn,
+	module.OptStepOut:            module.OptOff,
 	module.OptPauseBetweenRounds: module.OptOn,
 }
 

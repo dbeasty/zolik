@@ -64,6 +64,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			module.BotSkillOption(),
 			module.PauseOption(),
 			module.StandInOption(),
+			module.StepOutOption(),
 			module.HintsOption(),
 		},
 	}

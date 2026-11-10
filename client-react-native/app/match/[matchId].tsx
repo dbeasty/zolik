@@ -53,7 +53,7 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
-import { useStandIn } from '@/src/components/StandInSheet';
+import { useStandIn, useStepOut } from '@/src/components/StandInSheet';
 import { useSeatLook } from '@/src/components/match/SeatLookSheet';
 import { TableBanner } from '@/src/components/match/TableBanner';
 import { GuideCard } from '@/src/guide/GuideCard';
@@ -541,6 +541,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // And a person's seat while they are away: a bot now, a different bot, or
   // none and wait for them. Also the host's alone.
   const standIn = useStandIn(client, String(matchId ?? ''), !!state?.hostId && state.hostId === viewerId, botStrength.offersAI);
+  // And your own seat, where the lobby allowed it: a bot plays it while you
+  // step away, until you say you are back.
+  const stepOut = useStepOut(client, String(matchId ?? ''), viewerId, state);
   // Your own face and name, changeable until the match is over.
   const seatLook = useSeatLook(
     client,
@@ -2485,7 +2488,13 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         onDismissNotice={clearNotice}
         onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
         onKeepWaiting={standIn.act ? (id) => void standIn.act?.(id, false) : undefined}
+        onStepBackIn={stepOut.steppedOut ? () => void stepOut.set(false) : undefined}
       />
+      {stepOut.error ? (
+        <Text testID="step-out-error" style={styles.error}>
+          {stepOut.error}
+        </Text>
+      ) : null}
       {/* The guide speaks from here, outside the board, for the same reason
           the banner above does — and exit is always one press away. */}
       {guide ? <GuideCard guide={guide} onExit={() => setGuideExitOpen(true)} /> : null}
@@ -2582,6 +2591,20 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
                 <Text style={styles.rulesLink}>{t('a11y.board.read.button')}</Text>
               </Pressable>
             </Tip>
+            {stepOut.canStepOut ? (
+              <Tip text={t('match.stepOut.tip')}>
+                <Pressable
+                  testID="step-out"
+                  accessibilityRole="button"
+                  accessibilityHint={t('match.stepOut.tip')}
+                  onPress={() => void stepOut.set(true)}
+                  hitSlop={8}
+                  style={styles.linkTarget}
+                >
+                  <Text style={styles.rulesLink}>{t('match.stepOut.button')}</Text>
+                </Pressable>
+              </Tip>
+            ) : null}
             {Platform.OS === 'web' ? (
               <Tip text={t('a11y.board.tip.shortcuts')} shortcut={SHORTCUT_KEYS.help}>
                 <Pressable

@@ -32,6 +32,8 @@ type Props = {
   onLetBotPlay?: (playerId: string) => void;
   /** The host's "cancel the pending bot and wait for them". */
   onKeepWaiting?: (playerId: string) => void;
+  /** Take your own seat back from the bot you stepped out for. */
+  onStepBackIn?: () => void;
 };
 
 /**
@@ -46,7 +48,7 @@ type Props = {
  * *player* is missing, the table waits for them for as long as it was set up
  * to, and then a bot plays their seat. Only the first that holds is shown.
  */
-export function TableBanner({ state, seats, viewerId, connected, displaced, onReclaim, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting }: Props) {
+export function TableBanner({ state, seats, viewerId, connected, displaced, onReclaim, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting, onStepBackIn }: Props) {
   const counting = !!awaitedAway(state, seats)?.standInAt;
   const now = useNow(counting);
 
@@ -79,6 +81,16 @@ export function TableBanner({ state, seats, viewerId, connected, displaced, onRe
           accessibilityRole="button"
         >
           <Text style={styles.buttonText}>{t('banner.useThisTab')}</Text>
+        </Pressable>
+      ) : null}
+      {b.kind === 'steppedOut' && onStepBackIn ? (
+        <Pressable
+          testID="table-banner-step-back-in"
+          onPress={onStepBackIn}
+          style={styles.button}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{t('banner.stepBackIn')}</Text>
         </Pressable>
       ) : null}
       {b.kind === 'waiting' && onLetBotPlay && b.playerId ? (
@@ -121,7 +133,7 @@ export function TableBanner({ state, seats, viewerId, connected, displaced, onRe
   );
 }
 
-export type BannerKind = 'displaced' | 'offline' | 'server' | 'waiting' | 'back' | 'standin';
+export type BannerKind = 'displaced' | 'offline' | 'server' | 'waiting' | 'back' | 'standin' | 'steppedOut';
 
 /**
  * Which banner, if any, and what it says. Pure, so the order the three
@@ -156,6 +168,12 @@ export function tableBanner({
   // something that was never going to happen.
   if (!connected && displaced) return { kind: 'displaced', tone: 'bad', text: t('err.DISPLACED') };
   if (!connected) return { kind: 'offline', tone: 'bad', text: t('banner.offline') };
+  // Stepped out: a bot is playing your seat because you asked, and the way
+  // back is the button on this banner. Not dismissable — it is the only
+  // thing on the screen that says why your hand is playing itself.
+  if (state.players.find((p) => p.id === viewerId)?.standIn?.by === 'self') {
+    return { kind: 'steppedOut', tone: 'info', text: t('banner.steppedOut') };
+  }
   const waitingOn = awaitedAway(state, seats);
   if (waitingOn && waitingOn.id !== viewerId) {
     const name = playerName(state.players, waitingOn.id);

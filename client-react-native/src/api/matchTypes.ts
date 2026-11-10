@@ -512,9 +512,11 @@ export type MatchPlayer = {
   skill?: string;
   /**
    * A bot is playing this person's seat while they are away. The seat stays
-   * theirs; it is cleared the moment they are back.
+   * theirs; it is cleared the moment they are back. `self` is a player who
+   * stepped out (the table's `stepOut` option): it plays while they watch,
+   * and ends when they say they are back or make a move.
    */
-  standIn?: { skill: string; since: string; by: 'timeout' | 'host' };
+  standIn?: { skill: string; since: string; by: 'timeout' | 'host' | 'self' };
   /** When a bot will start playing for this away seat (ISO time), for a countdown. */
   standInAt?: string;
   /**

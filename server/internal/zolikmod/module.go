@@ -113,6 +113,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		module.OpenDiscardPileOption(),
 		module.BotSkillOptionWithAI(),
 		module.StandInOption(),
+		module.StepOutOption(),
 		module.HintsOption(),
 	)
 	for _, o := range d.Options {

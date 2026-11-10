@@ -352,14 +352,19 @@ func (r *Registry) Descriptors() []ModuleDescriptor {
 // withHintsDefault gives every variation a starting value for Hints, which is
 // on (HintsAllowed). Modules declare the option but leave it out of their
 // Defaults, and a lobby that finds no default for a choice highlights neither.
+//
+// Step out gets the same treatment, defaulting off (StepOutAllowed).
 func withHintsDefault(d ModuleDescriptor) ModuleDescriptor {
-	declared := false
+	hints, stepOut := false, false
 	for _, o := range d.Options {
-		if o.Name == OptHints {
-			declared = true
+		switch o.Name {
+		case OptHints:
+			hints = true
+		case OptStepOut:
+			stepOut = true
 		}
 	}
-	if !declared {
+	if !hints && !stepOut {
 		return d
 	}
 	vars := make([]VariationSpec, len(d.Variations))
@@ -368,8 +373,11 @@ func withHintsDefault(d ModuleDescriptor) ModuleDescriptor {
 		for k, x := range v.Defaults {
 			defaults[k] = x
 		}
-		if _, ok := defaults[OptHints]; !ok {
+		if _, ok := defaults[OptHints]; hints && !ok {
 			defaults[OptHints] = OptOn
+		}
+		if _, ok := defaults[OptStepOut]; stepOut && !ok {
+			defaults[OptStepOut] = OptOff
 		}
 		v.Defaults = defaults
 		vars[i] = v

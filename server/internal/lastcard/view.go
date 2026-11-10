@@ -169,6 +169,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
 			module.StandInOption(),
+			module.StepOutOption(),
 			module.HintsOption(),
 			{
 				Name:  OptHandSize,

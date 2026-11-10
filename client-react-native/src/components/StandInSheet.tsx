@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ZolikClient } from '@/src/api/client';
+import type { MatchState } from '@/src/api/matchTypes';
 import { formatApiError } from '@/src/lib/apiError';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
@@ -85,6 +86,33 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
     </>
   );
   return { open: isHost ? (seat: StandInTarget) => setTarget(seat) : undefined, act: isHost ? act : undefined, sheet };
+}
+
+/**
+ * A player's own say over their seat, at a table whose lobby allowed stepping
+ * out: hand it to a bot while they are away from the screen, and take it
+ * back. `canStepOut` is whether the button belongs on the screen right now;
+ * `steppedOut` whether a bot is playing for them because they asked.
+ */
+export function useStepOut(client: ZolikClient, matchId: string, viewerId: string, state: MatchState | null | undefined) {
+  const [error, setError] = useState('');
+  const me = state?.players.find((p) => p.id === viewerId);
+  const live = state?.status === 'active' || state?.status === 'suspended';
+  const allowed = (state?.options?.stepOut ?? 0) === 1;
+  const steppedOut = me?.standIn?.by === 'self';
+  const canStepOut = !!me && !me.isAI && !me.standIn && live && allowed;
+  const set = useCallback(
+    async (on: boolean) => {
+      try {
+        await client.setStandIn(matchId, viewerId, on);
+        setError('');
+      } catch (e) {
+        setError(formatApiError(e, 'Could not change the seat'));
+      }
+    },
+    [client, matchId, viewerId],
+  );
+  return { canStepOut, steppedOut, set, error };
 }
 
 const styles = StyleSheet.create({
