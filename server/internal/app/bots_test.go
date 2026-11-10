@@ -27,6 +27,7 @@ func hardSwitch(game string) bool {
 // switch reset to its default.
 func TestHardModelChangeSurvivesARestart(t *testing.T) {
 	t.Cleanup(learn.SnapshotHardModelsForTest())
+	_, _ = learn.SetHardModel("zolik", false)
 	ctx := context.Background()
 	dir := t.TempDir()
 
@@ -68,10 +69,53 @@ func TestHardModelChangeSurvivesARestart(t *testing.T) {
 	if !hardSwitch("zolik") {
 		t.Error("after a restart the stored setting was not applied")
 	}
-	for _, g := range []string{"canasta", "holdem"} {
-		if hardSwitch(g) {
-			t.Errorf("%s came back on without anyone turning it on", g)
+}
+
+// The AI choice is on until somebody says otherwise, and a "no" outlives every
+// boot after it. An empty store is what a new data directory looks like, so
+// this is what keeps a rebuilt server from losing the AI.
+func TestAIChoiceOnUnlessSomebodyTurnedItOff(t *testing.T) {
+	t.Cleanup(learn.SnapshotHardModelsForTest())
+	ctx := context.Background()
+	dir := t.TempDir()
+	boot := func() func() {
+		for _, g := range []string{"zolik", "canasta", "holdem"} {
+			_, _ = learn.SetHardModel(g, false) // a new process
 		}
+		k, err := db.OpenKDB(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		loadHardModels(ctx, botsettings.NewKDBStore(k))
+		return func() { _ = k.Close(ctx) }
+	}
+
+	closeStore := boot()
+	for _, g := range []string{"zolik", "canasta", "holdem"} {
+		if !hardSwitch(g) {
+			t.Errorf("%s is off on a store nobody has written to", g)
+		}
+	}
+	closeStore()
+
+	k, err := db.OpenKDB(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := setHardModel(ctx, botsettings.NewKDBStore(k), admin.HardModelChange{Game: "holdem", Enabled: false, By: "operator", At: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	_ = k.Close(ctx)
+
+	for i := range 2 {
+		closeStore = boot()
+		if hardSwitch("holdem") {
+			t.Errorf("boot %d: the operator's off did not hold", i)
+		}
+		if !hardSwitch("zolik") || !hardSwitch("canasta") {
+			t.Errorf("boot %d: turning one game off moved another", i)
+		}
+		closeStore()
 	}
 }
 

@@ -39,6 +39,15 @@ export function planJoin(invite: Invite): JoinPlan {
  *  in the room and offers its games. */
 export const NEARBY_LANDING = '/offline';
 
+/**
+ * Screens the banner keeps off, leaving the invite on the list. The banner lies
+ * over the top of the page: on a sign-in form it covered the fields, and on
+ * Play offline it covered the heading to announce a table already listed below.
+ */
+export function bannerStandsAside(pathname: string): boolean {
+  return pathname === NEARBY_LANDING || pathname === '/guest' || pathname.startsWith('/auth/');
+}
+
 export type JoinDeps = {
   joinNearby: (address: string, name: string) => Promise<void>;
   joinBluetooth: (peripheralId: string, name: string) => Promise<void>;

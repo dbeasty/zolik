@@ -58,6 +58,9 @@ export function GameButtons({ onPick }: { onPick: (mod: MatchModule) => void }) 
   );
 }
 
+/** How long to wait before asking again for a list that could not be fetched. */
+const MODULES_RETRY_MS = 5000;
+
 /**
  * Every game this server hosts, in the order a picker should list them: the
  * player's own history when there is one to read, the general popularity
@@ -67,6 +70,15 @@ export function useOrderedModules(): { modules: MatchModule[] | null; error: str
   const { client, session } = useSession();
   const [modules, setModules] = useState<MatchModule[] | null>(null);
   const [error, setError] = useState('');
+  // Which try this is. A phone with no connection gets one back without being
+  // told, and the list has to notice, or it stays on the error until a restart.
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!error) return;
+    const retry = setTimeout(() => setAttempt((n) => n + 1), MODULES_RETRY_MS);
+    return () => clearTimeout(retry);
+  }, [error, attempt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +86,8 @@ export function useOrderedModules(): { modules: MatchModule[] | null; error: str
       try {
         const fetched = await client.modules();
         let playCounts: Record<string, number> | undefined;
-        if (session?.accessToken) {
+        // A guest has no lifetime record: the server refuses them one by design.
+        if (session?.accessToken && !session.isGuest) {
           try {
             const stats = await client.getStats();
             playCounts = {};
@@ -85,7 +98,12 @@ export function useOrderedModules(): { modules: MatchModule[] | null; error: str
             // A personalization nicety; the default order still stands.
           }
         }
-        if (!cancelled) setModules(orderModules(fetched, playCounts));
+        if (!cancelled) {
+          setModules(orderModules(fetched, playCounts));
+          // Including an error from another client: starting offline play swaps
+          // the client, and the list left the old failure on screen.
+          setError('');
+        }
       } catch (e) {
         if (!cancelled) setError(formatApiError(e));
       }
@@ -93,7 +111,7 @@ export function useOrderedModules(): { modules: MatchModule[] | null; error: str
     return () => {
       cancelled = true;
     };
-  }, [client, session?.accessToken]);
+  }, [client, session?.accessToken, attempt]);
 
   // Under 18, the chip games are not on the list at all.
   const { hidesFromLists } = useAgeGate();

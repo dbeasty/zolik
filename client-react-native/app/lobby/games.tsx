@@ -17,6 +17,7 @@ import { TableRow } from '@/src/components/TableRow';
 import { WaitingCard } from '@/src/components/WaitingCard';
 import { useSession } from '@/src/context/SessionContext';
 import { LearnButton } from '@/src/guide/LearnButton';
+import { useHydrated } from '@/src/hooks/useHydrated';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useMyTables } from '@/src/hooks/useMyTables';
 import { useWide } from '@/src/hooks/useWide';
@@ -48,6 +49,10 @@ export default function GamePage() {
   const { moduleId } = useLocalSearchParams<{ moduleId?: string }>();
   // Nothing else here re-renders once the saved language has loaded.
   useLocale();
+  // The pre-render has no query string, so nothing here can match it until
+  // mounted: first paints that disagree make React rebuild the page (#418).
+  const hydrated = useHydrated();
+  if (!hydrated) return null;
   if (!moduleId) return <Redirect href="/" />;
   return <GamePageFor moduleId={String(moduleId)} />;
 }

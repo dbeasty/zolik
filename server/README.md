@@ -232,14 +232,15 @@ Hard bot seats play the trained model this build ships or the hand-written
 heuristic. Reach it the same way as the rest of the console, over the SSH
 tunnel above.
 
-- **Off by default** for every game, so deploying a build changes nothing
-  until somebody turns a game on.
+- **On by default** for every game whose model fits, so a rebuild, a new data
+  directory or a wiped volume never takes the AI opponent away. Only an explicit
+  "off" here turns a game off.
 - A change reaches every live table at its **next bot move**, with no restart.
   Easy and Medium seats, and player hints, always play the heuristic.
 - It is **persisted** (`settings` collection / KDB namespace, document `bots`)
-  and loaded at boot, so a restart comes back to the last choice. A stored "on"
-  for a model that no longer fits (say, after a rollback) is logged and left
-  off.
+  and loaded at boot, so a rebuild or restart comes back to the last choice. A
+  stored "on" for a model that no longer fits (say, after a rollback) is logged
+  and left off, and an "on" by default for one that does not fit stays off too.
 - The models are compiled into the binary (`internal/learn/models`), so a
   release carries its models and a rollback restores the previous ones. The
   card shows each model's source run, training date, headline benchmark, size

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { dragLocatorTo } from '../helpers/drag';
+import { dragLocatorTo, BOARD_FITS_HEIGHT } from '../helpers/drag';
 import { cardByCode, selectedCodes, selectOnly } from '../helpers/hand';
 import { Seat, guest, move, newTable, watchAs } from '../helpers/seats';
 
@@ -22,6 +22,9 @@ import { Seat, guest, move, newTable, watchAs } from '../helpers/seats';
 
 const isWild = (c: string) => c === 'W' || c === 'W4';
 const topCard = '[data-testid^="card-discard-"]:not([data-testid*="concealed"])';
+
+// The drag needs the hand and the pile on screen at once.
+test.use({ viewport: { width: 1280, height: BOARD_FITS_HEIGHT } });
 
 test('a wild asks for its colour however it is played, and a drawn card is let go when the turn ends', async ({
   page,

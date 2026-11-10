@@ -20,6 +20,7 @@ import {
   expire,
   inviteFromWire,
   lostOnWifi,
+  seatedAtHost,
   receive,
   remove,
   revoke,
@@ -228,6 +229,11 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
       lostOnWifi: (id) => setQueue((q) => lostOnWifi(q, id)),
     },
   );
+
+  const seatedInstance = offline?.instanceId;
+  useEffect(() => {
+    if (seatedInstance) setQueue((q) => seatedAtHost(q, seatedInstance));
+  }, [seatedInstance]);
 
   useEffect(() => {
     const timer = setInterval(() => setQueue((q) => expire(q, Date.now())), SWEEP_MS);

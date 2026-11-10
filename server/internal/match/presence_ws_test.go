@@ -206,3 +206,31 @@ func TestSocketToAMissingMatchSaysSo(t *testing.T) {
 		t.Fatal("the socket stayed open after the refusal")
 	}
 }
+
+// A cut-off or mistyped link names no match either, and has to get the same
+// final answer. A browser cannot read the status of a refused upgrade, so an
+// HTTP error here reads to the client as a dropped connection, and the screen
+// retries on "Connecting…" for ever.
+func TestSocketToAMalformedMatchIdSaysSo(t *testing.T) {
+	h := newInviteHarness(t)
+	tok := token(t, "ws-malformed-1", "Ada", false)
+
+	url := strings.Replace(h.server.URL, "http://", "ws://", 1) + "/ws/matches/not-a-match?token=" + tok
+	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatalf("dialling: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var frame struct {
+		Type string `json:"type"`
+		Code string `json:"code"`
+	}
+	if err := conn.ReadJSON(&frame); err != nil {
+		t.Fatalf("reading the refusal: %v", err)
+	}
+	if frame.Type != "error" || frame.Code != "MATCH_NOT_FOUND" {
+		t.Fatalf("got %+v, want an error frame with MATCH_NOT_FOUND", frame)
+	}
+}

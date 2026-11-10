@@ -157,7 +157,9 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   // at a Prší table as a team of one.
   const myPartners = partnersOf(seats, viewerId);
   const ourSide = new Set(myPartners.length ? [viewerId, ...myPartners] : []);
-  const crowded = !metrics.narrow && seats.length > 4;
+  const crowded =
+    !metrics.narrow &&
+    seatNameNeedsOwnLine(seats.length, stripWidth, skin.seats.avatars ? metrics.seat.avatar : 0);
   // An equal share of the strip, set outright rather than left to flex: in a
   // horizontal scroller a tile is otherwise as wide as its longest line, and
   // "Team: Bartholomew" never wraps. Floored so a name is still a name; below
@@ -166,6 +168,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     !metrics.narrow && stripWidth > 0
       ? Math.max(crowded ? SEAT_MIN_CROWDED : SEAT_MIN, Math.floor((stripWidth - SEAT_GAP * (seats.length - 1)) / seats.length))
       : undefined;
+
+  // On a phone too, at any table with a bot: half a phone's width holds the
+  // avatar, rank and "BOT · Medium" badge with five letters to spare, so a
+  // bot's name was cut to "Stead…". Every tile, so the row lines up.
+  const nameOwnLine =
+    crowded || (metrics.narrow && seats.some((s) => players.find((p) => p.id === s.playerId)?.isAI));
 
   const tiles = seats.map((seat) => {
     const isMe = seat.playerId === viewerId;
@@ -324,11 +332,9 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         ]}
       >
         <View style={seat.active && !stillness ? styles.lifted : undefined}>
-        {crowded ? (
-          // Past four seats: the name on a line of its own under the avatar,
-          // so the tile is as wide as its longest line rather than both.
+        {nameOwnLine ? (
           <>
-            <View style={styles.nameRow}>
+            <View style={[styles.nameRow, styles.nameRowCrowded]}>
               <BotPress onPress={facePress} testID={faceTestID} name={name} label={faceLabel}>
                 {avatar}
               </BotPress>
@@ -339,7 +345,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             </View>
             <Text
               style={[styles.name, styles.nameCrowded]}
-              numberOfLines={1}
+              numberOfLines={2}
               {...((Platform.OS === 'web' ? {} : { accessibilityLabel: spoken }) as object)}
             >
               {name}
@@ -644,6 +650,21 @@ type SeatStyles = ReturnType<typeof seatStyles>;
 const SEAT_GAP = 8;
 const SEAT_MIN = 116;
 const SEAT_MIN_CROWDED = 104;
+/** What a name and a bot's badge need beside a face, with the gaps and padding. */
+const SEAT_NAME_ROOM = 260;
+
+/**
+ * Whether a tile's name goes on a line of its own under the face. Past four
+ * seats, always; at four or fewer, when an equal share of the strip leaves the
+ * row too little for it, because a name beside a large face and a badge that
+ * never gives way came down to its first letter ("P…") at a four-seat table in
+ * a 1100 point window.
+ */
+export function seatNameNeedsOwnLine(seats: number, stripWidth: number, avatar: number): boolean {
+  if (seats > 4) return true;
+  if (stripWidth <= 0 || seats < 1) return false;
+  return Math.floor((stripWidth - SEAT_GAP * (seats - 1)) / seats) < avatar + SEAT_NAME_ROOM;
+}
 
 /**
  * The dot beside "to play", breathing. The one looping animation on the
@@ -830,6 +851,9 @@ function seatStyles(m: Metrics, s: Skin) {
     // never in doubt.
     teammate: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.13)' : '#1e2a3d' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    // With no name in the row to give way, a badge past the tile's edge wraps
+    // under the face rather than being cut off by the next tile.
+    nameRowCrowded: { flexWrap: 'wrap' },
     nameCrowded: { marginTop: 4 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     // The room "to play" takes on a seat that is not, kept so turns never

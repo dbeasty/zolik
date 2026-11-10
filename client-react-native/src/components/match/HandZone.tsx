@@ -1429,7 +1429,7 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
     },
     checkBoxOn: { backgroundColor: colors.accent },
     checkTick: { color: colors.onAccent, fontSize: 10, fontWeight: '800', lineHeight: 12 },
-    accessory: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    accessory: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 12, flexShrink: 1, minWidth: 0 },
     // A pressed-in look while docked, so the pin reads as a switch that is on.
     // The same border both ways, so pressing it moves nothing.
     floatToggle: {

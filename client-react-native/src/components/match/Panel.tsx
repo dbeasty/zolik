@@ -149,7 +149,10 @@ export function Panel({
             as one thing — "Your hand: K♠ Q♥ …" — rather than the digest
             drifting off toward the toggle on the far right, which is what a
             single `space-between` row of everything used to do. */}
-        <View style={styles.headerLeft}>
+        {/* With controls on the right, those give way rather than the title:
+            they wrap to a second line. Both held their width, so a title and
+            "Auto-arrange" that did not fit drew over each other on a phone. */}
+        <View style={[styles.headerLeft, accessory && !collapsed ? styles.headerLeftFirm : null]}>
           <View style={styles.titles}>
             <Text
               style={styles.title}
@@ -177,7 +180,7 @@ export function Panel({
             </View>
           ) : null}
         </View>
-        <View style={styles.headerRight}>
+        <View style={[styles.headerRight, accessory && !collapsed ? styles.headerRightGives : null]}>
           {accessory}
           {/* Suppressed once a summary is standing in for it, collapsed — a
               spread's raw card count and its own "N groups" digest are two
@@ -283,7 +286,9 @@ function panelStyles(m: Metrics, s: Skin) {
     titles: { flexShrink: 0 },
     title: { color: colors.muted, fontSize: m.panel.titleFont, fontWeight: '700' },
     subtitle: { color: colors.muted, fontSize: Math.max(9, m.panel.titleFont - 2), marginTop: 1 },
+    headerLeftFirm: { flexShrink: 0 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
+    headerRightGives: { flexShrink: 1, minWidth: 0 },
     // flexShrink lets the digest give way (truncating under `overflow` /
     // `numberOfLines` inside it) once the row runs out of room, rather than
     // pushing the count and toggle off the edge of a narrow header.

@@ -1,6 +1,8 @@
 package zolikcore
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/json"
 	"errors"
 	"io"
@@ -259,4 +261,60 @@ func TestAGuestTableAnswersOnLoopbackOverBluetooth(t *testing.T) {
 	if _, err := JoinBle(radio, h.InstanceID(), radio.open(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="); err != ErrHostKeyChanged {
 		t.Errorf("joining with the wrong pin: %v", err)
 	}
+}
+
+// inboundDuringSend is a radio's link: its send does not return until the
+// write completes, and the write completes on the queue that also delivers
+// what the table sends, so a delivery has to be able to finish first.
+type inboundDuringSend struct {
+	deliver func()
+	done    chan struct{}
+}
+
+func (l *inboundDuringSend) send([]byte) error {
+	go func() {
+		l.deliver()
+		close(l.done)
+	}()
+	select {
+	case <-l.done:
+		return nil
+	case <-time.After(2 * time.Second):
+		return errors.New("the delivery never finished: the send is holding the lock it needs")
+	}
+}
+func (l *inboundDuringSend) close() {}
+
+// A message arriving while one is being written. Holding the tunnel's lock
+// across the send stopped the link for good, and the next status check froze
+// the Mac app's main thread on the same lock. Only real Bluetooth has a send
+// that waits on the delivery queue, so the loopback test could not see it.
+func TestAMessageArrivingMidWriteDoesNotStopTheLink(t *testing.T) {
+	block, err := aes.NewCipher(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tun := newGuestTunnel(nil, nil)
+	sess := &guestSession{g2h: aead, h2g: aead, welcome: make(chan []byte, 1)}
+	link := &inboundDuringSend{done: make(chan struct{})}
+	link.deliver = func() {
+		tun.receive(sess, []byte{0})
+		_ = tun.CheckCodeForTest()
+	}
+	sess.link = link
+	tun.live = sess
+	if err := tun.post(tunnelMsg{T: "wsm", ID: 1, D: "x"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CheckCodeForTest reads what GuestTable.CheckCode reads, under the same lock.
+func (t *guestTunnel) CheckCodeForTest() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.check
 }

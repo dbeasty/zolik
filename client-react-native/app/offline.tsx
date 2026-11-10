@@ -191,6 +191,9 @@ function NotSeated() {
           placeholderTextColor="#8b9cb3"
           value={address}
           onChangeText={setAddress}
+          onSubmitEditing={() => {
+            if (!busy && address.trim()) run(() => joinNearby(address, name.trim()), true);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
@@ -602,7 +605,7 @@ function InternetRoom({ name, signedIn }: { name: string; signedIn: boolean }) {
  * guest's own screen says.
  */
 function BluetoothRoom({ name }: { name: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => nearby.bleIsHosting());
   const [codes, setCodes] = useState<string[]>([]);
   const [error, setError] = useState('');
 

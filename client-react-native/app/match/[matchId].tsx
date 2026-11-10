@@ -383,10 +383,17 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // columns to fill.
   const roomForTwo = useWindowDimensions().width >= TWO_COLUMN_MIN_WIDTH;
   const board = useBoardArrangement(state?.moduleId, zones.some((z) => z.kind === 'hand'), roomForTwo);
+  // A new arrangement moves the panels under a scroller that stays put, and only
+  // once it has been drawn is there anything to measure.
+  const reaimSoon = () => setTimeout(() => opening.reaim(), 120);
   // Arranging the board — ▦ Layout: every region gets a handle and arrows,
   // and the cards take no presses until Done. Not kept: a different match
   // starts playing, not arranging.
   const [arranging, setArranging] = useState(false);
+  // Read by the opening scroll: a board being rearranged is not to be moved
+  // out from under the handle somebody is reaching for.
+  const arrangingRef = useRef(false);
+  arrangingRef.current = arranging;
   useEffect(() => setArranging(false), [matchId]);
   // The Mac app draws no navigation bar, so Layout stays on the board there.
   const desktopChrome = useDesktopChrome();
@@ -425,8 +432,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     state
       ? {
           current: board.arrangement.custom ? 'custom' : board.arrangement.preset,
-          choose: board.choose,
-          reset: board.reset,
+          choose: (preset) => {
+            board.choose(preset);
+            reaimSoon();
+          },
+          reset: () => {
+            board.reset();
+            reaimSoon();
+          },
           edit: () => setArranging((on) => !on),
         }
       : undefined,
@@ -766,7 +779,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     goTo,
     scrollRef as unknown as RefObject<Measurable | null>,
     undefined,
-    { cards: sharedTableCards(state?.view?.zones ?? []), busy: () => dragRef.current !== null },
+    { cards: sharedTableCards(state?.view?.zones ?? []), busy: () => dragRef.current !== null || arrangingRef.current },
   );
   // Carrying a card toward a meld the screen has scrolled away from. The hand
   // sits above the melds, so dropping on an opponent's meld (a poach, a
@@ -2493,8 +2506,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         <LayoutEditBar
           arrangement={board.arrangement}
           narrow={!roomForTwo}
-          onChoose={board.choose}
-          onReset={board.reset}
+          onChoose={(preset) => {
+            board.choose(preset);
+            reaimSoon();
+          }}
+          onReset={() => {
+            board.reset();
+            reaimSoon();
+          }}
           onDone={() => setArranging(false)}
         />
       ) : null}
@@ -2527,6 +2546,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
       <BoardMetricsProvider metrics={metrics}>
       <ScrollView
         ref={scrollRef}
+        // The raise box sits low on the board; keep it clear of the keyboard.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         // Wide enough for the table and no wider. On a large monitor the felt
         // runs to both edges (it is drawn behind everything) while the board
         // itself stops at a table's width — without this, a player's hand and
@@ -2540,7 +2562,10 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           },
           boardNoShrink.style,
         ]}
-        onContentSizeChange={boardNoShrink.onContentSizeChange}
+        onContentSizeChange={(w, h) => {
+          boardNoShrink.onContentSizeChange(w, h);
+          opening.scrollProps.onContentSizeChange();
+        }}
         testID="match-screen"
         {...ending.scrollProps}
         // Last, and deliberately: the spread above carries an `onScroll` of
@@ -2878,7 +2903,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
               {/* Between rounds the one control the module still offers belongs
                   here, with the settlement it acts on, rather than under a hand
                   that cannot be played. See `controlsPanel`. */}
-              {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
+              {paused && seatedHere ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
               </>
             ) : null
           }
@@ -2893,15 +2918,18 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           styles={styles}
           zonePanelProps={zonePanelProps}
           dropProps={dropProps}
+          // Somebody watching holds no hand and has no move: they were shown an
+          // empty "Your hand" and a row of dead buttons, each saying "It's not
+          // your turn".
           hand={
-            docked ? null : (
+            docked || !seatedHere ? null : (
               <GuideTarget guide={guide} anchor="hand">
                 {handPanel}
               </GuideTarget>
             )
           }
           controls={
-            paused || docked ? null : (
+            paused || docked || !seatedHere ? null : (
               <GuideTarget guide={guide} anchor="actionBar">
                 <View {...opening.anchor('controls')}>{controlsPanel}</View>
               </GuideTarget>

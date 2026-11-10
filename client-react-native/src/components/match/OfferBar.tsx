@@ -1265,7 +1265,13 @@ function isReady(
     return selected.length >= need && fits(offer, selected).ok;
   }
   if ((offer.params ?? []).length > 0) {
-    return (offer.params ?? []).every((p) => (chosen?.[p.name] ?? defaultParam(p)) !== undefined);
+    if (!(offer.params ?? []).every((p) => (chosen?.[p.name] ?? defaultParam(p)) !== undefined)) return false;
+    // A figure to send does not stand in for the cards to send it with: Prší's
+    // Play, which also asks a suit, lit up with nothing selected and then sent
+    // nothing when pressed.
+    if ((offer.source?.minCards ?? 0) === 0) return true;
+    if (selected.length === 0) return (offer.source?.submit ?? []).length > 0;
+    return readyWith(offer, selected).ok;
   }
   return offerSettles(offer, selected);
 }
@@ -1592,7 +1598,7 @@ function ReasonLine({
 }) {
   if (!onPress) {
     return (
-      <Text testID={testID} style={styles.why} numberOfLines={2}>
+      <Text testID={testID} style={styles.why}>
         {text}
       </Text>
     );
@@ -1608,7 +1614,7 @@ function ReasonLine({
       // time — was noise, and a small one crowded against its control.
       {...((Platform.OS === 'web' ? { tabIndex: -1, 'aria-hidden': true } : { accessibilityRole: 'button' }) as object)}
     >
-      <Text testID={testID} style={styles.why} numberOfLines={2}>
+      <Text testID={testID} style={styles.why}>
         {text} <Text style={styles.whyMore}>{t('why.open')} ›</Text>
       </Text>
     </Pressable>

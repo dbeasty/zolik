@@ -212,7 +212,11 @@ export function MoveAnnouncements({
           {t('moves.title')}
         </Text>
       )}
-      <View style={[styles.lines, bare && styles.linesBeside]}>
+      {/* One column, so what stands (the bank, the colour in play) stays under
+          the lines. As a third item in the panel's row it took a column of its
+          own, and the prompt beside it was squeezed to one word a line. */}
+      <View style={[styles.column, bare && styles.linesBeside]}>
+      <View style={styles.lines}>
         {/* The moves are a list of their own — the prompts after them are
             not moves, and a list may hold nothing but its items. Spaced the
             way the lines are, so the box looks exactly as it did. */}
@@ -256,6 +260,7 @@ export function MoveAnnouncements({
           ))}
         </View>
       ) : null}
+      </View>
       {hintsOpen && focused ? <HintsSheet hints={hints} players={players} onClose={() => setHintsOpen(false)} /> : null}
     </View>
   );
@@ -317,6 +322,7 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     },
     repeatInFlow: { position: 'relative', top: 0, right: 0 },
     linesBeside: { flexShrink: 1, flexGrow: 1, minWidth: 0 },
+    column: { gap: 3 },
     box: {
       borderWidth: 1,
       borderColor: colors.accent,

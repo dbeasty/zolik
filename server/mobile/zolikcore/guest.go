@@ -78,6 +78,7 @@ type guestTunnel struct {
 	pinned []byte
 
 	ensureMu sync.Mutex // one handshake at a time
+	sendMu   sync.Mutex // one message on the link at a time, in counter order
 
 	mu      sync.Mutex
 	live    *guestSession
@@ -342,12 +343,18 @@ func (t *guestTunnel) post(v tunnelMsg) error {
 	}
 	plain := append([]byte{flags}, raw...)
 	// Sealing and sending share one lock so the counter order is the order
-	// on the link.
+	// on the link. Not t.mu: a radio's send waits for the write to complete
+	// on the queue that also delivers what the table sends, and that delivery
+	// needs t.mu. Held across the send, one message arriving mid-write stopped
+	// the link for good, and the next status check froze the whole Mac app.
+	t.sendMu.Lock()
+	defer t.sendMu.Unlock()
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	if t.live != sess {
+		t.mu.Unlock()
 		return errors.New("the link to the table dropped")
 	}
+	t.mu.Unlock()
 	sealed := sess.g2h.Seal([]byte{msgSealed}, nonce(sess.sendCount), plain, []byte{msgSealed})
 	sess.sendCount++
 	return sess.link.send(sealed)

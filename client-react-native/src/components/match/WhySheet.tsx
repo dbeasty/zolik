@@ -200,19 +200,19 @@ function whySheetStyles(metrics: Metrics, s: Skin) {
     layer: { gap: 3 },
     key: {
       color: colors.muted,
-      fontSize: 11 * metrics.scale,
+      fontSize: 11,
       letterSpacing: 1,
       textTransform: 'uppercase',
       fontWeight: '600',
     },
-    reason: { color: colors.danger, fontSize: 15 * metrics.scale, fontWeight: '700' },
+    reason: { color: colors.danger, fontSize: 15, fontWeight: '700' },
     value: {
       color: colors.text,
-      fontSize: 14 * metrics.scale,
-      lineHeight: 20 * metrics.scale,
+      fontSize: 14,
+      lineHeight: 20,
       marginBottom: 4,
     },
-    link: { color: colors.accent, fontSize: 13 * metrics.scale, marginTop: 3 },
+    link: { color: colors.accent, fontSize: 13, marginTop: 3 },
     actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     primary: {
       flexGrow: 1,
@@ -222,7 +222,7 @@ function whySheetStyles(metrics: Metrics, s: Skin) {
       paddingVertical: 11,
       alignItems: 'center',
     },
-    primaryText: { color: colors.onAccent, fontWeight: '700', fontSize: 14 * metrics.scale },
+    primaryText: { color: colors.onAccent, fontWeight: '700', fontSize: 14 },
     ghost: {
       flexGrow: 1,
       minWidth: metrics.buttonMinWidth,
@@ -232,6 +232,6 @@ function whySheetStyles(metrics: Metrics, s: Skin) {
       paddingVertical: 11,
       alignItems: 'center',
     },
-    ghostText: { color: colors.muted, fontWeight: '600', fontSize: 14 * metrics.scale },
+    ghostText: { color: colors.muted, fontWeight: '600', fontSize: 14 },
   });
 }

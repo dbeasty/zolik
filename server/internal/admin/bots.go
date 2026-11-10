@@ -40,7 +40,7 @@ type HardModelRow struct {
 	// headline benchmark, size and hash.
 	Model any `json:"model"`
 	// UpdatedBy and UpdatedAt are the last change. Empty for a game nobody
-	// has changed, which is off.
+	// has changed, which is on.
 	UpdatedBy string     `json:"updatedBy,omitempty"`
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }

@@ -10,6 +10,7 @@ import {
   expire,
   inviteFromWire,
   lostOnWifi,
+  seatedAtHost,
   nearbyInviteId,
   receive,
   remove,
@@ -143,5 +144,29 @@ describe('invite queue', () => {
     const later = expire(q, BLE_STALE_MS + 1);
     expect(later.invites.map((i) => i.id).sort()).toEqual(['m1', nearbyInviteId('Cara')].sort());
     expect(expire(later, ONLINE_STALE_MS + 1).invites.map((i) => i.id)).toEqual([nearbyInviteId('Cara')]);
+  });
+});
+
+describe('seatedAtHost', () => {
+  const seat = (name: string, instanceId: string): Invite => ({
+    id: nearbyInviteId(name),
+    source: 'wifi',
+    host: { name },
+    target: { kind: 'nearby', instanceId, address: '10.0.0.2:47800' },
+    receivedAt: 1,
+    seenAt: 1,
+  });
+
+  it('drops the invite to the table the player has sat down at, and only that one', () => {
+    let q = receive(EMPTY_QUEUE, seat('Mac Host', 'i1'), 1);
+    q = receive(q, seat('Anna', 'i2'), 2);
+    const next = seatedAtHost(q, 'i1');
+    expect(next.invites.map((i) => i.host.name)).toEqual(['Anna']);
+    expect(bannerInvite(next)?.host.name).not.toBe('Mac Host');
+  });
+
+  it('leaves the queue alone when no invite names that table', () => {
+    const q = receive(EMPTY_QUEUE, seat('Anna', 'i2'), 1);
+    expect(seatedAtHost(q, 'i9')).toBe(q);
   });
 });

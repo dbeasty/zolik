@@ -23,7 +23,7 @@ type Module = {
   label: string;
   minPlayers: number;
   maxPlayers: number;
-  variations?: { id: string; maxPlayers?: number }[];
+  variations?: { id: string; minPlayers?: number; maxPlayers?: number }[];
 };
 
 const SIZES = [
@@ -56,7 +56,10 @@ async function seatedTable(request: Ctx, mod: Module, variation: string | undefi
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
   const solo = mod.maxPlayers === 1;
-  for (let i = 1; i < (solo ? 1 : Math.max(2, mod.minPlayers)); i++) {
+  // A variation may need more seats than the module's least (Pinochle:
+  // two-handed is 2, partnership 4).
+  const least = mod.variations?.find((v) => v.id === variation)?.minPlayers ?? mod.minPlayers;
+  for (let i = 1; i < (solo ? 1 : Math.max(2, least)); i++) {
     const bot = await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: auth });
     expect(bot.ok(), await bot.text()).toBeTruthy();
   }

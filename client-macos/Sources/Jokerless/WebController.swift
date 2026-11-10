@@ -361,16 +361,27 @@ final class AppSchemeHandler: NSObject, WKURLSchemeHandler {
       let answer = ZolikcoreWebAsset(path)
       DispatchQueue.main.async {
         guard self.active.remove(id) != nil else { return }
-        let status = answer?.status ?? 404
-        let headers = [
+        var status = answer?.status ?? 404
+        var body = answer?.body ?? Data()
+        var headers = [
           "Content-Type": answer?.contentType.isEmpty == false ? answer!.contentType : "application/octet-stream",
           "Content-Security-Policy": Self.policy,
           "Cache-Control": "no-cache",
           "X-Content-Type-Options": "nosniff",
+          "Accept-Ranges": "bytes",
         ]
+        // The media engine loads a sound by asking for byte ranges, and gives
+        // up on a server that does not answer them ("the operation is not
+        // supported"), so without this the app has no sound at all.
+        if status == 200, let range = Self.byteRange(task.request.value(forHTTPHeaderField: "Range"), size: body.count) {
+          headers["Content-Range"] = "bytes \(range.lowerBound)-\(range.upperBound - 1)/\(body.count)"
+          body = body.subdata(in: range)
+          status = 206
+        }
+        headers["Content-Length"] = String(body.count)
         let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
         task.didReceive(response)
-        task.didReceive(answer?.body ?? Data())
+        task.didReceive(body)
         task.didFinish()
       }
     }
@@ -378,5 +389,21 @@ final class AppSchemeHandler: NSObject, WKURLSchemeHandler {
 
   func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {
     active.remove(ObjectIdentifier(task))
+  }
+
+  /// The bytes a `Range: bytes=a-b`, `bytes=a-` or `bytes=-n` header asks for,
+  /// or nil when it asks for none of this file (the whole file is the answer).
+  static func byteRange(_ header: String?, size: Int) -> Range<Int>? {
+    guard let header, header.hasPrefix("bytes="), size > 0 else { return nil }
+    let spec = header.dropFirst("bytes=".count).split(separator: ",", omittingEmptySubsequences: false).first ?? ""
+    let ends = spec.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+    guard ends.count == 2 else { return nil }
+    if ends[0].isEmpty {
+      guard let last = Int(ends[1]), last > 0 else { return nil }
+      return max(0, size - last)..<size
+    }
+    guard let first = Int(ends[0]), first < size else { return nil }
+    let end = ends[1].isEmpty ? size : (Int(ends[1]).map { min($0 + 1, size) } ?? size)
+    return end > first ? first..<end : nil
   }
 }

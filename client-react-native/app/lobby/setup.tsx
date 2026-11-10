@@ -156,7 +156,7 @@ export default function GameSetupScreen() {
 
   return (
     <Screen>
-      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" testID="games-list">
+      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets testID="games-list">
         <View testID={`module-${mod.id}`}>
           <View style={styles.header}>
             <Text style={[shared.title, { flexShrink: 1 }]} {...heading(2)}>

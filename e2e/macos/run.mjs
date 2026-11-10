@@ -18,7 +18,7 @@
 //   ZOLIK_E2E_MACOS_APP   the .app to test (default client-macos/build/Jokerless.app)
 //   ZOLIK_E2E_KEEP=1      keep the work folder (screenshots, logs) even on success
 import { execFile, execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -312,6 +312,10 @@ const tileState = (game) => `
   return { badge: button && button.parentElement ? button.parentElement.innerText : '', button: button ? button.innerText : '' };
 `;
 
+// The controls that can be pressed. Draw is still drawn, greyed out, while a
+// Wild Draw Four waits to be answered, and pressing it changes nothing.
+const LIVE_BUTTONS = `[...document.querySelectorAll('[role="button"][data-testid^="offer-"]')].filter((b) => b.getAttribute('aria-disabled') !== 'true').map((b) => (b.querySelector('[data-testid$="-title"]') || b).innerText.trim())`;
+
 const DEALT = `
   await e2e.waitFor(() => location.pathname.startsWith('/match/'), 'the match', 20000);
   await e2e.waitFor(() => document.querySelectorAll('[data-card]').length >= 5, 'a dealt hand', 20000);
@@ -383,6 +387,22 @@ async function main() {
     expect(!v.nativeSocket, 'WebSocket is still the engine’s own');
   }, [a]);
 
+  await step('the app’s own sounds load in the web view', async () => {
+    // The media engine asks for byte ranges; an app:// that ignored them left
+    // the whole app silent, with only a rejected play() to show for it.
+    const sound = readdirSync(path.join(SOURCE_APP, 'Contents/Resources/web/assets/assets/sounds')).find((f) => f.startsWith('card.'));
+    const v = await a.js(`
+      const audio = new Audio(${JSON.stringify(`/assets/assets/sounds/${sound}`)});
+      return await new Promise((resolve) => {
+        audio.onloadeddata = () => resolve({ loaded: true, duration: audio.duration });
+        audio.onerror = () => resolve({ loaded: false, code: audio.error && audio.error.code });
+        setTimeout(() => resolve({ loaded: false, code: 'timeout' }), 8000);
+        audio.load();
+      });
+    `);
+    expect(v.loaded && v.duration > 0, `the sound did not load: ${JSON.stringify(v)}`);
+  }, [a]);
+
   await step('signs in as a guest; the title bar, not the page, carries Back and Forward', async () => {
     await a.js(`await e2e.click('Play', { exact: true }); return 1`);
     await a.js(`await e2e.click('Continue as guest', { exact: true }); return 1`);
@@ -406,8 +426,17 @@ async function main() {
     }`);
     expect(!page.account, 'the page still shows its own account menu');
     expect(!page.arrows, 'the page still draws its own Back and Forward');
-    const bar = await a.native('toolbar state');
+    let bar = await a.native('toolbar state');
     expect('back' in bar && 'forward' in bar, `the title bar has no arrows: ${JSON.stringify(bar)}`);
+    // Signed in, the form is behind the player: Forward must not lead back to it.
+    for (let i = 0; i < 40 && bar.forward; i++) {
+      await sleep(100);
+      bar = await a.native('toolbar state');
+    }
+    expect(!bar.forward, `Forward is lit at home after signing in: ${JSON.stringify(bar)}`);
+    // A new guest has nothing for the side panel, so the games take the window.
+    const games = await a.js(`await e2e.sleep(400); return document.querySelector('[data-testid="games-list"]').getBoundingClientRect().width / innerWidth`);
+    expect(games > 0.85, `the games take ${games} of the window beside an empty panel`);
     const titles = await a.native('account');
     expect(/· Guest$/.test(titles[0]), `Account menu begins ${JSON.stringify(titles)}`);
     for (const want of ['My games', 'Sign in', 'Sign out']) {
@@ -455,7 +484,7 @@ async function main() {
     // is answered by taking four rather than by drawing one.
     await a.js(`
       const word = await e2e.waitFor(() => {
-        const b = e2e.buttons();
+        const b = ${LIVE_BUTTONS};
         return b.includes('Draw') ? 'Draw' : b.includes('Take four') ? 'Take four' : null;
       }, 'a way to draw', 20000);
       await e2e.click(word, { exact: true });
@@ -546,6 +575,10 @@ async function main() {
     const closed = await a.js(tileState('Last Card'));
     expect(!/Playing/.test(closed.badge) && closed.button === 'Resume', `a closed game's tile says ${JSON.stringify(closed)}`);
     await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
+    // Coming forward again must not light the arrows: there is nowhere to go from home.
+    await sleep(400);
+    const bar = await a.native('toolbar state');
+    expect(bar.back === false, `Back is lit at home after closing a game window: ${JSON.stringify(bar)}`);
     await a.js(resumeTile('Last Card'));
     const wins = await waitWindows(a, (w) => w.length === 3, 'Resume to reopen the window');
     await on(a, 1);
@@ -610,7 +643,15 @@ async function main() {
       }
       if (!played) {
         await a.screenshot(`drag-miss-${turn}`);
-        await a.js(`const b = e2e.buttons(); await e2e.click(b.includes('Draw') ? 'Draw' : 'Take four', { exact: true }); await e2e.sleep(2500); return 1`);
+        await a.js(`
+          const word = await e2e.waitFor(() => {
+            const b = ${LIVE_BUTTONS};
+            return ['Draw', 'Take four', 'Keep it', 'Continue', 'Start the next round'].find((w) => b.includes(w)) ?? null;
+          }, 'a way to move the turn on', 30000);
+          await e2e.click(word, { exact: true });
+          await e2e.sleep(2500);
+          return 1;
+        `);
       }
     }
     expect(played, 'no card dragged onto the discard pile with the mouse was played');
@@ -810,14 +851,15 @@ async function main() {
       }
       throw new Error(`Layout does not tick "${want}": ${JSON.stringify(items)}`);
     };
-    await ticked('Stacked');
-    await a.native('menu Table beside hand');
-    await a.js(`await e2e.waitFor(() => ${stored} === 'beside', 'the layout to be kept', 5000); return 1`);
-    const items = await ticked('Table beside hand');
-    expect(!items.includes('✓ Stacked'), `two presets ticked: ${JSON.stringify(items)}`);
+    // A game window with the width starts with the table beside the hand.
+    await ticked('Table beside hand');
+    await a.native('menu Stacked');
+    await a.js(`await e2e.waitFor(() => ${stored} === 'stacked', 'the layout to be kept', 5000); return 1`);
+    const items = await ticked('Stacked');
+    expect(!items.includes('✓ Table beside hand'), `two presets ticked: ${JSON.stringify(items)}`);
     await a.native('menu Reset layout');
     await a.js(`await e2e.waitFor(() => ${stored} === null, 'the layout to be forgotten', 5000); return 1`);
-    await ticked('Stacked');
+    await ticked('Table beside hand');
     // Off a game there is no board to arrange.
     await on(a, 1);
     const off = await a.native('menuitems Layout');
@@ -888,6 +930,35 @@ async function main() {
     expect(seat.instanceId === state.host.instanceId && seat.role === 'host', `the app holds seat ${JSON.stringify(seat)}`);
     const seatInfo = await (await fetch(new URL('/nearby/info', seat.baseUrl), { signal: AbortSignal.timeout(3000) })).json();
     expect(seatInfo.instanceId === state.host.instanceId, `the seat's address ${seat.baseUrl} reaches ${JSON.stringify(seatInfo)}`);
+    // Advertising outlives the screen: coming back to it still shows the guests
+    // and the way to stop. The radio is stubbed, since using the real one needs
+    // the person at the Mac to allow it (the opt-in step at the end does that).
+    const ble = await a.js(`
+      const N = ZolikNearbyDesktop;
+      const real = { bleReady: N.bleReady, bleState: N.bleState, bleHostStart: N.bleHostStart, bleHostStop: N.bleHostStop, bleGuestCodes: N.bleGuestCodes };
+      N.bleReady = async () => 'on';
+      N.bleState = () => 'on';
+      N.bleHostStart = async () => {};
+      N.bleHostStop = async () => {};
+      N.bleGuestCodes = () => ['1234'];
+      const shown = (id) => [...document.querySelectorAll('[data-testid="' + id + '"]')].filter((e) => e.getClientRects().length);
+      await e2e.clickTestId('offline-ble-invite');
+      const first = await e2e.waitFor(() => shown('offline-ble-open')[0], 'the open Bluetooth card', 10000);
+      window.__zolikNavigate('/');
+      await e2e.waitForText('No internet needed');
+      await e2e.waitFor(() => !first.isConnected, 'the offline screen to go', 10000);
+      window.__zolikNavigate('/offline');
+      await e2e.waitForText('Your name at the table').catch(() => {});
+      await e2e.sleep(800);
+      const back = { open: shown('offline-ble-open').length, invite: shown('offline-ble-invite').length, code: e2e.text().includes('1234') };
+      if (back.open) {
+        await e2e.clickTestId('offline-ble-stop');
+        await e2e.waitFor(() => shown('offline-ble-invite')[0], 'the invite after stopping', 10000);
+      }
+      Object.assign(N, real);
+      return back;
+    `);
+    expect(ble.open === 1 && ble.invite === 0 && ble.code, `the Bluetooth card after coming back: ${JSON.stringify(ble)}`);
     await a.js(`await e2e.sleep(1000); window.__zolikNavigate('/'); return 1`);
     await a.js(`await e2e.waitForText('No internet needed'); return 1`);
     await a.js(`await e2e.click('Last Card', { exact: true }); return 1`);
@@ -963,7 +1034,17 @@ async function main() {
   cleanups.push(() => b.quit());
   await step('a second Mac finds the table over Bonjour and joins it', async () => {
     await b.ready();
-    await b.js(`await e2e.click('Play', { exact: true }); return 1`);
+    await b.js(`await e2e.click('Play', { exact: true }); window.__zolikNavigate('/lobby/join'); return 1`);
+    // The table in the room arrives as an invite in the main window, and the
+    // Dock icon counts it while that window is not the one in front.
+    await b.js(`await e2e.waitForText('is hosting a table nearby', 20000); return 1`);
+    let badge = '';
+    for (let i = 0; i < 50 && badge !== '1'; i++) {
+      badge = await b.native('badge');
+      if (badge !== '1') await sleep(100);
+    }
+    expect(badge === '1', `the Dock badge says ${JSON.stringify(badge)} with an invite waiting`);
+    await b.js(`await e2e.click('Not now', { exact: true }); await e2e.waitForGone('is hosting a table nearby', 10000); return 1`);
     await b.native('menu Start an offline table');
     await b.js(`await e2e.waitForText('Mac Host', 20000); return 1`);
     await b.js(`await e2e.fill('Your name at the table', 'Second Mac'); await e2e.click('Join', { exact: true }); return 1`);
@@ -978,16 +1059,9 @@ async function main() {
       return 1;
     `);
     const code = invite.split('/').pop();
-    // The table in the room arrives as an invite in the main window, and the
-    // Dock icon counts it while that window is not the one in front.
-    await b.js(`await e2e.waitForText('is hosting a table nearby', 20000); return 1`);
-    let badge = '';
-    for (let i = 0; i < 50 && badge !== '1'; i++) {
-      badge = await b.native('badge');
-      if (badge !== '1') await sleep(100);
-    }
-    expect(badge === '1', `the Dock badge says ${JSON.stringify(badge)} with an invite waiting`);
-    await b.js(`await e2e.click('Not now', { exact: true }); await e2e.waitForGone('is hosting a table nearby', 10000); return 1`);
+    // A player seated at the table is not invited to it.
+    await sleep(3000);
+    expect(!(await b.js(`return e2e.hasText('is hosting a table nearby')`)), 'the invite is still up for the table this player sat down at');
     await b.js(`await e2e.fill('Join code or invite link', ${JSON.stringify(code)}); await e2e.click('Join', { exact: true }); return 1`);
     await b.js(`await e2e.waitForText('Players (3)', 20000); return 1`);
     await on(a, 1);
@@ -1401,7 +1475,8 @@ async function main() {
     await dead.ready();
     await dead.js(`await e2e.click('Play', { exact: true }); return 1`);
     const text = await dead.js(`await e2e.waitFor(() => /reach the server/.test(e2e.text()) || /dial tcp|Load failed/.test(e2e.text()), 'a load error', 20000); return e2e.text()`);
-    expect(/Can’t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
+    expect(/Can.t reach the server/.test(text) && !/dial tcp|Load failed|connection refused/.test(text), `the home screen says ${JSON.stringify(text.slice(0, 300))}`);
+    expect(text.split('Play offline').length === 2, `the home screen offers Play offline more than once: ${JSON.stringify(text.slice(0, 300))}`);
     await dead.screenshot('unreachable');
   }, [dead]);
 

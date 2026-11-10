@@ -107,9 +107,11 @@ test.describe('a seat link', () => {
     expect(stored).toContain(`zolik_seat_${matchId}`);
     expect(stored).not.toContain('zolik_session');
 
-    // Everybody is back, so either of them may pick it up.
+    // Everybody is back, so the table can be picked up.
     await expect(annPage.getByTestId('match-over-resume')).toBeVisible({ timeout: 10_000 });
-    await phone.getByTestId('match-over-resume').click();
+    // Picking it up is the host's press; Bob is told so.
+    await expect(phone.getByTestId('match-over-resume')).toHaveCount(0);
+    await annPage.getByTestId('match-over-resume').click();
     await expect(phone.getByTestId('match-over')).toBeHidden({ timeout: 10_000 });
     await expect(annPage.getByTestId('match-over')).toBeHidden({ timeout: 10_000 });
   });
