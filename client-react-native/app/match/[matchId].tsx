@@ -141,6 +141,7 @@ import { seatIsShareable } from '@/src/desktop/seat';
 import { DesktopGameHandoff, GoneWindowCloser, useGameName, useGameWindowInfo } from '@/src/desktop/windows';
 import { IS_DESKTOP_MAIN_WINDOW } from '@/src/config';
 import { isTableZone, sharedTableCards } from '@/src/lib/board';
+import { reportBoardScroll } from '@/src/lib/boardScroll';
 import { useLocale } from '@/src/hooks/useLocale';
 
 /** How long a player may hold the move before the likeliest control is ringed. */
@@ -797,6 +798,8 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // and must not carry the board away before it has gone anywhere.
   const scrollY = useRef(0);
   const scrollMax = useRef(Infinity);
+  // A fresh board starts at the top; the last match's offset is not this one's.
+  useEffect(() => reportBoardScroll(0), []);
   const dragPoint = useRef<{ x: number; y: number } | null>(null);
   const dragMoveRef = useRef<((x: number, y: number) => void) | null>(null);
   // Whether the pointer is over a place the card can be dropped right now. A
@@ -858,6 +861,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
       if (next === scrollY.current) return;
       scrollY.current = next;
       scrollRef.current?.scrollTo({ y: next, animated: false });
+      // A carried card is drawn inside the board and must be moved back
+      // under the pointer now, not when `onScroll` gets round to saying so.
+      reportBoardScroll(next);
       // Where the melds are in the window just changed.
       drops.measure();
       scrolling.current = true;
@@ -875,6 +881,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
       scrollY.current = contentOffset.y;
+      reportBoardScroll(contentOffset.y);
       scrollMax.current = Math.max(0, contentSize.height - layoutMeasurement.height);
       ending.scrollProps.onScroll(e);
       opening.scrollProps.onScroll(e);
