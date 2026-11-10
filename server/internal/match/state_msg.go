@@ -105,6 +105,8 @@ type MatchStateMsg struct {
 	// StoodIn is every seat a stand-in bot has played for at this table, so
 	// a results screen can say whose record the match does not count on.
 	StoodIn []string `json:"stoodIn,omitempty"`
+	// HandedOver is every seat handed to somebody else partway through.
+	HandedOver []string `json:"handedOver,omitempty"`
 	// Rematch is the table this finished one is being played again at, and
 	// who asked — what turns "Play again" into "Join Bob's rematch" for
 	// everybody else who is still looking at the result.
@@ -161,6 +163,12 @@ type PlayerMsg struct {
 	// down to. Both are facts about the room, so a replay frame has neither.
 	StandIn   *StandInMsg `json:"standIn,omitempty"`
 	StandInAt *time.Time  `json:"standInAt,omitempty"`
+	// FormerName is who this seat was handed over from, when it was.
+	FormerName string `json:"formerName,omitempty"`
+	// Via is the way this seat's player is connected to a table a device
+	// hosts — "self" (the device itself), "wifi", "bluetooth" or "internet".
+	// Absent on a cloud table, and for anybody not connected now.
+	Via string `json:"via,omitempty"`
 }
 
 // StandInMsg is a stand-in as the table sees it.
@@ -196,12 +204,15 @@ type seatFact struct {
 	satOut, simplified bool
 	standIn            *StandInMsg
 	standInAt          *time.Time
+	via, formerName    string
 }
 
 func (m *Manager) seatFacts(match models.Match) []seatFact {
 	out := make([]seatFact, len(match.Players))
 	for i, p := range match.Players {
 		out[i].satOut = m.satOut(match, p)
+		out[i].via = m.viaOf(match.ID.Hex(), p.ID)
+		out[i].formerName = p.FormerName
 		if p.StandIn != nil {
 			out[i].standIn = &StandInMsg{Skill: p.StandIn.Skill, Since: p.StandIn.Since, By: p.StandIn.By}
 		} else if due, ok := m.standInDue(match, p); ok {
@@ -223,6 +234,8 @@ func withSeatFacts(msg MatchStateMsg, facts []seatFact) MatchStateMsg {
 			break
 		}
 		msg.Players[i].SatOut = f.satOut
+		msg.Players[i].Via = f.via
+		msg.Players[i].FormerName = f.formerName
 		if f.standIn != nil {
 			in := *f.standIn
 			msg.Players[i].StandIn = &in
@@ -314,6 +327,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	// same false every other status gets, since bringing a table back is not
 	// something a passer-by does.
 	msg.StoodIn = match.StoodIn
+	msg.HandedOver = match.HandedOver
 	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
 		msg.CanResume = m.resumableBy(match, viewerID)
 		msg.ResumeHost = resumeHost(match)

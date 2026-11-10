@@ -73,7 +73,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if containsWild(playable) {
 		play.Params = []module.ParamSpec{colourParam(s.Hands[playerID], wildsIn(playable))}
 	}
-	if swaps := s.swapsIn(playable); len(swaps) > 0 && len(s.TurnOrder) > 2 {
+	if swaps := s.swapsIn(playable); len(swaps) > 0 && len(s.inPlay()) > 2 {
 		play.Params = append(play.Params, s.withParam(playerID, swaps))
 	}
 	offers = append(offers, play)
@@ -220,7 +220,7 @@ func (s *GameState) swapsIn(cards []string) []string {
 func (s *GameState) withParam(playerID string, swaps []string) module.ParamSpec {
 	spec := module.ParamSpec{Name: "with", Kind: module.ParamKindPlayer, LabelKey: "lastcard.prompt.swapWith", Cards: swaps}
 	shortest := ""
-	for i, p := 1, s.nextPlayer(playerID); i < len(s.TurnOrder); i, p = i+1, s.nextPlayer(p) {
+	for i, p := 1, s.nextPlayer(playerID); i < len(s.inPlay()); i, p = i+1, s.nextPlayer(p) {
 		spec.Choices = append(spec.Choices, module.ParamChoice{Value: p, LabelKey: "lastcard.prompt.player"})
 		if shortest == "" || len(s.Hands[p]) < len(s.Hands[shortest]) {
 			shortest = p

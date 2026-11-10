@@ -94,6 +94,11 @@ const (
 	ErrLeaveTournament = "LEAVE_TOURNAMENT"
 	// ErrAlreadyLeft is a second "leave" from a seat already got up.
 	ErrAlreadyLeft = "ALREADY_LEFT"
+	// ErrLateJoinTournament is sitting down at a tournament under way: every
+	// seat started with the same stack, and a new one would not.
+	ErrLateJoinTournament = "LATE_JOIN_TOURNAMENT"
+	// ErrTableFull is a cash table with every seat the game deals to taken.
+	ErrTableFull = "TABLE_FULL"
 
 	// --- showing a hand ----------------------------------------------------
 	//
@@ -138,6 +143,9 @@ type Seat struct {
 	// chips they left with frozen in Stack as their result.
 	Out  bool `json:"out,omitempty"`
 	Left bool `json:"left,omitempty"`
+	// Joining is a player who sat down at a cash table during a hand: folded
+	// out of it, with no cards, and dealt in at the next one.
+	Joining bool `json:"joining,omitempty"`
 	// Bot is a seat the server plays, recorded at the deal so a cash table
 	// with no person left at it can end instead of playing on to nobody.
 	Bot  bool     `json:"bot,omitempty"`

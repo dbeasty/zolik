@@ -247,15 +247,31 @@ Unchanged from the plan. A signed-in guest presents their offline pass (`sitAt`)
   - The phone restarts: the same code comes back, and the game with it.
   - Passed 4 times out of 4.
 
+### Per-seat connection badges (built after D)
+- `internal/netvia` labels each connection with how it arrived. The phone's own loopback listener marks "self" and the room listener marks "wifi". A tunnel dials its sockets on loopback with `X-Zolik-Via` set to "bluetooth", or "internet" for the relay, and that header is believed on loopback only. A cloud server marks nothing.
+- `match/via.go` keeps each connected seat's route, sends it as `PlayerMsg.via`, and re-broadcasts when it changes. `SeatStrip` draws Server / Wi-Fi / Bluetooth / Internet with a tooltip.
+- Tests: `zolikcore/via_test.go` (loopback, Wi-Fi and Bluetooth seats; a guest who leaves loses the badge). The Mac e2e step "the Mac hosts a table open to the internet…" checks the Server and Internet badges on both Macs.
+
 ### Not done
-- Per-seat connection badges (Wi-Fi / Bluetooth / Internet). The runtime does not know which transport a socket came over, and the relay status shows the remote count instead.
-- A device build of the new native calls.
+- A device build of the new native calls on a physical phone. The iOS simulator and the Mac app are verified.
 
-## Part E: later, not planned in detail
+## Part E (as built)
 
-- **Sit out the next deal** in round-based games (Žolíky, Continental, Last Card): the stand-in finishes the current round, and the seat is dealt out until its player returns. This needs a per-module capability (`module.DealsAround`) and a written scoring rule for a skipped round, so each module opts in.
-- **A person takes over a seat** (a spectator or a link joiner inherits it). It needs the original seat holder's consent when they have an account, and a rule that they can't see the hand before taking it.
-- **Late joining at cash tables:** take a free seat between hands with the starting stack, posting the big blind on the first hand.
+- **Late joining at cash tables:** `module.LateSeater`.
+  - A poker cash table seats a newcomer with the starting stack. If a hand is in play, they are folded out of it, with no cards, and dealt in at the next one ("JOINS NEXT DEAL"). Blinds come round to them in the ordinary way.
+  - A tournament refuses with `LATE_JOIN_TOURNAMENT`, and a full table with `TABLE_FULL`.
+  - Blackjack seats them at once while stakes are taken; otherwise they play from the next round.
+  - `Manager.Join` on a game under way asks the module, then stores the new board as the newest snapshot.
+- **A person takes over a seat:** the host's sheet for an away seat has "Give this seat to someone else" (`POST /matches/{id}/seats/{playerId}/hand-over`).
+  - That makes a seat link marked as a takeover. The person who opens it gives a name and plays the seat under it, and the seat shows "for Bo".
+  - From then on, the first player's own sign-in is refused at that seat (`SEAT_HANDED_OVER`, shown on their screen).
+  - The match counts on nobody's record (`Match.HandedOver`, the same rule as for a stand-in).
+  - *Changed from the plan:* the first player is not asked for consent. They are away, which is the reason for the handover, and their record is protected by the match not counting.
+- **Dealing around an absent player:** `module.DealsAround` and the `dealAroundAway` option, built for Last Card and on by default there.
+  - When a bot stands in, it finishes the deal in play. The player is then dealt out of the next deals: never on turn, scoring nothing, still on the standings. They are dealt back in when they return.
+  - A deal never goes ahead with fewer than two players.
+  - Other round games can opt in by implementing `DealAround`.
+- Tests: engine tests in holdem, blackjack and lastcard; `match/parte_test.go`; `e2e/tests/part-e.spec.ts` (a handover between three browsers, and a late join at a cash table).
 
 ## Order of work
 

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"zolik/server/internal/netvia"
 
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -85,6 +86,9 @@ type Tunnel struct {
 	host *Host
 	sink TunnelSink
 	peer string
+	// via is the route this tunnel crosses, for the seats it serves
+	// (internal/netvia): Bluetooth, unless the relay made it.
+	via string
 
 	mu        sync.Mutex // guards everything below, and orders sends
 	closed    bool
@@ -103,7 +107,7 @@ type sessionKeys struct {
 // anything that tells guests apart for rate limiting: the native side passes
 // the central's identifier.
 func (h *Host) NewTunnel(sink TunnelSink, peer string) *Tunnel {
-	return &Tunnel{host: h, sink: sink, peer: peer, sockets: map[int64]*websocket.Conn{}}
+	return &Tunnel{host: h, sink: sink, peer: peer, via: netvia.Bluetooth, sockets: map[int64]*websocket.Conn{}}
 }
 
 // CheckCode is the short code both screens can show once the handshake is
@@ -407,6 +411,9 @@ func (t *Tunnel) openSocket(m tunnelMsg) {
 	}
 	hdr := http.Header{}
 	hdr.Set("X-Forwarded-For", t.who())
+	// The socket arrives on the host's own loopback like the host's app's
+	// would; this is what lets the table show this guest's real route.
+	hdr.Set(netvia.Header, t.via)
 	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
 	c, _, err := d.Dial("ws://127.0.0.1:"+strconv.Itoa(t.host.Port())+m.P, hdr)
 	if err != nil {

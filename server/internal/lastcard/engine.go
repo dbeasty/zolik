@@ -115,8 +115,22 @@ func (s *GameState) deal() {
 	s.DrawFour, s.Reveal = nil, nil
 	s.BlankDraws, s.Reshuffles, s.PendingDraw, s.Mayhems = 0, 0, 0, 0
 
-	for i := 0; i < handSize; i++ {
+	// Whoever asked to sit out is dealt out of this deal — unless that would
+	// leave fewer than two to play, when everybody is dealt in.
+	s.DealtOut = nil
+	if len(s.TurnOrder)-len(s.SittingOut) >= 2 {
 		for _, p := range s.TurnOrder {
+			for _, q := range s.SittingOut {
+				if p == q {
+					s.DealtOut = append(s.DealtOut, p)
+				}
+			}
+		}
+	}
+	in := s.inPlay()
+
+	for i := 0; i < handSize; i++ {
+		for _, p := range in {
 			s.Hands[p] = append(s.Hands[p], deck[0])
 			deck = deck[1:]
 		}
@@ -129,8 +143,8 @@ func (s *GameState) deal() {
 	}
 	s.DiscardPile = []string{deck[0]}
 	s.DrawPile = deck[1:]
-	n := len(s.TurnOrder)
-	starter := s.TurnOrder[(module.StartingSeat(s.Seed, n)+s.DealNumber)%n]
+	n := len(in)
+	starter := in[(module.StartingSeat(s.Seed, n)+s.DealNumber)%n]
 	s.Current = starter
 
 	// An opening action card takes effect as if the dealer — the player
@@ -355,7 +369,7 @@ func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event,
 		events = append(events, effectEvent(skippedEvent(next)))
 		s.passTurn(s.nextPlayer(next))
 	case faceOf(card) == faceReverse:
-		if len(s.TurnOrder) == 2 {
+		if len(s.inPlay()) == 2 {
 			// Between two players a Reverse brings it straight back.
 			played["effect"], played["victim"] = effectSkip, next
 			events = append(events, effectEvent(skippedEvent(next)))
@@ -429,7 +443,7 @@ func (s *GameState) applyDraw(playerID string) ([]module.Event, error) {
 	if !ok {
 		s.BlankDraws++
 		events := []module.Event{drawnEvent(playerID, 0)}
-		if s.BlankDraws >= len(s.TurnOrder) {
+		if s.BlankDraws >= len(s.inPlay()) {
 			return append(events, s.endDeal(s.fewestCards())...), nil
 		}
 		s.passTurn(s.nextPlayer(playerID))
@@ -601,7 +615,7 @@ func (s *GameState) endDeal(winner string) []module.Event {
 // earliest seat taking a tie.
 func (s *GameState) fewestCards() string {
 	best := ""
-	for _, p := range s.TurnOrder {
+	for _, p := range s.inPlay() {
 		if best == "" || len(s.Hands[p]) < len(s.Hands[best]) {
 			best = p
 		}
@@ -711,7 +725,7 @@ func (s *GameState) drawUntilPlayable(playerID string) ([]module.Event, error) {
 	events := []module.Event{drawnEvent(playerID, got)}
 	if got == 0 {
 		s.BlankDraws++
-		if s.BlankDraws >= len(s.TurnOrder) {
+		if s.BlankDraws >= len(s.inPlay()) {
 			return append(events, s.endDeal(s.fewestCards())...), nil
 		}
 	} else {
@@ -729,7 +743,7 @@ func (s *GameState) swapTarget(playerID, card, with string) (string, error) {
 		return "", nil
 	}
 	if with == "" {
-		if len(s.TurnOrder) == 2 {
+		if len(s.inPlay()) == 2 {
 			return s.nextPlayer(playerID), nil
 		}
 		return "", module.Error{Code: ErrSwapWithWhom}
@@ -737,7 +751,7 @@ func (s *GameState) swapTarget(playerID, card, with string) (string, error) {
 	if with == playerID {
 		return "", module.Error{Code: ErrSwapWithWhom, Message: with}
 	}
-	for _, p := range s.TurnOrder {
+	for _, p := range s.inPlay() {
 		if p == with {
 			return with, nil
 		}
@@ -761,14 +775,14 @@ func (s *GameState) moveHands(playerID, card, with string) []module.Event {
 		return []module.Event{{Type: "hands_swapped", Data: map[string]any{"playerId": playerID, "with": with}}}
 	case s.SevenZero && faceOf(card) == "0" && !isWild(card):
 		moved := map[string][]string{}
-		for _, p := range s.TurnOrder {
+		for _, p := range s.inPlay() {
 			moved[s.nextPlayer(p)] = s.Hands[p]
 		}
 		s.Hands = moved
 		return []module.Event{{Type: "hands_passed", Data: map[string]any{"playerId": playerID}}}
 	case card == cardWildMayhem:
 		var all []string
-		for _, p := range s.TurnOrder {
+		for _, p := range s.inPlay() {
 			all = append(all, s.Hands[p]...)
 			s.Hands[p] = nil
 		}
@@ -811,4 +825,26 @@ func (s *GameState) matchOver(dealWinner string) (bool, string) {
 		}
 	}
 	return true, best
+}
+
+var _ module.DealsAround = (*Module)(nil)
+
+// DealAround puts a player down to sit out the deals from the next one on, or
+// back in. The deal in play is not touched: a bot finishes it for them.
+func (m *Module) DealAround(raw module.State, playerID string, out bool) (module.State, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return raw, err
+	}
+	keep := s.SittingOut[:0:0]
+	for _, p := range s.SittingOut {
+		if p != playerID {
+			keep = append(keep, p)
+		}
+	}
+	if out {
+		keep = append(keep, playerID)
+	}
+	s.SittingOut = keep
+	return encode(s)
 }

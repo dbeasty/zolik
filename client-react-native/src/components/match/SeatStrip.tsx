@@ -99,6 +99,13 @@ const badgeTipStyle = { flexShrink: 0 };
 
 /** A badge you can press is a 24px target (WCAG 2.2) however small its word is. */
 const tapTarget = { minHeight: 24, justifyContent: 'center' } as const;
+/** A mark per route, beside its word (internal/netvia on the server). */
+const VIA_ICON: Record<string, string> = {
+  self: '\u{1F5A5}\u{FE0F}',
+  wifi: '\u{1F4F6}',
+  bluetooth: '\u{1F537}',
+  internet: '\u{1F310}',
+};
 
 type Props = {
   seats: Seat[];
@@ -297,6 +304,28 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
       ) : null;
     // The bot's badge: a control for the host (it opens the strength picker,
     // and the tip says so), a plain mark with the same tip for everyone else.
+    // How this player is connected, on a table a device hosts: who goes if
+    // the internet does, and which seat is the server itself. A cloud table
+    // sends no route, and shows none.
+    const viaBadge =
+      player && !player.isAI && player.via ? (
+        <Tip
+          text={t(`seat.viaTip.${player.via}`, { name })}
+          focusable
+          label={t(`seat.via.${player.via}`)}
+          style={badgeTipStyle}
+        >
+          <Text style={styles.badge} testID={`via-badge-${seat.playerId}`}>
+            {`${VIA_ICON[player.via] ?? ''} ${t(`seat.via.${player.via}`)}`.trim()}
+          </Text>
+        </Tip>
+      ) : null;
+    // A seat the host handed to somebody else says whose it was.
+    const former = player?.formerName ? (
+      <Text style={styles.badge} testID={`former-${seat.playerId}`}>
+        {t('seat.tookOverFrom', { name: player.formerName })}
+      </Text>
+    ) : null;
     const botBadge = bot ? (
       player?.isAI ? (
         <Tip text={botTip} focusable={!pickBot} label={t('a11y.board.seat.badge.bot')} style={badgeTipStyle}>
@@ -341,6 +370,8 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {rank}
               {botBadge}
               {editMe}
+              {viaBadge}
+              {former}
               {away}
             </View>
             <Text
@@ -369,6 +400,8 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             </Text>
             {botBadge}
             {editMe}
+            {viaBadge}
+            {former}
             {away}
           </View>
         )}
