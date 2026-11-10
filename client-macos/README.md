@@ -97,9 +97,16 @@ It needs the Limidus Corp "Developer ID Application" certificate in the
 keychain, which only the team's Account Holder can create (Xcode → Settings
 → Accounts → Manage Certificates), and notary credentials stored once with
 `xcrun notarytool store-credentials jokerless-notary`. The app is notarized
-and stapled, then put on a disk image, `client-macos/build/Jokerless-<version>.dmg`,
-with a link to Applications to drag it onto. The image is signed, notarized and
-stapled too, ready to download. It runs on Apple silicon and Intel Macs.
+and stapled, then put on a disk image, `client-macos/build/Jokerless-<version>.dmg`
+(`scripts/macos-dmg.sh`). Opening the image shows the license (`COPYRIGHT` and
+`LICENSE`) with Agree and Disagree, and it mounts only after Agree. Its window
+then shows the app, an arrow and a link to Applications to drag it onto. The
+image is signed, notarized and stapled too, ready to download. It runs on Apple
+silicon and Intel Macs.
+
+Finder writes the window's layout, so the build needs permission to control
+Finder (macOS asks the first time). `hdiutil attach` from a script skips the
+license dialog, as it does for every licensed image.
 
 A debug build can be pointed at a local server with `ZOLIK_BASE_URL`, and
 keeps its state in `ZOLIK_DATA_DIR` if set.

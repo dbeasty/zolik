@@ -18,8 +18,9 @@
 # ZOLIK_MACOS_DEVELOPER_ID=1 signs with the team's Developer ID Application
 # certificate instead, under the hardened runtime, sends the app to Apple's
 # notary service and staples the ticket, then puts it on a disk image for
-# download, build/Jokerless-<version>.dmg, which is signed, notarized and
-# stapled in turn. Notarizing uses credentials stored once with
+# download, build/Jokerless-<version>.dmg (scripts/macos-dmg.sh: license to
+# agree to, then a window to drag the app across), which is signed, notarized
+# and stapled in turn. Notarizing uses credentials stored once with
 #   xcrun notarytool store-credentials jokerless-notary
 # (ZOLIK_MACOS_NOTARY_PROFILE names another profile).
 #
@@ -41,6 +42,10 @@ if [ "$DEVELOPER_ID" = 1 ]; then
   # Checked before the long build rather than after it.
   xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null ||
     { echo "no notary credentials: xcrun notarytool store-credentials $NOTARY_PROFILE" >&2; exit 1; }
+  # The disk image's window is laid out by Finder, long after the app is
+  # notarized. This also raises macOS's permission prompt now, not then.
+  osascript -e 'tell application "Finder" to get name of startup disk' >/dev/null ||
+    { echo "cannot control Finder: allow it in System Settings > Privacy & Security > Automation" >&2; exit 1; }
 fi
 
 eval "$("$ROOT/scripts/version.sh" --export)"
@@ -92,6 +97,8 @@ cp "$BIN" "$APP/Contents/MacOS/Jokerless"
 cp -R "$OUT/web" "$APP/Contents/Resources/web"
 cp "$MAC/Resources/bridge.js" "$APP/Contents/Resources/bridge.js"
 cp "$MAC/Resources/e2e.js" "$APP/Contents/Resources/e2e.js"
+# What the disk image's license dialog shows stays with the app after install.
+cp "$ROOT/LICENSE" "$ROOT/COPYRIGHT" "$APP/Contents/Resources/"
 # The Dock and Finder icon: the phones' icon, as an .icns (Info.plist names it).
 ICONSET="$OUT/AppIcon.iconset"
 rm -rf "$ICONSET"
@@ -128,26 +135,8 @@ rm -f "$ZIP"
 xcrun stapler staple "$APP"
 spctl --assess --type execute --verbose "$APP"
 
-# The disk image: the app beside a link to /Applications, so installing is
-# one drag, and the app's icon on the mounted volume.
 DMG="$OUT/Jokerless-$ZOLIK_VERSION.dmg"
-STAGE="$OUT/dmg"
-RW="$OUT/dmg-rw.dmg"
-MNT="$OUT/dmg-mount"
-rm -rf "$STAGE" "$RW" "$MNT" "$DMG"
-mkdir -p "$STAGE" "$MNT"
-ditto "$APP" "$STAGE/Jokerless.app"
-ln -s /Applications "$STAGE/Applications"
-cp "$APP/Contents/Resources/AppIcon.icns" "$STAGE/.VolumeIcon.icns"
-hdiutil create -quiet -volname Jokerless -srcfolder "$STAGE" -fs HFS+ -format UDRW "$RW"
-# The volume shows .VolumeIcon.icns only once its root is flagged as having a
-# custom icon, which needs the image mounted read-write. Mounted out of sight,
-# so the build does not open a Finder window.
-hdiutil attach -quiet -nobrowse -noautoopen -mountpoint "$MNT" "$RW"
-SetFile -a C "$MNT"
-hdiutil detach -quiet "$MNT"
-hdiutil convert -quiet "$RW" -format ULFO -o "$DMG"
-rm -rf "$STAGE" "$RW" "$MNT"
+"$ROOT/scripts/macos-dmg.sh" "$APP" "$DMG"
 codesign --force --sign "$SIGN_ID" --timestamp "$DMG"
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
 xcrun stapler staple "$DMG"
