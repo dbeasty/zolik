@@ -68,3 +68,17 @@ func TestADrawNamesNoCard(t *testing.T) {
 	}
 	t.Fatal("the draw was not narrated")
 }
+
+// Taking the pile is the move the other side most needs to see: it is marked,
+// and an ordinary draw is not.
+func TestTakingThePileIsNotable(t *testing.T) {
+	m := New()
+	took, ok := m.NarrateEvent(nil, module.Event{Type: "pile_taken", Data: map[string]any{"playerId": "p1", "top": "7H"}})
+	if !ok || !took.Notable {
+		t.Errorf("pile take narrated as %+v, want Notable", took)
+	}
+	drew, ok := m.NarrateEvent(nil, module.Event{Type: "cards_drawn", Data: map[string]any{"playerId": "p1"}})
+	if !ok || drew.Notable {
+		t.Errorf("stock draw narrated as %+v, want not Notable", drew)
+	}
+}

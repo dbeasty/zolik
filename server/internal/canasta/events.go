@@ -27,6 +27,7 @@ func (m *Module) NarrateEvent(_ module.State, ev module.Event) (module.Move, boo
 		move.Fact = module.Fact{LabelKey: "canasta.move.tookPile", Params: map[string]any{
 			"player": player, "card": ev.Data["top"],
 		}}
+		move.Notable = true
 	case "top_card_taken":
 		move.Fact = module.Fact{LabelKey: "canasta.move.tookTopCard", Params: map[string]any{
 			"player": player, "card": ev.Data["card"],

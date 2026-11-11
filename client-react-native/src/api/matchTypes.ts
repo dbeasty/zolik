@@ -28,6 +28,8 @@ export type MoveLine = {
   fact: Fact;
   /** The group on the board the move touched, if any. */
   groupId?: string;
+  /** A move the others should not miss — taking the discard pile. Shown bold and red. */
+  notable?: boolean;
 };
 
 /**

@@ -34,6 +34,10 @@ type Move struct {
 	// GroupID is the group on the board the move touched, if any, so a client
 	// can point at it.
 	GroupID string `json:"groupId,omitempty"`
+	// Notable marks a move the other players should not miss — taking the
+	// discard pile, which shows what someone is collecting. The client sets
+	// it apart in the list of recent moves.
+	Notable bool `json:"notable,omitempty"`
 }
 
 // EventNarrator turns a module's events into moves a person can read.

@@ -22,6 +22,7 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 			move.Fact = module.Fact{LabelKey: "ginrummy.move.tookDiscard", Params: map[string]any{
 				"player": player, "card": card,
 			}}
+			move.Notable = true
 		} else {
 			move.Fact = module.Fact{LabelKey: "ginrummy.move.drewStock", Params: map[string]any{"player": player}}
 		}
@@ -29,6 +30,7 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 		move.Fact = module.Fact{LabelKey: "ginrummy.move.tookUpcard", Params: map[string]any{
 			"player": player, "card": ev.Data["card"],
 		}}
+		move.Notable = true
 	case "upcard_passed":
 		move.Fact = module.Fact{LabelKey: "ginrummy.move.passedUpcard", Params: map[string]any{"player": player}}
 	case "card_discarded":
