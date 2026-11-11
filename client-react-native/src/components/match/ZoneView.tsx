@@ -297,6 +297,37 @@ export function ZoneView({
     ) : (
       child
     );
+  // When a held card off a closed meld was last let go: the press that ends
+  // the drag is not also the meld's own tap, which would open it.
+  const heldDragEnded = useRef(0);
+  const heldDragging = useRef(false);
+  /**
+   * A card of a closed meld — stacked, or a canasta folded to its face — that
+   * a long hold picks up and carries, as an open meld's card is. A plain press
+   * still goes to the meld (it opens), so only a hold starts a drag.
+   */
+  const held = (where: string, card: string, index: number, child: ReactNode) => (
+    <HeldMeldCard
+      testId={`held-${where}-${index}`}
+      onStart={() => {
+        heldDragging.current = true;
+        const carried = onMeldDragStart?.(where, index, card);
+        setCarry({ where, from: index, only: carried ?? [index], dx: 0, dy: 0, scrolled: 0 });
+      }}
+      onMove={(x, y, dx, dy) => {
+        setCarry((was) => (was ? { ...was, dx, dy } : was));
+        onDragMove?.(x, y);
+      }}
+      onEnd={(x, y) => {
+        heldDragging.current = false;
+        heldDragEnded.current = Date.now();
+        setCarry(null);
+        onDragEnd?.(x, y);
+      }}
+    >
+      {child}
+    </HeldMeldCard>
+  );
   /** A card of an open meld, pressed to pick it or dragged to move it (with whatever else is picked). */
   const pickable = (where: string, card: string, index: number, picks: number[], child: ReactNode, spoken: string) => (
     <LiftableCard
@@ -550,6 +581,8 @@ export function ZoneView({
             // while it is spread open, so every card is there in full to aim
             // at, and the tap that opens it stays the tap that opens it.
             const cardsPickable = groupOpen && (pickableGroups?.has(g.id) ?? false) && !groupPressable;
+            // Closed, the same cards are picked up by a hold instead.
+            const cardsHoldable = !groupOpen && (pickableGroups?.has(g.id) ?? false) && !groupPressable;
             const pickedHere = pickedInGroup?.groupId === g.id ? pickedInGroup.indices : [];
             // The meld said as one sentence, by its kind, its cards and whose
             // it is — the name of its toggle, which is what a screen reader
@@ -658,6 +691,7 @@ export function ZoneView({
                 <Pressable
                   disabled={groupPressable}
                   onPress={() => {
+                    if (heldDragging.current || Date.now() - heldDragEnded.current < 400) return;
                     toggleGroup(g.id);
                     if (groupArmable) onAimGroup?.(g.id);
                   }}
@@ -762,7 +796,9 @@ export function ZoneView({
                           {(cardsPickable
                             ? (_w: string, cc: string, ii: number, child: ReactNode, spoken?: string) =>
                                 pickable(g.id, cc, ii, pickedHere, child, spoken ?? cardSpokenName(cc))
-                            : lift)(
+                            : cardsHoldable
+                              ? (w: string, cc: string, ii: number, child: ReactNode) => held(w, cc, ii, child)
+                              : lift)(
                             g.id,
                             c,
                             i,
@@ -1045,6 +1081,52 @@ function LiftableCard({
       >
         {children}
       </Pressable>
+    </GestureDetector>
+  );
+}
+
+/**
+ * A closed meld's card, picked up by a long hold — mouse and finger alike —
+ * and carried to wherever it is let go. Not a control of its own: a press
+ * that never became a hold is the meld's, which opens it.
+ */
+function HeldMeldCard({
+  testId,
+  onStart,
+  onMove,
+  onEnd,
+  children,
+}: {
+  testId: string;
+  onStart: () => void;
+  onMove: (x: number, y: number, dx: number, dy: number) => void;
+  onEnd: (x: number, y: number) => void;
+  children: ReactNode;
+}) {
+  const at = useRef({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const pan = useCardPan({
+    minDistance: 8,
+    holdFirst: true,
+    onStart: () => {
+      dragging.current = true;
+      onStart();
+    },
+    onUpdate: (x, y, dx, dy) => {
+      at.current = { x, y };
+      onMove(x, y, dx, dy);
+    },
+    onFinalize: () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      onEnd(at.current.x, at.current.y);
+    },
+  });
+  return (
+    <GestureDetector gesture={pan}>
+      <View collapsable={false} testID={testId}>
+        {children}
+      </View>
     </GestureDetector>
   );
 }

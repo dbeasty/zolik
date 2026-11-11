@@ -996,3 +996,97 @@ func TestCanastaXLaysTheEngineTakes(t *testing.T) {
 		}
 	}
 }
+
+// A natural dropped on the place a wild holds in one of the side's sequences
+// trades with it: the natural takes its own place, the wild takes the
+// natural's place in the meld it came from.
+func TestMoveTradesWithAWild(t *testing.T) {
+	table := func(mutate func(s *GameState)) module.State {
+		return canastaXTable(func(s *GameState) {
+			s.Teams[0].Melds = []Meld{
+				{ID: "t0-seq1", TeamID: 0, Kind: meldRun, Suit: "H", Low: lowAt(1), Cards: []string{"5H", "JOKER1", "7H", "8H"}},
+				{ID: "t0-6", TeamID: 0, Kind: meldSet, Rank: "6", Cards: []string{"6S", "6D", "6C", "6H"}},
+				{ID: "t0-seq2", TeamID: 0, Kind: meldRun, Suit: "H", Cards: []string{"4H", "5H", "6H", "7H"}},
+			}
+			s.Hands["p1"] = []string{"9S", "QS", "JD"}
+			if mutate != nil {
+				mutate(s)
+			}
+		})
+	}
+	trade := func(from string) module.Action {
+		return module.Action{Verb: VerbMoveCards, Cards: []string{"6H"}, Target: "t0-seq1", Params: map[string]string{"from": from}}
+	}
+
+	t.Run("from a group", func(t *testing.T) {
+		raw, code := apply(t, table(nil), "p1", trade("t0-6"))
+		if code != "" {
+			t.Fatal(code)
+		}
+		s := mustDecode(t, raw)
+		if run := s.Teams[0].meldByID("t0-seq1"); !slices.Equal(run.Cards, []string{"5H", "6H", "7H", "8H"}) || run.Low != nil {
+			t.Fatalf("run %+v", run)
+		}
+		if g := s.Teams[0].meldByID("t0-6"); !slices.Equal(g.Cards, []string{"6S", "6D", "6C", "JOKER1"}) {
+			t.Fatalf("group %+v", g)
+		}
+		raw, code = apply(t, raw, "p1", module.Action{Verb: VerbUndoReshape})
+		if code != "" {
+			t.Fatal(code)
+		}
+		if run := mustDecode(t, raw).Teams[0].meldByID("t0-seq1"); run.Cards[1] != "JOKER1" {
+			t.Fatalf("after undo %+v", run)
+		}
+	})
+
+	t.Run("from the middle of another sequence", func(t *testing.T) {
+		raw, code := apply(t, table(nil), "p1", trade("t0-seq2"))
+		if code != "" {
+			t.Fatal(code)
+		}
+		s := mustDecode(t, raw)
+		if run := s.Teams[0].meldByID("t0-seq2"); !slices.Equal(run.Cards, []string{"4H", "5H", "JOKER1", "7H"}) || run.standsFor(2) != "6H" {
+			t.Fatalf("source run %+v", run)
+		}
+	})
+
+	t.Run("into a closed sequence", func(t *testing.T) {
+		raw := table(func(s *GameState) {
+			s.Teams[0].Melds[0].Cards = []string{"5H", "JOKER1", "7H", "8H", "9H", "TH", "JH"}
+		})
+		raw, code := apply(t, raw, "p1", trade("t0-6"))
+		if code != "" {
+			t.Fatal(code)
+		}
+		if run := mustDecode(t, raw).Teams[0].meldByID("t0-seq1"); run.Cards[1] != "6H" || len(run.Cards) != 7 {
+			t.Fatalf("run %+v", run)
+		}
+	})
+
+	t.Run("refused where the wild would leave its new meld illegal", func(t *testing.T) {
+		raw := table(func(s *GameState) {
+			s.Teams[0].Melds[1].Cards = []string{"6S", "6H", "2C"}
+		})
+		if _, code := apply(t, raw, "p1", trade("t0-6")); code == "" {
+			t.Fatal("a group left with one natural took the wild")
+		}
+	})
+
+	t.Run("offered, and narrated as a swap", func(t *testing.T) {
+		offers, err := New().LegalActions(table(nil), "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, id := range []string{"move:t0-6:t0-seq1", "move:t0-seq2:t0-seq1"} {
+			if o := offerByID(offers, id); o == nil || !o.Enabled || !slices.Contains(o.Source.Cards, "6H") {
+				t.Fatalf("%s: %+v", id, o)
+			}
+		}
+		mv, ok := New().NarrateEvent(nil, module.Event{Type: "cards_moved", Data: map[string]any{
+			"playerId": "p1", "meldId": "t0-seq1", "cards": []any{"6H"}, "wild": "JOKER1",
+		}})
+		if !ok || mv.Fact.LabelKey != "canasta.move.poached" || mv.Fact.Params["card"] != "6H" {
+			t.Fatalf("narration %+v", mv)
+		}
+	})
+}

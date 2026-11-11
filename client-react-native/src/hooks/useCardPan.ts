@@ -34,6 +34,12 @@ export type CardPanHandlers = {
    * the way to ask what a card's mark means.
    */
   onHeldInPlace?: () => void;
+  /**
+   * A mouse or pen holds first too, as a finger does. For a card whose plain
+   * press already means something else — a closed meld's press opens it — so
+   * a drag starts only once the hold has made it plain that one was meant.
+   */
+  holdFirst?: boolean;
 };
 
 /**
@@ -69,6 +75,9 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
     x0: 0,
     y0: 0,
     touch: false,
+    // Whether this press must hold before it drags: every touch, and a
+    // mouse where `holdFirst` asks it to.
+    holds: false,
     active: false,
     moved: false,
     // The last point `onUpdate` was told about, so a release somewhere else
@@ -91,8 +100,9 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
     // Worklets: they capture the handlers as they are this render, which is
     // why they are read off the argument and not the ref.
     const { onBegin, onStart, onUpdate, onFinalize } = handlers;
-    const pan = Gesture.Pan()
-      .minDistance(handlers.minDistance)
+    const pan = Gesture.Pan().minDistance(handlers.minDistance);
+    if (handlers.holdFirst) pan.activateAfterLongPress(HOLD_TO_DRAG_MS);
+    pan
       .onBegin((e) => {
         if (onBegin) runOnJS(onBegin)(e.absoluteX, e.absoluteY);
       })
@@ -131,14 +141,15 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
         lastX: t.absoluteX,
         lastY: t.absoluteY,
         touch: e.pointerType === PointerType.TOUCH,
+        holds: e.pointerType === PointerType.TOUCH || !!h.current.holdFirst,
         active: false,
         moved: false,
       };
-      if (!s.current.touch) return;
+      if (!s.current.holds) return;
       s.current.timer = setTimeout(() => {
         s.current.timer = null;
         holdScroll.lock();
-        if (typeof navigator !== 'undefined') navigator.vibrate?.(12);
+        if (s.current.touch && typeof navigator !== 'undefined') navigator.vibrate?.(12);
         manager.activate();
       }, HOLD_TO_DRAG_MS);
     })
@@ -150,7 +161,7 @@ export function useCardPan(handlers: CardPanHandlers): PanGesture {
         if (d > HOLD_SLOP) s.current.moved = true;
         return;
       }
-      if (!s.current.touch) {
+      if (!s.current.holds) {
         if (d >= h.current.minDistance) manager.activate();
         return;
       }

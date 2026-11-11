@@ -1161,6 +1161,11 @@ func bestCanastaMove(s *GameState, t *Team, mn menu) (module.ActionOffer, string
 				if err != nil || gone || (from.isCanasta() && !shrunk.isCanasta()) {
 					continue
 				}
+				// A card that only trades with a wild leaves to the size it
+				// was, so it finishes nothing.
+				if _, err := grownMeld(r, *to, []string{c}, noLow); err != nil {
+					continue
+				}
 				return o, c, true
 			}
 		}
