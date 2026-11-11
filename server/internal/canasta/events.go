@@ -44,6 +44,13 @@ func (m *Module) NarrateEvent(_ module.State, ev module.Event) (module.Move, boo
 			"player": player, "card": ev.Data["card"],
 		}}
 	case "cards_moved":
+		if wild, _ := ev.Data["wild"].(string); wild != "" {
+			// A trade with a wild reads as the swap it is.
+			move.Fact = module.Fact{LabelKey: "canasta.move.poached", Params: map[string]any{
+				"player": player, "card": firstCard(ev.Data["cards"]), "wild": wild,
+			}}
+			break
+		}
 		move.Fact = module.Fact{LabelKey: "canasta.move.moved", Params: map[string]any{
 			"player": player, "cards": ev.Data["cards"],
 		}}
@@ -57,4 +64,21 @@ func (m *Module) NarrateEvent(_ module.State, ev module.Event) (module.Move, boo
 		return module.Move{}, false
 	}
 	return move, true
+}
+
+// firstCard is the one card a single-card event names, whether its list is
+// still the engine's []string or came back from storage as []any.
+func firstCard(v any) string {
+	switch cs := v.(type) {
+	case []string:
+		if len(cs) > 0 {
+			return cs[0]
+		}
+	case []any:
+		if len(cs) > 0 {
+			s, _ := cs[0].(string)
+			return s
+		}
+	}
+	return ""
 }

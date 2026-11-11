@@ -429,11 +429,15 @@ func runEndPlacements(r ruleset, target Meld, cards []string, try func(card, pos
 // moveAlone is whether c can travel from one meld to the other by itself: the
 // pure checks first, so that only a card with a chance is put to Apply.
 func moveAlone(m *Module, raw module.State, playerID string, r ruleset, from, to Meld, c string) bool {
-	if _, _, err := shrunkMeld(r, from, []string{c}); err != nil {
+	if _, _, wild, err := tradedMelds(r, from, to, c); err != nil {
 		return false
-	}
-	if _, err := grownMeld(r, to, []string{c}, noLow); err != nil {
-		return false
+	} else if wild == "" {
+		if _, _, err := shrunkMeld(r, from, []string{c}); err != nil {
+			return false
+		}
+		if _, err := grownMeld(r, to, []string{c}, noLow); err != nil {
+			return false
+		}
 	}
 	ok, _ := probe(m, raw, playerID, module.Action{
 		Verb: VerbMoveCards, Cards: []string{c}, Target: to.ID,
@@ -599,13 +603,28 @@ func applyMoveCards(s *GameState, playerID string, a module.Action) ([]module.Ev
 		return nil, errCode(ErrNotYourMeld)
 	}
 
-	shrunk, gone, err := shrunkMeld(r, *from, a.Cards)
-	if err != nil {
-		return nil, err
+	// A natural dropped on the place a wild holds in a sequence trades with
+	// it; anything else is a plain move.
+	var shrunk, grown Meld
+	var gone bool
+	wild := ""
+	if len(a.Cards) == 1 {
+		gave, took, w, err := tradedMelds(r, *from, *to, a.Cards[0])
+		if err != nil {
+			return nil, err
+		}
+		shrunk, grown, wild = gave, took, w
 	}
-	grown, err := grownMeld(r, *to, a.Cards, wantLowOf(a))
-	if err != nil {
-		return nil, err
+	if wild == "" {
+		var err error
+		shrunk, gone, err = shrunkMeld(r, *from, a.Cards)
+		if err != nil {
+			return nil, err
+		}
+		grown, err = grownMeld(r, *to, a.Cards, wantLowOf(a))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	rs := Reshape{
@@ -633,9 +652,55 @@ func applyMoveCards(s *GameState, playerID string, a module.Action) ([]module.Ev
 	rs.Seq = s.nextSeq()
 	s.Reshapes = append(s.Reshapes, rs)
 
-	return []module.Event{{Type: "cards_moved", Data: map[string]any{
-		"playerId": playerID, "from": fromID, "meldId": a.Target, "cards": a.Cards,
-	}}}, nil
+	data := map[string]any{"playerId": playerID, "from": fromID, "meldId": a.Target, "cards": a.Cards}
+	if wild != "" {
+		data["wild"] = wild
+	}
+	return []module.Event{{Type: "cards_moved", Data: data}}, nil
+}
+
+// tradedMelds is the trade a natural makes with the wild standing for it in
+// another of the side's sequences: the natural takes its own place in to, and
+// the wild takes the natural's place in from. Neither meld changes size, so the
+// natural may come out of the middle of a run and a closed sequence still
+// takes it; both melds are checked as they come out.
+//
+// wild is empty, with no error, when to holds no wild for c — the move is a
+// plain one then.
+func tradedMelds(r ruleset, from, to Meld, c string) (gave, took Meld, wild string, err error) {
+	if to.kind() != meldRun || isWild(c) {
+		return from, to, "", nil
+	}
+	slot := poachSlot(to, c, "")
+	if slot < 0 {
+		return from, to, "", nil
+	}
+	at := slices.Index(from.Cards, c)
+	if at < 0 {
+		return from, to, "", errCode(ErrCardNotInHand)
+	}
+	wild = to.Cards[slot]
+
+	took = cloneMeld(to)
+	took.Cards[slot] = c
+	took.setRun(took.Cards, to.runLow())
+
+	gave = cloneMeld(from)
+	gave.Cards[at] = wild
+	switch gave.kind() {
+	case meldRun:
+		if err := checkRunShape(r, gave.Cards); err != nil {
+			return from, to, "", err
+		}
+		gave.setRun(gave.Cards, from.runLow())
+	case meldWild:
+		return from, to, "", errCode(ErrWrongRank)
+	default:
+		if err := validateGroup(r, gave.Cards); err != nil {
+			return from, to, "", err
+		}
+	}
+	return gave, took, wild, nil
 }
 
 // --- poaching a wild --------------------------------------------------------------
