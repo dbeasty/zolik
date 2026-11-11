@@ -73,6 +73,13 @@ export function MoveAnnouncements({
   const hints = prompts.filter((f) => f.hint);
   const turnPrompts = prompts.filter((f) => !f.hint);
   const scroller = useRef<ScrollView>(null);
+  // Whether the reader is at the newest line. A new move scrolls the list to
+  // it only then: with bots playing, a move every second or so pulled a
+  // reader who had scrolled up straight back down.
+  const atEnd = useRef(true);
+  const listOpen = open && moves.length > 0;
+  // Opened again, it opens on the newest line, wherever it was left.
+  if (!listOpen) atEnd.current = true;
   // The corner's real width, measured: its labels are translated and the
   // standing facts vary, so a guessed width let the first line run under it.
   const [cornerWidth, setCornerWidth] = useState(0);
@@ -125,7 +132,7 @@ export function MoveAnnouncements({
                 // ellipsis: the corner buttons leave it about two thirds of the
                 // width, and a name plus what it did is longer than that.
                 numberOfLines={open ? undefined : 2}
-                style={[styles.line, newest && styles.newest, settled && styles.settled, !open && styles.foldedLine]}
+                style={[styles.line, newest && styles.newest, settled && styles.settled, m.notable && styles.notable, !open && styles.foldedLine]}
               >
                 <LastCardInk text={factText(m.fact, players)} />
               </Text>
@@ -220,13 +227,20 @@ export function MoveAnnouncements({
         {/* The moves are a list of their own — the prompts after them are
             not moves, and a list may hold nothing but its items. Spaced the
             way the lines are, so the box looks exactly as it did. */}
-        {open && moves.length > 0 ? (
+        {listOpen ? (
           <ScrollView
             ref={scroller}
             testID="moves-scroll"
             style={styles.scroll}
             contentContainerStyle={styles.list}
-            onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: false })}
+            scrollEventThrottle={32}
+            onScroll={(e) => {
+              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+              atEnd.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 4;
+            }}
+            onContentSizeChange={() => {
+              if (atEnd.current) scroller.current?.scrollToEnd({ animated: false });
+            }}
             {...((Platform.OS === 'web' ? { role: 'list' } : {}) as object)}
           >
             {moveRows}
@@ -364,5 +378,8 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     line: { color: colors.text, fontSize: 15 },
     newest: { fontSize: 17, fontWeight: '700' },
     settled: { color: colors.muted },
+    // Taking the discard pile — what the others must not miss — in bold red,
+    // even as the viewer's own settled line.
+    notable: { color: colors.danger, fontWeight: '700' },
   });
 }

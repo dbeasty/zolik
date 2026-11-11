@@ -41,6 +41,7 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 		move.Fact = module.Fact{LabelKey: "zolik.move.tookDiscard", Params: map[string]any{
 			"player": player, "card": ev.Data["card"],
 		}}
+		move.Notable = true
 	case "meld_played":
 		move.Fact = module.Fact{LabelKey: "zolik.move.melded", Params: map[string]any{
 			"player": player, "cards": ev.Data["cards"],
