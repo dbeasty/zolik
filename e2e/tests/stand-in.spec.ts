@@ -139,4 +139,32 @@ test.describe('a player whose connection drops', () => {
 
     await host.context().close();
   });
+
+  // Inviting them back is the first answer to a missing player, on every
+  // width: the banner offers it, and the sheet has the table link and code.
+  for (const width of [1280, 390]) {
+    test(`a missing player can be invited back from the banner at ${width}px`, async ({ browser, request }) => {
+      const t = await prsiTable(request, {}, true);
+      const host = await openAs(browser, t.host, t.matchId);
+      await host.setViewportSize({ width, height: 900 });
+      const friend = await openAs(browser, t.friend, t.matchId);
+      await friend.context().close();
+
+      const waiting = host.getByTestId('table-banner-waiting');
+      await expect(waiting).toBeVisible({ timeout: 15_000 });
+      // The default table waits rather than counting down to a bot.
+      await expect(waiting).not.toContainText('A bot plays');
+      await host.getByTestId('table-banner-invite-back').click();
+      const sheet = host.getByTestId('invite-back-sheet');
+      await expect(sheet).toBeVisible();
+      const code = (await host.getByTestId('invite-back-code').innerText()).trim();
+      expect(code).toMatch(/\S{4,}/);
+      await expect(host.getByTestId('invite-back-table-url')).toContainText(code);
+      // And the code stays pinned at the top of the board, too.
+      await host.getByTestId('invite-back-close').click();
+      await expect(host.getByTestId('match-table-code')).toContainText(code);
+
+      await host.context().close();
+    });
+  }
 });

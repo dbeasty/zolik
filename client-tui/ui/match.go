@@ -349,6 +349,9 @@ func (m matchModel) view(width, height int) string {
 		b.WriteString(mutedStyle.Render(facts) + "\n")
 	}
 	b.WriteString(m.seatLine() + "\n")
+	if line := m.inviteLine(); line != "" {
+		b.WriteString(mutedStyle.Render(line) + "\n")
+	}
 
 	for _, f := range m.state.View.Prompts {
 		b.WriteString(promptStyle.Render("» "+factText(f)) + "\n")
@@ -600,3 +603,28 @@ var (
 	offerOnStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#e8eef5"))
 	offerOffStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#5c6b80"))
 )
+
+// inviteLine is how somebody else at this table gets back to it: its code and
+// the link to send them. Kept on screen for as long as the table can still be
+// played and has another person at it, because inviting players back is how
+// a paused or swept-up table carries on.
+func (m matchModel) inviteLine() string {
+	if m.state.JoinCode == "" || m.state.Status == "completed" {
+		return ""
+	}
+	others := false
+	for _, p := range m.state.Players {
+		if !p.IsAI && p.ID != m.root.session.UserID {
+			others = true
+			break
+		}
+	}
+	if !others {
+		return ""
+	}
+	line := "Table code " + m.state.JoinCode
+	if m.state.InviteURL != "" {
+		line += " · invite " + m.state.InviteURL
+	}
+	return line
+}

@@ -2586,6 +2586,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         onLetBotPlay={standIn.act ? (id) => void standIn.act?.(id, true) : undefined}
         onKeepWaiting={standIn.act ? (id) => void standIn.act?.(id, false) : undefined}
         onStepBackIn={stepOut.steppedOut ? () => void stepOut.set(false) : undefined}
+        onInviteBack={tableCode ? () => setInviteBackOpen(true) : undefined}
       />
       {stepOut.error ? (
         <Text testID="step-out-error" style={styles.error}>
@@ -2739,6 +2740,17 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           {/* Layout lives in the navigation bar, which stays put while the
               board scrolls to the hand — except in the Mac app, which has
               no bar. */}
+          {/* The Mac app has no bar, so the table code that rides in it
+              elsewhere sits here: the invite link and the code are always one
+              press away while somebody else may need them. */}
+          {desktopChrome && tableCode ? (
+            <TableCode
+              joinCode={tableCode}
+              onPress={() => setInviteBackOpen(true)}
+              chipStyle={[styles.tableCode, { marginRight: 10 }]}
+              textStyle={styles.tableCodeText}
+            />
+          ) : null}
           {desktopChrome ? zoomButtons : null}
           {desktopChrome ? layoutButton : null}
           <Tip text={t('a11y.board.tip.skin')}>
