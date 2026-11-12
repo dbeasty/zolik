@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 
 import type { MoveLine } from '@/src/api/matchTypes';
+import { newMoveLines } from '@/src/lib/boardSpeech';
 
 /**
  * The table's log as the open Moves list shows it.
@@ -11,18 +12,31 @@ import type { MoveLine } from '@/src/api/matchTypes';
  * line, then the window. A window that ends before what is held is a log that
  * started again (the server restarted): it replaces what was held.
  *
- * Lines without a number — an older server — are just the window.
+ * Lines without a number — a server from before the numbers — are joined the
+ * way speech finds what is new: what this window holds that the last did not
+ * (`newMoveLines`). That loses nothing while the screen is open; only a
+ * reload starts again from the server's window.
  */
-export function joinMoveLog(held: readonly MoveLine[], window: readonly MoveLine[] | undefined): MoveLine[] {
+export function joinMoveLog(
+  held: readonly MoveLine[],
+  window: readonly MoveLine[] | undefined,
+  lastWindow?: readonly MoveLine[],
+): MoveLine[] {
   const next = window ?? [];
   if (next.length === 0) return held.slice();
   const first = next[0].seq;
   const last = next[next.length - 1].seq;
-  if (!first || !last) return next.slice();
+  if (!first || !last) {
+    if (!lastWindow || held.length === 0) return next.slice();
+    return keep([...held, ...newMoveLines(lastWindow, next)]);
+  }
   const heldLast = held.length > 0 ? held[held.length - 1].seq ?? 0 : 0;
   if (last < heldLast) return next.slice();
-  const joined = [...held.filter((m) => (m.seq ?? 0) > 0 && (m.seq ?? 0) < first), ...next];
-  return joined.length > KEPT ? joined.slice(joined.length - KEPT) : joined;
+  return keep([...held.filter((m) => (m.seq ?? 0) > 0 && (m.seq ?? 0) < first), ...next]);
+}
+
+function keep(log: MoveLine[]): MoveLine[] {
+  return log.length > KEPT ? log.slice(log.length - KEPT) : log;
 }
 
 /** As many lines as the client holds for one table; the server keeps 200. */
@@ -35,7 +49,7 @@ export function useMoveLog(matchId: string, window: readonly MoveLine[] | undefi
   if (cur.matchId !== matchId) {
     ref.current = { matchId, window, log: joinMoveLog([], window) };
   } else if (cur.window !== window) {
-    ref.current = { matchId, window, log: joinMoveLog(cur.log, window) };
+    ref.current = { matchId, window, log: joinMoveLog(cur.log, window, cur.window) };
   }
   return ref.current.log;
 }
