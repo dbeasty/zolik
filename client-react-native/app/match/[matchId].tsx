@@ -110,7 +110,7 @@ import { ChoiceSheet } from '@/src/components/match/ChoiceSheet';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkin, useSkinControls } from '@/src/hooks/useSkin';
-import { factText, label, playerName, spokenFactText } from '@/src/lib/labels';
+import { factText, label, markViewer, playerName, spokenFactText } from '@/src/lib/labels';
 import {
   SHORTCUT_KEYS,
   cardTargetsText,
@@ -2724,7 +2724,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
                 <SuitInPlay key={`${f.labelKey}-${i}`} fact={f} players={state.players} style={styles.fact} />
               ) : (
                 <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
-                  {factText(f, state.players)}
+                  {/* Once the match is over these are its closing lines, and
+                      a winner named there should read as the reader. */}
+                  {factText(f, state.status === 'completed' ? markViewer(state.players, viewerId) : state.players)}
                 </Text>
               ),
             )}

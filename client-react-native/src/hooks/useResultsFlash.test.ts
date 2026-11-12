@@ -21,7 +21,7 @@ import type { MatchState, RoundLog } from '@/src/api/matchTypes';
  */
 
 const players = [
-  { id: 'p1', name: 'You', isAI: false },
+  { id: 'p1', name: 'Dana', isAI: false },
   { id: 'p2', name: 'Anna', isAI: false },
 ];
 
@@ -259,7 +259,7 @@ describe('compose', () => {
     });
     expect(lines.eyebrow).toBe('Match over');
     expect(lines.headline).toBe('Anna won');
-    expect(lines.sub).toBe('Anna 106  ·  You 78');
+    expect(lines.sub).toBe('Anna 106  ·  Dana (you) 78');
   });
 
   // Canasta: the score belongs to a side, and `Standings` hands back one row
@@ -282,7 +282,7 @@ describe('compose', () => {
         { playerId: 'p3', rank: 3, score: 3120 },
       ],
     });
-    expect(lines.sub).toBe('Anna & Cy 5230  ·  You & Bo 3120');
+    expect(lines.sub).toBe('Anna & Cy 5230  ·  Dana (you) & Bo 3120');
   });
 
   it('says a game played alone and not won was not solved, rather than that nobody won', () => {
@@ -296,6 +296,19 @@ describe('compose', () => {
   it('congratulates the winner by name only when it is not the reader', () => {
     const lines = compose({ kind: 'match', players, viewerId: 'p2', winners: ['p2'] });
     expect(lines.headline).toBe('You won');
+  });
+
+  // A module's own sentence names its player, and cannot say "you" with the
+  // verb agreeing — so the reader's name is marked instead of replaced.
+  it("marks the reader's name in the module's own headline", () => {
+    const closed = log();
+    closed.rounds[0]!.headline = {
+      labelKey: 'canasta.round.closed',
+      params: { player: 'p1', diff: '-240' },
+    };
+    expect(compose({ kind: 'round', log: closed, players, viewerId: 'p1' }).headline).toBe(
+      'Dana (you) closed with a -240 point differential',
+    );
   });
 
   it('falls back to the module own closing line when a game keeps no standings', () => {

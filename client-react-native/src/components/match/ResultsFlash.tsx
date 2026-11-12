@@ -11,7 +11,7 @@ import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { FlashKind } from '@/src/hooks/useResultsFlash';
 import { t } from '@/src/lib/i18n';
-import { factText, label, playerName, shownScore } from '@/src/lib/labels';
+import { factText, label, markViewer, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
 import { ARRIVAL_EASING, ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
@@ -203,6 +203,9 @@ export function compose({
   winners,
   viewerId,
 }: Omit<Props, 'visible'>): Lines {
+  // Every name below is printed with the reader's own marked "(you)": the
+  // standings, the module's own headline and closing line alike.
+  players = markViewer(players, viewerId);
   const names = (ids: string[]) => ids.map((id) => playerName(players, id)).join(', ');
 
   if (kind === 'match') {
