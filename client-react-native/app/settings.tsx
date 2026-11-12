@@ -7,6 +7,7 @@ import { RadioGroup, radioProps } from '@/src/a11y/RadioGroup';
 import { AvatarPicker } from '@/src/components/avatars/AvatarPicker';
 import { LanguagePicker } from '@/src/components/LanguagePicker';
 import { LegalLinks } from '@/src/components/LegalLinks';
+import { RotationSettings } from '@/src/components/RotationSettings';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
@@ -108,6 +109,9 @@ export default function SettingsScreen() {
         <Text style={shared.status}>{t('settings.language.status')}</Text>
         <LanguagePicker />
       </View>
+
+      {/* Which way the screen may turn; phones and tablets only. */}
+      <RotationSettings />
 
       {/* Card sounds and the announcer. */}
       <SoundSettings />

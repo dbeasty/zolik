@@ -20,6 +20,7 @@ import { AvatarProvider } from '@/src/hooks/useAvatar';
 import { SkinProvider } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
 import { startPerfMonitor } from '@/src/lib/perfMonitor';
+import { useApplyRotation } from '@/src/lib/rotationPref';
 import { InviteBanner } from '@/src/notify/InviteBanner';
 import { AvailabilityProvider } from '@/src/context/AvailabilityContext';
 import { InviteProvider } from '@/src/notify/InviteProvider';
@@ -47,6 +48,8 @@ export default function RootLayout() {
   // "Settings".
   useLocale();
   const desktopChrome = useDesktopChrome();
+  // Settings → Screen rotation, put back into effect at every launch.
+  useApplyRotation();
 
   useEffect(() => {
     SplashScreen.hideAsync();
