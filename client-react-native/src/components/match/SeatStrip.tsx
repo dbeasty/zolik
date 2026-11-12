@@ -139,13 +139,24 @@ type Props = {
    */
   onPickStandIn?: (seat: { id: string; name: string; skill?: string; on: boolean }) => void;
   /**
+   * Open the invite-back sheet for a person who is away. Where it is given,
+   * an away seat has "Invite back" under the player — the first answer to
+   * an empty chair.
+   */
+  onInvite?: (playerId: string) => void;
+  /**
+   * The host's "let a bot play" for an away person's seat, beside the invite:
+   * the choice, not the default. Opens the stand-in sheet to pick how well.
+   */
+  onLetBotPlay?: (seat: { id: string; name: string }) => void;
+  /**
    * The viewer's own name-and-face sheet. Where it is given, the viewer's
    * avatar on their own tile is a control that opens it.
    */
   onEditMe?: () => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot, onPickStandIn, onEditMe }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore, onPickBot, onPickStandIn, onInvite, onLetBotPlay, onEditMe }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   // Asked for stillness, the seat on turn keeps its outline and its shadow
@@ -252,7 +263,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     // about to: the seat stays theirs, so this is a mark on it rather than a
     // change of who sits there. The host taps it to decide about the seat.
     const pickStandIn =
-      onPickStandIn && player && !player.isAI && (player.standIn || player.standInAt)
+      onPickStandIn && player && !player.isAI && (player.standIn || player.standInAt || player.away)
         ? () => onPickStandIn({ id: player.id, name, skill: player.standIn?.skill, on: !!player.standIn })
         : undefined;
     const standIn = player?.standIn ? (
@@ -273,7 +284,46 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           {pickStandIn ? ' ▾' : ''}
         </Text>
       </BotPress>
+    ) : player?.away && !isMe ? (
+      <BotPress onPress={pickStandIn} testID={`standin-open-${seat.playerId}`} name={name}>
+        <Text style={[styles.badge, pickStandIn && styles.badgeLink]} testID={`away-badge-${seat.playerId}`}>
+          {t('seat.awayBadge')}
+          {pickStandIn ? ' ▾' : ''}
+        </Text>
+      </BotPress>
     ) : null;
+    // Under an away person: how to get them back, and — for the host, where
+    // the table offers it — a bot to play meanwhile. Inviting comes first; a
+    // bot is the choice, never what happens on its own.
+    const awayActions =
+      player && player.away && !player.isAI && !isMe && (onInvite || (onLetBotPlay && !player.standIn)) ? (
+        <View style={styles.awayActions} testID={`seat-away-actions-${seat.playerId}`}>
+          {onInvite ? (
+            <Pressable
+              onPress={() => onInvite(player.id)}
+              hitSlop={6}
+              style={[tapTarget, styles.awayAction, styles.awayActionPrimary]}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('invite.backTitle')}: ${name}`}
+              testID={`seat-invite-${seat.playerId}`}
+            >
+              <Text style={[styles.awayActionText, styles.awayActionPrimaryText]}>{`✉ ${t('invite.backTitle')}`}</Text>
+            </Pressable>
+          ) : null}
+          {onLetBotPlay && !player.standIn ? (
+            <Pressable
+              onPress={() => onLetBotPlay({ id: player.id, name })}
+              hitSlop={6}
+              style={[tapTarget, styles.awayAction]}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('banner.letBotPlay')}: ${name}`}
+              testID={`seat-let-bot-${seat.playerId}`}
+            >
+              <Text style={styles.awayActionText}>{`\u{1F916} ${t('banner.letBotPlay')}`}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null;
     const away = standIn ?? (player?.satOut ? (
       <Tip text={t('a11y.board.tip.paused')} focusable label={t('a11y.board.seat.badge.paused')} style={badgeTipStyle}>
         <Text style={styles.badge} testID={`paused-badge-${seat.playerId}`}>
@@ -459,6 +509,8 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             <Text style={styles.turn}>{t('match.toPlay')}</Text>
           </View>
         )}
+
+        {awayActions}
 
         {/* Who this seat plays with. On the viewer's partner it is the
             shorter, plainer sentence — "Your team" says the one thing that
@@ -841,6 +893,16 @@ function seatStyles(m: Metrics, s: Skin) {
     },
     // A bot badge the host can tap: the accent says it is a control.
     badgeLink: { backgroundColor: colors.accent },
+    awayActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    awayAction: {
+      borderWidth: 1,
+      borderColor: colors.accent,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+    },
+    awayActionPrimary: { backgroundColor: colors.accent },
+    awayActionText: { color: colors.accent, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
+    awayActionPrimaryText: { color: colors.onAccent },
     summaryPillActive: { borderColor: colors.accent },
     summaryPillOurs: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.22)' : '#22304a' },
     summaryName: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },

@@ -167,4 +167,53 @@ test.describe('a player whose connection drops', () => {
       await host.context().close();
     });
   }
+
+  // Under the player who is away: Invite back for anyone at the table, and
+  // for the host the choice of a bot meanwhile. Nothing happens by itself.
+  for (const width of [1280, 390]) {
+    test(`an away player has Invite back and, for the host, Let a bot play under their seat at ${width}px`, async ({
+      browser,
+      request,
+    }) => {
+      const t = await prsiTable(request, {}, true);
+      const host = await openAs(browser, t.host, t.matchId);
+      await host.setViewportSize({ width, height: 900 });
+      const friend = await openAs(browser, t.friend, t.matchId);
+      await expect(host.getByTestId(`seat-invite-${t.friend.userId}`)).toHaveCount(0);
+      await friend.context().close();
+
+      const invite = host.getByTestId(`seat-invite-${t.friend.userId}`);
+      await expect(invite).toBeVisible({ timeout: 15_000 });
+      await expect(host.getByTestId(`away-badge-${t.friend.userId}`)).toBeVisible();
+      // Nobody is put in for them: the seat stays away until somebody chooses.
+      await expect(host.getByTestId(`standin-badge-${t.friend.userId}`)).toHaveCount(0);
+
+      await invite.click();
+      await expect(host.getByTestId('invite-back-sheet')).toBeVisible();
+      const code = (await host.getByTestId('invite-back-code').innerText()).trim();
+      await expect(host.getByTestId('invite-back-table-url')).toContainText(code);
+      await host.getByTestId('invite-back-close').click();
+
+      await host.getByTestId(`seat-let-bot-${t.friend.userId}`).click();
+      await expect(host.getByTestId('standin-sheet')).toBeVisible();
+      await host.getByTestId('standin-strength-easy').click();
+      await expect(host.getByTestId(`standin-badge-${t.friend.userId}`)).toBeVisible({ timeout: 15_000 });
+      // A bot is in, but they are still away and can still be invited back.
+      await expect(host.getByTestId(`seat-let-bot-${t.friend.userId}`)).toHaveCount(0);
+      await expect(invite).toBeVisible();
+
+      await host.context().close();
+    });
+  }
+
+  test('a player who is not the host can invite, but not put a bot in', async ({ browser, request }) => {
+    const t = await prsiTable(request, {}, true);
+    const friend = await openAs(browser, t.friend, t.matchId);
+    const host = await openAs(browser, t.host, t.matchId);
+    await host.context().close();
+
+    await expect(friend.getByTestId(`seat-invite-${t.host.userId}`)).toBeVisible({ timeout: 15_000 });
+    await expect(friend.getByTestId(`seat-let-bot-${t.host.userId}`)).toHaveCount(0);
+    await friend.context().close();
+  });
 });

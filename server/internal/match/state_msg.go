@@ -55,6 +55,11 @@ type MatchStateMsg struct {
 	Winners  []string `json:"winners,omitempty"`
 
 	Players []PlayerMsg `json:"players"`
+	// StandIns says the host may put a bot into an away person's seat at this
+	// table right now (SetStandIn): the game offers stand-ins, it is not a
+	// saved game, and it is being played. What a client draws "Let a bot
+	// play" from, so it never offers a press the server would refuse.
+	StandIns bool `json:"standIns,omitempty"`
 	// Sides is who is playing with whom, in seat order, for a table that has
 	// not been dealt yet — the lobby's answer to "who is my partner if we start
 	// now". Absent once the match is active, where the board carries the
@@ -143,6 +148,10 @@ type PlayerMsg struct {
 	IsAgent    bool   `json:"isAgent,omitempty"`
 	AgentLabel string `json:"agentLabel,omitempty"`
 	SatOut     bool   `json:"satOut,omitempty"`
+	// Away is a person's seat whose player is not at the table right now,
+	// at a table being played or set aside. It is what puts "Invite" under
+	// their name: inviting them back is the first answer to an empty chair.
+	Away bool `json:"away,omitempty"`
 	// Simplified is a bot seat the server is playing with a cheaper engine
 	// than it was seated with, because CPU is short (internal/botgov). It
 	// goes back to full strength by itself, at a round boundary.
@@ -207,7 +216,7 @@ func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMs
 // once per recipient per seat — which, through standInDue, used to mean
 // building the module's descriptor twice for each.
 type seatFact struct {
-	satOut, simplified bool
+	satOut, simplified, away bool
 	standIn            *StandInMsg
 	standInAt          *time.Time
 	via, formerName    string
@@ -215,8 +224,10 @@ type seatFact struct {
 
 func (m *Manager) seatFacts(match models.Match) []seatFact {
 	out := make([]seatFact, len(match.Players))
+	live := match.Status == "active" || match.Status == "suspended" || match.Status == string(rules.StatusAbandoned)
 	for i, p := range match.Players {
 		out[i].satOut = m.satOut(match, p)
+		out[i].away = live && !p.IsAI && !m.seatHere(match.ID.Hex(), p.ID)
 		out[i].via = m.viaOf(match.ID.Hex(), p.ID)
 		out[i].formerName = p.FormerName
 		if p.StandIn != nil {
@@ -240,6 +251,7 @@ func withSeatFacts(msg MatchStateMsg, facts []seatFact) MatchStateMsg {
 			break
 		}
 		msg.Players[i].SatOut = f.satOut
+		msg.Players[i].Away = f.away
 		msg.Players[i].Via = f.via
 		msg.Players[i].FormerName = f.formerName
 		if f.standIn != nil {
@@ -343,10 +355,15 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	}
 
 	mod := m.registry.Get(match.ModuleID)
-	if o.desc != nil {
-		msg.Deck = o.desc.Deck
-	} else if mod != nil {
-		msg.Deck = mod.Descriptor().Deck
+	desc := o.desc
+	if desc == nil && mod != nil {
+		d := mod.Descriptor()
+		desc = &d
+	}
+	if desc != nil {
+		msg.Deck = desc.Deck
+		msg.StandIns = (match.Status == "active" || match.Status == "suspended") &&
+			desc.Option(module.OptStandInAfter) != nil && !m.savedGame(match)
 	}
 	// Sides are a lobby fact. Once the match is dealt the board carries the
 	// partnerships itself — per seat, in the ViewModel — and repeating them here

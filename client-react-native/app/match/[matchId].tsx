@@ -832,6 +832,11 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // so a target sliding under a held pointer does not restart the dwell below.
   const scrolling = useRef(false);
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  // The zoom control rides in the bar only where the bar has room for it
+  // beside the table code. On a phone it sat on top of the code, which could
+  // not be read; there, as in the Mac app (which has no bar), it sits in the
+  // board's top row instead.
+  const zoomInBar = !desktopChrome && windowWidth >= 480;
   // The board never gets shorter within a deal, so a turn line going away
   // under the piles cannot pull them down the screen — see useNoShrink.
   const boardNoShrink = useNoShrink(
@@ -2505,7 +2510,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
             ? undefined
             : () => (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  {zoomButtons}
+                  {zoomInBar ? zoomButtons : null}
                   {layoutButton}
                   <AccountMenu />
                 </View>
@@ -2751,7 +2756,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
               textStyle={styles.tableCodeText}
             />
           ) : null}
-          {desktopChrome ? zoomButtons : null}
+          {zoomInBar ? null : zoomButtons}
           {desktopChrome ? layoutButton : null}
           <Tip text={t('a11y.board.tip.skin')}>
             <Pressable
@@ -3071,6 +3076,12 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
           onPickBot={botStrength.open}
           onPickStandIn={standIn.open}
+          onInvite={tableCode ? () => setInviteBackOpen(true) : undefined}
+          onLetBotPlay={
+            state.standIns && standIn.open
+              ? (seat) => standIn.open?.({ id: seat.id, name: seat.name, on: false })
+              : undefined
+          }
           onEditMe={seatLook.open}
         />
 
