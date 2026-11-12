@@ -762,6 +762,9 @@ export function matchStyles(s: Skin) {
   // The screen behind the felt, and the safe-area box the board lives in —
   // the felt is drawn edge to edge, the content keeps the old padding.
   root: { flex: 1, backgroundColor: colors.bg },
+  // Holds the board's scroller and nothing else; it takes the scroller's place
+  // in the column, so it must grow the way the scroller did.
+  tapAway: { flex: 1, minHeight: 0 },
   safe: { flex: 1, padding: 16 },
   skinToggle: {
     borderWidth: 1,

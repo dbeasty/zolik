@@ -6,6 +6,7 @@ import { t } from '@/src/lib/i18n';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { swallowTaps } from '@/src/hooks/useTapAway';
 import type { Metrics } from '@/src/lib/layout';
 import type { Skin } from '@/src/skins/types';
 
@@ -84,6 +85,8 @@ type Props = {
   groupLabel?: string;
   /** Layout overrides from a caller placing this panel in its own row — e.g. `flex: 1` to share a row with a neighbour. Applied after the base look, so it can't undo it. */
   style?: StyleProp<ViewStyle>;
+  /** Taps on the panel's empty space stop here rather than reaching the board behind it — see `swallowTaps`. */
+  keepTaps?: boolean;
   children?: ReactNode;
 };
 
@@ -109,6 +112,7 @@ export function Panel({
   style,
   region,
   groupLabel,
+  keepTaps,
   children,
 }: Props) {
   const metrics = useMetrics();
@@ -120,6 +124,7 @@ export function Panel({
 
   return (
     <View
+      {...(keepTaps ? swallowTaps : {})}
       ref={(n) => innerRef?.(n as unknown as Measurable | null)}
       style={[
         styles.panel,
