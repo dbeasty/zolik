@@ -185,6 +185,43 @@ test.describe('choosing cards out of a hand', () => {
     await expect.poll(() => handCards(page)).toEqual(expected);
   });
 
+  test('a tap clearly away from the hand puts the whole selection down, a near miss does not', async ({
+    page,
+    request,
+  }) => {
+    // Unpicking four cards one tap at a time was the only way back to an empty
+    // hand. A tap on the bare board now does it at once, as Escape does — but a
+    // tap that lands in the hand between cards is a near miss, not a change of
+    // mind, and keeps the selection.
+    const table = await newTable(request);
+    await openMatch(page, table.host, table.matchId);
+    await handCards(page);
+
+    await tapCard(page, card(page, 0));
+    await tapCard(page, card(page, 2));
+    expect(await isSelected(page, 0)).toBe(true);
+    expect(await isSelected(page, 2)).toBe(true);
+
+    // Inside the hand's panel, on its own empty margin: hit-tested, because a
+    // point that turned out to be a card would toggle it and prove nothing.
+    const hand = page.locator('[data-testid^="zone-hand:"]').first();
+    const box = (await hand.boundingBox())!;
+    const miss = { x: box.x + box.width - 6, y: box.y + box.height - 6 };
+    const missHit = await page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y);
+      return el?.closest('[data-card],[role="button"],[role="checkbox"],button') ? 'control' : 'bare';
+    }, miss);
+    expect(missHit, 'the hand margin chosen is bare').toBe('bare');
+    await page.mouse.click(miss.x, miss.y);
+    expect(await isSelected(page, 0)).toBe(true);
+    expect(await isSelected(page, 2)).toBe(true);
+
+    // The game's name above the board: plainly not the hand.
+    await page.getByTestId('match-module').click();
+    await expect.poll(() => isSelected(page, 0)).toBe(false);
+    expect(await isSelected(page, 2)).toBe(false);
+  });
+
   test('tapping a card still selects and deselects it at all', async ({ page, request }) => {
     // The plain case, which nothing covered before: the shell's tap handling
     // was rewritten to address slots instead of strings, and a regression that

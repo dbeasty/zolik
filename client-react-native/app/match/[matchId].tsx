@@ -46,6 +46,7 @@ import { TableCode } from '@/src/components/match/TableCode';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
 import { useSeatSession } from '@/src/hooks/useSeatSession';
+import { swallowTaps, useTapAway } from '@/src/hooks/useTapAway';
 import { BoardMetricsProvider, useBoardMetrics, useBoardZoomLevel, useDockMetrics } from '@/src/hooks/useMetrics';
 import { setBoardZoom, stepBoardZoom, ZOOM_STEPS } from '@/src/lib/boardZoom';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
@@ -1021,6 +1022,16 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     return () => document.removeEventListener('keydown', listener);
   }, []);
 
+  // A tap on the board's bare felt — clearly away from the hand, and from
+  // anything that answers a tap of its own — puts down whatever is picked up,
+  // the same as Escape. Called through a ref because what "picked up" covers
+  // is worked out further down, past the early return.
+  const tapAwayRef = useRef<() => void>(() => {});
+  const tapAway = useTapAway(
+    () => tapAwayRef.current(),
+    selected.size > 0 || !!pendingGroupKey || !!armedMeldId || !!tablePick || !!meldPick,
+  );
+
   if (!state) {
     return (
       <View style={styles.root}>
@@ -1748,6 +1759,18 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     return true;
   };
 
+  // Everything picked up, put down: Escape, and a tap away from the hand.
+  const putDown = () => {
+    clearSelection();
+    setPendingGroupKey(null);
+    setTablePick(null);
+  };
+  tapAwayRef.current = () => {
+    // Letting go of a carried card is the drag's to judge, not a tap.
+    if (dragRef.current) return;
+    putDown();
+  };
+
   onBoardKey.current = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const which = shortcutForKey(e);
@@ -1759,9 +1782,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
       // A tooltip first — Escape closing the bubble is all it should do then.
       if (isTipOpen()) return;
       if (selectedCards.length || pendingGroupKey || armedMeldId || tablePick || meldPick) {
-        clearSelection();
-        setPendingGroupKey(null);
-        setTablePick(null);
+        putDown();
       } else if (arranging) {
         // Nothing picked up to put down: done arranging.
         setArranging(false);
@@ -2151,6 +2172,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   const controlsPanel = (
     <Panel
       {...controlsPanelProps}
+      keepTaps
       title={t('match.controls')}
       region={t('a11y.board.region.actions')}
       testID="controls-panel"
@@ -2283,6 +2305,8 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   const canDropOnBoard = someOfferDroppable(state.legalActions);
   const handPanel = (
   <View
+    // A tap between two cards is a near miss, not a tap away.
+    {...swallowTaps}
     style={[styles.mine, docked && styles.mineDocked, handOnDragLayer(drag) && dragLayer]}
     // Docked, the hand is always on screen: there is nothing for the opening
     // scroll to bring into view, so it is not told where the hand is.
@@ -2597,6 +2621,8 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         </View>
       ) : null}
       <BoardMetricsProvider metrics={metrics}>
+      {/* The board's bare felt, for a tap away — see `tapAway`. */}
+      <View style={styles.tapAway} {...tapAway}>
       <ScrollView
         ref={scrollRef}
         // The raise box sits low on the board; keep it clear of the keyboard.
@@ -3018,6 +3044,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         />
 
       </ScrollView>
+      </View>
       </BoardMetricsProvider>
 
       {/* Why a move was refused: the reason, the rule behind it, and the move
