@@ -112,6 +112,13 @@ describe('newMoveLines', () => {
   it('says nothing about the history a screen opens on', () => {
     expect(newMoveLines(undefined, [line('a', 1)])).toEqual([]);
   });
+
+  it('hears only the new lines when a reconnection brings the whole log', () => {
+    const numbered = (seq: number): MoveLine => ({ ...line('a', seq), seq });
+    const window = [8, 9, 10].map(numbered);
+    const whole = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(numbered);
+    expect(newMoveLines(window, whole)).toEqual([numbered(11)]);
+  });
 });
 
 const draw: ActionOffer = { id: 'draw:deck', verb: 'draw', enabled: true, labelKey: 'verb.drawDeck', source: { zoneId: 'deck' }, target: { zoneId: 'hand:me' } };

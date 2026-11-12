@@ -38,6 +38,10 @@ type Move struct {
 	// discard pile, which shows what someone is collecting. The client sets
 	// it apart in the list of recent moves.
 	Notable bool `json:"notable,omitempty"`
+	// Seq numbers the move in the viewer's log at the table, from 1. A live
+	// broadcast carries only the last few moves; the client joins them onto
+	// the history it holds by Seq. Zero where nothing keeps a log.
+	Seq int `json:"seq,omitempty"`
 }
 
 // EventNarrator turns a module's events into moves a person can read.

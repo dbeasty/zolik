@@ -23,6 +23,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import type { ChangeMarks } from '@/src/lib/changes';
 import { besideRows, drawableZones, isSpreadRowZone, isTableZone, sitsBeside, stretchesInRow, zoneDropLive } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
+import { useMoveLog } from '@/src/lib/moveLog';
 import {
   asDrawn,
   canMove,
@@ -315,7 +316,8 @@ export function BoardLayout({
       {factText(f, state.players)}
     </Text>
   ));
-  const moves = state.recentMoves ?? [];
+  // The whole log, not just the window the last broadcast carried.
+  const moves = useMoveLog(state.matchId, state.recentMoves);
   const prompts = view.prompts ?? [];
   const standing = (view.header ?? []).filter((f) => f.standing);
   // Folded or open as the session last left it — the Mac app's View › Log

@@ -125,10 +125,11 @@ type MatchStateMsg struct {
 	Tutorial *models.TutorialRef `json:"tutorial,omitempty"`
 	// Reserved is who a rematch lobby is still holding seats for.
 	Reserved []models.Reservation `json:"reserved,omitempty"`
-	// RecentMoves is what the last few moves at the table were, as this viewer
-	// may read them, oldest first. It rides on the state message, not on the
-	// events, so it survives a reconnection. Absent for a game whose module
-	// does not narrate its moves.
+	// RecentMoves is the moves at the table as this viewer may read them,
+	// oldest first: the last few on a broadcast, the whole kept log on a state
+	// sent on its own (see BuildStateMsg), each numbered by Seq. It rides on
+	// the state message, not on the events, so it survives a reconnection.
+	// Absent for a game whose module does not narrate its moves.
 	RecentMoves []module.Move `json:"recentMoves,omitempty"`
 }
 
@@ -186,6 +187,11 @@ type StandInMsg struct {
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
 	msg := m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)), nil)
+	// Sent on its own — a socket opening, a reload — so it carries the whole
+	// log: the client has nothing yet to add a broadcast's window onto.
+	if e := m.live.peek(match.ID.Hex()); e != nil {
+		msg.RecentMoves = e.recentFor(viewerID, 0)
+	}
 	return m.withSatOut(match, msg)
 }
 
@@ -265,7 +271,7 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 func (m *Manager) buildStateMsgWith(match models.Match, viewerID string, o stateMsgOpts) MatchStateMsg {
 	msg := m.projectStateMsg(match, viewerID, o)
 	if e := m.live.peek(match.ID.Hex()); e != nil {
-		msg.RecentMoves = e.recentFor(viewerID)
+		msg.RecentMoves = e.recentFor(viewerID, recentMoves)
 	}
 	return msg
 }

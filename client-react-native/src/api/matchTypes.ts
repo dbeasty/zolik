@@ -30,6 +30,8 @@ export type MoveLine = {
   groupId?: string;
   /** A move the others should not miss — taking the discard pile. Shown bold and red. */
   notable?: boolean;
+  /** The move's number in this viewer's log at the table, from 1 — see `useMoveLog`. */
+  seq?: number;
 };
 
 /**
@@ -626,8 +628,10 @@ export type MatchState = {
   /** Who a rematch lobby is still holding seats for, in seat order. */
   reserved?: { playerId: string; name: string; avatar?: string }[];
   /**
-   * The last few moves at the table as this viewer may read them, oldest
-   * first. Absent for a game that does not narrate its moves.
+   * The moves at the table as this viewer may read them, oldest first: the
+   * whole kept log on a state sent on its own (a socket opening, a reload),
+   * the last few on a broadcast — joined by `seq` in `useMoveLog`. Absent for
+   * a game that does not narrate its moves.
    */
   recentMoves?: MoveLine[];
   players: MatchPlayer[];

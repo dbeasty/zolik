@@ -52,13 +52,16 @@ type liveMatch struct {
 	// next lock tries again.
 	stateErr error
 
-	// recent is the last few moves at the table, narrated separately for each
-	// seat from that seat's own projection of the events. Kept only in
-	// memory: it is a "what just happened" strip, not a record, and losing it
-	// to an eviction or a restart costs a line of text. Guarded by its own
-	// lock because the state message reads it from outside the entry's.
+	// recent is the moves at the table, narrated separately for each seat
+	// from that seat's own projection of the events — the last movesKept of
+	// them. Kept only in memory: it is the table's log, not a record, and
+	// losing it to an eviction or a restart costs the lines before it.
+	// Guarded by its own lock because the state message reads it from
+	// outside the entry's. moveSeq counts each seat's lines, so a client can
+	// join a short window onto the history it already holds.
 	recentMu sync.Mutex
 	recent   map[string][]module.Move
+	moveSeq  map[string]int
 
 	// proj is the last move's state decoded, as the move left it for its
 	// broadcast, and projOf the bytes it was decoded from. It is handed to
@@ -69,9 +72,15 @@ type liveMatch struct {
 	projOf []byte
 }
 
-// recentMoves is how many moves each seat's strip remembers: about a round of
-// turns at a full table.
+// recentMoves is how many moves each live broadcast carries: about a round of
+// turns at a full table, which is what the client needs to follow along.
 const recentMoves = 12
+
+// movesKept is how many moves each seat's log remembers. A state sent outside
+// a broadcast — a socket opening, a reload — carries all of them, so the log
+// opened is the table's history rather than its last round; the broadcasts
+// that follow carry only recentMoves, which the client adds on by Seq.
+const movesKept = 200
 
 // record adds one move's events to every seat's strip.
 func (e *liveMatch) record(mod module.GameModule, next module.State, players []string, events []module.Event) {
@@ -82,6 +91,7 @@ func (e *liveMatch) record(mod module.GameModule, next module.State, players []s
 	defer e.recentMu.Unlock()
 	if e.recent == nil {
 		e.recent = map[string][]module.Move{}
+		e.moveSeq = map[string]int{}
 	}
 	for _, viewer := range players {
 		for _, ev := range events {
@@ -93,20 +103,29 @@ func (e *liveMatch) record(mod module.GameModule, next module.State, players []s
 			if !ok {
 				continue
 			}
+			e.moveSeq[viewer]++
+			mv.Seq = e.moveSeq[viewer]
 			list := append(e.recent[viewer], mv)
-			if len(list) > recentMoves {
-				list = list[len(list)-recentMoves:]
+			if len(list) > movesKept {
+				// Copied down rather than resliced, so the array behind it
+				// does not keep every move ever appended.
+				list = append([]module.Move(nil), list[len(list)-movesKept:]...)
 			}
 			e.recent[viewer] = list
 		}
 	}
 }
 
-// recentFor is a copy of one seat's strip, oldest first.
-func (e *liveMatch) recentFor(viewer string) []module.Move {
+// recentFor is a copy of the last n moves of one seat's log, oldest first;
+// n <= 0 is all of them.
+func (e *liveMatch) recentFor(viewer string, n int) []module.Move {
 	e.recentMu.Lock()
 	defer e.recentMu.Unlock()
-	return append([]module.Move(nil), e.recent[viewer]...)
+	list := e.recent[viewer]
+	if n > 0 && len(list) > n {
+		list = list[len(list)-n:]
+	}
+	return append([]module.Move(nil), list...)
 }
 
 // liveMatches is the Manager's table of entries.
