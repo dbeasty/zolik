@@ -23,7 +23,11 @@ import (
 // an operator switches it on in the admin console, or a local file named by
 // ZOLIK_LEARNED_MODEL_ZOLIK — see learn.HardModel. With neither, this is the
 // heuristic, exactly as before.
-func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, heuristicBot{}) }
+//
+// An AI seat at a Continental table plays Hard: see modelscope.go.
+func (m *Module) Bot() module.Bot {
+	return learn.Scoped(learn.HardModel(learnGame{}, heuristicBot{}), heuristicBot{}, trainedTable)
+}
 
 type heuristicBot struct{}
 

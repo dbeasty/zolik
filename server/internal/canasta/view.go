@@ -526,8 +526,11 @@ func topOnly(s *GameState) []string {
 //
 // Hard seats play the shipped trained model instead when an operator has
 // switched it on (learn.HardModel); this heuristic stays the fallback and
-// plays every Easy and Medium seat.
-func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, bot{}) }
+// plays every Easy and Medium seat, and AI seats at a table the model was
+// not trained for (modelscope.go).
+func (m *Module) Bot() module.Bot {
+	return learn.Scoped(learn.HardModel(learnGame{}, bot{}), bot{}, trainedTable)
+}
 
 // Standings ranks by partnership score, so both members of a side share a rank
 // — which is the case that made module.Standing allow ties in the first place.
