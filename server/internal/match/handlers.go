@@ -1571,7 +1571,11 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	// Gated on the status already in hand rather than left to AnnouncePresence
 	// to discover, so that opening a socket onto an ordinary match — which is
 	// every socket, nearly all the time — costs no extra read.
-	if m.Status == string(rules.StatusAbandoned) {
+	//
+	// A table being played hears it too: the seat is no longer away, so the
+	// others' screens drop its mark and the invite under its name.
+	switch m.Status {
+	case "active", "suspended", string(rules.StatusAbandoned):
 		h.manager.AnnouncePresence(ctx, matchID)
 	}
 	// And start the bots, if the table is waiting on one.

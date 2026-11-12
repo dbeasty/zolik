@@ -221,3 +221,36 @@ func codeOf(err error) string {
 	}
 	return ""
 }
+
+// The seat card's invite and bot buttons are drawn from these: a person who
+// is not at the table is marked away, one who is is not, a bot never is, and
+// a table that offers stand-ins says so while it is being played.
+func TestStateMarksAwaySeatsAndOffersStandIns(t *testing.T) {
+	ctx := t.Context()
+	m, id, _, _ := standInTable(t, module.Options{module.OptStandInAfter: 0})
+	sitDown(t, m, id, "p1")
+	cur, err := m.Current(ctx, id)
+	if err != nil {
+		t.Fatalf("current: %v", err)
+	}
+	msg := m.BuildStateMsg(cur, "p1")
+	away := map[string]bool{}
+	for _, p := range msg.Players {
+		away[p.ID] = p.Away
+	}
+	if away["p1"] || !away["p2"] {
+		t.Errorf("away = %v, want p2 away and p1 (at the table) not", away)
+	}
+	if !msg.StandIns {
+		t.Error("StandIns = false at an active Prší table, want true")
+	}
+
+	leave := sitDown(t, m, id, "p2")
+	cur, _ = m.Current(ctx, id)
+	for _, p := range m.BuildStateMsg(cur, "p1").Players {
+		if p.ID == "p2" && p.Away {
+			t.Error("p2 still marked away after sitting down")
+		}
+	}
+	leave()
+}

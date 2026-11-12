@@ -524,6 +524,11 @@ export type MatchPlayer = {
   /** When a bot will start playing for this away seat (ISO time), for a countdown. */
   standInAt?: string;
   /**
+   * A person whose player is not at the table right now, at a table being
+   * played or set aside. What puts "Invite back" under their name.
+   */
+  away?: boolean;
+  /**
    * How this player is connected to a table a device hosts: the device
    * itself, its room's Wi-Fi, Bluetooth, or the internet through the relay.
    * Absent on a cloud table and for anybody not connected.
@@ -635,6 +640,11 @@ export type MatchState = {
    */
   recentMoves?: MoveLine[];
   players: MatchPlayer[];
+  /**
+   * The host may put a bot into an away person's seat right now: the game
+   * offers stand-ins, and the table is being played.
+   */
+  standIns?: boolean;
   /**
    * Who is playing with whom if the table were dealt now, in seat order —
    * present only while the table is still a lobby, and only for a game that

@@ -334,10 +334,16 @@ func (m *Manager) attended(match models.Match) bool {
 // the path every ordinary player takes.
 func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
 	match, err := m.current(ctx, matchID)
-	if err != nil || match.Status != string(rules.StatusAbandoned) {
+	if err != nil {
 		return
 	}
-	m.Broadcast(match)
+	// A seat arriving or leaving changes who is away — the mark and the
+	// invite under their name — at a table being played as much as at one
+	// set aside, where it is also what takes a resume offer away.
+	switch match.Status {
+	case "active", "suspended", string(rules.StatusAbandoned):
+		m.Broadcast(match)
+	}
 }
 
 // ResumeAbandoned brings a swept-up table back to life.
