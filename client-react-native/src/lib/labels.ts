@@ -213,6 +213,19 @@ export function playerName(
 }
 
 /**
+ * The same players, with the reader's own name marked "Name (you)".
+ *
+ * For the lines that close a round or a match. A winner named by the name you
+ * signed up with reads as somebody else on a screen you are looking at; the
+ * marker is a suffix rather than "you" in place of the name because these
+ * lines are the module's own sentences, and "{player} wins" has no way to
+ * agree its verb with a second person.
+ */
+export function markViewer<P extends { id: string; name: string }>(players: P[], viewerId: string): P[] {
+  return players.map((p) => (p.id === viewerId ? { ...p, name: `${p.name || p.id} ${t("match.youSuffix")}` } : p));
+}
+
+/**
  * The number to print for a standing.
  *
  * One definition, because there are two fields and only one of them is meant
