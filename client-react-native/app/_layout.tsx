@@ -12,6 +12,7 @@ import { SessionProvider } from '@/src/context/SessionContext';
 import { AgeGateProvider } from '@/src/age/AgeGate';
 import { DesktopMenuBridge } from '@/src/desktop/DesktopMenuBridge';
 import { NavArrows, NavHistoryTracker } from '@/src/desktop/NavArrows';
+import { installDesktopScrollbars } from '@/src/desktop/scrollbars';
 import { GameWindowGuard, installNavigationRecorder } from '@/src/desktop/windows';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
@@ -57,6 +58,7 @@ export default function RootLayout() {
   // table, which only lives in this page's memory.
   useEffect(() => {
     if (!IS_DESKTOP) return;
+    installDesktopScrollbars();
     const w = window as { __zolikNavigate?: (path: string) => void };
     w.__zolikNavigate = (path) => router.push(path as never);
     return () => {

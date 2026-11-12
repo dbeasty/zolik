@@ -92,9 +92,19 @@ export const RoundResults = memo(function RoundResults({
   // table that would have fitted had its headings wrapped. The table is given
   // the room it is shown in, so the columns share it and their headings wrap,
   // and only a table whose columns cannot fit at their minimum width scrolls.
+  //
+  // Where even that would not fit, the table closes up before it scrolls:
+  // narrower columns, a narrower round column and less padding. That is
+  // decided by the room the panel has, not by the window, because a wide
+  // window with the board in two columns gives the results a column as
+  // narrow as a phone's, and a table sized for the window scrolled there.
   const [room, setRoom] = useState(0);
-  const floor = styles.labelCell.width + columns.length * styles.cell.minWidth;
+  const roomy = styles.labelCell.width + columns.length * styles.cell.minWidth;
+  const compact = room > 0 && roomy > room;
+  const floor = compact ? styles.labelCompact.width + columns.length * styles.cellCompact.minWidth : roomy;
   const overflows = room > 0 && floor > room;
+  const cs = [styles.cell, compact && styles.cellCompact];
+  const ls = [styles.labelCell, compact && styles.labelCompact];
 
   // Re-played per round, so each result announces itself rather than only the
   // first one of the match.
@@ -143,13 +153,13 @@ export const RoundResults = memo(function RoundResults({
         >
           <View style={[styles.table, room > 0 && { width: Math.max(room, floor) }]}>
             <View style={[styles.row, styles.headRow]}>
-              <Text style={[styles.cell, styles.labelCell, styles.head]}>
+              <Text style={[cs, ls, styles.head]}>
                 {label(log.labelKey)}
               </Text>
               {columns.map(({ id, members }) => (
-                <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
+                <View key={id} style={[cs, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
                   <Text
-                    numberOfLines={members.length > 1 ? undefined : 2}
+                    numberOfLines={members.length > 1 ? undefined : compact ? 1 : 2}
                     style={[styles.name, styles.head, id === viewerId && styles.mine]}
                   >
                     {headOf(members)}
@@ -176,7 +186,7 @@ export const RoundResults = memo(function RoundResults({
                   style={[styles.row, newest && styles.newest]}
                   testID={`round-${r.number}`}
                 >
-                  <View style={[styles.cell, styles.labelCell]}>
+                  <View style={[cs, ls]}>
                     <Text style={styles.roundNumber}>{r.number}</Text>
                     {r.headline ? (
                       <Text style={styles.roundFact} testID={`round-${r.number}-headline`}>
@@ -212,7 +222,7 @@ export const RoundResults = memo(function RoundResults({
                         {s ? <Text style={[styles.total, isMine && styles.mineTotal]}>{runningTotal(s)}</Text> : null}
                       </>
                     );
-                    const cellStyle = [styles.cell, isMine && styles.mineCol];
+                    const cellStyle = [cs, isMine && styles.mineCol];
                     return s && onOpenScore ? (
                       <Pressable
                         key={id}
@@ -236,13 +246,13 @@ export const RoundResults = memo(function RoundResults({
 
             {standings?.length ? (
               <View style={[styles.row, styles.totalRow]}>
-                <Text style={[styles.cell, styles.labelCell, styles.head]}>
+                <Text style={[cs, ls, styles.head]}>
                   {unit ? label(unit) : 'Total'}
                 </Text>
                 {columns.map(({ id }) => {
                   const s = byId.get(id);
                   return (
-                    <View key={id} style={[styles.cell, id === viewerId && styles.mineCol]}>
+                    <View key={id} style={[cs, id === viewerId && styles.mineCol]}>
                       <Text testID={`round-total-${id}`} style={[styles.grand, id === viewerId && styles.mineGrand]}>
                         {s ? shownScore(s) : '—'}
                       </Text>
@@ -360,6 +370,13 @@ function roundStyles(m: Metrics, s: Skin) {
       width: m.narrow ? 92 : 132,
       alignItems: 'flex-start',
     },
+    // The same table closed up, for a panel narrower than the one above
+    // fits: columns at the width of a score rather than of a name. A name
+    // there is cut short on one line ("Crafty Kl…"), because wrapped into a
+    // column that narrow it broke mid-word ("Craft / y"). The label column
+    // keeps room for one word of its heading ("penalty / points").
+    cellCompact: { minWidth: 50, paddingVertical: 2, paddingHorizontal: 3 },
+    labelCompact: { width: 76 },
     // Numbers read down the column, so they end on the same edge; names sit
     // over the numbers they belong to and end on it too.
     name: { alignSelf: 'stretch', textAlign: 'right' },
