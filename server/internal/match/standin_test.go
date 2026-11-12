@@ -20,6 +20,13 @@ func standInTable(t *testing.T, opts module.Options) (m *match.Manager, matchID,
 	m, _, _ = newReaperHarness(t)
 	m.SetBotPace(time.Millisecond, 2*time.Millisecond)
 	m.SetStandInWait(150 * time.Millisecond)
+	// Stand-ins are the host's choice; these tables have made it.
+	if _, chosen := opts[module.OptStandInAfter]; !chosen {
+		if opts == nil {
+			opts = module.Options{}
+		}
+		opts[module.OptStandInAfter] = 120
+	}
 
 	created, err := m.Create(ctx, "prsi", module.MatchConfig{Options: opts}, models.Player{ID: "p1", Name: "Ada"})
 	if err != nil {
