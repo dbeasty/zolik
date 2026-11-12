@@ -34,6 +34,12 @@ type Props = {
   onKeepWaiting?: (playerId: string) => void;
   /** Take your own seat back from the bot you stepped out for. */
   onStepBackIn?: () => void;
+  /**
+   * Open the invite-back sheet: the table link, its code and seat links. On
+   * every banner about somebody who is not here, because sending them the
+   * way back is the ordinary answer to it, before any bot.
+   */
+  onInviteBack?: () => void;
 };
 
 /**
@@ -48,7 +54,7 @@ type Props = {
  * *player* is missing, the table waits for them for as long as it was set up
  * to, and then a bot plays their seat. Only the first that holds is shown.
  */
-export function TableBanner({ state, seats, viewerId, connected, displaced, onReclaim, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting, onStepBackIn }: Props) {
+export function TableBanner({ state, seats, viewerId, connected, displaced, onReclaim, serverGone, notice, onDismissNotice, onLetBotPlay, onKeepWaiting, onStepBackIn, onInviteBack }: Props) {
   const counting = !!awaitedAway(state, seats)?.standInAt;
   const now = useNow(counting);
 
@@ -91,6 +97,16 @@ export function TableBanner({ state, seats, viewerId, connected, displaced, onRe
           accessibilityRole="button"
         >
           <Text style={styles.buttonText}>{t('banner.stepBackIn')}</Text>
+        </Pressable>
+      ) : null}
+      {botBanner && onInviteBack ? (
+        <Pressable
+          testID="table-banner-invite-back"
+          onPress={onInviteBack}
+          style={styles.button}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{t('invite.backTitle')}</Text>
         </Pressable>
       ) : null}
       {b.kind === 'waiting' && onLetBotPlay && b.playerId ? (

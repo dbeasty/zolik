@@ -123,6 +123,31 @@ func TestResumeRefusesATableWhoseOtherPlayersAreAway(t *testing.T) {
 	}
 }
 
+// The bug this closes: Bo dropped, a bot stood in for him, and later the
+// table was swept. Ada came back to it and was offered the resume at once —
+// with the bot still playing Bo — and no way to send Bo the code, because
+// a stood-in seat did not count as away. Bo is a person; he is invited back.
+func TestResumeWaitsForAPlayerABotWasStandingInFor(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	bo := models.Player{ID: "p2", Name: "Bo", StandIn: &models.StandIn{Since: time.Now().UTC(), By: models.StandInTimeout}}
+	saved := abandonedMatch(t, repo, bo)
+	sitDown(t, m, saved.ID.Hex(), "p1")
+
+	err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1")
+	if module.CodeOf(err) != "TABLE_HAS_PLAYERS_AWAY" || !strings.Contains(err.Error(), "p2") {
+		t.Fatalf("err = %v, want TABLE_HAS_PLAYERS_AWAY naming p2", err)
+	}
+	cur, err := m.Current(ctx, saved.ID.Hex())
+	if err != nil {
+		t.Fatalf("current: %v", err)
+	}
+	msg := m.BuildStateMsg(cur, "p1")
+	if msg.CanResume || len(msg.AwayPlayers) != 1 || msg.AwayPlayers[0] != "p2" {
+		t.Errorf("canResume=%v away=%v, want no resume and Bo named as away", msg.CanResume, msg.AwayPlayers)
+	}
+}
+
 // The bug this closes, and the reason the rule above is about absence rather
 // than about bots.
 //

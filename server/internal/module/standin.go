@@ -24,10 +24,11 @@ import "time"
 // before this option existed.
 const OptStandInAfter = "standInAfter"
 
-// StandInAfterDefault is the wait when a lobby has not chosen one. Long enough
-// for a page reload, a lift, a tunnel; short enough that the people still at
-// the table are not left staring at a paused board.
-const StandInAfterDefault = 120
+// StandInAfterDefault is the wait when a lobby has not chosen one: never. A
+// bot in a person's seat is something the host picks in the lobby, not what a
+// table does on its own — inviting the player back is the ordinary way a
+// table carries on, and the reason a paused board shows its code.
+const StandInAfterDefault = 0
 
 // StandInOption is the ready-made spec a module drops into its descriptor.
 func StandInOption() OptionSpec {
@@ -37,11 +38,11 @@ func StandInOption() OptionSpec {
 		Label: "When a player drops",
 		Help:  "How long the table waits for a player whose connection dropped before a bot plays for them. They take their seat back as soon as they return.",
 		Choices: []OptionChoice{
+			{Value: 0, Label: "Wait for them"},
 			{Value: 60, Label: "Bot after 1 minute"},
 			{Value: 120, Label: "Bot after 2 minutes"},
 			{Value: 240, Label: "Bot after 4 minutes"},
 			{Value: 600, Label: "Bot after 10 minutes"},
-			{Value: 0, Label: "Wait for them"},
 		},
 	}
 }

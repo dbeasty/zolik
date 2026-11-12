@@ -265,9 +265,10 @@ func (m *Manager) everyoneHere(match models.Match, playerID string) bool {
 	}
 	room := match.ID.Hex()
 	for _, p := range match.Players {
-		// A seat a bot is standing in for is played either way: its
-		// player's absence holds nobody up.
-		if p.ID == playerID || p.IsAI || p.StandIn != nil {
+		// A seat a bot was standing in for still has a person, and they are
+		// the one to invite back: a swept-up table is not resumed with a bot
+		// quietly playing for somebody who never saw it come back.
+		if p.ID == playerID || p.IsAI {
 			continue
 		}
 		if !m.seatHere(room, p.ID) {
@@ -284,9 +285,10 @@ func (m *Manager) playersAway(match models.Match, playerID string) []string {
 	room := match.ID.Hex()
 	var away []string
 	for _, p := range match.Players {
-		// A seat a bot is standing in for is played either way: its
-		// player's absence holds nobody up.
-		if p.ID == playerID || p.IsAI || p.StandIn != nil {
+		// A seat a bot was standing in for still has a person, and they are
+		// the one to invite back: a swept-up table is not resumed with a bot
+		// quietly playing for somebody who never saw it come back.
+		if p.ID == playerID || p.IsAI {
 			continue
 		}
 		if !m.seatHere(room, p.ID) {
