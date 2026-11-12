@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useIsFocused } from 'expo-router';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
@@ -62,14 +62,18 @@ export function MoveAnnouncements({
   const moves = useMemo(() => compactMoves(sent), [sent]);
   const open = useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
   const setOpen = setMovesOpen;
-  // Four lines' room where the window has it; two on a short one, so the
+  // Room for a share of the window open, three lines on a short one, so the
   // pile, the hand and its controls still fit together. Fixed by the window,
   // never by how much is in the box — see below. With no move to list at all
   // there is nothing to keep room for: on a phone, four blank lines above the
   // hand were enough to push the table off the screen.
   const { height } = useWindowDimensions();
   const short = height < SHORT_WINDOW;
-  const linesHeight = !open || moves.length === 0 ? undefined : short ? LINE * 3 : LINE * 5;
+  // Open, the list is the table's whole log, so it takes a share of a tall
+  // window — a desktop window gave it five lines, and most of the log was
+  // a scroll away behind a bar nobody could see.
+  const openLines = short ? 3 : Math.max(5, Math.min(MAX_OPEN_LINES, Math.floor((height * OPEN_SHARE) / LINE)));
+  const linesHeight = !open || moves.length === 0 ? undefined : LINE * openLines;
   const [hintsOpen, setHintsOpen] = useState(false);
   // Screens stay mounted under the one that replaced them, and a Modal does
   // not hide with its screen: the sheet was left over every other screen.
@@ -87,6 +91,7 @@ export function MoveAnnouncements({
   // The corner's real width, measured: its labels are translated and the
   // standing facts vary, so a guessed width let the first line run under it.
   const [cornerWidth, setCornerWidth] = useState(0);
+  useScrollbarStyle(skin);
   const styles = useMemo(() => announceStyles(skin, linesHeight, short, bare ? 0 : cornerWidth), [skin, linesHeight, short, cornerWidth, bare]);
 
   // Everything after the viewer's own last move. When their move was the
@@ -316,6 +321,36 @@ export function setMovesOpen(v: boolean) {
 
 /** One line's room in the box. */
 const LINE = 24;
+
+/** How much of a tall window's height the open list takes, and at most how many lines. */
+const OPEN_SHARE = 0.3;
+const MAX_OPEN_LINES = 14;
+
+/**
+ * A scroll bar that can be seen. On the web the list's bar was the system's,
+ * dark grey on the skin's dark panel: on a Mac, with scroll bars always
+ * shown, it was there and nobody saw it. One rule for the page, coloured by
+ * the skin; react-native-web has no style for a scroll bar.
+ */
+function useScrollbarStyle(s: Skin) {
+  const thumb = s.colors.muted;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    let el = document.getElementById(SCROLLBAR_STYLE_ID) as HTMLStyleElement | null;
+    if (!el) {
+      el = document.createElement('style');
+      el.id = SCROLLBAR_STYLE_ID;
+      document.head.appendChild(el);
+    }
+    const sel = '[data-testid="moves-scroll"]';
+    el.textContent = `${sel}{scrollbar-width:thin;scrollbar-color:${thumb} transparent}
+${sel}::-webkit-scrollbar{width:8px}
+${sel}::-webkit-scrollbar-track{background:transparent}
+${sel}::-webkit-scrollbar-thumb{background:${thumb};border-radius:4px}`;
+  }, [thumb]);
+}
+
+const SCROLLBAR_STYLE_ID = 'zolik-moves-scrollbar';
 
 /** Below this window height the box keeps two lines' room rather than four. */
 const SHORT_WINDOW = 760;

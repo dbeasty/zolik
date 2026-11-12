@@ -24,9 +24,20 @@ describe('joinMoveLog', () => {
     expect(joinMoveLog(held, [line(1), line(2)]).map((m) => m.seq)).toEqual([1, 2]);
   });
 
-  it('is just the window without numbers', () => {
+  it('is just the window without numbers, on a first state', () => {
     const plain: MoveLine = { playerId: 'a', fact: { labelKey: 'x' } };
-    expect(joinMoveLog([line(1)], [plain])).toEqual([plain]);
+    expect(joinMoveLog([], [plain])).toEqual([plain]);
+  });
+
+  it('keeps growing without numbers, from a server that sends none', () => {
+    const p = (n: number): MoveLine => ({ playerId: 'a', fact: { labelKey: 'x', params: { n } } });
+    const w1 = [1, 2, 3].map(p);
+    const w2 = [2, 3, 4].map(p);
+    const w3 = [3, 4, 5].map(p);
+    let log = joinMoveLog([], w1);
+    log = joinMoveLog(log, w2, w1);
+    log = joinMoveLog(log, w3, w2);
+    expect(log.map((m) => m.fact.params?.n)).toEqual([1, 2, 3, 4, 5]);
   });
 });
 
