@@ -10,6 +10,7 @@ import { HintsSheet } from '@/src/components/match/HintsSheet';
 import { useSkin } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
 import { factText, spokenFactText } from '@/src/lib/labels';
+import { compactMoves } from '@/src/lib/moveLog';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -20,9 +21,11 @@ import type { Skin } from '@/src/skins/types';
  * that turns play round, one that takes a turn away, one that makes somebody
  * pick up, all between two of yours — the board shows only where the chain
  * ended. Folded, the box shows what happened since the viewer's own last
- * move, newest only; open, it lists every recent move the server sent,
- * oldest first, the newest marked, in a region that scrolls so the older
- * ones are reachable rather than clipped.
+ * move, newest only; open, it lists the table's whole log (see
+ * `useMoveLog`), oldest first, the newest marked, in a region that scrolls so
+ * the older ones are reachable rather than clipped. A player's run of the
+ * same move — five cards added to melds one by one — is one line
+ * (`compactMoves`).
  *
  * The board's turn prompts — what the table is waiting on this viewer for —
  * close the box, below the scrolling moves so they are never pushed out.
@@ -36,7 +39,7 @@ import type { Skin } from '@/src/skins/types';
  * The lines are the module's own words; this knows nothing of any game.
  */
 export function MoveAnnouncements({
-  moves,
+  moves: sent,
   prompts,
   standing = [],
   players,
@@ -56,6 +59,7 @@ export function MoveAnnouncements({
   bare?: boolean;
 }) {
   const skin = useSkin();
+  const moves = useMemo(() => compactMoves(sent), [sent]);
   const open = useSyncExternalStore(subscribeMovesOpen, movesOpen, movesOpen);
   const setOpen = setMovesOpen;
   // Four lines' room where the window has it; two on a short one, so the
@@ -103,7 +107,7 @@ export function MoveAnnouncements({
   // goes last, where nothing pushes it out of sight.
   // The newest line, said again on request — the screen reader heard it once,
   // as it happened, possibly over something else.
-  const last = moves[moves.length - 1];
+  const last = sent[sent.length - 1];
   const repeat = () => announce(last ? spokenFactText(last.fact, players) : t('a11y.board.moves.none'), 'assertive');
 
   // Not a live region of its own any more: every move is already announced,
@@ -118,7 +122,7 @@ export function MoveAnnouncements({
           const newest = !settled && i === shown.length - 1;
           return (
             <View
-              key={i}
+              key={m.seq ?? i}
               style={[styles.row, newest && styles.newestRow, open && i === 0 && styles.firstOpenRow]}
               // Each line said with its cards in words; the visible line keeps
               // the glyphs a sighted reader takes in faster.

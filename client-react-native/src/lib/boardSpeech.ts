@@ -346,6 +346,15 @@ export function newMoveLines(prev: readonly MoveLine[] | undefined, next: readon
   const after = next ?? [];
   if (!prev) return [];
   const before = prev;
+  // Numbered lines say outright which are new. A reconnection brings the
+  // whole log, which no tail of the last window starts — every line of it
+  // would otherwise be news, said and sounded at once.
+  const seen = before.reduce((n, m) => Math.max(n, m.seq ?? 0), 0);
+  if (seen > 0 && after.length > 0 && after.every((m) => (m.seq ?? 0) > 0)) {
+    const lastSeq = after[after.length - 1].seq!;
+    // A log that started again (the server restarted) is all news, as before.
+    if (lastSeq >= seen) return after.filter((m) => m.seq! > seen);
+  }
   const keyOf = (m: MoveLine) => JSON.stringify([m.playerId, m.fact.labelKey, m.fact.params ?? null, m.fact.value ?? null]);
   // The longest tail of `before` that `after` starts with is what both
   // windows share; whatever follows it in `after` is new.
