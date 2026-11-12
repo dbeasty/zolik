@@ -159,7 +159,7 @@ export const RoundResults = memo(function RoundResults({
               {columns.map(({ id, members }) => (
                 <View key={id} style={[cs, id === viewerId && styles.mineCol]} testID={`round-head-${id}`}>
                   <Text
-                    numberOfLines={members.length > 1 ? undefined : 2}
+                    numberOfLines={members.length > 1 ? undefined : compact ? 1 : 2}
                     style={[styles.name, styles.head, id === viewerId && styles.mine]}
                   >
                     {headOf(members)}
@@ -371,10 +371,12 @@ function roundStyles(m: Metrics, s: Skin) {
       alignItems: 'flex-start',
     },
     // The same table closed up, for a panel narrower than the one above
-    // fits: columns at the width of a score rather than of a name, which
-    // wraps onto a second line instead.
-    cellCompact: { minWidth: 46, paddingVertical: 2, paddingHorizontal: 3 },
-    labelCompact: { width: 56 },
+    // fits: columns at the width of a score rather than of a name. A name
+    // there is cut short on one line ("Crafty Kl…"), because wrapped into a
+    // column that narrow it broke mid-word ("Craft / y"). The label column
+    // keeps room for one word of its heading ("penalty / points").
+    cellCompact: { minWidth: 50, paddingVertical: 2, paddingHorizontal: 3 },
+    labelCompact: { width: 76 },
     // Numbers read down the column, so they end on the same edge; names sit
     // over the numbers they belong to and end on it too.
     name: { alignSelf: 'stretch', textAlign: 'right' },
