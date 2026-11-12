@@ -810,6 +810,14 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // and must not carry the board away before it has gone anywhere.
   const scrollY = useRef(0);
   const scrollMax = useRef(Infinity);
+  // How tall the board's content is laid out, from `onContentSizeChange`.
+  // Not the scroll view's own content size: on the web that is the element's
+  // scrollHeight, which counts a carried card's transform. A card held at the
+  // bottom edge hangs past the end of the board, so the board could scroll
+  // further, so the card (kept under the pointer) hung further still — the
+  // autoscroll ran on into empty felt, and the moment the pointer came away
+  // the space vanished and the board dropped hundreds of pixels under it.
+  const contentHeight = useRef(0);
   // A fresh board starts at the top; the last match's offset is not this one's.
   useEffect(() => reportBoardScroll(0), []);
   const dragPoint = useRef<{ x: number; y: number } | null>(null);
@@ -894,10 +902,18 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
       const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
       scrollY.current = contentOffset.y;
       reportBoardScroll(contentOffset.y);
-      scrollMax.current = Math.max(0, contentSize.height - layoutMeasurement.height);
+      scrollMax.current = Math.max(0, (contentHeight.current || contentSize.height) - layoutMeasurement.height);
+      // A board scrolled by the player while a card is held — a trackpad or
+      // wheel on the Mac, with the button still down — moves every target
+      // under the pointer just as the edge autoscroll does. Only the
+      // autoscroll used to re-measure, so the drop was judged against where
+      // the melds had been before the scroll and the card came back.
+      if (dragRef.current) drops.measure();
       ending.scrollProps.onScroll(e);
       opening.scrollProps.onScroll(e);
     },
+    // `drops.measure` is stable; the registry object around it is not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [ending.scrollProps, opening.scrollProps],
   );
 
@@ -2642,6 +2658,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           boardNoShrink.style,
         ]}
         onContentSizeChange={(w, h) => {
+          contentHeight.current = h;
           boardNoShrink.onContentSizeChange(w, h);
           opening.scrollProps.onContentSizeChange();
         }}

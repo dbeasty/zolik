@@ -150,6 +150,12 @@ test.describe('a drag near the window edge scrolls the board', () => {
     const at = (await meld.boundingBox())!;
     await page.mouse.move(at.x + at.width / 2, at.y + 60, { steps: 10 });
     await page.waitForTimeout(200);
+    // The board stays where the edge left it. The carried card, drawn inside
+    // the board, used to hang past its end and let the autoscroll run on into
+    // empty space; coming away from the edge, that space went and the meld
+    // dropped some 300px under the pointer aiming at it.
+    const aimed = (await meld.boundingBox())!;
+    expect(Math.abs(aimed.y - at.y), `the meld moved from ${at.y} to ${aimed.y} as the pointer came off the edge`).toBeLessThan(30);
     await release(page);
 
     await expect

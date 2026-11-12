@@ -273,3 +273,57 @@ test.describe('a carried card keeps its grip while the board scrolls', () => {
     expect(Math.abs(after.dx - grip.dx)).toBeLessThan(25);
   });
 });
+
+/**
+ * The player scrolls the board themself while carrying — a trackpad or wheel
+ * on the Mac, with the button still held — and then lets go on the meld they
+ * scrolled to. Reported on the Mac: the card came back. Only the edge
+ * autoscroll re-measured the drop targets, so the drop was judged against
+ * where the melds had been before the scroll.
+ */
+test('a card carried off a meld lands where the player scrolled to', async ({ page, request }) => {
+  const { matchId, host } = await seedCanastaXMelds(request);
+  await openMatch(page, host, matchId);
+  await handCards(page);
+
+  const toggle = page.getByTestId('group-toggle-t0-seq1');
+  await toggle.scrollIntoViewIfNeeded();
+  await toggle.click();
+  const card = page.getByTestId('pick-t0-seq1-3');
+  await expect(card).toBeVisible();
+  await card.scrollIntoViewIfNeeded();
+  const grab = await grabPoint(card);
+
+  // Out to the middle of the window, clear of both edge bands, so nothing
+  // but the wheel moves the board.
+  const middle = { x: WIDTH / 2, y: HEIGHT / 2 };
+  await carryTo(page, grab, middle);
+  const before = await scrollOf(page);
+  const by = before > 300 ? -240 : 240;
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.wheel(0, by / 6);
+    await page.waitForTimeout(40);
+  }
+  await expect
+    .poll(async () => Math.abs((await scrollOf(page)) - before), { message: 'the premise: the wheel scrolled the board' })
+    .toBeGreaterThan(150);
+
+  const target = page.getByTestId('group-toggle-t0-seq2');
+  const t = (await target.boundingBox())!;
+  await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2, { steps: 10 });
+  await page.waitForTimeout(300);
+  await release(page);
+
+  const auth = { Authorization: `Bearer ${host.accessToken}` };
+  await expect
+    .poll(
+      async () => {
+        const live = await (await request.get(`${API_BASE}/matches/${matchId}`, { headers: auth })).json();
+        const zones = live.view?.zones ?? [];
+        const group = zones.flatMap((z: any) => z.groups ?? []).find((g: any) => g.id === 't0-seq2');
+        return group?.cards ?? [];
+      },
+      { message: 'the 8 of hearts joined the run it was let go on', timeout: 8000 },
+    )
+    .toContain('8H');
+});
