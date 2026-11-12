@@ -51,7 +51,7 @@ import { setBoardZoom, stepBoardZoom, ZOOM_STEPS } from '@/src/lib/boardZoom';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
-import { useMatchSocket } from '@/src/hooks/useMatchSocket';
+import { TERMINAL_CODES, useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useStandIn, useStepOut } from '@/src/components/StandInSheet';
 import { useSeatLook } from '@/src/components/match/SeatLookSheet';
@@ -259,8 +259,19 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   const guideRef = useRef(guide);
   guideRef.current = guide;
   const [guideExitOpen, setGuideExitOpen] = useState(false);
+  // Whether the move in flight was one a card was carried to. A drop the
+  // server turns down — three wilds onto a group that takes two, which no
+  // single card's offer could have said in advance — was otherwise answered
+  // by a line of red text in the action area, off-screen from where the
+  // player let go, while the cards snapped home as if the drag had failed.
+  // `dropArmed` is raised by `endDrag` for exactly the send it makes, and
+  // `dropInFlight` keeps that answer until the next move replaces it.
+  const dropArmed = useRef(false);
+  const dropInFlight = useRef(false);
   const sendNow = useCallback(
     (action: MatchAction) => {
+      dropInFlight.current = dropArmed.current;
+      dropArmed.current = false;
       guideRef.current?.sent(action);
       sendRaw(action);
     },
@@ -930,8 +941,16 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     if (!mine) setChooser(null);
   }, [state, viewerId]);
   useEffect(() => {
-    if (error) announceGame(reasonText(error.code, error.message || error.code), 'refusal');
-  }, [error]);
+    if (!error) return;
+    announceGame(reasonText(error.code, error.message || error.code), 'refusal');
+    // A refused drop is explained where a drop the client could refuse
+    // already is: the sheet, with the rule behind it.
+    if (dropInFlight.current && !TERMINAL_CODES.has(error.code)) {
+      dropInFlight.current = false;
+      setExplaining({ code: error.code, ruleIds: error.ruleIds });
+      clearError();
+    }
+  }, [error, clearError]);
 
   // What each card in hand can do right now — where it can go, said as its
   // tooltip and offered as its screen-reader actions. One map, rebuilt only
@@ -1540,7 +1559,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     // planner must not fly it a second time (see `flightPlan`).
     dragSentAt.current = Date.now();
     played.current.dragged = current.slotIds;
+    dropArmed.current = true;
     send(action);
+    dropArmed.current = false;
     clearSelection();
     return true;
   };
