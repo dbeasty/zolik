@@ -208,7 +208,7 @@ export function MoveAnnouncements({
         <Pressable
           testID="moves-toggle"
           accessibilityRole="button"
-          accessibilityLabel={t('moves.title')}
+          accessibilityLabel={t('moves.history')}
           accessibilityState={{ expanded: open }}
           // react-native-web does not carry accessibilityState over to the
           // page, so a screen reader in a browser heard no open or closed.
@@ -225,7 +225,7 @@ export function MoveAnnouncements({
           the hand. Folded, the one line does. */}
       {short || !open || bare ? null : (
         <Text style={styles.title} {...((Platform.OS === 'web' ? {} : { accessibilityRole: 'header' }) as object)}>
-          {t('moves.title')}
+          {t('moves.history')}
         </Text>
       )}
       {/* One column, so what stands (the bank, the colour in play) stays under

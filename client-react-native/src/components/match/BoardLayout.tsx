@@ -400,7 +400,7 @@ export function BoardLayout({
       moves.length || prompts.length || standing.length ? (
         <Panel
           panelId="log"
-          title={t('moves.title')}
+          title={logOpen ? t('moves.history') : t('moves.last')}
           testID="section-moves"
           minimized={!logOpen}
           onToggleMinimized={() => setMovesOpen(!logOpen)}
