@@ -29,9 +29,9 @@ describe('boardArrangement', () => {
   });
 
   it('stacked is the order the board always had', () => {
-    expect(preset('stacked', true).columns[0]).toEqual(['results', 'seats', 'table', 'log', 'hand', 'spreads', 'opponents']);
+    expect(preset('stacked', true).columns[0]).toEqual(['results', 'seats', 'table', 'log', 'hand', 'controls', 'spreads', 'opponents']);
     // Blackjack: the spreads are the cards in play, above the hand.
-    expect(preset('stacked', false).columns[0]).toEqual(['results', 'seats', 'table', 'log', 'spreads', 'hand', 'opponents']);
+    expect(preset('stacked', false).columns[0]).toEqual(['results', 'seats', 'table', 'log', 'spreads', 'hand', 'controls', 'opponents']);
   });
 
   it('normalize reads nothing, junk, or an unmoved preset as that preset', () => {
@@ -57,7 +57,7 @@ describe('boardArrangement', () => {
       { preset: 'stacked', custom: true, columns: [['hand', 'results', 'seats', 'table', 'spreads', 'opponents'], []], split: 1 },
       true,
     );
-    expect(a.columns[0]).toEqual(['hand', 'results', 'seats', 'table', 'log', 'spreads', 'opponents']);
+    expect(a.columns[0]).toEqual(['hand', 'controls', 'results', 'seats', 'table', 'log', 'spreads', 'opponents']);
   });
 
   it('up and down step over regions this game does not draw', () => {
@@ -66,7 +66,7 @@ describe('boardArrangement', () => {
     // results sits above seats but is not on the board: seats cannot go up.
     expect(canMove(a, 'seats', 'up', present)).toBe(false);
     const b = move(a, 'hand', 'up', present);
-    expect(b.columns[0]).toEqual(['results', 'seats', 'hand', 'table', 'log', 'spreads', 'opponents']);
+    expect(b.columns[0]).toEqual(['results', 'seats', 'hand', 'table', 'log', 'controls', 'spreads', 'opponents']);
     expect(b.custom).toBe(true);
     // Nothing drawn below the hand now except the table.
     expect(move(b, 'table', 'down', present)).toBe(b);
@@ -99,12 +99,12 @@ describe('boardArrangement', () => {
   it('a dragged region lands above the one it was let go over, or at the foot', () => {
     const a = preset('stacked', true);
     const b = moveTo(a, 'hand', 0, 'seats');
-    expect(b.columns[0]).toEqual(['results', 'hand', 'seats', 'table', 'log', 'spreads', 'opponents']);
+    expect(b.columns[0]).toEqual(['results', 'hand', 'seats', 'table', 'log', 'controls', 'spreads', 'opponents']);
     expect(b.custom).toBe(true);
     expect(moveTo(a, 'seats', 0, null).columns[0].slice(-1)).toEqual(['seats']);
     // Let go over itself, or where it already is: nothing changes.
     expect(moveTo(a, 'hand', 0, 'hand')).toBe(a);
-    expect(moveTo(a, 'hand', 0, 'spreads')).toBe(a);
+    expect(moveTo(a, 'hand', 0, 'controls')).toBe(a);
   });
 
   it('dragging into the other column opens it at half, emptying it closes it', () => {
@@ -194,7 +194,7 @@ describe('full-width regions', () => {
     const d = columnsToDraw(a, true, ALL, true);
     expect(d.top).toEqual(['results']);
     expect(d.bottom).toEqual(['opponents']);
-    expect(d.columns).toEqual([['seats', 'table', 'log'], ['hand', 'spreads']]);
+    expect(d.columns).toEqual([['seats', 'table', 'log'], ['hand', 'controls', 'spreads']]);
     expect(columnsToDraw(a, true, new Set<RegionId>(['seats', 'table', 'hand']), true).top).toEqual([]);
   });
 
@@ -222,7 +222,7 @@ describe('full-width regions', () => {
     expect(bandOf(a, 'table')).toBe('bottom');
     const b = moveTo(a, 'table', 1, 'spreads');
     expect(b.bottom).toEqual([]);
-    expect(b.columns[1]).toEqual(['hand', 'table', 'spreads', 'opponents']);
+    expect(b.columns[1]).toEqual(['hand', 'controls', 'table', 'spreads', 'opponents']);
   });
 
   it('survives a reload, and an arrangement stored before bands reads as having none', () => {
@@ -238,5 +238,33 @@ describe('full-width regions', () => {
     const d = columnsToDraw(a, false, ALL, true);
     expect(d.top).toEqual([]);
     expect(d.columns[0]).toEqual(preset('stacked', true).columns[0]);
+  });
+});
+
+describe('the controls region', () => {
+  it('sits just under the hand in every preset', () => {
+    for (const p of PRESETS) {
+      for (const holdsHand of [true, false]) {
+        const a = preset(p, holdsHand);
+        const col = a.columns.find((c) => c.includes('hand'))!;
+        expect(col[col.indexOf('hand') + 1]).toBe('controls');
+      }
+    }
+  });
+
+  it('comes back just under the hand in a layout stored when the two were one region, wherever the hand was put', () => {
+    const a = normalize(
+      { preset: 'beside', custom: true, columns: [['hand', 'results', 'seats', 'table', 'log'], ['spreads', 'opponents']], split: 0.5 },
+      true,
+    );
+    expect(a.columns[0]).toEqual(['hand', 'controls', 'results', 'seats', 'table', 'log']);
+    const wide = normalize({ ...preset('beside', true), custom: true, columns: [['seats', 'table'], ['spreads']], top: ['hand'] }, true);
+    expect(wide.top).toEqual(['hand', 'controls']);
+  });
+
+  it('can be put beside the hand, in the other column', () => {
+    const a = move(preset('beside', true), 'controls', 'left', ALL);
+    expect(a.columns[0]).toContain('controls');
+    expect(a.columns[1]).toContain('hand');
   });
 });

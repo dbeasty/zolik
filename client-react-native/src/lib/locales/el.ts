@@ -1461,6 +1461,7 @@ export const el: Record<string, string> = {
   'match.layout.region.table': 'Τραπέζι',
   'match.layout.region.log': 'Πρόσφατες κινήσεις',
   'match.layout.region.hand': 'Το χέρι σας',
+  'match.layout.region.controls': 'Χειριστήρια',
   'match.layout.region.spreads': 'Συνδυασμοί',
   'match.layout.region.opponents': 'Αντίπαλοι',
   'match.layout.move.up': 'Μετακίνηση {region} πάνω',

@@ -1414,6 +1414,7 @@ export const sl: Record<string, string> = {
   'match.layout.region.table': 'Miza',
   'match.layout.region.log': 'Zadnje poteze',
   'match.layout.region.hand': 'Vaša roka',
+  'match.layout.region.controls': 'Upravljanje',
   'match.layout.region.spreads': 'Kombinacije',
   'match.layout.region.opponents': 'Nasprotniki',
   'match.layout.move.up': 'Premakni {region} gor',

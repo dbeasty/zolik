@@ -1424,6 +1424,7 @@ export const et: Record<string, string> = {
   'match.layout.region.table': 'Laud',
   'match.layout.region.log': 'Viimased käigud',
   'match.layout.region.hand': 'Sinu käsi',
+  'match.layout.region.controls': 'Juhtnupud',
   'match.layout.region.spreads': 'Kombinatsioonid',
   'match.layout.region.opponents': 'Vastased',
   'match.layout.move.up': 'Liiguta {region} üles',

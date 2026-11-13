@@ -1433,6 +1433,7 @@ export const en: Record<string, string> = {
   'match.layout.region.table': 'Table',
   'match.layout.region.log': 'Recent moves',
   'match.layout.region.hand': 'Your hand',
+  'match.layout.region.controls': 'Controls',
   'match.layout.region.spreads': 'Melds',
   'match.layout.region.opponents': 'Opponents',
   'match.layout.move.up': 'Move {region} up',

@@ -1412,6 +1412,7 @@ export const cs: Record<string, string> = {
   'match.layout.region.table': 'Stůl',
   'match.layout.region.log': 'Poslední tahy',
   'match.layout.region.hand': 'Vaše ruka',
+  'match.layout.region.controls': 'Ovládání',
   'match.layout.region.spreads': 'Vyložené',
   'match.layout.region.opponents': 'Soupeři',
   'match.layout.move.up': 'Posunout {region} nahoru',

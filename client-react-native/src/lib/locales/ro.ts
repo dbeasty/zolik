@@ -1438,6 +1438,7 @@ export const ro: Record<string, string> = {
   'match.layout.region.table': 'Masă',
   'match.layout.region.log': 'Mutări recente',
   'match.layout.region.hand': 'Mâna ta',
+  'match.layout.region.controls': 'Comenzi',
   'match.layout.region.spreads': 'Combinații',
   'match.layout.region.opponents': 'Adversari',
   'match.layout.move.up': 'Mută {region} în sus',

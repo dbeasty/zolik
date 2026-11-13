@@ -1421,6 +1421,7 @@ export const lt: Record<string, string> = {
   'match.layout.region.table': 'Stalas',
   'match.layout.region.log': 'Paskutiniai ėjimai',
   'match.layout.region.hand': 'Jūsų ranka',
+  'match.layout.region.controls': 'Valdikliai',
   'match.layout.region.spreads': 'Deriniai',
   'match.layout.region.opponents': 'Priešininkai',
   'match.layout.move.up': 'Perkelti {region} aukštyn',

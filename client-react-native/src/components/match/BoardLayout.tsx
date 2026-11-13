@@ -433,14 +433,10 @@ export function BoardLayout({
           {log}
         </Panel>
       ) : null,
-    // The buttons travel with the hand: one region, moved as one.
-    hand:
-      hand || controls ? (
-        <>
-          {hand}
-          {controls}
-        </>
-      ) : null,
+    // The hand and the buttons that play from it: two regions, under each
+    // other in every preset, but each can be put where the player wants it.
+    hand: hand ?? null,
+    controls: controls ?? null,
     spreads: spreadsRow,
     opponents:
       otherZones.length || statusLines.length ? (

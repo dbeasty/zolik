@@ -1437,6 +1437,7 @@ export const hu: Record<string, string> = {
   'match.layout.region.table': 'Asztal',
   'match.layout.region.log': 'Legutóbbi lépések',
   'match.layout.region.hand': 'A kezed',
+  'match.layout.region.controls': 'Vezérlők',
   'match.layout.region.spreads': 'Kombinációk',
   'match.layout.region.opponents': 'Ellenfelek',
   'match.layout.move.up': '{region} feljebb',

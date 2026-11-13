@@ -17,9 +17,15 @@
  * to the shell later finds its place by `normalize` rather than vanishing.
  */
 
-export type RegionId = 'results' | 'seats' | 'table' | 'log' | 'hand' | 'spreads' | 'opponents';
+export type RegionId = 'results' | 'seats' | 'table' | 'log' | 'hand' | 'controls' | 'spreads' | 'opponents';
 
-export const REGIONS: readonly RegionId[] = ['results', 'seats', 'table', 'log', 'hand', 'spreads', 'opponents'];
+/**
+ * The controls — what this player can do now, and the buttons that do it —
+ * are a region of their own, just under the hand in every preset, so they can
+ * be put beside it or anywhere else. They were one region with the hand once;
+ * a layout stored then gets them back just under the hand (`normalize`).
+ */
+export const REGIONS: readonly RegionId[] = ['results', 'seats', 'table', 'log', 'hand', 'controls', 'spreads', 'opponents'];
 
 export type PresetId = 'stacked' | 'beside' | 'side';
 
@@ -56,8 +62,8 @@ export function bandOf(a: Arrangement, id: RegionId): 'top' | 'bottom' | null {
  */
 function stackedOrder(holdsHand: boolean): RegionId[] {
   return holdsHand
-    ? ['results', 'seats', 'table', 'log', 'hand', 'spreads', 'opponents']
-    : ['results', 'seats', 'table', 'log', 'spreads', 'hand', 'opponents'];
+    ? ['results', 'seats', 'table', 'log', 'hand', 'controls', 'spreads', 'opponents']
+    : ['results', 'seats', 'table', 'log', 'spreads', 'hand', 'controls', 'opponents'];
 }
 
 export function preset(id: PresetId, holdsHand: boolean): Arrangement {
@@ -71,7 +77,7 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
         custom: false,
         columns: [
           ['results', 'seats', 'table', 'log'],
-          holdsHand ? ['hand', 'spreads', 'opponents'] : ['spreads', 'hand', 'opponents'],
+          holdsHand ? ['hand', 'controls', 'spreads', 'opponents'] : ['spreads', 'hand', 'controls', 'opponents'],
         ],
         split: 0.5,
         top: [],
@@ -84,7 +90,7 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
         preset: id,
         custom: false,
         columns: [
-          holdsHand ? ['seats', 'table', 'hand'] : ['seats', 'table', 'spreads', 'hand'],
+          holdsHand ? ['seats', 'table', 'hand', 'controls'] : ['seats', 'table', 'spreads', 'hand', 'controls'],
           holdsHand ? ['results', 'log', 'spreads', 'opponents'] : ['results', 'log', 'opponents'],
         ],
         split: 0.66,
@@ -132,19 +138,21 @@ export function normalize(raw: unknown, holdsHand: boolean, fallback: PresetId =
   const columns = r.columns.map(clean) as [RegionId[], RegionId[]];
   for (const id of REGIONS) {
     if (seen.has(id)) continue;
-    // Just after whatever its preset has above it, so a region added since —
-    // the move log — turns up where it belongs rather than at the foot.
+    // Just after whatever its preset has above it, wherever the player has
+    // put that — so a region added since (the move log; the controls, once
+    // part of the hand) turns up where it belongs rather than at the foot.
     const c = base.columns[0].includes(id) ? 0 : 1;
     const order = base.columns[c];
-    let at = 0;
-    for (let k = order.indexOf(id) - 1; k >= 0; k--) {
-      const j = columns[c].indexOf(order[k]!);
-      if (j >= 0) {
-        at = j + 1;
-        break;
+    const lists = [top, columns[0], columns[1], bottom];
+    let placed = false;
+    for (let k = order.indexOf(id) - 1; k >= 0 && !placed; k--) {
+      const list = lists.find((l) => l.includes(order[k]!));
+      if (list) {
+        list.splice(list.indexOf(order[k]!) + 1, 0, id);
+        placed = true;
       }
     }
-    columns[c].splice(at, 0, id);
+    if (!placed) columns[c].unshift(id);
   }
   const split = typeof r.split === 'number' && r.split > 0 && r.split <= 1 ? r.split : base.split;
   return {

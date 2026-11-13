@@ -1446,6 +1446,7 @@ export const nl: Record<string, string> = {
   'match.layout.region.table': 'Tafel',
   'match.layout.region.log': 'Recente zetten',
   'match.layout.region.hand': 'Jouw hand',
+  'match.layout.region.controls': 'Bediening',
   'match.layout.region.spreads': 'Combinaties',
   'match.layout.region.opponents': 'Tegenstanders',
   'match.layout.move.up': '{region} omhoog',

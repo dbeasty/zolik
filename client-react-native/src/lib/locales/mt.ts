@@ -1443,6 +1443,7 @@ export const mt: Record<string, string> = {
   'match.layout.region.table': 'Mejda',
   'match.layout.region.log': 'L-aħħar mossi',
   'match.layout.region.hand': 'Idejk',
+  'match.layout.region.controls': 'Kontrolli',
   'match.layout.region.spreads': 'Kombinazzjonijiet',
   'match.layout.region.opponents': 'Avversarji',
   'match.layout.move.up': 'Ċaqlaq {region} ’il fuq',

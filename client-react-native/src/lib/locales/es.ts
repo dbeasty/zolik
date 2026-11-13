@@ -1441,6 +1441,7 @@ export const es: Record<string, string> = {
   'match.layout.region.table': 'Mesa',
   'match.layout.region.log': 'Últimas jugadas',
   'match.layout.region.hand': 'Tu mano',
+  'match.layout.region.controls': 'Controles',
   'match.layout.region.spreads': 'Combinaciones',
   'match.layout.region.opponents': 'Rivales',
   'match.layout.move.up': 'Subir {region}',
