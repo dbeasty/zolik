@@ -65,7 +65,7 @@ import { LeaveSheet } from '@/src/components/match/LeaveSheet';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useBoardArrangement } from '@/src/hooks/useBoardArrangement';
 import { LayoutEditBar } from '@/src/components/match/LayoutEditor';
-import { TWO_COLUMN_MAX_WIDTH, TWO_COLUMN_MIN_WIDTH, type RegionId } from '@/src/lib/boardArrangement';
+import { bandOf, TWO_COLUMN_MAX_WIDTH, TWO_COLUMN_MIN_WIDTH, type RegionId } from '@/src/lib/boardArrangement';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
@@ -410,9 +410,10 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   useEffect(() => setArranging(false), [matchId]);
   // The Mac app draws no navigation bar, so Layout stays on the board there.
   const desktopChrome = useDesktopChrome();
-  const [drawn, setDrawn] = useState<{ present: ReadonlySet<RegionId>; columns: number }>(() => ({
+  const [drawn, setDrawn] = useState<{ present: ReadonlySet<RegionId>; columns: number; wide: boolean }>(() => ({
     present: new Set(),
     columns: 1,
+    wide: false,
   }));
   // The Mac app's View › Show/Hide Hand, Table and Log, Layout, and Help › Rules for
   // this game. The hand and the table are the same panels the ▾ on each puts
@@ -832,6 +833,15 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // so a target sliding under a held pointer does not restart the dwell below.
   const scrolling = useRef(false);
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  // How wide the board's columns may be: a table's width for one, more of a
+  // large monitor for two. A panel made full width (the ↔ in Layout) runs
+  // past that to both edges of the window, and the rest of the board keeps
+  // the columns' width, centred under and over it.
+  const columnsMaxWidth = drawn.columns > 1 ? Math.min(windowWidth, TWO_COLUMN_MAX_WIDTH) : metrics.maxWidth;
+  const columnsCap = drawn.wide ? { maxWidth: columnsMaxWidth, width: '100%' as const, alignSelf: 'center' as const } : null;
+  // Full width is offered where it looks different: beside a second column,
+  // or on a window wider than the one column stops at.
+  const canWiden = roomForTwo || windowWidth > metrics.maxWidth;
   // The zoom control rides in the bar only where the bar has room for it
   // beside the table code. On a phone it sat on top of the code, which could
   // not be read; there, as in the Mac app (which has no bar), it sits in the
@@ -2626,7 +2636,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         <View
           style={[
             styles.dock,
-            { maxWidth: drawn.columns > 1 ? Math.min(windowWidth, TWO_COLUMN_MAX_WIDTH) : metrics.maxWidth },
+            // The hand docked keeps the width it was given on the board: the
+            // whole window when it was made full width.
+            { maxWidth: bandOf(board.arrangement, 'hand') ? windowWidth : columnsMaxWidth },
           ]}
           testID="hand-dock"
           // Where the board starts in the window just moved.
@@ -2657,7 +2669,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         contentContainerStyle={[
           styles.body,
           {
-            maxWidth: drawn.columns > 1 ? Math.min(windowWidth, TWO_COLUMN_MAX_WIDTH) : metrics.maxWidth,
+            // A full-width panel runs to both edges; everything else keeps
+            // the columns' width, centred (`columnsCap`).
+            maxWidth: drawn.wide ? windowWidth : columnsMaxWidth,
             width: '100%',
             alignSelf: 'center',
           },
@@ -2674,7 +2688,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         // the ending's own, and this one replaces it and tells them both.
         onScroll={onScroll}
       >
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, columnsCap]}>
           <View style={styles.moduleGroup}>
             {/* The game's name, in the player's language; the bare ids stay
                 on the element for tests and tooling. */}
@@ -2774,7 +2788,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         </View>
 
         {(view.header ?? []).some((f) => !f.standing) ? (
-          <View style={styles.facts} testID="match-header">
+          <View style={[styles.facts, columnsCap]} testID="match-header">
             {(view.header ?? []).filter((f) => !f.standing).map((f, i) =>
               // A Last Card colour in play is shown in that colour, not only named.
               lastCardColourOfKey(f.value) ? (
@@ -2799,7 +2813,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
             the move they just made. */}
         {state.status === 'completed' || state.status === 'abandoned' ? (
           <Animated.View
-            style={[styles.over, iWon && !wasAbandoned && styles.overWon, overArrival]}
+            style={[styles.over, iWon && !wasAbandoned && styles.overWon, overArrival, columnsCap]}
             testID="match-over"
             {...ending.anchor('over')}
           >
@@ -3047,6 +3061,8 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           onMove={(region, move) => board.move(region, move, drawn.present)}
           onMoveTo={board.moveTo}
           onSplit={board.setSplit}
+          onToggleWide={canWiden ? (region) => board.toggleWide(region, drawn.present) : undefined}
+          columnsMaxWidth={drawn.wide ? columnsMaxWidth : undefined}
           onDrawn={setDrawn}
           viewerId={viewerId}
           styles={styles}

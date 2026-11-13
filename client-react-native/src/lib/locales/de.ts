@@ -1451,6 +1451,8 @@ export const de: Record<string, string> = {
   'match.layout.move.down': '{region} nach unten',
   'match.layout.move.left': '{region} in die linke Spalte',
   'match.layout.move.right': '{region} in die rechte Spalte',
+  'match.layout.widePanel': 'Volle Breite: {region} über das ganze Fenster',
+  'match.layout.narrowPanel': 'Zurück auf Spaltenbreite: {region}',
   'match.layout.reset': 'Layout zurücksetzen',
   'match.layout.done': 'Fertig',
   'match.layout.editing': 'Ziehe einen Bereich an ⠿ oder nutze seine Pfeile, um ihn zu verschieben. Ziehe den Balken zwischen den Spalten, um ihre Breite zu ändern.',

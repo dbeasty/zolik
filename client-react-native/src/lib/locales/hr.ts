@@ -1425,6 +1425,8 @@ export const hr: Record<string, string> = {
   'match.layout.move.down': 'Pomakni {region} dolje',
   'match.layout.move.left': 'Premjesti {region} u lijevi stupac',
   'match.layout.move.right': 'Premjesti {region} u desni stupac',
+  'match.layout.widePanel': 'Puna širina: {region} preko cijelog prozora',
+  'match.layout.narrowPanel': 'Natrag na širinu stupca: {region}',
   'match.layout.reset': 'Vrati raspored',
   'match.layout.done': 'Gotovo',
   'match.layout.editing': 'Povucite ploču za ⠿ ili upotrijebite njezine strelice da je premjestite. Povucite traku između stupaca da promijenite njihovu širinu.',

@@ -1449,6 +1449,8 @@ export const mt: Record<string, string> = {
   'match.layout.move.down': 'Ċaqlaq {region} ’l isfel',
   'match.layout.move.left': 'Ċaqlaq {region} għall-kolonna tax-xellug',
   'match.layout.move.right': 'Ċaqlaq {region} għall-kolonna tal-lemin',
+  'match.layout.widePanel': 'Wisa\' sħiħa: {region} mat-tieqa kollha',
+  'match.layout.narrowPanel': 'Lura għall-wisa\' tal-kolonna: {region}',
   'match.layout.reset': 'Irrisettja t-tqassim',
   'match.layout.done': 'Lest',
   'match.layout.editing': 'Kaxkar pannell minn ⠿, jew uża l-vleġeġ tiegħu, biex iċċaqilqu. Kaxkar il-linja bejn il-kolonni biex tbiddel il-wisa\' tagħhom.',

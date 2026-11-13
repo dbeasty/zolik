@@ -9,6 +9,7 @@ import {
   normalize,
   preferredPreset,
   preset as presetArrangement,
+  toggleWide as toggleRegionWide,
   type Arrangement,
   type Move,
   type PresetId,
@@ -73,8 +74,14 @@ export function useBoardArrangement(moduleId: string | undefined, holdsHand: boo
       commit(moveRegionTo(asDrawn(arrangement, roomForTwo, holdsHand), region, column, before)),
     [commit, arrangement, roomForTwo, holdsHand],
   );
+  // The ↔ on a region's frame: across the whole window, and back.
+  const toggleWide = useCallback(
+    (region: RegionId, present: ReadonlySet<RegionId>) =>
+      commit(toggleRegionWide(asDrawn(arrangement, roomForTwo, holdsHand), region, present, holdsHand)),
+    [commit, arrangement, roomForTwo, holdsHand],
+  );
   const setSplit = useCallback((split: number) => commit(withSplit(arrangement, split)), [commit, arrangement]);
   const reset = useCallback(() => commit(null), [commit]);
 
-  return { arrangement, choose, move, moveTo, setSplit, reset };
+  return { arrangement, choose, move, moveTo, toggleWide, setSplit, reset };
 }

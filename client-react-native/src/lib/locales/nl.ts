@@ -1452,6 +1452,8 @@ export const nl: Record<string, string> = {
   'match.layout.move.down': '{region} omlaag',
   'match.layout.move.left': '{region} naar de linkerkolom',
   'match.layout.move.right': '{region} naar de rechterkolom',
+  'match.layout.widePanel': 'Volle breedte: {region} over het hele venster',
+  'match.layout.narrowPanel': 'Terug naar kolombreedte: {region}',
   'match.layout.reset': 'Indeling herstellen',
   'match.layout.done': 'Klaar',
   'match.layout.editing': 'Sleep een paneel aan ⠿, of gebruik de pijlen, om het te verplaatsen. Sleep de balk tussen de kolommen om hun breedte te wijzigen.',

@@ -1427,6 +1427,8 @@ export const lt: Record<string, string> = {
   'match.layout.move.down': 'Perkelti {region} žemyn',
   'match.layout.move.left': 'Perkelti {region} į kairįjį stulpelį',
   'match.layout.move.right': 'Perkelti {region} į dešinįjį stulpelį',
+  'match.layout.widePanel': 'Visas plotis: {region} per visą langą',
+  'match.layout.narrowPanel': 'Grąžinti stulpelio plotį: {region}',
   'match.layout.reset': 'Atkurti išdėstymą',
   'match.layout.done': 'Baigta',
   'match.layout.editing': 'Vilkite skydelį už ⠿ arba naudokite jo rodykles, kad jį perkeltumėte. Vilkite juostą tarp stulpelių, kad pakeistumėte jų plotį.',

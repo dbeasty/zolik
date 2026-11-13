@@ -106,6 +106,8 @@ export function BoardLayout({
   onMove,
   onMoveTo,
   onSplit,
+  onToggleWide,
+  columnsMaxWidth,
   onDrawn,
   tableAnchor,
   tableRing,
@@ -147,11 +149,24 @@ export function BoardLayout({
    */
   onSplit?: (split: number) => void;
   /**
-   * Which regions this board has, and how many columns it came out as — for a
-   * screen that sizes the board to the columns, and offers to move only the
-   * regions there are. Called when either changes.
+   * The ↔ on a region's frame: drawn across the whole width, or back to a
+   * column's. Absent, it is not offered — where the board is no narrower than
+   * the window, full width would look no different.
    */
-  onDrawn?: (drawn: { present: ReadonlySet<RegionId>; columns: number }) => void;
+  onToggleWide?: (region: RegionId) => void;
+  /**
+   * How wide the columns may be, when a full-width region lets the board
+   * itself run wider: they keep their own width, centred, under and over the
+   * full-width bands.
+   */
+  columnsMaxWidth?: number;
+  /**
+   * Which regions this board has, how many columns it came out as, and
+   * whether any region is drawn full width — for a screen that sizes the
+   * board to them, and offers to move only the regions there are. Called
+   * when any changes.
+   */
+  onDrawn?: (drawn: { present: ReadonlySet<RegionId>; columns: number; wide: boolean }) => void;
   /**
    * A hold on the head of the play, for a screen that scrolls to it — the
    * table is where the game starts on the page, and the hand and controls
@@ -576,6 +591,11 @@ export function BoardLayout({
     })();
   };
 
+  // The columns at their own width, centred, when full-width bands let the board run wider.
+  const columnsCap =
+    columnsMaxWidth != null ? { maxWidth: columnsMaxWidth, width: '100%' as const, alignSelf: 'center' as const } : null;
+
+  /** `column` is -1 for a full-width band, which is not somewhere a carried panel is dropped. */
   const place = (r: RegionId, column: number) => {
     const showLine = carry?.target && carry.target.column === column && carry.target.before === r;
     return (
@@ -587,6 +607,8 @@ export function BoardLayout({
           dragging={carry?.region === r}
           canMove={(m) => canMove(editable, r, m, present)}
           showSideways={!!roomForTwo}
+          wide={column < 0}
+          onToggleWide={onToggleWide ? () => onToggleWide(r) : undefined}
           onMove={(m) => onMove?.(r, m)}
           onDragStart={() => startCarry(r)}
           onDragMove={moveCarry}
@@ -604,11 +626,13 @@ export function BoardLayout({
   const footLine = (column: number) =>
     carry?.target && carry.target.column === column && carry.target.before == null ? <DropLine key="foot" /> : null;
 
-  const drawnKey = `${[...present].sort().join(',')}|${drawn.columns.filter((c) => c.length).length}`;
+  const wide = drawn.top.length + drawn.bottom.length > 0;
+  const drawnKey = `${[...present].sort().join(',')}|${drawn.columns.filter((c) => c.length).length}|${wide}`;
   useEffect(() => {
     onDrawn?.({
       present,
       columns: drawn.columns.filter((c) => c.length).length || 1,
+      wide,
     });
     // Keyed on what was drawn, not on the set, which is new every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -617,19 +641,20 @@ export function BoardLayout({
   return (
     <BoardSpeechProvider value={speech}>
       <View ref={rootNode} style={[styles.boardRoot, regionLayer(true)]} testID="board-regions">
+        {drawn.top.map((r) => place(r, -1))}
         {!twoColumns ? (
           <View
             ref={(n) => {
               columnNodes.current[0] = n;
             }}
-            style={[styles.boardRoot, regionLayer(true)]}
+            style={[styles.boardRoot, regionLayer(true), columnsCap]}
             testID="board-column-0"
           >
             {drawn.columns[0]!.map((r) => place(r, 0))}
             {footLine(0)}
           </View>
         ) : (
-          <View ref={columnsRow} style={[styles.boardColumns, regionLayer(true)]} testID="board-columns">
+          <View ref={columnsRow} style={[styles.boardColumns, regionLayer(true), columnsCap]} testID="board-columns">
             {drawn.columns.map((col, i) => [
               i === 1 && onSplit ? (
                 <ColumnDivider
@@ -657,6 +682,7 @@ export function BoardLayout({
             ])}
           </View>
         )}
+        {drawn.bottom.map((r) => place(r, -1))}
         {carry && rects.current ? <DragLabel region={carry.region} x={carry.x} y={carry.y} /> : null}
       </View>
     </BoardSpeechProvider>

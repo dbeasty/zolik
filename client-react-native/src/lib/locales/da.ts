@@ -1424,6 +1424,8 @@ export const da: Record<string, string> = {
   'match.layout.move.down': 'Flyt {region} ned',
   'match.layout.move.left': 'Flyt {region} til venstre kolonne',
   'match.layout.move.right': 'Flyt {region} til højre kolonne',
+  'match.layout.widePanel': 'Fuld bredde: {region} over hele vinduet',
+  'match.layout.narrowPanel': 'Tilbage til kolonnebredde: {region}',
   'match.layout.reset': 'Nulstil layout',
   'match.layout.done': 'Færdig',
   'match.layout.editing': 'Træk et panel i ⠿, eller brug dets pile, for at flytte det. Træk bjælken mellem kolonnerne for at ændre deres bredde.',

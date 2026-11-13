@@ -1430,6 +1430,8 @@ export const et: Record<string, string> = {
   'match.layout.move.down': 'Liiguta {region} alla',
   'match.layout.move.left': 'Vii {region} vasakusse veergu',
   'match.layout.move.right': 'Vii {region} paremasse veergu',
+  'match.layout.widePanel': 'Täislaius: {region} üle kogu akna',
+  'match.layout.narrowPanel': 'Tagasi veeru laiuseks: {region}',
   'match.layout.reset': 'Lähtesta paigutus',
   'match.layout.done': 'Valmis',
   'match.layout.editing': 'Paneeli liigutamiseks lohista seda ⠿ abil või kasuta selle nooli. Veergude laiuse muutmiseks lohista nendevahelist riba.',

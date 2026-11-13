@@ -1444,6 +1444,8 @@ export const ro: Record<string, string> = {
   'match.layout.move.down': 'Mută {region} în jos',
   'match.layout.move.left': 'Mută {region} în coloana stângă',
   'match.layout.move.right': 'Mută {region} în coloana dreaptă',
+  'match.layout.widePanel': 'Lățime completă: {region} pe toată fereastra',
+  'match.layout.narrowPanel': 'Înapoi la lățimea coloanei: {region}',
   'match.layout.reset': 'Resetează aranjarea',
   'match.layout.done': 'Gata',
   'match.layout.editing': 'Trage un panou de ⠿ sau folosește săgețile lui pentru a-l muta. Trage bara dintre coloane pentru a le schimba lățimea.',

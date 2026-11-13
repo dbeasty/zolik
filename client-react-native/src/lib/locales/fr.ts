@@ -1451,6 +1451,8 @@ export const fr: Record<string, string> = {
   'match.layout.move.down': 'Descendre {region}',
   'match.layout.move.left': 'Mettre {region} dans la colonne de gauche',
   'match.layout.move.right': 'Mettre {region} dans la colonne de droite',
+  'match.layout.widePanel': 'Pleine largeur : {region} sur toute la fenêtre',
+  'match.layout.narrowPanel': 'Revenir à la largeur de colonne : {region}',
   'match.layout.reset': 'Réinitialiser la disposition',
   'match.layout.done': 'Terminé',
   'match.layout.editing': 'Faites glisser un panneau par ⠿, ou utilisez ses flèches, pour le déplacer. Faites glisser la barre entre les colonnes pour changer leur largeur.',

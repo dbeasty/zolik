@@ -1422,6 +1422,8 @@ export const sv: Record<string, string> = {
   'match.layout.move.down': 'Flytta ner {region}',
   'match.layout.move.left': 'Flytta {region} till vänster kolumn',
   'match.layout.move.right': 'Flytta {region} till höger kolumn',
+  'match.layout.widePanel': 'Full bredd: {region} över hela fönstret',
+  'match.layout.narrowPanel': 'Tillbaka till kolumnbredd: {region}',
   'match.layout.reset': 'Återställ layout',
   'match.layout.done': 'Klar',
   'match.layout.editing': 'Dra en panel i ⠿, eller använd dess pilar, för att flytta den. Dra listen mellan kolumnerna för att ändra deras bredd.',

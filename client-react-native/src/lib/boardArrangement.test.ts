@@ -1,5 +1,7 @@
 import { preferredPreset,
   asDrawn,
+  bandOf,
+  toggleWide,
   canMove,
   clampSplit,
   columnsToDraw,
@@ -86,7 +88,7 @@ describe('boardArrangement', () => {
     expect(columnsToDraw(side, false, ALL, true).columns).toEqual([preset('stacked', true).columns[0]]);
     // Nothing in the right column this deal: one column, the left one.
     const noRecord = new Set<RegionId>(['seats', 'table', 'hand']);
-    expect(columnsToDraw(side, true, noRecord, true)).toEqual({ columns: [['seats', 'table', 'hand']], split: 1 });
+    expect(columnsToDraw(side, true, noRecord, true)).toEqual({ top: [], bottom: [], columns: [['seats', 'table', 'hand']], split: 1 });
   });
 
   it('a single column the player reordered is kept on a narrow screen too', () => {
@@ -160,5 +162,81 @@ describe('the layout a board has until one is picked', () => {
 
   it('keeps a layout the player chose over it', () => {
     expect(normalize(preset('stacked', true), true, 'beside')).toEqual(preset('stacked', true));
+  });
+});
+
+describe('full-width regions', () => {
+  const everywhere = (a: Arrangement) => [...a.top, ...a.columns[0], ...a.columns[1], ...a.bottom].sort();
+
+  it('widens a region from the top half of its column into the band above, and from the bottom half below', () => {
+    const beside = preset('beside', true);
+    const seats = toggleWide(beside, 'seats', ALL, true);
+    expect(seats.top).toEqual(['seats']);
+    expect(seats.columns[0]).toEqual(['results', 'table', 'log']);
+    expect(seats.custom).toBe(true);
+    expect(toggleWide(beside, 'table', ALL, true).bottom).toEqual(['table']);
+    const opponents = toggleWide(beside, 'opponents', ALL, true);
+    expect(opponents.bottom).toEqual(['opponents']);
+    expect(everywhere(opponents)).toEqual([...REGIONS].sort());
+  });
+
+  it('puts a region back in the column its preset has it in', () => {
+    const beside = preset('beside', true);
+    const wide = toggleWide(beside, 'hand', ALL, true);
+    expect(bandOf(wide, 'hand')).toBe('top');
+    const back = toggleWide(wide, 'hand', ALL, true);
+    expect(bandOf(back, 'hand')).toBeNull();
+    expect(back.columns[1][0]).toBe('hand');
+  });
+
+  it('draws the bands above and below the columns, leaving the columns without them', () => {
+    const a = toggleWide(toggleWide(preset('beside', true), 'results', ALL, true), 'opponents', ALL, true);
+    const d = columnsToDraw(a, true, ALL, true);
+    expect(d.top).toEqual(['results']);
+    expect(d.bottom).toEqual(['opponents']);
+    expect(d.columns).toEqual([['seats', 'table', 'log'], ['hand', 'spreads']]);
+    expect(columnsToDraw(a, true, new Set<RegionId>(['seats', 'table', 'hand']), true).top).toEqual([]);
+  });
+
+  it('steps a full-width region down out of the band above into the band below, and back up', () => {
+    const a = toggleWide(preset('beside', true), 'results', ALL, true);
+    expect(canMove(a, 'results', 'up', ALL)).toBe(false);
+    expect(canMove(a, 'results', 'left', ALL)).toBe(false);
+    expect(canMove(a, 'results', 'right', ALL)).toBe(false);
+    const down = move(a, 'results', 'down', ALL);
+    expect(down.top).toEqual([]);
+    expect(down.bottom).toEqual(['results']);
+    expect(canMove(down, 'results', 'down', ALL)).toBe(false);
+    expect(move(down, 'results', 'up', ALL).top).toEqual(['results']);
+  });
+
+  it('orders full-width regions within a band, stepping over ones this game does not draw', () => {
+    const a: Arrangement = { ...preset('stacked', true), custom: true, top: ['results', 'log', 'seats'] };
+    a.columns = [a.columns[0].filter((r) => !a.top.includes(r)), []];
+    const noLog = new Set(REGIONS.filter((r) => r !== 'log'));
+    expect(move(a, 'seats', 'up', noLog).top).toEqual(['seats', 'results', 'log']);
+  });
+
+  it('a full-width region dropped into a column is a column region again', () => {
+    const a = toggleWide(preset('beside', true), 'table', ALL, true);
+    expect(bandOf(a, 'table')).toBe('bottom');
+    const b = moveTo(a, 'table', 1, 'spreads');
+    expect(b.bottom).toEqual([]);
+    expect(b.columns[1]).toEqual(['hand', 'table', 'spreads', 'opponents']);
+  });
+
+  it('survives a reload, and an arrangement stored before bands reads as having none', () => {
+    const a = toggleWide(preset('beside', true), 'hand', ALL, true);
+    expect(normalize(JSON.parse(JSON.stringify(a)), true)).toEqual(a);
+    const old = normalize({ preset: 'beside', custom: true, columns: [['table'], ['hand']], split: 0.5 }, true);
+    expect(old.top).toEqual([]);
+    expect(old.bottom).toEqual([]);
+  });
+
+  it('on a screen too narrow for two columns, the one column is drawn in the order it always was', () => {
+    const a = toggleWide(preset('beside', true), 'hand', ALL, true);
+    const d = columnsToDraw(a, false, ALL, true);
+    expect(d.top).toEqual([]);
+    expect(d.columns[0]).toEqual(preset('stacked', true).columns[0]);
   });
 });

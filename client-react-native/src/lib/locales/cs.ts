@@ -1418,6 +1418,8 @@ export const cs: Record<string, string> = {
   'match.layout.move.down': 'Posunout {region} dolů',
   'match.layout.move.left': 'Přesunout {region} do levého sloupce',
   'match.layout.move.right': 'Přesunout {region} do pravého sloupce',
+  'match.layout.widePanel': 'Celá šířka: {region} přes celé okno',
+  'match.layout.narrowPanel': 'Zpět na šířku sloupce: {region}',
   'match.layout.reset': 'Obnovit rozložení',
   'match.layout.done': 'Hotovo',
   'match.layout.editing': 'Panel přesunete přetažením za ⠿ nebo šipkami. Přetažením pruhu mezi sloupci změníte jejich šířku.',

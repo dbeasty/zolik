@@ -34,7 +34,19 @@ export type Arrangement = {
   columns: [RegionId[], RegionId[]];
   /** The left column's share of the width, when there are two. */
   split: number;
+  /**
+   * Full-width regions: drawn across the whole window, above the columns
+   * (`top`) or below them (`bottom`), past the width a single column stops
+   * at. Absent from an arrangement stored before there were any.
+   */
+  top: RegionId[];
+  bottom: RegionId[];
 };
+
+/** A region drawn across the whole width — in the band above the columns, or below. */
+export function bandOf(a: Arrangement, id: RegionId): 'top' | 'bottom' | null {
+  return a.top.includes(id) ? 'top' : a.bottom.includes(id) ? 'bottom' : null;
+}
 
 /**
  * Today's single column. The melds go under the buttons where the viewer
@@ -62,6 +74,8 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
           holdsHand ? ['hand', 'spreads', 'opponents'] : ['spreads', 'hand', 'opponents'],
         ],
         split: 0.5,
+        top: [],
+        bottom: [],
       };
     // The board as it is, with the record of the game — results, melds and
     // the opponents' cards — in a narrower column beside it.
@@ -74,10 +88,12 @@ export function preset(id: PresetId, holdsHand: boolean): Arrangement {
           holdsHand ? ['results', 'log', 'spreads', 'opponents'] : ['results', 'log', 'opponents'],
         ],
         split: 0.66,
+        top: [],
+        bottom: [],
       };
     case 'stacked':
     default:
-      return { preset: 'stacked', custom: false, columns: [stackedOrder(holdsHand), []], split: 1 };
+      return { preset: 'stacked', custom: false, columns: [stackedOrder(holdsHand), []], split: 1, top: [], bottom: [] };
   }
 }
 
@@ -105,13 +121,15 @@ export function normalize(raw: unknown, holdsHand: boolean, fallback: PresetId =
   const base = preset(presetId, holdsHand);
   if (!r || !r.custom || !Array.isArray(r.columns) || r.columns.length !== 2) return base;
   const seen = new Set<RegionId>();
-  const columns = r.columns.map((col) =>
-    (Array.isArray(col) ? col : []).filter((id): id is RegionId => {
+  const clean = (list: unknown) =>
+    (Array.isArray(list) ? list : []).filter((id): id is RegionId => {
       if (!REGIONS.includes(id as RegionId) || seen.has(id as RegionId)) return false;
       seen.add(id as RegionId);
       return true;
-    }),
-  ) as [RegionId[], RegionId[]];
+    });
+  const top = clean(r.top);
+  const bottom = clean(r.bottom);
+  const columns = r.columns.map(clean) as [RegionId[], RegionId[]];
   for (const id of REGIONS) {
     if (seen.has(id)) continue;
     // Just after whatever its preset has above it, so a region added since —
@@ -134,6 +152,8 @@ export function normalize(raw: unknown, holdsHand: boolean, fallback: PresetId =
     custom: true,
     columns,
     split: columns[1].length && columns[0].length ? Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, split)) : 1,
+    top,
+    bottom,
   };
 }
 
@@ -152,6 +172,16 @@ export function locate(a: Arrangement, id: RegionId): { column: 0 | 1; index: nu
  * rather than taken.
  */
 export function canMove(a: Arrangement, id: RegionId, move: Move, present: ReadonlySet<RegionId>): boolean {
+  const band = bandOf(a, id);
+  if (band) {
+    // A full-width region steps among the others, and from the band above
+    // the columns to the one below: always somewhere to go across them.
+    if (move === 'left' || move === 'right') return false;
+    const list = a[band];
+    const i = list.indexOf(id);
+    if (band === 'top') return move === 'down' || list.slice(0, i).some((r) => present.has(r));
+    return move === 'up' || list.slice(i + 1).some((r) => present.has(r));
+  }
   const { column, index } = locate(a, id);
   if (index < 0) return false;
   if (move === 'left') return column === 1;
@@ -170,6 +200,23 @@ export function canMove(a: Arrangement, id: RegionId, move: Move, present: Reado
  */
 export function move(a: Arrangement, id: RegionId, m: Move, present: ReadonlySet<RegionId>): Arrangement {
   if (!canMove(a, id, m, present)) return a;
+  const band = bandOf(a, id);
+  if (band) {
+    const top = [...a.top];
+    const bottom = [...a.bottom];
+    const list = band === 'top' ? top : bottom;
+    const i = list.indexOf(id);
+    const step = m === 'up' ? -1 : 1;
+    // The next region this game draws that way within the band; past the
+    // band's end, across the columns into the other band.
+    let j = i + step;
+    while (j >= 0 && j < list.length && !present.has(list[j]!)) j += step;
+    list.splice(i, 1);
+    if (j >= 0 && j <= list.length && present.has(a[band][j]!)) list.splice(j, 0, id);
+    else if (band === 'top') bottom.unshift(id);
+    else top.push(id);
+    return { ...a, custom: true, top, bottom };
+  }
   const { column, index } = locate(a, id);
   const columns: [RegionId[], RegionId[]] = [[...a.columns[0]], [...a.columns[1]]];
   const col = columns[column];
@@ -199,18 +246,63 @@ export function move(a: Arrangement, id: RegionId, m: Move, present: ReadonlySet
  */
 export function moveTo(a: Arrangement, id: RegionId, column: 0 | 1, before: RegionId | null): Arrangement {
   if (before === id) return a;
+  // A full-width region dropped into a column is a column's width again.
+  const band = bandOf(a, id);
   const from = locate(a, id);
-  if (from.index < 0) return a;
+  if (!band && from.index < 0) return a;
   const columns: [RegionId[], RegionId[]] = [[...a.columns[0]], [...a.columns[1]]];
-  columns[from.column].splice(from.index, 1);
+  if (!band) columns[from.column].splice(from.index, 1);
   const to = columns[column];
   const at = before ? to.indexOf(before) : -1;
   to.splice(at >= 0 ? at : to.length, 0, id);
-  if (columns[0].join() === a.columns[0].join() && columns[1].join() === a.columns[1].join()) return a;
+  if (!band && columns[0].join() === a.columns[0].join() && columns[1].join() === a.columns[1].join()) return a;
+  return withColumns(
+    { ...a, top: a.top.filter((r) => r !== id), bottom: a.bottom.filter((r) => r !== id) },
+    columns,
+  );
+}
+
+/** New columns, with the split following: a second column opens at half, and an emptied one closes. */
+function withColumns(a: Arrangement, columns: [RegionId[], RegionId[]]): Arrangement {
   let split = a.split;
   if (!columns[1].length || !columns[0].length) split = 1;
   else if (!a.columns[1].length || !a.columns[0].length) split = 0.5;
   return { ...a, custom: true, columns, split };
+}
+
+/**
+ * A region made full width, or put back to a column's width — the ↔ on its
+ * frame. Widened, it goes to the band nearer where it was: above the columns
+ * from the top half of its column, below them from the bottom half. Narrowed,
+ * it goes back to the column its preset has it in, at the head from the band
+ * above and at the foot from the band below.
+ */
+export function toggleWide(
+  a: Arrangement,
+  id: RegionId,
+  present: ReadonlySet<RegionId>,
+  holdsHand: boolean,
+): Arrangement {
+  const band = bandOf(a, id);
+  if (band) {
+    const home = preset(a.preset, holdsHand).columns[1].includes(id) && a.columns[1].length ? 1 : 0;
+    const columns: [RegionId[], RegionId[]] = [[...a.columns[0]], [...a.columns[1]]];
+    if (band === 'top') columns[home].unshift(id);
+    else columns[home].push(id);
+    return withColumns(
+      { ...a, top: a.top.filter((r) => r !== id), bottom: a.bottom.filter((r) => r !== id) },
+      columns,
+    );
+  }
+  const { column, index } = locate(a, id);
+  if (index < 0) return a;
+  const col = a.columns[column];
+  const above = col.slice(0, index).filter((r) => present.has(r)).length;
+  const below = col.slice(index + 1).filter((r) => present.has(r)).length;
+  const columns: [RegionId[], RegionId[]] = [[...a.columns[0]], [...a.columns[1]]];
+  columns[column].splice(index, 1);
+  const next = above <= below ? { top: [...a.top, id], bottom: a.bottom } : { top: a.top, bottom: [id, ...a.bottom] };
+  return withColumns({ ...a, ...next }, columns);
 }
 
 /**
@@ -222,7 +314,7 @@ export function moveTo(a: Arrangement, id: RegionId, column: 0 | 1, before: Regi
  */
 export function asDrawn(a: Arrangement, roomForTwo: boolean, holdsHand: boolean): Arrangement {
   if (roomForTwo || !a.columns[0].length || !a.columns[1].length) return a;
-  return { ...a, custom: true, columns: [stackedOrder(holdsHand), []], split: 1 };
+  return { ...a, custom: true, columns: [stackedOrder(holdsHand), []], split: 1, top: [], bottom: [] };
 }
 
 /** The narrowest and widest the left column may be made, as a share of the board. */
@@ -267,16 +359,17 @@ export function columnsToDraw(
   present: ReadonlySet<RegionId>,
   holdsHand: boolean,
   editing = false,
-): { columns: RegionId[][]; split: number } {
+): { top: RegionId[]; columns: RegionId[][]; bottom: RegionId[]; split: number } {
   const left = a.columns[0].filter((r) => present.has(r));
   const right = a.columns[1].filter((r) => present.has(r));
+  const bands = { top: a.top.filter((r) => present.has(r)), bottom: a.bottom.filter((r) => present.has(r)) };
   if (editing && roomForTwo) {
-    return { columns: [left, right], split: left.length && right.length ? a.split : left.length ? 0.7 : 0.3 };
+    return { ...bands, columns: [left, right], split: left.length && right.length ? a.split : left.length ? 0.7 : 0.3 };
   }
-  if (!right.length) return { columns: [left], split: 1 };
-  if (!left.length) return { columns: [right], split: 1 };
-  if (roomForTwo) return { columns: [left, right], split: a.split };
-  return { columns: [stackedOrder(holdsHand).filter((r) => present.has(r))], split: 1 };
+  if (!right.length) return { ...bands, columns: [left], split: 1 };
+  if (!left.length) return { ...bands, columns: [right], split: 1 };
+  if (roomForTwo) return { ...bands, columns: [left, right], split: a.split };
+  return { top: [], bottom: [], columns: [stackedOrder(holdsHand).filter((r) => present.has(r))], split: 1 };
 }
 
 /**

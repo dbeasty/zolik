@@ -1436,6 +1436,8 @@ export const fi: Record<string, string> = {
   'match.layout.move.down': 'Siirrä {region} alas',
   'match.layout.move.left': 'Siirrä {region} vasempaan sarakkeeseen',
   'match.layout.move.right': 'Siirrä {region} oikeaan sarakkeeseen',
+  'match.layout.widePanel': 'Koko leveys: {region} koko ikkunan levyiseksi',
+  'match.layout.narrowPanel': 'Takaisin sarakkeen levyiseksi: {region}',
   'match.layout.reset': 'Palauta asettelu',
   'match.layout.done': 'Valmis',
   'match.layout.editing': 'Siirrä paneelia vetämällä ⠿:sta tai sen nuolilla. Vedä sarakkeiden välistä palkkia muuttaaksesi niiden leveyttä.',

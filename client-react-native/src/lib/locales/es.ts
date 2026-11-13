@@ -1447,6 +1447,8 @@ export const es: Record<string, string> = {
   'match.layout.move.down': 'Bajar {region}',
   'match.layout.move.left': 'Mover {region} a la columna izquierda',
   'match.layout.move.right': 'Mover {region} a la columna derecha',
+  'match.layout.widePanel': 'Ancho completo: {region} en toda la ventana',
+  'match.layout.narrowPanel': 'Volver al ancho de columna: {region}',
   'match.layout.reset': 'Restablecer diseño',
   'match.layout.done': 'Listo',
   'match.layout.editing': 'Arrastra un panel por ⠿, o usa sus flechas, para moverlo. Arrastra la barra entre las columnas para cambiar su ancho.',

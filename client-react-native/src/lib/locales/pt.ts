@@ -1445,6 +1445,8 @@ export const pt: Record<string, string> = {
   'match.layout.move.down': 'Descer {region}',
   'match.layout.move.left': 'Mover {region} para a coluna esquerda',
   'match.layout.move.right': 'Mover {region} para a coluna direita',
+  'match.layout.widePanel': 'Largura total: {region} em toda a janela',
+  'match.layout.narrowPanel': 'Voltar à largura da coluna: {region}',
   'match.layout.reset': 'Repor disposição',
   'match.layout.done': 'Concluído',
   'match.layout.editing': 'Arraste um painel por ⠿, ou use as setas, para o mover. Arraste a barra entre as colunas para mudar a largura.',
