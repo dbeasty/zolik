@@ -2,6 +2,7 @@ package canasta
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -537,4 +538,27 @@ func TestEverySeatShowsItsSidesTableSoFar(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestMeldsCarryTheirCardPoints: each meld shows what its cards are worth, a
+// wild at its own value, so a side's points can be read off the table.
+func TestMeldsCarryTheirCardPoints(t *testing.T) {
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "K"), TeamID: 0, Rank: "K", Cards: []string{"KH", "KD", "2C"}}}
+	})
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	for _, z := range vm.Zones {
+		if z.ID != meldsZoneID(0) {
+			continue
+		}
+		if len(z.Groups) != 1 || z.Groups[0].Value != strconv.Itoa(handValue([]string{"KH", "KD", "2C"})) {
+			t.Fatalf("meld groups %+v, want one valued %d", z.Groups, handValue([]string{"KH", "KD", "2C"}))
+		}
+		return
+	}
+	t.Fatal("no melds zone for team 0")
 }

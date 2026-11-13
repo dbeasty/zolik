@@ -144,6 +144,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		g := module.Group{ID: set.ID, Kind: set.Kind, Cards: append([]string(nil), set.Cards...)}
 		if set.Kind == "" {
 			g.BadgeKeys = []string{"rummytiles.badge.invalid"}
+		} else if kind, canonical, ok := validateSet(set.Cards); ok {
+			// A joker counted as the number it stands for: the figure the
+			// initial meld adds up.
+			g.Value = strconv.Itoa(setValueOf(kind, canonical))
 		}
 		tableZone.Groups = append(tableZone.Groups, g)
 		tableZone.Count += len(set.Cards)

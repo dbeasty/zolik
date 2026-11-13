@@ -297,7 +297,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			z.LabelKey = "zone.teamMelds"
 		}
 		for _, mm := range meldsInViewOrder(t.Melds) {
-			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
+			// What its cards are worth, so a side's meld points can be read off
+			// the table. The cards only: a canasta's bonus is scored apart.
+			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...),
+				Value: strconv.Itoa(handValue(mm.Cards))}
 			if mm.isCanasta() {
 				g.Complete = true
 				g.Face = foldedFace(mm.Cards)

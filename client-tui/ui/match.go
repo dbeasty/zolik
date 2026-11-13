@@ -472,12 +472,15 @@ func (m matchModel) zoneLine(z api.Zone) string {
 		var b strings.Builder
 		b.WriteString(mutedStyle.Render(name) + "\n")
 		for _, g := range z.Groups {
+			var bs []string
+			for _, k := range g.BadgeKeys {
+				bs = append(bs, labelOf(k, ""))
+			}
+			if g.Value != "" {
+				bs = append(bs, g.Value)
+			}
 			badges := ""
-			if len(g.BadgeKeys) > 0 {
-				var bs []string
-				for _, k := range g.BadgeKeys {
-					bs = append(bs, labelOf(k, ""))
-				}
+			if len(bs) > 0 {
 				badges = "  " + strings.Join(bs, " ")
 			}
 			b.WriteString("  " + strings.Join(g.Cards, " ") + badges + "\n")
