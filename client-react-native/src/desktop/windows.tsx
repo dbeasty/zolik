@@ -1,4 +1,4 @@
-import { router, usePathname } from 'expo-router';
+import { router, useGlobalSearchParams, usePathname, useSegments } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -101,13 +101,17 @@ function isGameRoute(pathname: string): boolean {
  */
 export function GameWindowGuard() {
   const pathname = usePathname();
+  // The query comes from the router, not window.location: when this effect
+  // runs on a push, the browser URL can still be the game's, and "/rules"
+  // without its ?moduleId= made the main window ask for /modules//rules.
+  const search = routeSearch(useGlobalSearchParams(), useSegments());
   const ownPath = useRef<string | null>(null);
   const reported = useRef('');
 
   useEffect(() => {
     if (!IS_DESKTOP_GAME_WINDOW) return;
     if (isGameRoute(pathname)) {
-      ownPath.current = pathname + window.location.search;
+      ownPath.current = pathname + search;
       const id = decodeURIComponent(pathname.split('/')[2] ?? '');
       const key = `${pathname.split('/')[1]}:${id}`;
       if (key !== reported.current) {
@@ -117,7 +121,7 @@ export function GameWindowGuard() {
       return;
     }
     // Somewhere that is not this game.
-    const target = pathname + window.location.search;
+    const target = pathname + search;
     const stays = KEEPS_GAME_OPEN.test(pathname);
     postToApp({ op: 'toMain', path: target, close: !stays });
     if (stays) {
@@ -127,6 +131,27 @@ export function GameWindowGuard() {
     }
   }, [pathname]);
   return null;
+}
+
+/**
+ * The query string of the route in front ("?moduleId=canasta&variation=…"),
+ * from the router's params less the ones the path itself carries
+ * ([matchId] and the like). Empty when there are none.
+ */
+export function routeSearch(
+  params: Record<string, string | string[] | undefined>,
+  segments: readonly string[],
+): string {
+  const inPath = new Set(
+    segments.map((s) => /^\[(?:\.\.\.)?([^\]]+)\]$/.exec(s)?.[1]).filter((n): n is string => !!n),
+  );
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (inPath.has(key) || value === undefined) continue;
+    for (const v of Array.isArray(value) ? value : [value]) q.append(key, v);
+  }
+  const qs = q.toString();
+  return qs ? `?${qs}` : '';
 }
 
 /**

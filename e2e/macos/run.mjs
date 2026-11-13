@@ -876,11 +876,22 @@ async function main() {
   }, [a]);
 
   await step('a game window’s Rules link goes to the main window; leaving for the lobby closes the window', async () => {
+    // From home, so a rules screen an earlier step left open cannot pass for this one.
+    await on(a, 1);
+    await a.native('menu Home');
+    await a.js(`await e2e.waitFor(() => location.pathname === '/', 'home', 15000); return 1`);
     const lc = await indexOfGame(a, lastCard);
     await on(a, lc);
     await a.js(`await e2e.clickTestId('match-rules'); return 1`);
     await on(a, 1);
     await a.js(`await e2e.waitFor(() => location.pathname === '/rules', 'the rules in the main window', 15000); return 1`);
+    // This game's rules, not just the rules screen: the query once arrived
+    // empty, and the screen said only UNKNOWN_MODULE.
+    const shown = await a.js(
+      `await e2e.waitFor(() => e2e.text().length > 400 || /UNKNOWN_|error/i.test(e2e.text()), 'the rules to load', 15000); return { search: location.search, text: e2e.text().slice(0, 300) }`,
+    );
+    expect(/moduleId=lastcard/.test(shown.search), `the game's Rules link opened ${shown.search}`);
+    expect(!/UNKNOWN_|error|failed|not found/i.test(shown.text), `rules page: ${shown.text}`);
     let wins = await windowsOf(a);
     expect(wins.length === 3, `the Rules link changed the windows: ${JSON.stringify(wins)}`);
     await on(a, await indexOfGame(a, lastCard));
