@@ -1438,6 +1438,8 @@ export const bg: Record<string, string> = {
   'match.layout.move.down': 'Премести {region} надолу',
   'match.layout.move.left': 'Премести {region} в лявата колона',
   'match.layout.move.right': 'Премести {region} в дясната колона',
+  'match.layout.widePanel': 'Пълна ширина: {region} през целия прозорец',
+  'match.layout.narrowPanel': 'Обратно към ширината на колоната: {region}',
   'match.layout.reset': 'Нулиране на подредбата',
   'match.layout.done': 'Готово',
   'match.layout.editing': 'Плъзнете панел за ⠿ или използвайте стрелките му, за да го преместите. Плъзнете лентата между колоните, за да промените ширината им.',

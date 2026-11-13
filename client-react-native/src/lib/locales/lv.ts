@@ -1426,6 +1426,8 @@ export const lv: Record<string, string> = {
   'match.layout.move.down': 'Pārvietot {region} lejup',
   'match.layout.move.left': 'Pārvietot {region} uz kreiso kolonnu',
   'match.layout.move.right': 'Pārvietot {region} uz labo kolonnu',
+  'match.layout.widePanel': 'Pilns platums: {region} pāri visam logam',
+  'match.layout.narrowPanel': 'Atpakaļ uz kolonnas platumu: {region}',
   'match.layout.reset': 'Atiestatīt izkārtojumu',
   'match.layout.done': 'Gatavs',
   'match.layout.editing': 'Velciet paneli aiz ⠿ vai izmantojiet tā bultiņas, lai to pārvietotu. Velciet joslu starp kolonnām, lai mainītu to platumu.',

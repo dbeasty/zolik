@@ -1441,6 +1441,8 @@ export const it: Record<string, string> = {
   'match.layout.move.down': 'Sposta {region} giù',
   'match.layout.move.left': 'Sposta {region} nella colonna sinistra',
   'match.layout.move.right': 'Sposta {region} nella colonna destra',
+  'match.layout.widePanel': 'Larghezza piena: {region} su tutta la finestra',
+  'match.layout.narrowPanel': 'Torna alla larghezza della colonna: {region}',
   'match.layout.reset': 'Ripristina layout',
   'match.layout.done': 'Fatto',
   'match.layout.editing': 'Trascina un pannello da ⠿, o usa le sue frecce, per spostarlo. Trascina la barra tra le colonne per cambiarne la larghezza.',

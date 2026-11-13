@@ -1425,6 +1425,8 @@ export const sk: Record<string, string> = {
   'match.layout.move.down': 'Posunúť {region} dole',
   'match.layout.move.left': 'Presunúť {region} do ľavého stĺpca',
   'match.layout.move.right': 'Presunúť {region} do pravého stĺpca',
+  'match.layout.widePanel': 'Celá šírka: {region} cez celé okno',
+  'match.layout.narrowPanel': 'Späť na šírku stĺpca: {region}',
   'match.layout.reset': 'Obnoviť rozloženie',
   'match.layout.done': 'Hotovo',
   'match.layout.editing': 'Panel presuniete potiahnutím za ⠿ alebo šípkami. Potiahnutím pruhu medzi stĺpcami zmeníte ich šírku.',

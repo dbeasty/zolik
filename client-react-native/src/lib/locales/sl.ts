@@ -1420,6 +1420,8 @@ export const sl: Record<string, string> = {
   'match.layout.move.down': 'Premakni {region} dol',
   'match.layout.move.left': 'Premakni {region} v levi stolpec',
   'match.layout.move.right': 'Premakni {region} v desni stolpec',
+  'match.layout.widePanel': 'Polna širina: {region} čez celotno okno',
+  'match.layout.narrowPanel': 'Nazaj na širino stolpca: {region}',
   'match.layout.reset': 'Ponastavi postavitev',
   'match.layout.done': 'Končano',
   'match.layout.editing': 'Povlecite ploščo za ⠿ ali uporabite njene puščice, da jo premaknete. Povlecite trak med stolpcema, da spremenite njuno širino.',

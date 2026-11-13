@@ -1432,6 +1432,8 @@ export const pl: Record<string, string> = {
   'match.layout.move.down': 'Przesuń {region} w dół',
   'match.layout.move.left': 'Przenieś {region} do lewej kolumny',
   'match.layout.move.right': 'Przenieś {region} do prawej kolumny',
+  'match.layout.widePanel': 'Pełna szerokość: {region} na całe okno',
+  'match.layout.narrowPanel': 'Z powrotem do szerokości kolumny: {region}',
   'match.layout.reset': 'Przywróć układ',
   'match.layout.done': 'Gotowe',
   'match.layout.editing': 'Przeciągnij panel za ⠿ lub użyj jego strzałek, aby go przesunąć. Przeciągnij pasek między kolumnami, aby zmienić ich szerokość.',

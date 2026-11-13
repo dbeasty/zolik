@@ -209,6 +209,8 @@ export function RegionFrame({
   dragging,
   canMove,
   showSideways,
+  wide,
+  onToggleWide,
   onMove,
   onDragStart,
   onDragMove,
@@ -223,6 +225,10 @@ export function RegionFrame({
   canMove: (m: Move) => boolean;
   /** There is a second column to move to. */
   showSideways: boolean;
+  /** Drawn across the whole width — see `Arrangement.top`. */
+  wide: boolean;
+  /** The ↔: make it full width, or put it back. Absent where full width would look no different. */
+  onToggleWide?: () => void;
   onMove: (m: Move) => void;
   onDragStart: () => void;
   onDragMove: (x: number, y: number) => void;
@@ -260,7 +266,7 @@ export function RegionFrame({
             {name}
           </Text>
           {(['up', 'down', 'left', 'right'] as const).map((m) =>
-            (m === 'left' || m === 'right') && !showSideways ? null : (
+            (m === 'left' || m === 'right') && (!showSideways || wide) ? null : (
               <MoveButton
                 key={m}
                 glyph={ARROWS[m]}
@@ -272,6 +278,23 @@ export function RegionFrame({
               />
             ),
           )}
+          {onToggleWide ? (
+            <Tip text={t(wide ? 'match.layout.narrowPanel' : 'match.layout.widePanel', { region: name })}>
+              <Pressable
+                testID={`layout-wide-${region}`}
+                accessibilityRole="switch"
+                accessibilityLabel={t('match.layout.widePanel', { region: name })}
+                accessibilityState={{ checked: wide }}
+                // react-native-web does not carry `checked` over for a switch.
+                aria-checked={wide}
+                onPress={onToggleWide}
+                hitSlop={4}
+                style={({ pressed }) => [styles.move, styles.wide, wide && styles.wideOn, pressed && styles.pressed]}
+              >
+                <Text style={[styles.moveText, wide && styles.wideOnText]}>{wide ? '→←' : '↔'}</Text>
+              </Pressable>
+            </Tip>
+          ) : null}
         </View>
       ) : null}
       {/* Inert while arranging: a card pressed here would be played. */}
@@ -523,6 +546,10 @@ function editorStyles(s: Skin) {
       justifyContent: 'center',
     },
     moveDisabled: { opacity: 0.3 },
+    // Wider than an arrow: →← is two glyphs.
+    wide: { width: 44 },
+    wideOn: { backgroundColor: colors.accentButton, borderColor: colors.accentButton },
+    wideOnText: { color: colors.onAccent },
     moveText: { color: colors.text, fontSize: 16, fontWeight: '700' },
     pressed: { opacity: 0.85 },
     dropLineSpace: { height: 0, zIndex: 5 },

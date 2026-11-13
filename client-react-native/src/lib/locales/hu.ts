@@ -1443,6 +1443,8 @@ export const hu: Record<string, string> = {
   'match.layout.move.down': '{region} lejjebb',
   'match.layout.move.left': '{region} a bal oszlopba',
   'match.layout.move.right': '{region} a jobb oszlopba',
+  'match.layout.widePanel': 'Teljes szélesség: {region} az egész ablakon át',
+  'match.layout.narrowPanel': 'Vissza oszlopszélességre: {region}',
   'match.layout.reset': 'Elrendezés visszaállítása',
   'match.layout.done': 'Kész',
   'match.layout.editing': 'Egy panel mozgatásához húzd a ⠿ jelnél fogva, vagy használd a nyilait. Az oszlopok közti sávot húzva változtathatod a szélességüket.',

@@ -1439,6 +1439,8 @@ export const en: Record<string, string> = {
   'match.layout.move.down': 'Move {region} down',
   'match.layout.move.left': 'Move {region} to the left column',
   'match.layout.move.right': 'Move {region} to the right column',
+  'match.layout.widePanel': 'Full width: {region} across the whole window',
+  'match.layout.narrowPanel': 'Back to column width: {region}',
   'match.layout.reset': 'Reset layout',
   'match.layout.done': 'Done',
   'match.layout.editing': 'Drag a panel by ⠿, or use its arrows, to move it. Drag the bar between the columns to resize them.',

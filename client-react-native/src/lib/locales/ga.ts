@@ -1461,6 +1461,8 @@ export const ga: Record<string, string> = {
   'match.layout.move.down': 'Bog {region} síos',
   'match.layout.move.left': 'Bog {region} go dtí an colún ar chlé',
   'match.layout.move.right': 'Bog {region} go dtí an colún ar dheis',
+  'match.layout.widePanel': 'Leithead iomlán: {region} trasna na fuinneoige ar fad',
+  'match.layout.narrowPanel': 'Ar ais go leithead an cholúin: {region}',
   'match.layout.reset': 'Athshocraigh an leagan amach',
   'match.layout.done': 'Déanta',
   'match.layout.editing': 'Tarraing painéal ag ⠿, nó úsáid a shaigheada, chun é a bhogadh. Tarraing an barra idir na colúin chun a leithead a athrú.',

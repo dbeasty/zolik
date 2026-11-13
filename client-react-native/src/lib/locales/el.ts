@@ -1467,6 +1467,8 @@ export const el: Record<string, string> = {
   'match.layout.move.down': 'Μετακίνηση {region} κάτω',
   'match.layout.move.left': 'Μετακίνηση {region} στην αριστερή στήλη',
   'match.layout.move.right': 'Μετακίνηση {region} στη δεξιά στήλη',
+  'match.layout.widePanel': 'Πλήρες πλάτος: {region} σε όλο το παράθυρο',
+  'match.layout.narrowPanel': 'Επιστροφή στο πλάτος στήλης: {region}',
   'match.layout.reset': 'Επαναφορά διάταξης',
   'match.layout.done': 'Τέλος',
   'match.layout.editing': 'Σύρετε ένα πάνελ από το ⠿ ή χρησιμοποιήστε τα βέλη του για να το μετακινήσετε. Σύρετε τη γραμμή ανάμεσα στις στήλες για να αλλάξετε το πλάτος τους.',
