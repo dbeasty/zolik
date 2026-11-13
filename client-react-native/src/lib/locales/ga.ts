@@ -1455,6 +1455,7 @@ export const ga: Record<string, string> = {
   'match.layout.region.table': 'Bord',
   'match.layout.region.log': 'Bearta le déanaí',
   'match.layout.region.hand': 'Do lámh',
+  'match.layout.region.controls': 'Rialtáin',
   'match.layout.region.spreads': 'Meldeanna',
   'match.layout.region.opponents': 'Céilí comhraic',
   'match.layout.move.up': 'Bog {region} suas',

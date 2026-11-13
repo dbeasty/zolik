@@ -1418,6 +1418,7 @@ export const da: Record<string, string> = {
   'match.layout.region.table': 'Bord',
   'match.layout.region.log': 'Seneste træk',
   'match.layout.region.hand': 'Din hånd',
+  'match.layout.region.controls': 'Betjening',
   'match.layout.region.spreads': 'Meldinger',
   'match.layout.region.opponents': 'Modstandere',
   'match.layout.move.up': 'Flyt {region} op',

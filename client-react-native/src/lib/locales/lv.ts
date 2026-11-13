@@ -1420,6 +1420,7 @@ export const lv: Record<string, string> = {
   'match.layout.region.table': 'Galds',
   'match.layout.region.log': 'Pēdējie gājieni',
   'match.layout.region.hand': 'Tava roka',
+  'match.layout.region.controls': 'Vadība',
   'match.layout.region.spreads': 'Kombinācijas',
   'match.layout.region.opponents': 'Pretinieki',
   'match.layout.move.up': 'Pārvietot {region} augšup',

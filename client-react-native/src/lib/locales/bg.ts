@@ -1432,6 +1432,7 @@ export const bg: Record<string, string> = {
   'match.layout.region.table': 'Маса',
   'match.layout.region.log': 'Последни ходове',
   'match.layout.region.hand': 'Вашата ръка',
+  'match.layout.region.controls': 'Управление',
   'match.layout.region.spreads': 'Комбинации',
   'match.layout.region.opponents': 'Съперници',
   'match.layout.move.up': 'Премести {region} нагоре',

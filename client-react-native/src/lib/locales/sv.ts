@@ -1416,6 +1416,7 @@ export const sv: Record<string, string> = {
   'match.layout.region.table': 'Bord',
   'match.layout.region.log': 'Senaste dragen',
   'match.layout.region.hand': 'Din hand',
+  'match.layout.region.controls': 'Kontroller',
   'match.layout.region.spreads': 'Kombinationer',
   'match.layout.region.opponents': 'Motståndare',
   'match.layout.move.up': 'Flytta upp {region}',

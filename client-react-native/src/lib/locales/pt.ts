@@ -1439,6 +1439,7 @@ export const pt: Record<string, string> = {
   'match.layout.region.table': 'Mesa',
   'match.layout.region.log': 'Jogadas recentes',
   'match.layout.region.hand': 'A sua mão',
+  'match.layout.region.controls': 'Comandos',
   'match.layout.region.spreads': 'Combinações',
   'match.layout.region.opponents': 'Adversários',
   'match.layout.move.up': 'Subir {region}',

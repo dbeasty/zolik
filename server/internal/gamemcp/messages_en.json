@@ -1904,6 +1904,7 @@
  "match.layout.preset.beside": "Table beside hand",
  "match.layout.preset.side": "Side column",
  "match.layout.preset.stacked": "Stacked",
+ "match.layout.region.controls": "Controls",
  "match.layout.region.hand": "Your hand",
  "match.layout.region.log": "Recent moves",
  "match.layout.region.opponents": "Opponents",

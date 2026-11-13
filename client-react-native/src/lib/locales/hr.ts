@@ -1419,6 +1419,7 @@ export const hr: Record<string, string> = {
   'match.layout.region.table': 'Stol',
   'match.layout.region.log': 'Nedavni potezi',
   'match.layout.region.hand': 'Vaša ruka',
+  'match.layout.region.controls': 'Upravljanje',
   'match.layout.region.spreads': 'Kombinacije',
   'match.layout.region.opponents': 'Protivnici',
   'match.layout.move.up': 'Pomakni {region} gore',

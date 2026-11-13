@@ -1430,6 +1430,7 @@ export const fi: Record<string, string> = {
   'match.layout.region.table': 'Pöytä',
   'match.layout.region.log': 'Viimeisimmät siirrot',
   'match.layout.region.hand': 'Kätesi',
+  'match.layout.region.controls': 'Ohjaimet',
   'match.layout.region.spreads': 'Yhdistelmät',
   'match.layout.region.opponents': 'Vastustajat',
   'match.layout.move.up': 'Siirrä {region} ylös',

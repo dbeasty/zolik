@@ -1426,6 +1426,7 @@ export const pl: Record<string, string> = {
   'match.layout.region.table': 'Stół',
   'match.layout.region.log': 'Ostatnie ruchy',
   'match.layout.region.hand': 'Twoja ręka',
+  'match.layout.region.controls': 'Sterowanie',
   'match.layout.region.spreads': 'Układy',
   'match.layout.region.opponents': 'Przeciwnicy',
   'match.layout.move.up': 'Przesuń {region} w górę',
