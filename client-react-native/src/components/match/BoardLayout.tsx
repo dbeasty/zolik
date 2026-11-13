@@ -4,6 +4,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { MatchState, Zone } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardSpeechProvider } from '@/src/components/match/BoardSpeech';
+import { CardGlance } from '@/src/components/match/CardGlance';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
 import {
@@ -724,12 +725,24 @@ export function Section({
       style={flush ? null : styles.section}
       summary={
         <View style={styles.sectionSummary}>
-          {zones.map((z, i) => (
-            <Text key={z.id} style={styles.sectionSummaryText} numberOfLines={1}>
-              {label(z.labelKey) || z.id} {z.count}
-              {i < zones.length - 1 ? ' · ' : ''}
-            </Text>
-          ))}
+          {zones.map((z, i) => {
+            // A face-up pile shows its top card as well as its count, put
+            // away or not — the discard is the one card on the table you
+            // decide by, and "Discard 12" alone hides it.
+            const top = z.kind === 'pile' && z.cards?.length ? z.cards[z.cards.length - 1].card : null;
+            return (
+              <View key={z.id} style={styles.sectionSummaryItem} testID={`section-summary-${z.id}`}>
+                <Text style={styles.sectionSummaryText} numberOfLines={1}>
+                  {label(z.labelKey) || z.id}
+                </Text>
+                {top ? <CardGlance cards={[top]} max={1} testID={`section-summary-top-${z.id}`} /> : null}
+                <Text style={styles.sectionSummaryText} numberOfLines={1}>
+                  {z.count}
+                  {i < zones.length - 1 ? ' · ' : ''}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       }
     >
@@ -847,7 +860,8 @@ export function matchStyles(s: Skin) {
   tableRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, marginTop: 10 },
   tableRowTrick: { flexGrow: 1 },
   tableRowRest: { flexGrow: 1, flexBasis: 0 },
-  sectionSummary: { flexDirection: 'row', flexShrink: 1, minWidth: 0 },
+  sectionSummary: { flexDirection: 'row', alignItems: 'center', columnGap: 4, flexShrink: 1, minWidth: 0 },
+  sectionSummaryItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0 },
   sectionSummaryText: { color: colors.muted, fontSize: 12 },
   beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
   mine: { marginTop: 10 },
