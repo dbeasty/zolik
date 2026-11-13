@@ -110,3 +110,30 @@ func TestView_EachPlayerSeesOnlyTheirOwnRackValue(t *testing.T) {
 		}
 	}
 }
+
+// A valid set on the table shows its points, a joker at the number it stands
+// for; an invalid one shows none, since it has no value yet.
+func TestView_SetsCarryTheirValue(t *testing.T) {
+	raw := withState(t, func(s *GameState) {
+		s.Sets = []Set{
+			{ID: "s0", Kind: "group", Cards: []string{"7-R", "7-B", "7-O"}},
+			{ID: "s1", Kind: "", Cards: []string{"7-R", "9-B"}},
+		}
+		s.Workspace = nil
+	})
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	got := map[string]string{}
+	for _, z := range vm.Zones {
+		if z.ID == tableZoneID {
+			for _, g := range z.Groups {
+				got[g.ID] = g.Value
+			}
+		}
+	}
+	if got["s0"] != "21" || got["s1"] != "" {
+		t.Errorf("set values %v, want s0=21 and s1 none", got)
+	}
+}

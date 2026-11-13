@@ -34,6 +34,8 @@ type Group struct {
 	Kind      string   `json:"kind,omitempty"`
 	Cards     []string `json:"cards"`
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Value is what the group scores, "150", printed after its badges.
+	Value string `json:"value,omitempty"`
 }
 
 // Zone is one area of the board. A hidden zone sends Count and no Cards.

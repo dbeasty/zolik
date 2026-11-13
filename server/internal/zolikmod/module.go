@@ -18,6 +18,7 @@ package zolikmod
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"zolik/server/internal/ai"
 	"zolik/server/internal/models"
@@ -566,6 +567,11 @@ func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.Vie
 				if metas[i].WildCount == 0 && metas[i].Type == rules.MeldRun {
 					g.BadgeKeys = append(g.BadgeKeys, "badge.cleanRun")
 				}
+			}
+			// What the meld is worth as laid, a joker counted as the card it
+			// stands for — the figure the opening minimum adds up.
+			if mv, err := rules.ValidateMeldInOrder(cards, cfg); err == nil {
+				g.Value = strconv.Itoa(mv.NaturalValue)
 			}
 			z.Groups = append(z.Groups, g)
 			z.Count += len(cards)
