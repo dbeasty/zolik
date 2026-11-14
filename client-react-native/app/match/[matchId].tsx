@@ -848,6 +848,12 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // not be read; there, as in the Mac app (which has no bar), it sits in the
   // board's top row instead.
   const zoomInBar = !desktopChrome && windowWidth >= 480;
+  // A phone held upright: iOS centres the title in whatever the buttons on
+  // either side leave, and between the back arrows and Layout and the face
+  // that was under a hundred points — the status came out as "M..". So the
+  // bar sheds words there, the ones a screen reader still says: Layout keeps
+  // its ▦, and the status keeps its dot and word without "Match" before it.
+  const compactBar = Platform.OS !== 'web' && windowWidth < 480;
   // The board never gets shorter within a deal, so a turn line going away
   // under the piles cannot pull them down the screen — see useNoShrink.
   const boardNoShrink = useNoShrink(
@@ -2437,7 +2443,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
         {...((Platform.OS === 'web' ? { 'aria-pressed': arranging } : {}) as object)}
       >
         <Text style={[styles.tableCodeText, arranging && { color: skin.colors.onAccent }]}>
-          ▦ {arranging ? t('match.layout.done') : t('match.layout.button')}
+          {compactBar && !arranging ? '▦' : `▦ ${arranging ? t('match.layout.done') : t('match.layout.button')}`}
         </Text>
       </Pressable>
     </Tip>
@@ -2535,7 +2541,9 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
           // explainer.
           headerTitle: () => (
             <View style={styles.headerTitleGroup}>
-              <Tip text={t('a11y.board.tip.status')}>
+              {/* Shrinks with the bar: the status ellipsises rather than
+                  running under the buttons on the right. */}
+              <Tip text={t('a11y.board.tip.status')} style={{ flexShrink: 1, minWidth: 0 }}>
               <Pressable
                 testID="match-status-dot"
                 onPress={() => setStatusExplainerOpen((v) => !v)}
@@ -2546,7 +2554,11 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
                 accessibilityState={{ expanded: statusExplainerOpen }}
                 {...((Platform.OS === 'web' ? { 'aria-expanded': statusExplainerOpen } : {}) as object)}
               >
-                <Text style={styles.headerTitleText}>{t('nav.match')}</Text>
+                {compactBar ? null : (
+                  <Text style={styles.headerTitleText} numberOfLines={1}>
+                    {t('nav.match')}
+                  </Text>
+                )}
                 <View
                   style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
                 />
@@ -2559,9 +2571,11 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
                 >
                   {t(`mine.status.${state.status}`, undefined, state.status)}
                 </Text>
-                {serverLabel && windowWidth >= 480 ? (
+                {serverLabel && Math.min(windowWidth, windowHeight) >= 480 ? (
                   // A phone's bar has no room for it between the arrows and the
                   // face: it ran under both. The status explainer says it instead.
+                  // Either way up — on its side the bar is wider, but the zoom
+                  // moves into it and takes the room.
                   <Text testID="match-server" style={[styles.status, { flexShrink: 1 }]} numberOfLines={1}>
                     {`· ${serverLabel}`}
                   </Text>

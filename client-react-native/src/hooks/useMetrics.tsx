@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { Dimensions, useWindowDimensions } from 'react-native';
+import { Dimensions, Platform, useWindowDimensions } from 'react-native';
 
 import { getA11yPrefs, useA11yPrefs } from '@/src/a11y/prefs';
 import { smallestZoom, useBoardZoom } from '@/src/lib/boardZoom';
-import { metricsFor, type Metrics } from '@/src/lib/layout';
+import { metricsFor, type Metrics, type ScreenShape } from '@/src/lib/layout';
 
 /**
  * How big things are, read from the window once per resize and shared down
@@ -15,10 +15,22 @@ import { metricsFor, type Metrics } from '@/src/lib/layout';
  */
 const MetricsContext = createContext<Metrics | null>(null);
 
+const IOS = Platform.OS === 'ios';
+
+/**
+ * The window's width, and the rest of its shape the card size is read from —
+ * so a phone turned on its side keeps the cards it had upright.
+ */
+function useScreen(): { width: number; screen: ScreenShape } {
+  const { width, height } = useWindowDimensions();
+  const screen = useMemo(() => ({ height, ios: IOS }), [height]);
+  return { width, screen };
+}
+
 export function MetricsProvider({ children }: { children: ReactNode }) {
-  const { width } = useWindowDimensions();
+  const { width, screen } = useScreen();
   const { cardSize } = useA11yPrefs();
-  const metrics = useMemo(() => metricsFor(width, cardSize), [width, cardSize]);
+  const metrics = useMemo(() => metricsFor(width, cardSize, 1, screen), [width, cardSize, screen]);
   return <MetricsContext.Provider value={metrics}>{children}</MetricsContext.Provider>;
 }
 
@@ -29,10 +41,10 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
  * and screens around the board keep their size.
  */
 export function useBoardMetrics(): Metrics {
-  const { width } = useWindowDimensions();
+  const { width, screen } = useScreen();
   const { cardSize } = useA11yPrefs();
   const { zoom } = useBoardZoomLevel();
-  return useMemo(() => metricsFor(width, cardSize, zoom), [width, cardSize, zoom]);
+  return useMemo(() => metricsFor(width, cardSize, zoom, screen), [width, cardSize, zoom, screen]);
 }
 
 /**
@@ -43,15 +55,22 @@ export function useBoardMetrics(): Metrics {
  * still print a rank on.
  */
 export const DOCK_SCALE = 0.75;
+export const MIN_DOCK_CARD_WIDTH = 30;
 
 export function useDockMetrics(): Metrics {
-  const { width } = useWindowDimensions();
+  const { width, screen } = useScreen();
   const { cardSize } = useA11yPrefs();
   const { zoom, floor } = useBoardZoomLevel();
-  return useMemo(
-    () => metricsFor(width, cardSize, Math.max(floor, Math.round(zoom * DOCK_SCALE * 100) / 100)),
-    [width, cardSize, zoom, floor],
-  );
+  return useMemo(() => {
+    let dock = Math.max(floor, Math.round(zoom * DOCK_SCALE * 100) / 100);
+    // …and never so small that a "10" stops fitting across its corner: an
+    // iPhone's cards start small enough that three quarters of them wrapped
+    // it onto two lines and pushed the suit off the card.
+    while (dock < zoom && metricsFor(width, cardSize, dock, screen).card.width < MIN_DOCK_CARD_WIDTH) {
+      dock = Math.min(zoom, Math.round((dock + 0.05) * 100) / 100);
+    }
+    return metricsFor(width, cardSize, dock, screen);
+  }, [width, cardSize, zoom, floor, screen]);
 }
 
 /**
@@ -60,10 +79,10 @@ export function useDockMetrics(): Metrics {
  * comes back when the window is wide again.
  */
 export function useBoardZoomLevel(): { zoom: number; floor: number } {
-  const { width } = useWindowDimensions();
+  const { width, screen } = useScreen();
   const { cardSize } = useA11yPrefs();
   const saved = useBoardZoom();
-  const floor = useMemo(() => smallestZoom(width, cardSize), [width, cardSize]);
+  const floor = useMemo(() => smallestZoom(width, cardSize, screen), [width, cardSize, screen]);
   return { zoom: Math.max(saved, floor), floor };
 }
 
@@ -79,5 +98,6 @@ export function BoardMetricsProvider({ metrics, children }: { metrics: Metrics; 
 export function useMetrics(): Metrics {
   const fromContext = useContext(MetricsContext);
   if (fromContext) return fromContext;
-  return metricsFor(Dimensions.get('window').width, getA11yPrefs().cardSize);
+  const { width, height } = Dimensions.get('window');
+  return metricsFor(width, getA11yPrefs().cardSize, 1, { height, ios: IOS });
 }
