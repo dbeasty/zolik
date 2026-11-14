@@ -326,3 +326,33 @@ describe('foldedFace', () => {
     expect(foldedFace({ cards: ['5H', '5S', '5D'], face: -1 })).toBe(2);
   });
 });
+
+describe('a phone on its side', () => {
+  // iPhone 16 Pro, both ways up.
+  const portrait = { w: 393, h: 852 };
+  it('keeps the cards it had upright', () => {
+    const up = metricsFor(portrait.w, 'normal', 1, { height: portrait.h });
+    const side = metricsFor(portrait.h, 'normal', 1, { height: portrait.w });
+    expect(side.card.width).toBe(up.card.width);
+    expect(side.card.height).toBe(up.card.height);
+    // Sized from the width alone, the same phone drew cards nearly twice as big.
+    expect(metricsFor(portrait.h).card.width).toBeGreaterThan(side.card.width * 1.5);
+  });
+
+  it('draws them smaller still on an iPhone, either way up', () => {
+    const plain = metricsFor(portrait.w, 'normal', 1, { height: portrait.h });
+    for (const [w, h] of [
+      [portrait.w, portrait.h],
+      [portrait.h, portrait.w],
+    ]) {
+      const ios = metricsFor(w, 'normal', 1, { height: h, ios: true });
+      expect(ios.card.width).toBeLessThan(plain.card.width);
+      expect(ios.card.width).toBe(metricsFor(portrait.w, 'normal', 1, { height: portrait.h, ios: true }).card.width);
+    }
+  });
+
+  it('leaves tablets and short desktop windows to their width', () => {
+    expect(metricsFor(1024, 'normal', 1, { height: 768, ios: true }).card.width).toBe(metricsFor(1024).card.width);
+    expect(metricsFor(1400, 'normal', 1, { height: 500 }).card.width).toBe(metricsFor(1400).card.width);
+  });
+});
