@@ -233,8 +233,10 @@ func (s *GameState) card(st *Seat) ([]module.Event, error) {
 	}
 	switch {
 	case oko(st.Hand):
-		// Two aces win at once, whatever the bank turns up.
-		pay := min(s.OkoPays*st.Bet, s.Bank)
+		// Two aces win at once, whatever the bank turns up — paid out of
+		// what the bank holds beyond the other stakes still on the table,
+		// which it must still be able to cover.
+		pay := min(s.OkoPays*st.Bet, s.Bank-(s.committed()-st.Bet))
 		s.Bank -= pay
 		st.Stack += st.Bet + pay
 		st.Delta = pay
