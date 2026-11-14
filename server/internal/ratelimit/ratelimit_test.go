@@ -57,20 +57,66 @@ func TestResetForgetsAKey(t *testing.T) {
 	}
 }
 
-func TestClientIPPrefersTheForwardedChainsFirstEntry(t *testing.T) {
+func TestClientIPReadsTheEntryOurProxyAdded(t *testing.T) {
 	req := httptest.NewRequest("POST", "/", nil)
 	req.RemoteAddr = "10.9.9.9:5555"
 	if got := ClientIP(req); got != "10.9.9.9" {
 		t.Errorf("with no header: got %q, want 10.9.9.9", got)
 	}
 
-	req.Header.Set("X-Forwarded-For", "203.0.113.7, 70.41.3.18")
-	if got := ClientIP(req); got != "203.0.113.7" {
-		t.Errorf("with a chain: got %q, want 203.0.113.7", got)
-	}
-
 	req.Header.Set("X-Forwarded-For", "203.0.113.9")
 	if got := ClientIP(req); got != "203.0.113.9" {
 		t.Errorf("with a single entry: got %q, want 203.0.113.9", got)
+	}
+
+	// A client-sent entry ahead of the one the proxy appended is the client's
+	// own word; keying on it would let a caller pick a fresh identity each
+	// request.
+	req.Header.Set("X-Forwarded-For", "1.2.3.4, 203.0.113.7")
+	if got := ClientIP(req); got != "203.0.113.7" {
+		t.Errorf("with a spoofed chain: got %q, want 203.0.113.7", got)
+	}
+
+	req.Header.Set("X-Forwarded-For", "6.6.6.6,7.7.7.7 ,  2001:db8::7 ")
+	if got := ClientIP(req); got != "2001:db8::7" {
+		t.Errorf("with a longer chain: got %q, want 2001:db8::7", got)
+	}
+}
+
+func TestClientIPSpoofedEntriesDoNotChangeTheKey(t *testing.T) {
+	seen := map[string]bool{}
+	for _, spoof := range []string{"1.1.1.1", "2.2.2.2", "9.9.9.9, 8.8.8.8"} {
+		req := httptest.NewRequest("POST", "/", nil)
+		req.Header.Set("X-Forwarded-For", spoof+", 198.51.100.4")
+		seen[ClientIP(req)] = true
+	}
+	if len(seen) != 1 || !seen["198.51.100.4"] {
+		t.Errorf("spoofed prefixes produced keys %v, want only 198.51.100.4", seen)
+	}
+}
+
+func TestClientIPFallsBackToTheRemoteAddr(t *testing.T) {
+	cases := map[string]string{
+		"10.9.9.9:5555":      "10.9.9.9",
+		"[2001:db8::1]:443":  "2001:db8::1",
+		"[::1]:8090":         "::1",
+		"[fe80::1%en0]:1234": "fe80::1%en0",
+		"ble-peer:0":         "ble-peer",
+		"no-port-at-all":     "no-port-at-all",
+	}
+	for remote, want := range cases {
+		req := httptest.NewRequest("POST", "/", nil)
+		req.RemoteAddr = remote
+		if got := ClientIP(req); got != want {
+			t.Errorf("RemoteAddr %q: got %q, want %q", remote, got, want)
+		}
+	}
+
+	// An empty or blank header is no header at all.
+	req := httptest.NewRequest("POST", "/", nil)
+	req.RemoteAddr = "[2001:db8::2]:1"
+	req.Header.Set("X-Forwarded-For", " ")
+	if got := ClientIP(req); got != "2001:db8::2" {
+		t.Errorf("with a blank header: got %q, want 2001:db8::2", got)
 	}
 }

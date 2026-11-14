@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/identity"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
+	"zolik/server/internal/ratelimit"
 )
 
 // Token lifetimes. A guest's access token is long-lived because a guest has no
@@ -927,21 +928,11 @@ func (h *Handlers) logout(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"loggedOut": true})
 }
 
-// clientIP is best-effort, for abuse investigation only. It trusts
-// X-Forwarded-For, which is fine for that purpose and would not be for
-// anything security-relevant — nothing here makes a decision on it.
+// clientIP is best-effort, for abuse investigation only; nothing here makes
+// a decision on it. It is the rate limiter's reading, so the two never
+// disagree about who a caller is.
 func clientIP(req *http.Request) string {
-	if fwd := req.Header.Get("X-Forwarded-For"); fwd != "" {
-		if first, _, ok := strings.Cut(fwd, ","); ok {
-			return strings.TrimSpace(first)
-		}
-		return strings.TrimSpace(fwd)
-	}
-	host, _, ok := strings.Cut(req.RemoteAddr, ":")
-	if !ok {
-		return req.RemoteAddr
-	}
-	return host
+	return ratelimit.ClientIP(req)
 }
 
 // writeAuthError answers a refusal the player is meant to read, as a code the
