@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/blackpeter"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
@@ -225,6 +226,15 @@ func allModules() []hosted {
 			players:  refs("p1", "p2", "p3", "p4"),
 			cfg:      module.MatchConfig{Variation: pinochle.VarDoubleDeck},
 			prefer:   []string{"pass", "name_trump", "play_card"},
+			finishes: true,
+		},
+		{
+			name:     "blackpeter",
+			rounds:   true,
+			mod:      blackpeter.New(),
+			players:  refs("p1", "p2", "p3", "p4"),
+			cfg:      module.MatchConfig{Options: module.Options{blackpeter.OptRounds: 3}},
+			prefer:   []string{"draw"},
 			finishes: true,
 		},
 		{

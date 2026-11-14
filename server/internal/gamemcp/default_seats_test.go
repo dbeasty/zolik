@@ -30,6 +30,7 @@ var defaultTables = map[string]map[string]int{
 	"lora":       {"classic": 4},
 	"sietemedio": {"mexicana": 4, "cantina": 4, "abierta": 4},
 	"pinochle":   {"partnership": 4, "cutthroat": 3, "twohanded": 2, "doubledeck": 4},
+	"blackpeter": {"classic": 4},
 }
 
 // TestEveryGameDealsAtItsDefaultTable pins the table above, and proves each one

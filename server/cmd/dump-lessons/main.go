@@ -16,6 +16,7 @@ import (
 	"sort"
 
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/blackpeter"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
@@ -40,7 +41,7 @@ func main() {
 	mods := []module.GameModule{
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(),
 		blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(),
-		okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(),
+		okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(), blackpeter.New(),
 	}
 	all := map[string]bool{}
 	for _, m := range mods {

@@ -285,6 +285,14 @@ export const POSITION_PARAM = 'position';
  */
 export const PICK_ORDER_PARAM = 'pickOrder';
 
+/**
+ * Which face-down card was taken out of another player's hand: its position,
+ * from 0, among the backs as drawn. Mirrors the server's `module.PickParam`.
+ * Optional — an offer pressed from the control bar sends none, and the module
+ * picks for it; with every card face down that is the same draw.
+ */
+export const PICK_PARAM = 'pick';
+
 export type Selector = {
   /** What sort of place this is: a hand, a deck, a discard pile, a meld. */
   zone: string;

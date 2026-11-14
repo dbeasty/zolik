@@ -635,6 +635,25 @@ describe('sourceSpotsFor', () => {
     ]);
   });
 
+  // Black Peter: the card is taken out of a neighbour's face-down hand, so
+  // that hand is what a player points at.
+  it("puts a draw from another player's hand on that hand", () => {
+    const takeFromYou: ActionOffer = {
+      id: 'draw',
+      verb: 'draw',
+      enabled: true,
+      labelKey: 'blackpeter.offer.draw',
+      source: { zone: 'hand', ownerId: 'you', zoneId: 'hand:you' },
+      target: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me' },
+    };
+    expect(sourceSpotsFor([takeFromYou], zones, 'me')).toEqual([
+      { offerId: 'draw', elementId: 'zone-hand:you', ready: true },
+    ]);
+    // Your own hand is never somewhere you take a card from.
+    const fromMine = { ...takeFromYou, source: { zone: 'hand' as const, ownerId: 'me', zoneId: 'hand:me' } };
+    expect(sourceSpotsFor([fromMine], zones, 'me')).toEqual([]);
+  });
+
   it('leaves a disabled draw off — a pile you may not take from is not a control', () => {
     const spots = sourceSpotsFor([{ ...drawDeck, enabled: false }, drawDiscard], zones, 'me');
     expect(spots.map((s) => s.elementId)).toEqual(['zone-discard']);

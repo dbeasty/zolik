@@ -1,6 +1,7 @@
 {
   "bg": {
     "module.blackjack": "Блекджек",
+    "module.blackpeter": "Черния Петър",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Джин рами",
@@ -26,6 +27,7 @@
   },
   "cs": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Černý Petr",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -51,6 +53,7 @@
   },
   "da": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Sorte Per",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -76,6 +79,7 @@
   },
   "de": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Schwarzer Peter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -101,6 +105,7 @@
   },
   "el": {
     "module.blackjack": "Μπλάκτζακ",
+    "module.blackpeter": "Μαύρος Πέτρος",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Τζιν ράμι",
@@ -126,6 +131,7 @@
   },
   "en": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Black Peter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -151,6 +157,7 @@
   },
   "es": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Pedro Negro",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -176,6 +183,7 @@
   },
   "et": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Must Peeter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -201,6 +209,7 @@
   },
   "fi": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Musta Pekka",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -226,6 +235,7 @@
   },
   "fr": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Pouilleux",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -251,6 +261,7 @@
   },
   "ga": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Peadar Dubh",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -276,6 +287,7 @@
   },
   "hr": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Crni Petar",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -301,6 +313,7 @@
   },
   "hu": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Fekete Péter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -326,6 +339,7 @@
   },
   "it": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Uomo Nero",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -351,6 +365,7 @@
   },
   "lt": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Juodasis Petras",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -376,6 +391,7 @@
   },
   "lv": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Melnais Pēteris",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -401,6 +417,7 @@
   },
   "mt": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Pietru l-Iswed",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -426,6 +443,7 @@
   },
   "nl": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Zwarte Peter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -451,6 +469,7 @@
   },
   "pl": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Czarny Piotruś",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -476,6 +495,7 @@
   },
   "pt": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Pedro Preto",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -501,6 +521,7 @@
   },
   "ro": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Petru Negru",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -526,6 +547,7 @@
   },
   "sk": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Čierny Peter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -551,6 +573,7 @@
   },
   "sl": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Črni Peter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",
@@ -576,6 +599,7 @@
   },
   "sv": {
     "module.blackjack": "Blackjack",
+    "module.blackpeter": "Svarte Petter",
     "module.canasta": "Canasta",
     "module.ferbl": "Ferbl",
     "module.ginrummy": "Gin Rummy",

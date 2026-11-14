@@ -321,7 +321,7 @@ export function OfferBar({
                   key={i}
                   style={[styles.buttonFact, !live && styles.ghostText]}
                 >
-                  {factText(f)}
+                  {factText(f, board?.players)}
                 </Text>
               ))}
               </ExplainTarget>

@@ -3,6 +3,7 @@ package module_test
 import (
 	"testing"
 
+	"zolik/server/internal/blackpeter"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ferbl"
 	"zolik/server/internal/holdem"
@@ -27,7 +28,7 @@ func TestOnlyGamesWithAModelOfferAI(t *testing.T) {
 			t.Errorf("%s ships a model and does not offer AI", m.Descriptor().ID)
 		}
 	}
-	for _, m := range []module.GameModule{prsi.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New()} {
+	for _, m := range []module.GameModule{prsi.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(), blackpeter.New()} {
 		if module.OffersAI(m.Descriptor()) {
 			t.Errorf("%s ships no model and offers AI", m.Descriptor().ID)
 		}

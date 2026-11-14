@@ -15,6 +15,7 @@
  */
 
 import blackjack from './blackjack.json';
+import blackpeter from './blackpeter.json';
 import canasta from './canasta.json';
 import common from './common.json';
 import ferbl from './ferbl.json';
@@ -41,6 +42,7 @@ export const GUIDE_TOPICS: Record<string, Topic> = {
   common,
   tour,
   blackjack,
+  blackpeter,
   canasta,
   ferbl,
   ginrummy,

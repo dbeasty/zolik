@@ -20,7 +20,7 @@ import { cardSpokenName, cardsSpoken } from '@/src/a11y/cardNames';
 import { useA11yPrefs } from '@/src/a11y/prefs';
 import { Tip, dismissTips, isTipOpen } from '@/src/a11y/Tip';
 import type { ActionOffer, MatchAction, MoveLine, Zone } from '@/src/api/matchTypes';
-import { POSITION_PARAM, choicesToAsk, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import { PICK_PARAM, POSITION_PARAM, choicesToAsk, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import type { ParamSpec } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
@@ -1613,7 +1613,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // y — the one thing a tap still supplies that a plain press otherwise
   // would not — so a target with a choice of two positions reads a press on
   // its top half the same way it would read a drop there.
-  const pressDrop = (elementId: string, pageY: number, share?: number) => {
+  const pressDrop = (elementId: string, pageY: number, share?: number, pick?: number) => {
     // A target chosen by what is picked wins over a pile that would be taken
     // from, for the same reason `sourceSpots` is empty while anything is
     // picked: with cards in hand a pile is somewhere to put them.
@@ -1658,6 +1658,10 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     // an empty array is a *chosen* zero, and settles on nothing at all.
     const action = submissionFor(offer, { cards: pressCards.length ? pressCards : undefined });
     if (!action) return;
+    // A face-down card pressed in another player's hand: say which one.
+    if (pick !== undefined && offer.source?.ownerId && offer.source.ownerId !== viewerId) {
+      action.params = { ...(action.params ?? {}), [PICK_PARAM]: String(pick) };
+    }
 
     // Which end, when there is a choice: from how far down the target the
     // press landed where the target said, and only otherwise from a rect a
