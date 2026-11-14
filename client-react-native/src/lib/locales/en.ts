@@ -261,8 +261,12 @@ export const en: Record<string, string> = {
   'holdem.rules.minRaise': 'A raise has to be at least as big as the last one.',
   'holdem.rules.allIn':
     'You can never put in more than your stack, and going all in is always allowed — even for less than a full raise.',
+  'holdem.rules.shortAllIn':
+    'An all in for less than a full raise does not reopen the betting: a player who has already acted may only call or fold.',
+  'holdem.rules.uncalled': 'Chips nobody else matched go back to the player who put them in.',
   'holdem.rules.foldedOut': 'Once you fold you are out until the next hand is dealt.',
   'holdem.remedy.callOrFold': 'There is {n} to call — call, raise, or fold.',
+  'holdem.remedy.callOnly': 'The betting has not been reopened — call {n}, or fold.',
   'holdem.remedy.checkOrRaise': 'Nothing is owed — check, or raise.',
   'holdem.remedy.callAllInOrFold': 'Your stack will not get above the bet — call {n} all in, or fold.',
   'holdem.remedy.raiseAtLeast': 'Raise to at least {n}.',
@@ -317,6 +321,7 @@ export const en: Record<string, string> = {
   'holdem.status.pot': '{winners} won {amount} with {hand} — {cards}',
   'holdem.status.potSplit': '{winners} won {amount} with {hand}',
   'holdem.status.potUncontested': '{winners} won {amount} — everyone else folded',
+  'holdem.status.returned': '{playerId} got {amount} back — nobody matched it',
   'holdem.status.shown': '{playerId} showed {value}',
   'holdem.prompt.waitingFor': 'Waiting for {playerId}',
 
@@ -465,6 +470,8 @@ export const en: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'There is no bet to call',
   'err.CANNOT_CHECK': 'You can\'t check — there is a bet to answer',
   'err.CANNOT_RAISE': "You can't raise — your stack won't get above the bet",
+  'err.BETTING_NOT_REOPENED':
+    "You can't raise again — an all in for less than a full raise doesn't reopen the betting",
   'err.RAISE_TOO_SMALL': 'A raise has to be at least the last one',
   'err.NOT_ENOUGH_CHIPS': 'You don\'t have that many chips',
   'err.AMOUNT_REQUIRED': 'Say how much',

@@ -473,6 +473,16 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 				Params:   map[string]any{"playerId": id},
 			})
 		}
+		// Chips handed back rather than won — a bet nobody called, or chips
+		// above everyone still in the hand. Said, because otherwise a stack
+		// goes up by more than any pot line accounts for.
+		for _, r := range s.LastHand.Returned {
+			vm.Status = append(vm.Status, module.Fact{
+				LabelKey: "holdem.status.returned",
+				Value:    strconv.Itoa(r.Amount),
+				Params:   map[string]any{"playerId": r.PlayerID, "amount": r.Amount},
+			})
+		}
 	}
 
 	if s.Status == "active" && s.Current >= 0 {

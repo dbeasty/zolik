@@ -255,8 +255,13 @@ export const hu: Record<string, string> = {
   'holdem.rules.minRaise': 'Az emelésnek legalább akkorának kell lennie, mint az előző.',
   'holdem.rules.allIn':
     'Sosem tehetsz be többet a zsetonjaidnál, és az all-in mindig megengedett — akkor is, ha kevesebb egy teljes emelésnél.',
+  'holdem.rules.shortAllIn':
+    'A teljes emelésnél kisebb all-in nem nyitja újra a licitálást: aki már cselekedett, csak megadhat vagy bedobhat.',
+  'holdem.rules.uncalled':
+    'Azok a zsetonok, amelyeket senki más nem adott meg, visszajárnak annak, aki betette őket.',
   'holdem.rules.foldedOut': 'Ha egyszer bedobtál, kint vagy a következő osztásig.',
   'holdem.remedy.callOrFold': '{n} a tartozásod — add meg, emelj vagy dobd be.',
+  'holdem.remedy.callOnly': 'A licitálás nem nyílt újra — add meg a(z) {n} zsetont, vagy dobd be.',
   'holdem.remedy.checkOrRaise': 'Nincs tartozás — passzolj vagy emelj.',
   'holdem.remedy.callAllInOrFold':
     'A zsetonjaid nem érnek a tét fölé — add meg {n}-t all-innel, vagy dobd be.',
@@ -312,6 +317,7 @@ export const hu: Record<string, string> = {
   'holdem.status.pot': '{winners} nyert {amount} zsetont ezzel: {hand} — {cards}',
   'holdem.status.potSplit': '{winners} nyert {amount} zsetont ezzel: {hand}',
   'holdem.status.potUncontested': '{winners} nyert {amount} zsetont — mindenki más bedobta',
+  'holdem.status.returned': '{playerId} visszakapott {amount} zsetont — senki sem adta meg',
   'holdem.status.shown': '{playerId} megmutatta: {value}',
   'holdem.prompt.waitingFor': 'Várakozás rá: {playerId}',
 
@@ -459,6 +465,8 @@ export const hu: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nincs megtartható tét',
   'err.CANNOT_CHECK': 'Nem passzolhatsz — van tét, amire válaszolni kell',
   'err.CANNOT_RAISE': 'Nem emelhetsz — a zsetonjaid nem érnek a tét fölé',
+  'err.BETTING_NOT_REOPENED':
+    'Nem emelhetsz újra — a teljes emelésnél kisebb all-in nem nyitja újra a licitálást',
   'err.RAISE_TOO_SMALL': 'Az emelésnek legalább akkorának kell lennie, mint az előző',
   'err.NOT_ENOUGH_CHIPS': 'Nincs ennyi zsetonod',
   'err.AMOUNT_REQUIRED': 'Mondd meg, mennyit',

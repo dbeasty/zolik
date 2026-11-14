@@ -246,8 +246,13 @@ export const cs: Record<string, string> = {
   'holdem.rules.minRaise': 'Navýšení musí být aspoň tak velké jako to předchozí.',
   'holdem.rules.allIn':
     'Nikdy nevsadíš víc, než máš, a all-in je vždycky dovolený — i když je menší než plné navýšení.',
+  'holdem.rules.shortAllIn':
+    'All-in menší než plné navýšení sázení znovu neotevírá: hráč, který už na tahu byl, může jen dorovnat, nebo složit.',
+  'holdem.rules.uncalled':
+    'Žetony, které nikdo jiný nedorovnal, se vracejí hráči, který je vsadil.',
   'holdem.rules.foldedOut': 'Jakmile složíš, jsi venku až do dalšího rozdání.',
   'holdem.remedy.callOrFold': 'Dlužíš {n} — dorovnej, zvyš, nebo slož.',
+  'holdem.remedy.callOnly': 'Sázení se znovu neotevřelo — dorovnej {n}, nebo slož.',
   'holdem.remedy.checkOrRaise': 'Nic se nedluží — čekej, nebo zvyš.',
   'holdem.remedy.callAllInOrFold': 'Nad sázku se svým stackem nedostaneš — dorovnej {n} all-in, nebo slož.',
   'holdem.remedy.raiseAtLeast': 'Zvyš aspoň na {n}.',
@@ -302,6 +307,7 @@ export const cs: Record<string, string> = {
   'holdem.status.pot': 'Bank {amount} bere {winners} — {hand} ({cards})',
   'holdem.status.potSplit': 'Bank {amount} bere {winners} — {hand}',
   'holdem.status.potUncontested': 'Bank {amount} bere {winners} — ostatní složili',
+  'holdem.status.returned': '{playerId} dostává zpět {amount} — nikdo to nedorovnal',
   'holdem.status.shown': 'Karty hráče {playerId}: {value}',
   'holdem.prompt.waitingFor': 'Čeká se na hráče {playerId}',
 
@@ -449,6 +455,8 @@ export const cs: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Není co dorovnat',
   'err.CANNOT_CHECK': 'Nemůžeš čekat — je tu sázka k dorovnání',
   'err.CANNOT_RAISE': 'Zvýšit nemůžeš — se svým stackem se nad sázku nedostaneš',
+  'err.BETTING_NOT_REOPENED':
+    'Znovu zvýšit nemůžeš — all-in menší než plné navýšení sázení neotevírá',
   'err.RAISE_TOO_SMALL': 'Zvýšení musí být aspoň o poslední sázku',
   'err.NOT_ENOUGH_CHIPS': 'Tolik žetonů nemáš',
   'err.AMOUNT_REQUIRED': 'Zadej kolik',

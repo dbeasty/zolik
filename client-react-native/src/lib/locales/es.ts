@@ -252,8 +252,12 @@ export const es: Record<string, string> = {
   'holdem.rules.minRaise': 'Una subida tiene que ser al menos tan grande como la anterior.',
   'holdem.rules.allIn':
     'Nunca puedes poner más que tu pila, y el all-in siempre está permitido, aunque sea menos que una subida completa.',
+  'holdem.rules.shortAllIn':
+    'Un all-in por menos de una subida completa no reabre las apuestas: quien ya ha actuado solo puede igualar o retirarse.',
+  'holdem.rules.uncalled': 'Las fichas que nadie más igualó vuelven al jugador que las puso.',
   'holdem.rules.foldedOut': 'Una vez que te retiras, quedas fuera hasta que se reparta la siguiente mano.',
   'holdem.remedy.callOrFold': 'Debes {n}: iguala, sube o retírate.',
+  'holdem.remedy.callOnly': 'Las apuestas no se han reabierto: iguala {n} o retírate.',
   'holdem.remedy.checkOrRaise': 'No se debe nada: pasa o sube.',
   'holdem.remedy.callAllInOrFold':
     'Tu pila no llega por encima de la apuesta: iguala {n} en all-in o retírate.',
@@ -309,6 +313,7 @@ export const es: Record<string, string> = {
   'holdem.status.pot': '{winners} gana {amount} con {hand} — {cards}',
   'holdem.status.potSplit': '{winners} gana {amount} con {hand}',
   'holdem.status.potUncontested': '{winners} gana {amount} — todos los demás se retiraron',
+  'holdem.status.returned': '{playerId} recupera {amount}: nadie lo igualó',
   'holdem.status.shown': '{playerId} mostró {value}',
   'holdem.prompt.waitingFor': 'Esperando a {playerId}',
 
@@ -456,6 +461,8 @@ export const es: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'No hay ninguna apuesta que igualar',
   'err.CANNOT_CHECK': 'No puedes pasar — hay una apuesta que responder',
   'err.CANNOT_RAISE': 'No puedes subir: tu pila no llega por encima de la apuesta',
+  'err.BETTING_NOT_REOPENED':
+    'No puedes volver a subir: un all-in por menos de una subida completa no reabre las apuestas',
   'err.RAISE_TOO_SMALL': 'Una subida tiene que ser al menos igual a la anterior',
   'err.NOT_ENOUGH_CHIPS': 'No tienes tantas fichas',
   'err.AMOUNT_REQUIRED': 'Di cuánto',

@@ -251,8 +251,13 @@ export const fr: Record<string, string> = {
   'holdem.rules.minRaise': 'Une relance doit être au moins aussi grande que la précédente.',
   'holdem.rules.allIn':
     "Tu ne peux jamais miser plus que ton tapis, et le tapis est toujours permis — même pour moins qu'une relance complète.",
+  'holdem.rules.shortAllIn':
+    'Un tapis inférieur à une relance complète ne rouvre pas les enchères : un joueur qui a déjà parlé peut seulement suivre ou se coucher.',
+  'holdem.rules.uncalled':
+    "Les jetons que personne d'autre n'a suivis reviennent au joueur qui les a misés.",
   'holdem.rules.foldedOut': "Une fois couché, tu es hors du coup jusqu'à la donne suivante.",
   'holdem.remedy.callOrFold': 'Il y a {n} à suivre — suis, relance ou couche-toi.',
+  'holdem.remedy.callOnly': 'Les enchères ne sont pas rouvertes — suis {n}, ou couche-toi.',
   'holdem.remedy.checkOrRaise': "Rien n'est dû — checke ou relance.",
   'holdem.remedy.callAllInOrFold': 'Ton tapis ne dépassera pas la mise — suis {n} à tapis, ou couche-toi.',
   'holdem.remedy.raiseAtLeast': 'Relance à {n} au moins.',
@@ -307,6 +312,7 @@ export const fr: Record<string, string> = {
   'holdem.status.pot': '{winners} gagne {amount} avec {hand} — {cards}',
   'holdem.status.potSplit': '{winners} gagne {amount} avec {hand}',
   'holdem.status.potUncontested': '{winners} gagne {amount} — tous les autres se sont couchés',
+  'holdem.status.returned': "{playerId} récupère {amount} — personne ne l'a suivi",
   'holdem.status.shown': '{playerId} a montré {value}',
   'holdem.prompt.waitingFor': 'En attente de {playerId}',
 
@@ -454,6 +460,8 @@ export const fr: Record<string, string> = {
   'err.NOTHING_TO_CALL': "Il n'y a aucune mise à suivre",
   'err.CANNOT_CHECK': 'Tu ne peux pas checker — il y a une mise à répondre',
   'err.CANNOT_RAISE': 'Tu ne peux pas relancer — ton tapis ne dépassera pas la mise',
+  'err.BETTING_NOT_REOPENED':
+    'Tu ne peux pas relancer à nouveau — un tapis inférieur à une relance complète ne rouvre pas les enchères',
   'err.RAISE_TOO_SMALL': 'Une relance doit valoir au moins la précédente',
   'err.NOT_ENOUGH_CHIPS': "Tu n'as pas autant de jetons",
   'err.AMOUNT_REQUIRED': 'Indique combien',

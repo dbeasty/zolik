@@ -252,8 +252,13 @@ export const pl: Record<string, string> = {
   'holdem.rules.minRaise': 'Podbicie musi być co najmniej tak duże jak poprzednie.',
   'holdem.rules.allIn':
     'Nigdy nie postawisz więcej niż masz żetonów, a all-in jest zawsze dozwolone — nawet gdy jest mniejsze niż pełne podbicie.',
+  'holdem.rules.shortAllIn':
+    'All-in mniejsze niż pełne podbicie nie otwiera ponownie licytacji: gracz, który już działał, może tylko sprawdzić albo spasować.',
+  'holdem.rules.uncalled':
+    'Żetony, których nikt inny nie sprawdził, wracają do gracza, który je postawił.',
   'holdem.rules.foldedOut': 'Gdy raz spasujesz, jesteś poza rozdaniem do następnego.',
   'holdem.remedy.callOrFold': 'Do sprawdzenia jest {n} — sprawdź, podbij albo spasuj.',
+  'holdem.remedy.callOnly': 'Licytacja nie została ponownie otwarta — sprawdź {n} albo spasuj.',
   'holdem.remedy.checkOrRaise': 'Nic nie jest do sprawdzenia — czekaj albo podbij.',
   'holdem.remedy.callAllInOrFold': 'Twoje żetony nie przebiją zakładu — sprawdź {n} all-in albo spasuj.',
   'holdem.remedy.raiseAtLeast': 'Podbij co najmniej do {n}.',
@@ -308,6 +313,7 @@ export const pl: Record<string, string> = {
   'holdem.status.pot': '{winners} wygrywa {amount} układem {hand} — {cards}',
   'holdem.status.potSplit': '{winners} wygrywa {amount} układem {hand}',
   'holdem.status.potUncontested': '{winners} wygrywa {amount} — wszyscy inni spasowali',
+  'holdem.status.returned': '{playerId} odzyskuje {amount} — nikt tego nie sprawdził',
   'holdem.status.shown': '{playerId} pokazał {value}',
   'holdem.prompt.waitingFor': 'Czekamy na {playerId}',
 
@@ -455,6 +461,8 @@ export const pl: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nie ma zakładu do sprawdzenia',
   'err.CANNOT_CHECK': 'Nie możesz czekać — jest zakład do odpowiedzi',
   'err.CANNOT_RAISE': 'Nie możesz podbić — twoje żetony nie przebiją zakładu',
+  'err.BETTING_NOT_REOPENED':
+    'Nie możesz podbić ponownie — all-in mniejsze niż pełne podbicie nie otwiera ponownie licytacji',
   'err.RAISE_TOO_SMALL': 'Podbicie musi być co najmniej równe poprzedniemu',
   'err.NOT_ENOUGH_CHIPS': 'Nie masz tylu żetonów',
   'err.AMOUNT_REQUIRED': 'Podaj ile',

@@ -260,8 +260,13 @@ export const ga: Record<string, string> = {
   'holdem.rules.minRaise': 'Caithfidh ardú a bheith ar a laghad chomh mór leis an gceann roimhe.',
   'holdem.rules.allIn':
     'Ní féidir leat riamh níos mó ná do charn a chur isteach, agus tá cead dul isteach go hiomlán i gcónaí — fiú ar níos lú ná lánardú.',
+  'holdem.rules.shortAllIn':
+    "Ní athosclaíonn dul isteach go hiomlán ar níos lú ná lánardú an gealltóireacht: ní féidir le himreoir a d'imir cheana ach glaoch nó filleadh.",
+  'holdem.rules.uncalled':
+    'Téann sliseanna nár mheaitseáil aon duine eile ar ais chuig an imreoir a chuir isteach iad.',
   'holdem.rules.foldedOut': 'Nuair a fhilleann tú, tá tú amuigh go dtí go ndáiltear an chéad lámh eile.',
   'holdem.remedy.callOrFold': 'Tá {n} le glaoch — glaoigh, ardaigh nó fill.',
+  'holdem.remedy.callOnly': 'Níor athosclaíodh an gealltóireacht — glaoigh {n}, nó fill.',
   'holdem.remedy.checkOrRaise': 'Níl aon rud dlite — seiceáil, nó ardaigh.',
   'holdem.remedy.callAllInOrFold':
     'Ní rachaidh do charn os cionn an gheill — glaoigh {n} go hiomlán isteach, nó fill.',
@@ -317,6 +322,7 @@ export const ga: Record<string, string> = {
   'holdem.status.pot': 'Bhuaigh {winners} {amount} le {hand} — {cards}',
   'holdem.status.potSplit': 'Bhuaigh {winners} {amount} le {hand}',
   'holdem.status.potUncontested': "Bhuaigh {winners} {amount} — d'fhill gach duine eile",
+  'holdem.status.returned': 'Fuair {playerId} {amount} ar ais — níor mheaitseáil aon duine é',
   'holdem.status.shown': 'Thaispeáin {playerId} {value}',
   'holdem.prompt.waitingFor': 'Ag fanacht le {playerId}',
 
@@ -465,6 +471,8 @@ export const ga: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Níl aon gheall le glaoch',
   'err.CANNOT_CHECK': 'Ní féidir leat seiceáil — tá geall ann le freagairt',
   'err.CANNOT_RAISE': 'Ní féidir leat ardú — ní rachaidh do charn os cionn an gheill',
+  'err.BETTING_NOT_REOPENED':
+    'Ní féidir leat ardú arís — ní athosclaíonn dul isteach go hiomlán ar níos lú ná lánardú an gealltóireacht',
   'err.RAISE_TOO_SMALL': 'Caithfidh ardú a bheith chomh mór leis an gceann deireanach ar a laghad',
   'err.NOT_ENOUGH_CHIPS': 'Níl an oiread sin slisní agat',
   'err.AMOUNT_REQUIRED': 'Abair cé mhéad',

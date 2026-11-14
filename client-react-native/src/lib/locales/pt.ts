@@ -250,8 +250,12 @@ export const pt: Record<string, string> = {
   'holdem.rules.minRaise': 'Uma subida tem de ser pelo menos tão grande como a anterior.',
   'holdem.rules.allIn':
     'Nunca podes pôr mais do que a tua pilha, e o all-in é sempre permitido — mesmo por menos do que uma subida completa.',
+  'holdem.rules.shortAllIn':
+    'Um all-in por menos do que uma subida completa não reabre as apostas: quem já agiu só pode igualar ou desistir.',
+  'holdem.rules.uncalled': 'As fichas que mais ninguém igualou voltam para o jogador que as pôs.',
   'holdem.rules.foldedOut': 'Assim que desistes, ficas de fora até à mão seguinte.',
   'holdem.remedy.callOrFold': 'Deves {n} — iguala, sobe ou desiste.',
+  'holdem.remedy.callOnly': 'As apostas não foram reabertas — iguala {n} ou desiste.',
   'holdem.remedy.checkOrRaise': 'Não deves nada — passa ou sobe.',
   'holdem.remedy.callAllInOrFold': 'A tua pilha não chega acima da aposta — iguala {n} em all-in ou desiste.',
   'holdem.remedy.raiseAtLeast': 'Sobe pelo menos para {n}.',
@@ -306,6 +310,7 @@ export const pt: Record<string, string> = {
   'holdem.status.pot': '{winners} ganha {amount} com {hand} — {cards}',
   'holdem.status.potSplit': '{winners} ganha {amount} com {hand}',
   'holdem.status.potUncontested': '{winners} ganha {amount} — todos os outros desistiram',
+  'holdem.status.returned': '{playerId} recebe {amount} de volta — ninguém igualou',
   'holdem.status.shown': '{playerId} mostrou {value}',
   'holdem.prompt.waitingFor': 'À espera de {playerId}',
 
@@ -454,6 +459,8 @@ export const pt: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Não há aposta para igualar',
   'err.CANNOT_CHECK': 'Não podes passar — há uma aposta para responder',
   'err.CANNOT_RAISE': 'Não podes subir — a tua pilha não chega acima da aposta',
+  'err.BETTING_NOT_REOPENED':
+    'Não podes voltar a subir — um all-in por menos do que uma subida completa não reabre as apostas',
   'err.RAISE_TOO_SMALL': 'Uma subida tem de valer pelo menos o mesmo que a anterior',
   'err.NOT_ENOUGH_CHIPS': 'Não tens tantas fichas',
   'err.AMOUNT_REQUIRED': 'Diz quanto',

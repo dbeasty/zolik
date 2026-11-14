@@ -255,8 +255,13 @@ export const de: Record<string, string> = {
   'holdem.rules.minRaise': 'Eine Erhöhung muss mindestens so groß sein wie die vorige.',
   'holdem.rules.allIn':
     'Mehr als deinen Stack kannst du nie setzen, und All-in ist immer erlaubt — auch wenn es weniger als eine volle Erhöhung ist.',
+  'holdem.rules.shortAllIn':
+    'Ein All-in unter einer vollen Erhöhung eröffnet die Setzrunde nicht neu: Wer schon gehandelt hat, darf nur mitgehen oder passen.',
+  'holdem.rules.uncalled':
+    'Chips, die niemand sonst gehalten hat, gehen an den Spieler zurück, der sie gesetzt hat.',
   'holdem.rules.foldedOut': 'Wer passt, ist bis zur nächsten Austeilung draußen.',
   'holdem.remedy.callOrFold': 'Du schuldest {n} — geh mit, erhöhe oder passe.',
+  'holdem.remedy.callOnly': 'Die Setzrunde ist nicht neu eröffnet — geh mit {n} mit, oder passe.',
   'holdem.remedy.checkOrRaise': 'Es steht nichts aus — schiebe oder erhöhe.',
   'holdem.remedy.callAllInOrFold':
     'Dein Stack kommt nicht über den Einsatz — geh mit {n} All-in mit, oder passe.',
@@ -312,6 +317,7 @@ export const de: Record<string, string> = {
   'holdem.status.pot': '{winners} gewinnt {amount} mit {hand} — {cards}',
   'holdem.status.potSplit': '{winners} gewinnt {amount} mit {hand}',
   'holdem.status.potUncontested': '{winners} gewinnt {amount} — alle anderen sind ausgestiegen',
+  'holdem.status.returned': '{playerId} bekommt {amount} zurück — niemand hat es gehalten',
   'holdem.status.shown': '{playerId} zeigte {value}',
   'holdem.prompt.waitingFor': 'Warten auf {playerId}',
 
@@ -461,6 +467,8 @@ export const de: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Es gibt keinen Einsatz mitzugehen',
   'err.CANNOT_CHECK': 'Du kannst nicht schieben — es steht ein Einsatz',
   'err.CANNOT_RAISE': 'Du kannst nicht erhöhen — dein Stack kommt nicht über den Einsatz',
+  'err.BETTING_NOT_REOPENED':
+    'Du kannst nicht noch einmal erhöhen — ein All-in unter einer vollen Erhöhung eröffnet die Setzrunde nicht neu',
   'err.RAISE_TOO_SMALL': 'Eine Erhöhung muss mindestens so hoch sein wie die letzte',
   'err.NOT_ENOUGH_CHIPS': 'So viele Chips hast du nicht',
   'err.AMOUNT_REQUIRED': 'Sag, wie viel',

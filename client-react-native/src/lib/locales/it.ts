@@ -250,8 +250,13 @@ export const it: Record<string, string> = {
   'holdem.rules.minRaise': "Un rilancio dev'essere grande almeno quanto il precedente.",
   'holdem.rules.allIn':
     "Non puoi mai mettere più del tuo stack, e l'all-in è sempre consentito, anche per meno di un rilancio pieno.",
+  'holdem.rules.shortAllIn':
+    'Un all-in inferiore a un rilancio pieno non riapre le puntate: chi ha già agito può solo chiamare o lasciare.',
+  'holdem.rules.uncalled':
+    'Le fiches che nessun altro ha pareggiato tornano al giocatore che le ha messe.',
   'holdem.rules.foldedOut': 'Una volta che lasci, sei fuori fino alla mano successiva.',
   'holdem.remedy.callOrFold': 'Devi {n}: chiama, rilancia o lascia.',
+  'holdem.remedy.callOnly': 'Le puntate non sono state riaperte: chiama {n} o lascia.',
   'holdem.remedy.checkOrRaise': 'Non si deve nulla: passa o rilancia.',
   'holdem.remedy.callAllInOrFold': 'Il tuo stack non supera la puntata: chiama {n} all-in o lascia.',
   'holdem.remedy.raiseAtLeast': 'Rilancia ad almeno {n}.',
@@ -306,6 +311,7 @@ export const it: Record<string, string> = {
   'holdem.status.pot': '{winners} vince {amount} con {hand} — {cards}',
   'holdem.status.potSplit': '{winners} vince {amount} con {hand}',
   'holdem.status.potUncontested': '{winners} vince {amount} — tutti gli altri hanno lasciato',
+  'holdem.status.returned': "{playerId} riprende {amount}: nessuno l'ha pareggiato",
   'holdem.status.shown': '{playerId} ha mostrato {value}',
   'holdem.prompt.waitingFor': 'In attesa di {playerId}',
 
@@ -452,6 +458,8 @@ export const it: Record<string, string> = {
   'err.NOTHING_TO_CALL': "Non c'è nessuna puntata da vedere",
   'err.CANNOT_CHECK': "Non puoi passare — c'è una puntata a cui rispondere",
   'err.CANNOT_RAISE': 'Non puoi rilanciare: il tuo stack non supera la puntata',
+  'err.BETTING_NOT_REOPENED':
+    'Non puoi rilanciare di nuovo: un all-in inferiore a un rilancio pieno non riapre le puntate',
   'err.RAISE_TOO_SMALL': "Un rilancio deve valere almeno quanto l'ultimo",
   'err.NOT_ENOUGH_CHIPS': 'Non hai così tante fiches',
   'err.AMOUNT_REQUIRED': 'Indica quanto',

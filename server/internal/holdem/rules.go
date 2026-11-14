@@ -60,8 +60,10 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		module.Fact{LabelKey: "holdem.rules.checkOrCall"},
 		module.Fact{LabelKey: "holdem.rules.minRaise"},
 		allIn,
+		module.Fact{LabelKey: "holdem.rules.shortAllIn"},
 		module.Fact{LabelKey: "holdem.rules.foldedOut"},
 		module.Fact{LabelKey: "holdem.rules.showdown"},
+		module.Fact{LabelKey: "holdem.rules.uncalled"},
 	)
 
 	return []module.RuleSection{

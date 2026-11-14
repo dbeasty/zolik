@@ -61,6 +61,15 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, seat *Seat, offe
 			}
 			o.RemedyOfferID = enabled(OfferCall, OfferFold)
 
+		case ErrBettingNotReopened:
+			// The raise is not coming back until a full raise reopens the
+			// betting, so what is left is the difference or the fold.
+			o.Remedy = &module.Fact{
+				LabelKey: "holdem.remedy.callOnly",
+				Params:   map[string]any{"n": s.toCall(seat)},
+			}
+			o.RemedyOfferID = enabled(OfferCall, OfferFold)
+
 		case ErrRaiseTooSmall:
 			o.Remedy = &module.Fact{
 				LabelKey: "holdem.remedy.raiseAtLeast",

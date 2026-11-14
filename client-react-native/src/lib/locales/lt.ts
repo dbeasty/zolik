@@ -247,8 +247,13 @@ export const lt: Record<string, string> = {
   'holdem.rules.minRaise': 'Kėlimas turi būti bent toks pat didelis kaip ankstesnis.',
   'holdem.rules.allIn':
     'Niekada negali įdėti daugiau nei turi žetonų, o all-in visada leidžiamas — net jei jis mažesnis už pilną kėlimą.',
+  'holdem.rules.shortAllIn':
+    'All-in, mažesnis už pilną kėlimą, statymų iš naujo neatveria: jau veikęs žaidėjas gali tik išlyginti arba mesti.',
+  'holdem.rules.uncalled':
+    'Žetonai, kurių niekas kitas neišlygino, grąžinami juos įdėjusiam žaidėjui.',
   'holdem.rules.foldedOut': 'Metęs kortas lieki už žaidimo ribų iki kito dalijimo.',
   'holdem.remedy.callOrFold': 'Skolingas esi {n} — lygink, kelk arba mesk.',
+  'holdem.remedy.callOnly': 'Statymai iš naujo neatverti — išlygink {n} arba mesk.',
   'holdem.remedy.checkOrRaise': 'Niekas neskolinga — praleisk arba kelk.',
   'holdem.remedy.callAllInOrFold': 'Tavo žetonų nepakaks viršyti statymą — lygink {n} all-in arba mesk.',
   'holdem.remedy.raiseAtLeast': 'Kelk bent iki {n}.',
@@ -303,6 +308,7 @@ export const lt: Record<string, string> = {
   'holdem.status.pot': '{winners} laimėjo {amount} su {hand} — {cards}',
   'holdem.status.potSplit': '{winners} laimėjo {amount} su {hand}',
   'holdem.status.potUncontested': '{winners} laimėjo {amount} — visi kiti pasitraukė',
+  'holdem.status.returned': '{playerId} atgavo {amount} — niekas to neišlygino',
   'holdem.status.shown': '{playerId} parodė {value}',
   'holdem.prompt.waitingFor': 'Laukiama {playerId}',
 
@@ -450,6 +456,8 @@ export const lt: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nėra statymo, kurį reikėtų atsakyti',
   'err.CANNOT_CHECK': 'Negali praleisti — yra statymas, į kurį reikia atsakyti',
   'err.CANNOT_RAISE': 'Kelti negali — tavo žetonų nepakaks viršyti statymą',
+  'err.BETTING_NOT_REOPENED':
+    'Kelti dar kartą negali — all-in, mažesnis už pilną kėlimą, statymų iš naujo neatveria',
   'err.RAISE_TOO_SMALL': 'Kėlimas turi būti bent toks kaip ankstesnis',
   'err.NOT_ENOUGH_CHIPS': 'Tiek žetonų neturi',
   'err.AMOUNT_REQUIRED': 'Pasakyk kiek',

@@ -253,8 +253,13 @@ export const nl: Record<string, string> = {
   'holdem.rules.minRaise': 'Een verhoging moet minstens zo groot zijn als de vorige.',
   'holdem.rules.allIn':
     'Je kunt nooit meer inzetten dan je stapel, en all-in gaan mag altijd — ook voor minder dan een volledige verhoging.',
+  'holdem.rules.shortAllIn':
+    'Een all-in voor minder dan een volledige verhoging heropent het bieden niet: wie al aan de beurt is geweest, mag alleen callen of passen.',
+  'holdem.rules.uncalled':
+    'Fiches die niemand anders heeft gecalld, gaan terug naar de speler die ze inzette.',
   'holdem.rules.foldedOut': 'Zodra je past, sta je buitenspel tot de volgende deal.',
   'holdem.remedy.callOrFold': 'Er staat {n} open — call, verhoog of pas.',
+  'holdem.remedy.callOnly': 'Het bieden is niet heropend — call {n}, of pas.',
   'holdem.remedy.checkOrRaise': 'Er staat niets open — check of verhoog.',
   'holdem.remedy.callAllInOrFold': 'Je stapel komt niet boven de inzet — call {n} all-in of pas.',
   'holdem.remedy.raiseAtLeast': 'Verhoog naar minstens {n}.',
@@ -309,6 +314,7 @@ export const nl: Record<string, string> = {
   'holdem.status.pot': '{winners} wint {amount} met {hand} — {cards}',
   'holdem.status.potSplit': '{winners} wint {amount} met {hand}',
   'holdem.status.potUncontested': '{winners} wint {amount} — alle anderen pasten',
+  'holdem.status.returned': '{playerId} krijgt {amount} terug — niemand callde het',
   'holdem.status.shown': '{playerId} liet {value} zien',
   'holdem.prompt.waitingFor': 'Wachten op {playerId}',
 
@@ -458,6 +464,8 @@ export const nl: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Er is geen inzet om mee te gaan',
   'err.CANNOT_CHECK': 'Je kunt niet checken — er staat een inzet',
   'err.CANNOT_RAISE': 'Je kunt niet verhogen — je stapel komt niet boven de inzet',
+  'err.BETTING_NOT_REOPENED':
+    'Je kunt niet nog eens verhogen — een all-in voor minder dan een volledige verhoging heropent het bieden niet',
   'err.RAISE_TOO_SMALL': 'Een verhoging moet minstens zo groot zijn als de vorige',
   'err.NOT_ENOUGH_CHIPS': 'Zoveel fiches heb je niet',
   'err.AMOUNT_REQUIRED': 'Zeg hoeveel',

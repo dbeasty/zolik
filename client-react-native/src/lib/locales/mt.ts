@@ -252,8 +252,13 @@ export const mt: Record<string, string> = {
   'holdem.rules.minRaise': "Żieda trid tkun mill-inqas daqs dik ta' qabel.",
   'holdem.rules.allIn':
     "Qatt ma tista' tpoġġi aktar mill-flus li għandek, u l-all-in huwa dejjem permess — anke għal inqas minn żieda sħiħa.",
+  'holdem.rules.shortAllIn':
+    "All-in għal inqas minn żieda sħiħa ma jerġax jiftaħ l-imħatri: plejer li diġà lagħab jista' biss iċempel jew iwarrab.",
+  'holdem.rules.uncalled':
+    'Il-fiċes li ħadd ieħor ma qabel jerġgħu lura għand il-plejer li poġġiehom.',
   'holdem.rules.foldedOut': "Ladarba twarrab, tibqa' barra sakemm titqassam l-id li jmiss.",
   'holdem.remedy.callOrFold': "Hemm {n} x'tħallas — ċempel, għolli jew warrab.",
+  'holdem.remedy.callOnly': 'L-imħatri ma reġgħux infetħu — ċempel {n}, jew warrab.',
   'holdem.remedy.checkOrRaise': "M'hemm xejn x'tħallas — agħmel check jew għolli.",
   'holdem.remedy.callAllInOrFold':
     'Il-flus tiegħek mhux se jaqbżu l-imħatra — ċempel {n} all-in, jew warrab.',
@@ -309,6 +314,7 @@ export const mt: Record<string, string> = {
   'holdem.status.pot': "{winners} rebaħ {amount} b'{hand} — {cards}",
   'holdem.status.potSplit': "{winners} rebaħ {amount} b'{hand}",
   'holdem.status.potUncontested': '{winners} rebaħ {amount} — kulħadd ieħor warrab',
+  'holdem.status.returned': '{playerId} ħa lura {amount} — ħadd ma qablu',
   'holdem.status.shown': '{playerId} wera {value}',
   'holdem.prompt.waitingFor': 'Nistennew lil {playerId}',
 
@@ -456,6 +462,8 @@ export const mt: Record<string, string> = {
   'err.NOTHING_TO_CALL': "M'hemm ebda mħatra x'issejjaħ",
   'err.CANNOT_CHECK': "Ma tistax tiċċekkja — hemm imħatra x'twieġeb",
   'err.CANNOT_RAISE': 'Ma tistax tgħolli — il-flus tiegħek ma jaqbżux l-imħatra',
+  'err.BETTING_NOT_REOPENED':
+    'Ma tistax tgħolli mill-ġdid — all-in għal inqas minn żieda sħiħa ma jerġax jiftaħ l-imħatri',
   'err.RAISE_TOO_SMALL': "Żieda trid tkun mill-inqas daqs dik ta' qabel",
   'err.NOT_ENOUGH_CHIPS': "M'għandekx daqshekk ċipsijiet",
   'err.AMOUNT_REQUIRED': 'Għid kemm',

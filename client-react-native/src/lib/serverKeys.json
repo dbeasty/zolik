@@ -14,6 +14,7 @@
     "BAD_TARGET",
     "BANKER_DOES_NOT_STAKE",
     "BANK_CANNOT_COVER",
+    "BETTING_NOT_REOPENED",
     "BET_BELOW_MINIMUM",
     "BLACKPETER_NO_SUCH_CARD",
     "BLACKPETER_OUT",
@@ -702,6 +703,7 @@
     "holdem.quick.halfPot",
     "holdem.quick.pot",
     "holdem.remedy.callAllInOrFold",
+    "holdem.remedy.callOnly",
     "holdem.remedy.callOrFold",
     "holdem.remedy.checkOrRaise",
     "holdem.remedy.discardOrStand",
@@ -744,6 +746,7 @@
     "holdem.rules.section.setup",
     "holdem.rules.section.showdown",
     "holdem.rules.section.table",
+    "holdem.rules.shortAllIn",
     "holdem.rules.showOnce",
     "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
@@ -751,6 +754,7 @@
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
     "holdem.rules.tournament",
+    "holdem.rules.uncalled",
     "holdem.seat.allIn",
     "holdem.seat.bet",
     "holdem.seat.bigBlind",
@@ -767,6 +771,7 @@
     "holdem.status.pot",
     "holdem.status.potSplit",
     "holdem.status.potUncontested",
+    "holdem.status.returned",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
     "holdem.street.draw",
@@ -1959,6 +1964,7 @@
     "ginrummy.rules.upcard",
     "ginrummy.rules.upcardDance",
     "holdem.remedy.callAllInOrFold",
+    "holdem.remedy.callOnly",
     "holdem.remedy.callOrFold",
     "holdem.remedy.checkOrRaise",
     "holdem.remedy.discardOrStand",
@@ -1997,6 +2003,7 @@
     "holdem.rules.section.setup",
     "holdem.rules.section.showdown",
     "holdem.rules.section.table",
+    "holdem.rules.shortAllIn",
     "holdem.rules.showOnce",
     "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
@@ -2004,6 +2011,7 @@
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
     "holdem.rules.tournament",
+    "holdem.rules.uncalled",
     "klondike.remedy.drawFirst",
     "klondike.remedy.playTheTable",
     "klondike.remedy.turnEverythingUp",
@@ -3174,6 +3182,9 @@
     "holdem.remedy.callAllInOrFold": [
       "n"
     ],
+    "holdem.remedy.callOnly": [
+      "n"
+    ],
     "holdem.remedy.callOrFold": [
       "n"
     ],
@@ -3245,6 +3256,11 @@
       "hand",
       "value",
       "winners"
+    ],
+    "holdem.status.returned": [
+      "amount",
+      "playerId",
+      "value"
     ],
     "holdem.status.shown": [
       "best",
@@ -4590,6 +4606,7 @@
     "holdem.quick.halfPot",
     "holdem.quick.pot",
     "holdem.remedy.callAllInOrFold",
+    "holdem.remedy.callOnly",
     "holdem.remedy.callOrFold",
     "holdem.remedy.discardOrStand",
     "holdem.remedy.nameAnAmount",
@@ -4609,6 +4626,7 @@
     "holdem.status.pot",
     "holdem.status.potSplit",
     "holdem.status.potUncontested",
+    "holdem.status.returned",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
     "klondike.fact.card",

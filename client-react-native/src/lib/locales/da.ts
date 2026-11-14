@@ -244,8 +244,13 @@ export const da: Record<string, string> = {
   'holdem.rules.minRaise': 'En hævning skal være mindst lige så stor som den forrige.',
   'holdem.rules.allIn':
     'Du kan aldrig satse mere end din stak, og all-in er altid tilladt — også når det er mindre end en fuld hævning.',
+  'holdem.rules.shortAllIn':
+    'En all-in for mindre end en fuld hævning genåbner ikke budrunden: en spiller, der allerede har handlet, må kun syne eller folde.',
+  'holdem.rules.uncalled':
+    'Jetoner, som ingen andre har matchet, går tilbage til den spiller, der satsede dem.',
   'holdem.rules.foldedOut': 'Når du først har foldet, er du ude indtil næste hånd deles.',
   'holdem.remedy.callOrFold': 'Du skylder {n} — syn, hæv eller fold.',
+  'holdem.remedy.callOnly': 'Budrunden er ikke genåbnet — syn {n}, eller fold.',
   'holdem.remedy.checkOrRaise': 'Der skyldes intet — tjek eller hæv.',
   'holdem.remedy.callAllInOrFold': 'Din stak rækker ikke over indsatsen — syn {n} all-in, eller fold.',
   'holdem.remedy.raiseAtLeast': 'Hæv til mindst {n}.',
@@ -300,6 +305,7 @@ export const da: Record<string, string> = {
   'holdem.status.pot': '{winners} vandt {amount} med {hand} — {cards}',
   'holdem.status.potSplit': '{winners} vandt {amount} med {hand}',
   'holdem.status.potUncontested': '{winners} vandt {amount} — alle andre kastede sig',
+  'holdem.status.returned': '{playerId} fik {amount} tilbage — ingen matchede det',
   'holdem.status.shown': '{playerId} viste {value}',
   'holdem.prompt.waitingFor': 'Venter på {playerId}',
 
@@ -446,6 +452,8 @@ export const da: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Der er ingen indsats at syne',
   'err.CANNOT_CHECK': 'Du kan ikke tjekke — der er en indsats at svare på',
   'err.CANNOT_RAISE': 'Du kan ikke hæve — din stak rækker ikke over indsatsen',
+  'err.BETTING_NOT_REOPENED':
+    'Du kan ikke hæve igen — en all-in for mindre end en fuld hævning genåbner ikke budrunden',
   'err.RAISE_TOO_SMALL': 'En hævning skal være mindst lige så stor som den forrige',
   'err.NOT_ENOUGH_CHIPS': 'Så mange jetoner har du ikke',
   'err.AMOUNT_REQUIRED': 'Sig hvor meget',

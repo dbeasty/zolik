@@ -249,8 +249,13 @@ export const lv: Record<string, string> = {
   'holdem.rules.minRaise': 'Paaugstinājumam jābūt vismaz tikpat lielam kā iepriekšējam.',
   'holdem.rules.allIn':
     'Vairāk par savu žetonu kaudzi tu nekad ielikt nevari, un all-in vienmēr ir atļauts — arī tad, ja tas ir mazāks par pilnu paaugstinājumu.',
+  'holdem.rules.shortAllIn':
+    'All-in, kas mazāks par pilnu paaugstinājumu, likmes no jauna neatver: spēlētājs, kurš jau ir rīkojies, var tikai izlīdzināt vai mest.',
+  'holdem.rules.uncalled':
+    'Žetoni, ko neviens cits neizlīdzināja, atgriežas spēlētājam, kurš tos ielika.',
   'holdem.rules.foldedOut': 'Tiklīdz esi metis, esi ārā līdz nākamajai dalīšanai.',
   'holdem.remedy.callOrFold': 'Tev jāmaksā {n} — izlīdzini, paaugstini vai met.',
+  'holdem.remedy.callOnly': 'Likmes nav atvērtas no jauna — izlīdzini {n} vai met.',
   'holdem.remedy.checkOrRaise': 'Nekas nav parādā — paspēlē vai paaugstini.',
   'holdem.remedy.callAllInOrFold': 'Tava kaudze pār likmi netiks — izlīdzini {n} ar all-in vai met.',
   'holdem.remedy.raiseAtLeast': 'Paaugstini vismaz līdz {n}.',
@@ -305,6 +310,7 @@ export const lv: Record<string, string> = {
   'holdem.status.pot': '{winners} uzvarēja {amount} ar {hand} — {cards}',
   'holdem.status.potSplit': '{winners} uzvarēja {amount} ar {hand}',
   'holdem.status.potUncontested': '{winners} uzvarēja {amount} — visi pārējie atmeta',
+  'holdem.status.returned': '{playerId} saņēma atpakaļ {amount} — neviens to neizlīdzināja',
   'holdem.status.shown': '{playerId} parādīja {value}',
   'holdem.prompt.waitingFor': 'Gaidām {playerId}',
 
@@ -451,6 +457,8 @@ export const lv: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nav likmes, ko atbildēt',
   'err.CANNOT_CHECK': 'Tu nevari čekot — ir likme, uz kuru jāatbild',
   'err.CANNOT_RAISE': 'Tu nevari paaugstināt — tava kaudze pār likmi netiks',
+  'err.BETTING_NOT_REOPENED':
+    'Tu nevari paaugstināt vēlreiz — all-in, kas mazāks par pilnu paaugstinājumu, likmes no jauna neatver',
   'err.RAISE_TOO_SMALL': 'Paaugstinājumam jābūt vismaz tikpat lielam kā iepriekšējam',
   'err.NOT_ENOUGH_CHIPS': 'Tev nav tik daudz žetonu',
   'err.AMOUNT_REQUIRED': 'Pasaki, cik',
