@@ -247,8 +247,13 @@ export const sl: Record<string, string> = {
   'holdem.rules.minRaise': 'Zvišanje mora biti vsaj tolikšno kot prejšnje.',
   'holdem.rules.allIn':
     'Nikoli ne moreš vložiti več, kot imaš žetonov, all-in pa je vedno dovoljen — tudi če je manjši od polnega zvišanja.',
+  'holdem.rules.shortAllIn':
+    'All-in, manjši od polnega zvišanja, stav ne odpre znova: igralec, ki je že igral, lahko le plača ali odstopi.',
+  'holdem.rules.uncalled':
+    'Žetoni, ki jih nihče drug ni izenačil, se vrnejo igralcu, ki jih je vložil.',
   'holdem.rules.foldedOut': 'Ko enkrat odstopiš, si zunaj do naslednje delitve.',
   'holdem.remedy.callOrFold': 'Dolguješ {n} — plačaj, zvišaj ali odstopi.',
+  'holdem.remedy.callOnly': 'Stave niso znova odprte — plačaj {n} ali odstopi.',
   'holdem.remedy.checkOrRaise': 'Nič ne dolguješ — čekiraj ali zvišaj.',
   'holdem.remedy.callAllInOrFold': 'Tvoji žetoni ne bodo presegli stave — plačaj {n} z all-in ali odstopi.',
   'holdem.remedy.raiseAtLeast': 'Zvišaj vsaj na {n}.',
@@ -303,6 +308,7 @@ export const sl: Record<string, string> = {
   'holdem.status.pot': '{winners} osvoji {amount} s {hand} — {cards}',
   'holdem.status.potSplit': '{winners} osvoji {amount} s {hand}',
   'holdem.status.potUncontested': '{winners} osvoji {amount} — vsi drugi so odstopili',
+  'holdem.status.returned': '{playerId} dobi nazaj {amount} — nihče tega ni izenačil',
   'holdem.status.shown': '{playerId} je pokazal {value}',
   'holdem.prompt.waitingFor': 'Čakamo na {playerId}',
 
@@ -450,6 +456,8 @@ export const sl: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Ni stave za izenačitev',
   'err.CANNOT_CHECK': 'Ne moreš čekirati — na mizi je stava, na katero moraš odgovoriti',
   'err.CANNOT_RAISE': 'Ne moreš zvišati — tvoji žetoni ne presežejo stave',
+  'err.BETTING_NOT_REOPENED':
+    'Ne moreš znova zvišati — all-in, manjši od polnega zvišanja, stav ne odpre znova',
   'err.RAISE_TOO_SMALL': 'Zvišanje mora biti vsaj tolikšno kot prejšnje',
   'err.NOT_ENOUGH_CHIPS': 'Toliko žetonov nimaš',
   'err.AMOUNT_REQUIRED': 'Povej, koliko',

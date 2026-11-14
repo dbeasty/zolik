@@ -84,6 +84,10 @@ const (
 	ErrRaiseTooSmall   = "RAISE_TOO_SMALL"
 	ErrNotEnoughChips  = "NOT_ENOUGH_CHIPS"
 	ErrCannotRaise     = "CANNOT_RAISE"
+	// ErrBettingNotReopened is a raise from a seat that has already acted
+	// this street and is only being asked again because of an all-in for
+	// less than a full raise, which does not reopen the betting.
+	ErrBettingNotReopened = "BETTING_NOT_REOPENED"
 	// ErrOverPotLimit is a raise past the pot at a pot-limit table (Omaha).
 	// Its own code rather than NOT_ENOUGH_CHIPS: the chips are there, and the
 	// rule that stops them is a different one.
@@ -271,15 +275,15 @@ type GameState struct {
 	CurrentBet int `json:"currentBet"`
 	MinRaise   int `json:"minRaise"`
 
-	SmallBlind    int `json:"smallBlind"`
-	BigBlind      int `json:"bigBlind"`
+	SmallBlind int `json:"smallBlind"`
+	BigBlind   int `json:"bigBlind"`
 	// BlindSeats is who posted this hand's small and big blind, as seat
 	// indices, kept from the deal. Recomputed later from the button it can
 	// name somebody else: a seat that busts in the hand is skipped, and the
 	// showdown would then credit their blind to the next player round. Empty
 	// on a state stored before it existed, which simply marks nobody.
-	BlindSeats []int `json:"blindSeats,omitempty"`
-	StartingStack int `json:"startingStack"`
+	BlindSeats    []int `json:"blindSeats,omitempty"`
+	StartingStack int   `json:"startingStack"`
 	// HandLimit is how many hands the match runs for; zero means play until
 	// one player holds every chip.
 	HandLimit  int `json:"handLimit"`
@@ -367,8 +371,19 @@ type HandResult struct {
 	// Named rather than left out, so a client can say "mucked" instead of
 	// leaving a gap where a seat ought to be. A gap reads as a bug; a player
 	// who kept their cards is a fact about the hand.
-	Mucked []string       `json:"mucked,omitempty"`
-	Deltas map[string]int `json:"deltas,omitempty"`
+	Mucked []string `json:"mucked,omitempty"`
+	// Returned is chips handed back rather than won: a bet nobody called, or
+	// chips above every seat still in the hand. Not a pot, because nobody
+	// won it — each line goes back to a seat that put it in.
+	Returned []Returned     `json:"returned,omitempty"`
+	Deltas   map[string]int `json:"deltas,omitempty"`
+}
+
+// Returned is chips a seat got back at the end of a hand because nobody could
+// win them.
+type Returned struct {
+	PlayerID string `json:"playerId"`
+	Amount   int    `json:"amount"`
 }
 
 // shows reports whether this player's hand is already face up.

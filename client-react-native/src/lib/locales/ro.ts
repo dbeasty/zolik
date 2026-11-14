@@ -250,8 +250,13 @@ export const ro: Record<string, string> = {
   'holdem.rules.minRaise': 'O ridicare trebuie să fie cel puțin la fel de mare ca cea dinainte.',
   'holdem.rules.allIn':
     'Nu poți pune niciodată mai mult decât ai în teanc, iar all-in-ul e mereu permis — chiar și pentru mai puțin decât o ridicare completă.',
+  'holdem.rules.shortAllIn':
+    'Un all-in mai mic decât o ridicare completă nu redeschide licitarea: un jucător care a acționat deja poate doar să plătească sau să se retragă.',
+  'holdem.rules.uncalled':
+    'Jetoanele pe care nimeni altcineva nu le-a egalat se întorc la jucătorul care le-a pus.',
   'holdem.rules.foldedOut': 'Odată ce te retragi, ești în afara jocului până la următoarea împărțire.',
   'holdem.remedy.callOrFold': 'Ai {n} de plătit — plătește, ridică sau retrage-te.',
+  'holdem.remedy.callOnly': 'Licitarea nu a fost redeschisă — plătește {n} sau retrage-te.',
   'holdem.remedy.checkOrRaise': 'Nu datorezi nimic — verifică sau ridică.',
   'holdem.remedy.callAllInOrFold': 'Teancul tău nu trece de pariu — plătește {n} all-in sau retrage-te.',
   'holdem.remedy.raiseAtLeast': 'Ridică la cel puțin {n}.',
@@ -306,6 +311,7 @@ export const ro: Record<string, string> = {
   'holdem.status.pot': '{winners} a câștigat {amount} cu {hand} — {cards}',
   'holdem.status.potSplit': '{winners} a câștigat {amount} cu {hand}',
   'holdem.status.potUncontested': '{winners} a câștigat {amount} — toți ceilalți s-au retras',
+  'holdem.status.returned': '{playerId} a primit înapoi {amount} — nimeni nu a egalat',
   'holdem.status.shown': '{playerId} a arătat {value}',
   'holdem.prompt.waitingFor': 'Se așteaptă {playerId}',
 
@@ -453,6 +459,8 @@ export const ro: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nu există niciun pariu de plătit',
   'err.CANNOT_CHECK': 'Nu poți verifica — există un pariu la care trebuie să răspunzi',
   'err.CANNOT_RAISE': 'Nu poți ridica — teancul tău nu trece de pariu',
+  'err.BETTING_NOT_REOPENED':
+    'Nu poți ridica din nou — un all-in mai mic decât o ridicare completă nu redeschide licitarea',
   'err.RAISE_TOO_SMALL': 'O mărire trebuie să fie cel puțin cât cea anterioară',
   'err.NOT_ENOUGH_CHIPS': 'Nu ai atâtea jetoane',
   'err.AMOUNT_REQUIRED': 'Spune cât',

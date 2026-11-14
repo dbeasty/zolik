@@ -242,8 +242,13 @@ export const sv: Record<string, string> = {
   'holdem.rules.minRaise': 'En höjning måste vara minst lika stor som den förra.',
   'holdem.rules.allIn':
     'Du kan aldrig satsa mer än din stack, och all-in är alltid tillåtet — även för mindre än en full höjning.',
+  'holdem.rules.shortAllIn':
+    'En all-in för mindre än en full höjning öppnar inte budgivningen igen: en spelare som redan har agerat får bara syna eller lägga sig.',
+  'holdem.rules.uncalled':
+    'Marker som ingen annan synade går tillbaka till spelaren som satsade dem.',
   'holdem.rules.foldedOut': 'När du väl lagt dig är du ute tills nästa giv.',
   'holdem.remedy.callOrFold': 'Det är {n} att syna — syna, höj eller lägg dig.',
+  'holdem.remedy.callOnly': 'Budgivningen har inte öppnats igen — syna {n}, eller lägg dig.',
   'holdem.remedy.checkOrRaise': 'Inget är skyldigt — checka eller höj.',
   'holdem.remedy.callAllInOrFold': 'Din stack räcker inte över insatsen — syna {n} all-in, eller lägg dig.',
   'holdem.remedy.raiseAtLeast': 'Höj till minst {n}.',
@@ -298,6 +303,7 @@ export const sv: Record<string, string> = {
   'holdem.status.pot': '{winners} vann {amount} med {hand} — {cards}',
   'holdem.status.potSplit': '{winners} vann {amount} med {hand}',
   'holdem.status.potUncontested': '{winners} vann {amount} — alla andra lade sig',
+  'holdem.status.returned': '{playerId} fick tillbaka {amount} — ingen synade det',
   'holdem.status.shown': '{playerId} visade {value}',
   'holdem.prompt.waitingFor': 'Väntar på {playerId}',
 
@@ -444,6 +450,8 @@ export const sv: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Det finns ingen satsning att syna',
   'err.CANNOT_CHECK': 'Du kan inte checka — det finns en satsning att svara på',
   'err.CANNOT_RAISE': 'Du kan inte höja — din stack räcker inte över insatsen',
+  'err.BETTING_NOT_REOPENED':
+    'Du kan inte höja igen — en all-in för mindre än en full höjning öppnar inte budgivningen igen',
   'err.RAISE_TOO_SMALL': 'En höjning måste vara minst lika stor som den förra',
   'err.NOT_ENOUGH_CHIPS': 'Så många marker har du inte',
   'err.AMOUNT_REQUIRED': 'Säg hur mycket',

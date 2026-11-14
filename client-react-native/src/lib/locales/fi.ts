@@ -249,8 +249,13 @@ export const fi: Record<string, string> = {
   'holdem.rules.minRaise': 'Korotuksen on oltava vähintään yhtä suuri kuin edellinen.',
   'holdem.rules.allIn':
     'Et voi koskaan panna enempää kuin pinosi, ja all-in on aina sallittu — myös täyttä korotusta pienempänä.',
+  'holdem.rules.shortAllIn':
+    'Täyttä korotusta pienempi all-in ei avaa panostusta uudelleen: jo toiminut pelaaja voi vain maksaa tai luovuttaa.',
+  'holdem.rules.uncalled':
+    'Pelimerkit, joita kukaan muu ei maksanut, palaavat pelaajalle, joka ne pani.',
   'holdem.rules.foldedOut': 'Kun luovutat, olet ulkona seuraavaan jakoon asti.',
   'holdem.remedy.callOrFold': 'Maksettavana on {n} — maksa, korota tai luovuta.',
+  'holdem.remedy.callOnly': 'Panostusta ei ole avattu uudelleen — maksa {n} tai luovuta.',
   'holdem.remedy.checkOrRaise': 'Mitään ei ole velkaa — tsekkaa tai korota.',
   'holdem.remedy.callAllInOrFold': 'Pinosi ei yllä panoksen yli — maksa {n} all-in tai luovuta.',
   'holdem.remedy.raiseAtLeast': 'Korota vähintään {n}:een.',
@@ -305,6 +310,7 @@ export const fi: Record<string, string> = {
   'holdem.status.pot': '{winners} voitti {amount} kädellä {hand} — {cards}',
   'holdem.status.potSplit': '{winners} voitti {amount} kädellä {hand}',
   'holdem.status.potUncontested': '{winners} voitti {amount} — kaikki muut luovuttivat',
+  'holdem.status.returned': '{playerId} sai takaisin {amount} — kukaan ei maksanut sitä',
   'holdem.status.shown': '{playerId} näytti {value}',
   'holdem.prompt.waitingFor': 'Odotetaan pelaajaa {playerId}',
 
@@ -451,6 +457,8 @@ export const fi: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Ei ole panosta maksettavaksi',
   'err.CANNOT_CHECK': 'Et voi tsekata — vastattavana on panos',
   'err.CANNOT_RAISE': 'Et voi korottaa — pinosi ei yllä panoksen yli',
+  'err.BETTING_NOT_REOPENED':
+    'Et voi korottaa uudelleen — täyttä korotusta pienempi all-in ei avaa panostusta uudelleen',
   'err.RAISE_TOO_SMALL': 'Korotuksen on oltava vähintään edellisen suuruinen',
   'err.NOT_ENOUGH_CHIPS': 'Sinulla ei ole niin monta pelimerkkiä',
   'err.AMOUNT_REQUIRED': 'Kerro paljonko',

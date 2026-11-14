@@ -403,6 +403,13 @@ func applyRaise(s *GameState, seat *Seat, a module.Action) ([]module.Event, erro
 		// options are calling all-in or folding.
 		return nil, errCode(ErrCannotRaise)
 	}
+	if seat.Acted {
+		// This seat has had its turn and is only being asked again because
+		// somebody went all in for less than a full raise — which does not
+		// reopen the betting. Calling the difference or folding is all that
+		// is left; a full raise is what would have given the raise back.
+		return nil, errCode(ErrBettingNotReopened)
+	}
 	if amount > maxTo {
 		return nil, errCode(ErrNotEnoughChips)
 	}
@@ -586,15 +593,34 @@ func endHand(s *GameState) []module.Event {
 	res := HandResult{HandNumber: s.HandNumber, Board: append([]string(nil), s.Board...)}
 	contenders := s.contenders()
 
+	// Chips nobody can win go back before anything is awarded: a bet nobody
+	// called, and whatever sits above every seat still in the hand — which a
+	// seat getting up mid-hand (applyLeave folds it out of turn) can leave
+	// behind. See returnUnwinnable.
+	levels := potLevels(s)
+	res.Returned = returnUnwinnable(s, levels)
+
 	if len(contenders) == 1 {
 		// Everyone folded. No hand is shown, which matters: showing it would
 		// leak information the winner is entitled to keep.
+		//
+		// The winner takes every level they are in — and only those. A
+		// player all in for 50 who is left alone because the 200 raiser got
+		// up wins what they could have lost, not the raiser's chips above it.
 		w := &s.Seats[contenders[0]]
-		w.Stack += s.Pot
+		won := 0
+		for _, lv := range levels {
+			if !lv.returned {
+				won += lv.amount
+			}
+		}
+		w.Stack += won
 		res.Uncontested = true
-		res.Pots = []PotResult{{Amount: s.Pot, Winners: []string{w.PlayerID}}}
+		if won > 0 {
+			res.Pots = []PotResult{{Amount: won, Winners: []string{w.PlayerID}}}
+		}
 	} else {
-		res.Pots = distributePots(s, contenders)
+		res.Pots = awardPots(s, levels, contenders)
 		reveal(s, &res, contenders)
 	}
 
@@ -743,26 +769,123 @@ func without(ids []string, drop string) []string {
 	return out
 }
 
-// distributePots builds the side pots and awards each to the best hand among
-// the players eligible for it.
+// potLevel is one slice of the hand's pot: the chips every seat put in between
+// one contribution level and the next.
+type potLevel struct {
+	// amount is the chips in this slice.
+	amount int
+	// eligible is who can win it: seats still in the hand that put in at
+	// least this much.
+	eligible []int
+	// contributors is every seat that put chips into this slice, folded or
+	// not, and each put in the same share — the levels are the distinct
+	// commitments, so nobody stops part-way through one.
+	contributors []int
+	// share is what each contributor put into this slice.
+	share int
+	// returned marks a slice nobody can win, handed back to who put it in.
+	returned bool
+}
+
+// potLevels slices the pot by contribution level, lowest first.
 //
 // Side pots exist because a player can only win what they could lose: someone
 // all in for 50 cannot take a fourth player's 200. Building them by
 // contribution level is the only construction that gets that right without a
 // special case per all-in.
-func distributePots(s *GameState, contenders []int) []PotResult {
-	levels := map[int]bool{}
+func potLevels(s *GameState) []potLevel {
+	seen := map[int]bool{}
+	var sorted []int
 	for i := range s.Seats {
-		if s.Seats[i].Committed > 0 {
-			levels[s.Seats[i].Committed] = true
+		if c := s.Seats[i].Committed; c > 0 && !seen[c] {
+			seen[c] = true
+			sorted = append(sorted, c)
 		}
-	}
-	sorted := make([]int, 0, len(levels))
-	for lvl := range levels {
-		sorted = append(sorted, lvl)
 	}
 	sort.Ints(sorted)
 
+	var out []potLevel
+	prev := 0
+	for _, lvl := range sorted {
+		lv := potLevel{share: lvl - prev}
+		for i := range s.Seats {
+			c := min(s.Seats[i].Committed, lvl)
+			if c > prev {
+				lv.amount += c - prev
+			}
+			if s.Seats[i].Committed >= lvl {
+				lv.contributors = append(lv.contributors, i)
+				if s.Seats[i].inHand() {
+					lv.eligible = append(lv.eligible, i)
+				}
+			}
+		}
+		prev = lvl
+		out = append(out, lv)
+	}
+	return out
+}
+
+// returnUnwinnable hands back every slice of the pot nobody can win, and says
+// who got what back.
+//
+// Two kinds, and both are the table rule that an uncalled bet is returned:
+//
+//   - A slice only one seat put chips into. Nobody matched it, so there is
+//     nothing to win — the big stack's chips above everyone else's all-in,
+//     or a raise everybody folded to.
+//   - A slice with nobody left in the hand to win it. Folding on your turn
+//     cannot make one — the last seat above it would be folding to nobody —
+//     but getting up from a cash table folds a seat out of turn, and a raiser
+//     who leaves over two short all-ins leaves chips above both that neither
+//     could ever have won. Awarding them to nobody is what used to happen,
+//     and the table lost them.
+//
+// Only ever the top slices: once one has nobody eligible, none above it can.
+func returnUnwinnable(s *GameState, levels []potLevel) []Returned {
+	back := map[int]int{}
+	for k := range levels {
+		lv := &levels[k]
+		if lv.amount == 0 || (len(lv.eligible) > 0 && len(lv.contributors) > 1) {
+			continue
+		}
+		lv.returned = true
+		for _, idx := range lv.contributors {
+			s.Seats[idx].Stack += lv.share
+			back[idx] += lv.share
+		}
+	}
+	var out []Returned
+	for i := range s.Seats {
+		if n := back[i]; n > 0 {
+			out = append(out, Returned{PlayerID: s.Seats[i].PlayerID, Amount: n})
+		}
+	}
+	return out
+}
+
+// clockwise orders seat indices from the first seat left of the button, which
+// is who a real table gives an odd chip to.
+func clockwise(s *GameState, idxs []int) []int {
+	n := len(s.Seats)
+	out := append([]int(nil), idxs...)
+	sort.SliceStable(out, func(a, b int) bool {
+		return (out[a]-s.Button-1+2*n)%n < (out[b]-s.Button-1+2*n)%n
+	})
+	return out
+}
+
+// distributePots builds the side pots, hands back what nobody can win, and
+// awards each of the rest to the best hand among the players eligible for it.
+func distributePots(s *GameState, contenders []int) []PotResult {
+	levels := potLevels(s)
+	returnUnwinnable(s, levels)
+	return awardPots(s, levels, contenders)
+}
+
+// awardPots pays each level not already returned to the best hand among the
+// players eligible for it.
+func awardPots(s *GameState, levels []potLevel, contenders []int) []PotResult {
 	best := map[int]HandRank{}
 	for _, idx := range contenders {
 		best[idx] = s.bestOf(&s.Seats[idx])
@@ -772,26 +895,18 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 	// lastEligible is who could win out's last pot, to tell a level that only
 	// exists because a folded seat stopped there from a real side pot.
 	var lastEligible []int
-	prev := 0
-	for _, lvl := range sorted {
-		amount := 0
-		var eligible []int
-		for i := range s.Seats {
-			c := min(s.Seats[i].Committed, lvl)
-			if c > prev {
-				amount += c - prev
-			}
-			if s.Seats[i].Committed >= lvl && s.Seats[i].inHand() {
-				eligible = append(eligible, i)
-			}
-		}
-		prev = lvl
-		if amount == 0 || len(eligible) == 0 {
+	for _, lv := range levels {
+		if lv.returned || lv.amount == 0 || len(lv.eligible) == 0 {
 			continue
 		}
+		amount, eligible := lv.amount, lv.eligible
 
-		winners := []int{eligible[0]}
-		for _, idx := range eligible[1:] {
+		var winners []int
+		for _, idx := range clockwise(s, eligible) {
+			if len(winners) == 0 {
+				winners = []int{idx}
+				continue
+			}
 			cmp := best[idx].Compare(best[winners[0]])
 			switch {
 			case cmp > 0:
@@ -808,9 +923,9 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 		ids := make([]string, 0, len(winners))
 		for n, idx := range winners {
 			s.Seats[idx].Stack += share
-			// Odd chips go to the first winner clockwise from the button,
-			// which is what a real table does and what keeps the arithmetic
-			// exact rather than losing a chip.
+			// Odd chips go to the first winner clockwise from the button —
+			// winners is in that order — which is what a real table does and
+			// what keeps the arithmetic exact rather than losing a chip.
 			if n < remainder {
 				s.Seats[idx].Stack++
 			}

@@ -247,8 +247,13 @@ export const et: Record<string, string> = {
   'holdem.rules.minRaise': 'Tõstmine peab olema vähemalt sama suur kui eelmine.',
   'holdem.rules.allIn':
     'Rohkem kui oma virna sa panustada ei saa ja all-in on alati lubatud — ka siis, kui see on täistõstmisest väiksem.',
+  'holdem.rules.shortAllIn':
+    'Täistõstmisest väiksem all-in panustamist uuesti ei ava: mängija, kes on juba käinud, võib ainult maksta või käe ära visata.',
+  'holdem.rules.uncalled':
+    'Žetoonid, mida keegi teine ei maksnud, lähevad tagasi mängijale, kes need pani.',
   'holdem.rules.foldedOut': 'Kui oled käe ära visanud, oled väljas kuni järgmise jagamiseni.',
   'holdem.remedy.callOrFold': 'Sa võlgned {n} — maksa, tõsta või viska käsi ära.',
+  'holdem.remedy.callOnly': 'Panustamine pole uuesti avatud — maksa {n} või viska käsi ära.',
   'holdem.remedy.checkOrRaise': 'Midagi ei võlgneta — passi või tõsta.',
   'holdem.remedy.callAllInOrFold':
     'Sinu virn panusest kõrgemale ei küüni — maksa {n} all-in või viska käsi ära.',
@@ -304,6 +309,7 @@ export const et: Record<string, string> = {
   'holdem.status.pot': '{winners} võitis {amount} käega {hand} — {cards}',
   'holdem.status.potSplit': '{winners} võitis {amount} käega {hand}',
   'holdem.status.potUncontested': '{winners} võitis {amount} — kõik teised loobusid',
+  'holdem.status.returned': '{playerId} sai {amount} tagasi — keegi ei maksnud seda',
   'holdem.status.shown': '{playerId} näitas {value}',
   'holdem.prompt.waitingFor': 'Ootame mängijat {playerId}',
 
@@ -452,6 +458,8 @@ export const et: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Pole ühtegi panust, mida maksta',
   'err.CANNOT_CHECK': 'Sa ei saa passida — laual on panus, millele vastata',
   'err.CANNOT_RAISE': 'Sa ei saa tõsta — sinu virn panusest kõrgemale ei küüni',
+  'err.BETTING_NOT_REOPENED':
+    'Sa ei saa uuesti tõsta — täistõstmisest väiksem all-in panustamist uuesti ei ava',
   'err.RAISE_TOO_SMALL': 'Tõstmine peab olema vähemalt eelmise suurune',
   'err.NOT_ENOUGH_CHIPS': 'Sul pole nii palju žetoone',
   'err.AMOUNT_REQUIRED': 'Ütle, kui palju',

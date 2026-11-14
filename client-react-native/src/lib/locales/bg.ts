@@ -251,8 +251,13 @@ export const bg: Record<string, string> = {
   'holdem.rules.minRaise': 'Вдигането трябва да е поне толкова голямо, колкото последното.',
   'holdem.rules.allIn':
     'Никога не можеш да вкараш повече от стека си, а всичко-в е винаги позволено — дори когато е по-малко от пълно вдигане.',
+  'holdem.rules.shortAllIn':
+    'Всичко-в за по-малко от пълно вдигане не отваря наново залаганията: играч, който вече е действал, може само да плати или да се откаже.',
+  'holdem.rules.uncalled':
+    'Чипове, които никой друг не е изравнил, се връщат на играча, който ги е вкарал.',
   'holdem.rules.foldedOut': 'Откажеш ли се, си извън играта до следващото раздаване.',
   'holdem.remedy.callOrFold': 'Дължиш {n} — плати, вдигни или се откажи.',
+  'holdem.remedy.callOnly': 'Залаганията не са отворени наново — плати {n} или се откажи.',
   'holdem.remedy.checkOrRaise': 'Нищо не се дължи — чекни или вдигни.',
   'holdem.remedy.callAllInOrFold': 'Стекът ти не стига над залога — плати {n} с всичко-в или се откажи.',
   'holdem.remedy.raiseAtLeast': 'Вдигни поне до {n}.',
@@ -307,6 +312,7 @@ export const bg: Record<string, string> = {
   'holdem.status.pot': '{winners} печели {amount} с {hand} — {cards}',
   'holdem.status.potSplit': '{winners} печели {amount} с {hand}',
   'holdem.status.potUncontested': '{winners} печели {amount} — всички други се отказаха',
+  'holdem.status.returned': '{playerId} получи обратно {amount} — никой не ги изравни',
   'holdem.status.shown': '{playerId} показа {value}',
   'holdem.prompt.waitingFor': 'Чака се {playerId}',
 
@@ -455,6 +461,8 @@ export const bg: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Няма залог за плащане',
   'err.CANNOT_CHECK': 'Не можеш да чекнеш — има залог, на който да отговориш',
   'err.CANNOT_RAISE': 'Не можеш да вдигнеш — стекът ти не стига над залога',
+  'err.BETTING_NOT_REOPENED':
+    'Не можеш да вдигнеш отново — всичко-в за по-малко от пълно вдигане не отваря наново залаганията',
   'err.RAISE_TOO_SMALL': 'Вдигането трябва да е поне колкото предишното',
   'err.NOT_ENOUGH_CHIPS': 'Нямаш толкова чипове',
   'err.AMOUNT_REQUIRED': 'Кажи колко',

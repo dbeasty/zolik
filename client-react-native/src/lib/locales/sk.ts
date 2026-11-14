@@ -247,8 +247,13 @@ export const sk: Record<string, string> = {
   'holdem.rules.minRaise': 'Zvýšenie musí byť aspoň také veľké ako to predchádzajúce.',
   'holdem.rules.allIn':
     'Nikdy nevsadíš viac, než máš, a all-in je vždy povolený — aj keď je menší než plné zvýšenie.',
+  'holdem.rules.shortAllIn':
+    'All-in menší než plné zvýšenie stávkovanie znova neotvára: hráč, ktorý už bol na ťahu, môže len dorovnať alebo zložiť.',
+  'holdem.rules.uncalled':
+    'Žetóny, ktoré nikto iný nedorovnal, sa vracajú hráčovi, ktorý ich vsadil.',
   'holdem.rules.foldedOut': 'Len čo zložíš, si vonku až do ďalšieho rozdania.',
   'holdem.remedy.callOrFold': 'Dlhuješ {n} — dorovnaj, zvýš alebo zlož.',
+  'holdem.remedy.callOnly': 'Stávkovanie sa znova neotvorilo — dorovnaj {n} alebo zlož.',
   'holdem.remedy.checkOrRaise': 'Nič sa nedlhuje — čakaj alebo zvýš.',
   'holdem.remedy.callAllInOrFold':
     'Nad stávku sa so svojím stackom nedostaneš — dorovnaj {n} all-in alebo zlož.',
@@ -304,6 +309,7 @@ export const sk: Record<string, string> = {
   'holdem.status.pot': '{winners} vyhráva {amount} s {hand} — {cards}',
   'holdem.status.potSplit': '{winners} vyhráva {amount} s {hand}',
   'holdem.status.potUncontested': '{winners} vyhráva {amount} — všetci ostatní zložili',
+  'holdem.status.returned': '{playerId} dostáva späť {amount} — nikto to nedorovnal',
   'holdem.status.shown': '{playerId} ukázal {value}',
   'holdem.prompt.waitingFor': 'Čaká sa na {playerId}',
 
@@ -451,6 +457,8 @@ export const sk: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nie je žiadna stávka na dorovnanie',
   'err.CANNOT_CHECK': 'Nemôžeš checkovať — je tu stávka na odpoveď',
   'err.CANNOT_RAISE': 'Zvýšiť nemôžeš — so svojím stackom sa nad stávku nedostaneš',
+  'err.BETTING_NOT_REOPENED':
+    'Znova zvýšiť nemôžeš — all-in menší než plné zvýšenie stávkovanie znova neotvára',
   'err.RAISE_TOO_SMALL': 'Zvýšenie musí byť aspoň také ako to predchádzajúce',
   'err.NOT_ENOUGH_CHIPS': 'Toľko žetónov nemáš',
   'err.AMOUNT_REQUIRED': 'Povedz koľko',

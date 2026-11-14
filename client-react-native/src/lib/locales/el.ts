@@ -257,8 +257,13 @@ export const el: Record<string, string> = {
   'holdem.rules.minRaise': 'Μια αύξηση πρέπει να είναι τουλάχιστον όση και η προηγούμενη.',
   'holdem.rules.allIn':
     'Ποτέ δεν βάζεις πάνω από το στοίβαγμά σου, και το ολα μέσα επιτρέπεται πάντα — ακόμη κι όταν είναι λιγότερο από πλήρη αύξηση.',
+  'holdem.rules.shortAllIn':
+    'Ένα όλα μέσα για λιγότερο από πλήρη αύξηση δεν ξανανοίγει τα ποντάρισματα: όποιος έχει ήδη παίξει μπορεί μόνο να πληρώσει ή να τα παρατήσει.',
+  'holdem.rules.uncalled':
+    'Μάρκες που δεν κάλυψε κανείς άλλος επιστρέφουν στον παίκτη που τις έβαλε.',
   'holdem.rules.foldedOut': 'Μόλις τα παρατήσεις, είσαι εκτός ώσπου να μοιραστεί το επόμενο χέρι.',
   'holdem.remedy.callOrFold': 'Χρωστάς {n} — πλήρωσε, ανέβασε ή τα παρατάς.',
+  'holdem.remedy.callOnly': 'Τα ποντάρισματα δεν ξανάνοιξαν — πλήρωσε {n} ή τα παρατάς.',
   'holdem.remedy.checkOrRaise': 'Δεν χρωστιέται τίποτα — πάσο ή αύξηση.',
   'holdem.remedy.callAllInOrFold':
     'Το στοίβαγμά σου δεν φτάνει πάνω από το ποντάρισμα — πλήρωσε {n} ολα μέσα ή τα παρατάς.',
@@ -314,6 +319,7 @@ export const el: Record<string, string> = {
   'holdem.status.pot': 'Ο {winners} κέρδισε {amount} με {hand} — {cards}',
   'holdem.status.potSplit': 'Ο {winners} κέρδισε {amount} με {hand}',
   'holdem.status.potUncontested': 'Ο {winners} κέρδισε {amount} — όλοι οι άλλοι πάσαραν',
+  'holdem.status.returned': 'Ο {playerId} πήρε πίσω {amount} — δεν το κάλυψε κανείς',
   'holdem.status.shown': 'Ο {playerId} έδειξε {value}',
   'holdem.prompt.waitingFor': 'Αναμονή για {playerId}',
 
@@ -462,6 +468,8 @@ export const el: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Δεν υπάρχει στοίχημα για πάσο',
   'err.CANNOT_CHECK': 'Δεν μπορείς να τσεκάρεις — υπάρχει στοίχημα να απαντήσεις',
   'err.CANNOT_RAISE': 'Δεν μπορείς να ανεβάσεις — το στοίβαγμά σου δεν φτάνει πάνω από το ποντάρισμα',
+  'err.BETTING_NOT_REOPENED':
+    'Δεν μπορείς να ανεβάσεις ξανά — ένα όλα μέσα για λιγότερο από πλήρη αύξηση δεν ξανανοίγει τα ποντάρισματα',
   'err.RAISE_TOO_SMALL': 'Το ανέβασμα πρέπει να είναι τουλάχιστον όσο το προηγούμενο',
   'err.NOT_ENOUGH_CHIPS': 'Δεν έχεις τόσες μάρκες',
   'err.AMOUNT_REQUIRED': 'Πες πόσο',

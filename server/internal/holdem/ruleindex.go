@@ -51,6 +51,8 @@ func refusalRules(code string) []string {
 		return []string{"holdem.rules.minRaise", "holdem.rules.allIn", "holdem.rules.omaha.allIn"}
 	case ErrCannotRaise, ErrNotEnoughChips:
 		return []string{"holdem.rules.allIn", "holdem.rules.omaha.allIn"}
+	case ErrBettingNotReopened:
+		return []string{"holdem.rules.shortAllIn"}
 	case ErrOverPotLimit:
 		return []string{"holdem.rules.potLimit", "holdem.rules.omaha.allIn"}
 	case ErrAmountRequired:

@@ -249,8 +249,13 @@ export const hr: Record<string, string> = {
   'holdem.rules.minRaise': 'Podizanje mora biti barem jednako veliko kao prethodno.',
   'holdem.rules.allIn':
     'Nikad ne možeš uložiti više od svog stoga, a all-in je uvijek dopušten — čak i kad je manji od punog podizanja.',
+  'holdem.rules.shortAllIn':
+    'All-in manji od punog podizanja ne otvara ponovno ulaganje: igrač koji je već odigrao smije samo platiti ili odustati.',
+  'holdem.rules.uncalled':
+    'Žetoni koje nitko drugi nije izjednačio vraćaju se igraču koji ih je uložio.',
   'holdem.rules.foldedOut': 'Kad jednom odustaneš, vani si do sljedećeg dijeljenja.',
   'holdem.remedy.callOrFold': 'Duguješ {n} — plati, podigni ili odustani.',
+  'holdem.remedy.callOnly': 'Ulaganje nije ponovno otvoreno — plati {n} ili odustani.',
   'holdem.remedy.checkOrRaise': 'Ništa se ne duguje — provjeri ili podigni.',
   'holdem.remedy.callAllInOrFold': 'Tvoj stog neće preko uloga — plati {n} all-in ili odustani.',
   'holdem.remedy.raiseAtLeast': 'Podigni barem na {n}.',
@@ -305,6 +310,7 @@ export const hr: Record<string, string> = {
   'holdem.status.pot': '{winners} osvaja {amount} s {hand} — {cards}',
   'holdem.status.potSplit': '{winners} osvaja {amount} s {hand}',
   'holdem.status.potUncontested': '{winners} osvaja {amount} — svi ostali su odustali',
+  'holdem.status.returned': '{playerId} dobiva natrag {amount} — nitko to nije izjednačio',
   'holdem.status.shown': '{playerId} je pokazao {value}',
   'holdem.prompt.waitingFor': 'Čeka se {playerId}',
 
@@ -452,6 +458,8 @@ export const hr: Record<string, string> = {
   'err.NOTHING_TO_CALL': 'Nema uloga za praćenje',
   'err.CANNOT_CHECK': 'Ne možeš čekirati — postoji ulog na koji treba odgovoriti',
   'err.CANNOT_RAISE': 'Ne možeš podići — tvoj stog ne prelazi ulog',
+  'err.BETTING_NOT_REOPENED':
+    'Ne možeš ponovno podići — all-in manji od punog podizanja ne otvara ponovno ulaganje',
   'err.RAISE_TOO_SMALL': 'Podizanje mora biti barem koliko i prethodno',
   'err.NOT_ENOUGH_CHIPS': 'Nemaš toliko žetona',
   'err.AMOUNT_REQUIRED': 'Reci koliko',
