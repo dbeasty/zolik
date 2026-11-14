@@ -161,9 +161,11 @@ type PassChecker interface {
 // SetPassChecker gives the importer what it checks account seats with.
 func (i *Importer) SetPassChecker(p PassChecker) { i.passes = p }
 
-// GuestClaims answers which account, if any, a guest has become.
+// GuestClaims answers which account, if any, a guest has become, for a match
+// hosted by nodeID: a claim is only good for matches from the node whose
+// receipt proved it.
 type GuestClaims interface {
-	AccountForGuest(ctx context.Context, guestID string) (string, bool, error)
+	AccountForGuestAt(ctx context.Context, guestID, nodeID string) (string, bool, error)
 }
 
 // NewImporter returns the cloud's importer of handed-up matches.
@@ -324,7 +326,7 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, b zsync.Bu
 			if i.claims == nil {
 				continue
 			}
-			account, claimed, err := i.claims.AccountForGuest(ctx, guest)
+			account, claimed, err := i.claims.AccountForGuestAt(ctx, guest, b.Node)
 			if err != nil {
 				return models.Match{}, err
 			}

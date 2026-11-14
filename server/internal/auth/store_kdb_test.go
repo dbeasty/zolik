@@ -82,11 +82,11 @@ func TestKDBLoginCodeIsSingleUse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("latest: %v", err)
 	}
-	if err := s.ConsumeLoginCode(ctx, got.ID); err != nil {
+	if err := s.ConsumeLoginCode(ctx, got.ID, maxCodeAttempts); err != nil {
 		t.Fatalf("first consume: %v", err)
 	}
 	// The second redemption must be told the code is spent.
-	if err := s.ConsumeLoginCode(ctx, got.ID); !errors.Is(err, ErrNotFound) {
+	if err := s.ConsumeLoginCode(ctx, got.ID, maxCodeAttempts); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("second consume: got %v, want ErrNotFound", err)
 	}
 }

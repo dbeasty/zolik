@@ -626,6 +626,45 @@ func TestEmailVerifyRejectsAWrongCode(t *testing.T) {
 	}
 }
 
+// Many parallel wrong guesses, then the right code: refused. The code's
+// guesses are taken atomically before each compare, and the endpoint is
+// throttled per address on top, so a burst cannot buy more than the cap.
+func TestEmailVerifyParallelGuessesThenTheRightCodeFails(t *testing.T) {
+	h := newTestHarness(t)
+	email := "parallel@example.com"
+	h.do(http.MethodPost, "/auth/email/start", "", map[string]any{"email": email})
+	code := h.mailer.lastCodeFor(t, email)
+	wrong := "000000"
+	if code == wrong {
+		wrong = "000001"
+	}
+
+	var wg sync.WaitGroup
+	statuses := make(chan int, 60)
+	for range 60 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			statuses <- h.do(http.MethodPost, "/auth/email/verify", "", map[string]any{"email": email, "code": wrong}).status
+		}()
+	}
+	wg.Wait()
+	close(statuses)
+	for st := range statuses {
+		if st == http.StatusOK {
+			t.Fatal("a wrong guess signed in")
+		}
+	}
+
+	res := h.do(http.MethodPost, "/auth/email/verify", "", map[string]any{"email": email, "code": code})
+	if res.status == http.StatusOK {
+		t.Fatalf("the right code after 60 parallel wrong guesses signed in: %s", res.raw)
+	}
+	if res.str("code") != "CODE_INVALID" {
+		t.Fatalf("refusal code %q, want CODE_INVALID", res.str("code"))
+	}
+}
+
 func TestEmailCodeIsSingleUse(t *testing.T) {
 	h := newTestHarness(t)
 	email := "singleuse@example.com"

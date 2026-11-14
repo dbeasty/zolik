@@ -306,7 +306,34 @@ func (s *kdbStore) CountRecentLoginCodes(ctx context.Context, email string, sinc
 	return n, err
 }
 
-func (s *kdbStore) ConsumeLoginCode(ctx context.Context, id bson.ObjectID) error {
+func (s *kdbStore) ConsumeLoginCode(ctx context.Context, id bson.ObjectID, maxAttempts int) error {
+	return s.updateLoginCode(id, func(c *models.LoginCode) bool {
+		// The conditional update only matches an unconsumed code whose
+		// guesses have not run out — this is what keeps redemption
+		// single-use under concurrent requests, and a burned code dead.
+		if c.ConsumedAt != nil || c.Attempts > maxAttempts {
+			return false
+		}
+		now := time.Now().UTC()
+		c.ConsumedAt = &now
+		return true
+	})
+}
+
+func (s *kdbStore) TakeCodeAttempt(ctx context.Context, id bson.ObjectID, maxAttempts int) error {
+	return s.updateLoginCode(id, func(c *models.LoginCode) bool {
+		if c.ConsumedAt != nil || c.Attempts >= maxAttempts {
+			return false
+		}
+		c.Attempts++
+		return true
+	})
+}
+
+// updateLoginCode applies change to a code inside one transaction, the kdb
+// spelling of a conditional UpdateOne: change reports whether the condition
+// held, and ErrNotFound is returned when it did not (or the code is gone).
+func (s *kdbStore) updateLoginCode(id bson.ObjectID, change func(*models.LoginCode) bool) error {
 	return s.k.Update(db.NSLoginCodes, func(tx *db.Tx) error {
 		doc, err := tx.Get(id.Hex())
 		if err != nil {
@@ -319,35 +346,9 @@ func (s *kdbStore) ConsumeLoginCode(ctx context.Context, id bson.ObjectID) error
 		if err := db.UnmarshalDoc(doc, &c); err != nil {
 			return err
 		}
-		if c.ConsumedAt != nil {
-			// The conditional update only matches an unconsumed code — this
-			// is what keeps redemption single-use under concurrent requests.
+		if !change(&c) {
 			return ErrNotFound
 		}
-		now := time.Now().UTC()
-		c.ConsumedAt = &now
-		next, err := db.MarshalDoc(c)
-		if err != nil {
-			return err
-		}
-		return tx.Put(id.Hex(), next)
-	})
-}
-
-func (s *kdbStore) RecordCodeAttempt(ctx context.Context, id bson.ObjectID) error {
-	return s.k.Update(db.NSLoginCodes, func(tx *db.Tx) error {
-		doc, err := tx.Get(id.Hex())
-		if err != nil {
-			if db.IsNotFound(err) {
-				return nil // UpdateOne on a missing document matches nothing
-			}
-			return err
-		}
-		var c models.LoginCode
-		if err := db.UnmarshalDoc(doc, &c); err != nil {
-			return err
-		}
-		c.Attempts++
 		next, err := db.MarshalDoc(c)
 		if err != nil {
 			return err

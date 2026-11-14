@@ -49,7 +49,13 @@ type claimedSeat struct {
 // tables and records those guest ids as theirs.
 //
 // Every receipt is checked against the key of the node that issued it, and a
-// node nobody enrolled is not trusted to attest anything. A receipt that fails
+// node nobody enrolled is not trusted to attest anything. Nor is an enrolled
+// node trusted to attest to a guest it did not mint: any account can enrol a
+// node of its own, and guest ids are broadcast at every table, so a receipt
+// naming a guest outside the signing key's namespace is refused (see
+// guestMintedBy). That is what keeps "a bare guest id grants nothing" true
+// here: the receipt is only ever handed to the device the node seated, and
+// only the node that seated a guest can sign one for it. A receipt that fails
 // is reported rather than failing the whole request: a person with five
 // receipts and one bad one should get the other four claimed.
 func (h *Handlers) claimOffline(w http.ResponseWriter, req *http.Request) {

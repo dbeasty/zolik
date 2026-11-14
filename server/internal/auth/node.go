@@ -173,6 +173,59 @@ func (c *SeatReceiptClaims) IssuedAtTime() time.Time {
 	return c.IssuedAt.Time
 }
 
+// A node may only vouch for guests it minted itself.
+//
+// A seat receipt is a node's word that a guest sat at it, and any signed-in
+// account can enrol a node with a key of its own. Were a receipt allowed to
+// name any guest id at all, that account could sign one for a guest id it had
+// merely seen - every table broadcasts its players' ids - and claim that
+// guest's history as its own. A bare guest id grants nothing anywhere else in
+// this codebase; it must not grant something here.
+//
+// So a guest id minted on a host with a node key carries that key in it: the
+// first guestNodePrefixLen hex characters are a hash of the node's public key,
+// the rest are random. A receipt is only honoured for a guest id whose prefix
+// is the signing key's, which no other key can produce short of an 80-bit
+// preimage search, so a node can attest to its own guests and to nobody
+// else's. Ids minted by the cloud, which has no node key of its own, or by a
+// host before this existed, fall in no node's namespace and no receipt can
+// claim them: an online guest is claimed with its guest key (claimGuest).
+const guestNodePrefixLen = 20
+
+// guestNodePrefix is the namespace of guest ids a node key may vouch for.
+func guestNodePrefix(pub ed25519.PublicKey) string {
+	h := sha256.New()
+	h.Write([]byte("zolik node guest v1\x00"))
+	h.Write(pub)
+	return hex.EncodeToString(h.Sum(nil))[:guestNodePrefixLen]
+}
+
+// guestMintedBy reports whether guestID is in pub's namespace.
+func guestMintedBy(guestID string, pub ed25519.PublicKey) bool {
+	return len(pub) == ed25519.PublicKeySize && sanitizeGuestID(guestID) != "" &&
+		strings.HasPrefix(guestID, guestNodePrefix(pub))
+}
+
+// NewGuestID mints a new guest id: in this node's namespace when the install
+// has a node key, so the receipts it issues for the guest can be honoured,
+// and wholly random otherwise.
+func NewGuestID() (string, error) {
+	pub, ok := NodePublicKey()
+	if !ok {
+		return NewRandomToken(16)
+	}
+	suffix, err := NewRandomToken((32 - guestNodePrefixLen) / 2)
+	if err != nil {
+		return "", err
+	}
+	return guestNodePrefix(pub) + suffix, nil
+}
+
+// ErrNotThisNodesGuest is returned when asked for a receipt for a guest this
+// node did not mint: a guest proven by a key from before node namespaces
+// existed. No receipt is issued, because none could be honoured.
+var ErrNotThisNodesGuest = errors.New("seat receipt: this node did not mint that guest")
+
 // CreateSeatReceipt signs a receipt with the node key. A node with no key
 // issues none, and the guest seat it hands out is simply unreconcilable
 // later, which is what every seat was before this existed.
@@ -190,6 +243,9 @@ func CreateSeatReceipt(guestID string) (string, error) {
 
 	now := time.Now().UTC()
 	pub, _ := priv.Public().(ed25519.PublicKey)
+	if !guestMintedBy(guestID, pub) {
+		return "", ErrNotThisNodesGuest
+	}
 	return signEdDSA(&signingKey{kid: KeyIDFor(pub), priv: priv}, SeatReceiptClaims{
 		GuestID: guestID,
 		NodeID:  id,
@@ -205,9 +261,9 @@ func CreateSeatReceipt(guestID string) (string, error) {
 // VerifySeatReceipt checks a receipt against the public key of the node that
 // is supposed to have issued it.
 //
-// Three things have to line up, and any one of them failing fails the whole
-// receipt: the signature, the audience, and the claimed node id matching the
-// key that signed it. The last is what stops a node from writing somebody
+// Four things have to line up, and any one of them failing fails the whole
+// receipt: the signature, the audience, the claimed node id matching the
+// key that signed it, and the guest being one that key minted. The last is what stops a node from writing somebody
 // else's id into a receipt it signed itself, which is the only interesting
 // lie available to a node that holds a valid key of its own.
 func VerifySeatReceipt(token string, pub ed25519.PublicKey) (*SeatReceiptClaims, error) {
@@ -235,6 +291,10 @@ func VerifySeatReceipt(token string, pub ed25519.PublicKey) (*SeatReceiptClaims,
 	}
 	if claims.GuestID == "" || (claims.Subject != "" && claims.Subject != claims.GuestID) {
 		return nil, errors.New("seat receipt: no coherent guest")
+	}
+	// The node is the authority over its own guests only: see guestMintedBy.
+	if !guestMintedBy(claims.GuestID, pub) {
+		return nil, ErrNotThisNodesGuest
 	}
 	if claims.IssuedAt == nil {
 		return nil, errors.New("seat receipt: no issue time")

@@ -150,6 +150,29 @@ func (c *KDBGuestClaims) AccountForGuest(_ context.Context, guestID string) (str
 	return claim.UserID, claim.UserID != "", nil
 }
 
+// AccountForGuestAt answers which account a guest became, but only for a
+// match hosted by the node whose receipt proved the claim. A guest id lives
+// in one node's namespace (see guestMintedBy), so a bundle from any other
+// node naming it is that node's invention, and crediting it would let a node
+// write matches into a stranger's history.
+func (c *KDBGuestClaims) AccountForGuestAt(_ context.Context, guestID, nodeID string) (string, bool, error) {
+	doc, err := c.k.Get(db.NSGuestClaims, guestID)
+	if db.IsNotFound(err) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	var claim GuestClaim
+	if err := db.UnmarshalDoc(doc, &claim); err != nil {
+		return "", false, err
+	}
+	if claim.UserID == "" || claim.NodeID == "" || claim.NodeID != nodeID {
+		return "", false, nil
+	}
+	return claim.UserID, true, nil
+}
+
 // ForgetAccount empties every claim an account made, for an account that is
 // deleted. The record itself stays, with nobody in it: a match handed up
 // later under one of those guest ids then stays an anonymous guest's, and

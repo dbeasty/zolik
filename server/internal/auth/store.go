@@ -74,12 +74,19 @@ type Store interface {
 	// cut-off, which is what the per-address request throttle is built on.
 	CountRecentLoginCodes(ctx context.Context, email string, since time.Time) (int, error)
 	// ConsumeLoginCode marks a code used, conditionally: the update only
-	// matches a code that has not been consumed yet, which is what makes
-	// redemption single-use even if two requests arrive at once.
-	ConsumeLoginCode(ctx context.Context, id bson.ObjectID) error
-	// RecordCodeAttempt counts a wrong guess so a code can be burned by
-	// brute force as well as by use.
-	RecordCodeAttempt(ctx context.Context, id bson.ObjectID) error
+	// matches a code that has not been consumed yet and has not had more
+	// than maxAttempts guesses spent on it, which is what makes redemption
+	// single-use even if two requests arrive at once, and what stops a code
+	// that guessing has burned from being redeemed. ErrNotFound when the
+	// condition does not hold.
+	ConsumeLoginCode(ctx context.Context, id bson.ObjectID, maxAttempts int) error
+	// TakeCodeAttempt spends one of a code's guesses, atomically and before
+	// the guess is compared: the increment only applies to an unconsumed code
+	// with fewer than maxAttempts guesses spent. ErrNotFound when it did not
+	// apply, in which case the guess must not be compared at all - otherwise
+	// a burst of parallel guesses all read the same count and all get
+	// compared.
+	TakeCodeAttempt(ctx context.Context, id bson.ObjectID, maxAttempts int) error
 
 	// --- in-flight oauth redirects ---
 
@@ -294,15 +301,20 @@ func (s *mongoStore) CountRecentLoginCodes(ctx context.Context, email string, si
 }
 
 // ConsumeLoginCode marks a code used, and does so conditionally: the update
-// only matches a code that has not been consumed yet.
+// only matches a code that has not been consumed yet, and whose guesses have
+// not run past maxAttempts.
 //
 // That condition is what makes redemption single-use even if two requests
 // arrive at once — the second update matches nothing and the caller is told
 // the code is spent, rather than both being allowed through.
-func (s *mongoStore) ConsumeLoginCode(ctx context.Context, id bson.ObjectID) error {
+func (s *mongoStore) ConsumeLoginCode(ctx context.Context, id bson.ObjectID, maxAttempts int) error {
 	now := time.Now().UTC()
 	res, err := s.codes.UpdateOne(ctx,
-		bson.M{"_id": id, "consumedAt": bson.M{"$exists": false}},
+		bson.M{
+			"_id":        id,
+			"consumedAt": bson.M{"$exists": false},
+			"attempts":   bson.M{"$lte": maxAttempts},
+		},
 		bson.M{"$set": bson.M{"consumedAt": now}},
 	)
 	if err != nil {
@@ -314,11 +326,25 @@ func (s *mongoStore) ConsumeLoginCode(ctx context.Context, id bson.ObjectID) err
 	return nil
 }
 
-// RecordCodeAttempt counts a wrong guess so a code can be burned by brute
-// force as well as by use.
-func (s *mongoStore) RecordCodeAttempt(ctx context.Context, id bson.ObjectID) error {
-	_, err := s.codes.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$inc": bson.M{"attempts": 1}})
-	return err
+// TakeCodeAttempt spends a guess, conditionally: the filter only matches an
+// unconsumed code with guesses left, so the count can never pass maxAttempts
+// however many requests race for it.
+func (s *mongoStore) TakeCodeAttempt(ctx context.Context, id bson.ObjectID, maxAttempts int) error {
+	res, err := s.codes.UpdateOne(ctx,
+		bson.M{
+			"_id":        id,
+			"consumedAt": bson.M{"$exists": false},
+			"attempts":   bson.M{"$lt": maxAttempts},
+		},
+		bson.M{"$inc": bson.M{"attempts": 1}},
+	)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // --- in-flight oauth redirects ---
