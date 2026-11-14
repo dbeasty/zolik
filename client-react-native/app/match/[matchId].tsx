@@ -13,6 +13,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusedKeydown } from '@/src/hooks/useFocusedKeydown';
 import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 
 import { announce, announceGame } from '@/src/a11y/announce';
@@ -1044,14 +1045,11 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   }, [state?.moduleId, client]);
 
   // The board's own keys on the web. Assigned below, once everything they act
-  // on has been worked out; listened for here, once.
+  // on has been worked out; listened for here, and only while this screen is
+  // the focused one — it stays mounted under Rules and Settings, and its
+  // single-key shortcuts must not play moves from there.
   const onBoardKey = useRef<(e: KeyboardEvent) => void>(() => undefined);
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const listener = (e: KeyboardEvent) => onBoardKey.current(e);
-    document.addEventListener('keydown', listener);
-    return () => document.removeEventListener('keydown', listener);
-  }, []);
+  useFocusedKeydown(onBoardKey);
 
   // A tap on the board's bare felt — clearly away from the hand, and from
   // anything that answers a tap of its own — puts down whatever is picked up,
