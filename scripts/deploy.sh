@@ -12,7 +12,8 @@
 #
 # Options:
 #   --init-env     overwrite server .env from deploy/env.production.example
-#                  (generates fresh JWT secrets)
+#                  (generates fresh JWT secrets; the old file is kept as
+#                  .env.bak.<UTC timestamp> beside it)
 #   --snapshot     tar the database volume on the host before switching images
 #   --skip-nginx   skip nginx vhosts and TLS certificates (docker only)
 #
@@ -116,6 +117,24 @@ ssh_admin() { ssh -o BatchMode=yes "$DEPLOY_SSH" "$@"; }
 # containers and the volume all belong to one user and one daemon path.
 ssh_zolik() { ssh_admin "sudo -u ${DEPLOY_USER} $*"; }
 
+# remote_path_state PATH — prints "present" or "absent" for PATH on the host,
+# or stops the deploy. Never `! ssh_admin "sudo test -f ..."`: that reads an
+# ssh failure (255, a timeout on this network) or a sudo refusal (1, same as
+# test's "no") as "the file is not there", and the caller then writes over a
+# file that is. Here only the host's own word counts: the remote shell names
+# the answer on stdout, and anything else — no output, any exit code but 0 —
+# is not an answer.
+remote_path_state() {
+  local out rc=0
+  out="$(ssh_admin "sudo -n sh -c 'if [ -e \"\$1\" ]; then echo present; else echo absent; fi' _ '$1'")" || rc=$?
+  if [[ $rc -eq 0 && ( "$out" == present || "$out" == absent ) ]]; then
+    printf '%s\n' "$out"
+    return 0
+  fi
+  die "could not tell whether $1 exists on ${DEPLOY_HOST} (ssh exit ${rc}, output '${out}').
+  Not guessing: re-run once SSH to ${DEPLOY_SSH} is answering."
+}
+
 # ---------------------------------------------------------------- preflight
 say "preflight (${RELEASE} → ${PUBLIC_URL})"
 
@@ -172,7 +191,19 @@ if [[ ! -f ${ENV_REMOTE} && -f ${LEGACY_SRC}/server/.env ]]; then
 fi
 EOF
 
-if [[ "$INIT_ENV" == true ]] || ! ssh_admin "sudo test -f ${ENV_REMOTE}" 2>/dev/null; then
+# Whether the env file is there decides whether production keeps its secrets
+# (SMTP, OAuth, VAPID, the admin hash, the JWT keys every session is signed
+# with), so it is asked in a way an SSH hiccup cannot answer: see
+# remote_path_state. An existing file is only ever replaced on --init-env, and
+# even then a timestamped copy is kept beside it first.
+env_state="$(remote_path_state "${ENV_REMOTE}")" || exit 1
+if [[ "$INIT_ENV" == true || "$env_state" == absent ]]; then
+  if [[ "$env_state" == present ]]; then
+    env_backup="${ENV_REMOTE}.bak.$(date -u +%Y%m%dT%H%M%SZ)"
+    ssh_admin "sudo cp -p ${ENV_REMOTE} ${env_backup}" \
+      || die "could not back up ${ENV_REMOTE} to ${env_backup}; leaving it untouched"
+    say "backed up ${ENV_REMOTE} to ${env_backup}"
+  fi
   access_secret="$(openssl rand -hex 32)"
   refresh_secret="$(openssl rand -hex 32)"
   tmp_env="$(mktemp)"
@@ -237,10 +268,18 @@ EOF
 # So it is checked here: after .env is final, before anything is built.
 say "checking the server env will boot"
 
-read_env() { ssh_admin "sudo sed -n 's/^$1=//p' ${ENV_REMOTE} | tail -1" 2>/dev/null || true; }
-env_app="$(read_env APP_ENV)"
-env_smtp="$(read_env SMTP_HOST)"
-env_jwt="$(read_env JWT_ACCESS_SECRET)"
+# A key the file does not set reads as empty. A file that could not be read
+# at all — ssh down, sudo refusing, the file gone — stops here instead of
+# reading as "every key is empty", which would blame the wrong thing below.
+read_env() {
+  local out rc=0
+  out="$(ssh_admin "sudo -n sed -n 's/^$1=//p' ${ENV_REMOTE}")" || rc=$?
+  [[ $rc -eq 0 ]] || die "could not read $1 from ${ENV_REMOTE} on ${DEPLOY_HOST} (ssh exit ${rc})"
+  printf '%s\n' "$out" | tail -1
+}
+env_app="$(read_env APP_ENV)" || exit 1
+env_smtp="$(read_env SMTP_HOST)" || exit 1
+env_jwt="$(read_env JWT_ACCESS_SECRET)" || exit 1
 
 # Checked whatever APP_ENV says. The server refuses a missing or placeholder
 # key outside APP_ENV=local (auth.CheckAccessSecret), but at local it falls
@@ -274,7 +313,8 @@ esac
 # therefore breaks every configured provider until someone adds the new URI
 # there — which this script cannot do, so it says which ones.
 for provider in GOOGLE APPLE MICROSOFT; do
-  if [[ -n "$(read_env "OAUTH_${provider}_CLIENT_ID")" ]]; then
+  client_id="$(read_env "OAUTH_${provider}_CLIENT_ID")" || exit 1
+  if [[ -n "$client_id" ]]; then
     id="$(printf '%s' "$provider" | tr '[:upper:]' '[:lower:]')"
     warn "OAuth ${provider} is configured: its console must allow ${PUBLIC_URL}/auth/oauth/${id}/callback"
   fi
@@ -318,7 +358,8 @@ nginx -t
 systemctl reload nginx
 EOF
 
-  if ! ssh_admin "sudo test -f /etc/letsencrypt/live/jokerless/fullchain.pem"; then
+  cert_state="$(remote_path_state /etc/letsencrypt/live/jokerless/fullchain.pem)" || exit 1
+  if [[ "$cert_state" == absent ]]; then
     say "issuing the jokerless certificate (HTTP-01 over the vhost just installed)"
     # Every name must resolve before this can work. Checked here first because
     # certbot's own failure for a missing A record is a long paragraph about a

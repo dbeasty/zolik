@@ -11,6 +11,7 @@
 package ratelimit
 
 import (
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -87,23 +88,34 @@ func (l *Limiter) sweepLocked(cutoff time.Time) {
 
 // ClientIP identifies the caller as well as it can.
 //
-// X-Forwarded-For is trusted because behind a proxy it is the only thing that
-// distinguishes callers at all — but it is client-supplied and so forgeable,
-// which means a ceiling keyed on this slows an honest client and merely
-// inconveniences a determined one. Keep that in mind when choosing what to
-// hang off it: it is a guard against floods and casual guessing, never a
-// security boundary on its own.
+// Behind our nginx (deploy/nginx/zolik-proxy.conf), X-Forwarded-For is set to
+// $remote_addr — one entry, the peer nginx saw — replacing whatever the client
+// sent. The rightmost entry is read rather than the leftmost all the same: in
+// any chain a proxy appends to, the rightmost entry is the one the last proxy
+// added, and every entry left of it is the client's own word. Reading the
+// leftmost would let a caller pick a fresh key per request by sending a random
+// header, and so walk straight past every limit keyed on this.
+//
+// Without the header — a direct connection, or a test — the TCP peer is used.
+// It is still a guard against floods and casual guessing, never a security
+// boundary on its own.
 func ClientIP(req *http.Request) string {
 	if fwd := req.Header.Get("X-Forwarded-For"); fwd != "" {
-		first, _, ok := strings.Cut(fwd, ",")
-		if !ok {
-			first = fwd
+		if i := strings.LastIndexByte(fwd, ','); i >= 0 {
+			fwd = fwd[i+1:]
 		}
-		return strings.TrimSpace(first)
+		if ip := strings.TrimSpace(fwd); ip != "" {
+			return ip
+		}
 	}
-	host, _, ok := strings.Cut(req.RemoteAddr, ":")
-	if !ok {
-		return req.RemoteAddr
+	return remoteHost(req.RemoteAddr)
+}
+
+// remoteHost strips the port from a RemoteAddr. net.SplitHostPort, not a cut
+// at the first colon, which would turn "[2001:db8::1]:443" into "[2001".
+func remoteHost(addr string) string {
+	if host, _, err := net.SplitHostPort(addr); err == nil {
+		return host
 	}
-	return host
+	return addr
 }
