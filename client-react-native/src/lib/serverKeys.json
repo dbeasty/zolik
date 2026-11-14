@@ -15,6 +15,8 @@
     "BANKER_DOES_NOT_STAKE",
     "BANK_CANNOT_COVER",
     "BET_BELOW_MINIMUM",
+    "BLACKPETER_NO_SUCH_CARD",
+    "BLACKPETER_OUT",
     "BLACK_THREES_NEED_CANASTAS",
     "BLACK_THREE_GO_OUT_ONLY",
     "CANNOT_ADD_SELF",
@@ -368,6 +370,40 @@
     "blackjack.zone.dealer",
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
+    "blackpeter.badge.peter",
+    "blackpeter.fact.from",
+    "blackpeter.header.round",
+    "blackpeter.move.dealtPairs",
+    "blackpeter.move.lost",
+    "blackpeter.move.out",
+    "blackpeter.move.pair",
+    "blackpeter.move.took",
+    "blackpeter.offer.draw",
+    "blackpeter.prompt.draw",
+    "blackpeter.round.first",
+    "blackpeter.round.loser",
+    "blackpeter.round.round",
+    "blackpeter.rules.deal",
+    "blackpeter.rules.deck",
+    "blackpeter.rules.draw",
+    "blackpeter.rules.goal",
+    "blackpeter.rules.layPairs",
+    "blackpeter.rules.lose",
+    "blackpeter.rules.match",
+    "blackpeter.rules.nextDeal",
+    "blackpeter.rules.out",
+    "blackpeter.rules.pairsColour",
+    "blackpeter.rules.pairsRank",
+    "blackpeter.rules.pass",
+    "blackpeter.rules.section.cards",
+    "blackpeter.rules.section.end",
+    "blackpeter.rules.section.goal",
+    "blackpeter.rules.section.play",
+    "blackpeter.seat.cards",
+    "blackpeter.seat.out",
+    "blackpeter.status.out",
+    "blackpeter.zone.hand",
+    "blackpeter.zone.pairs",
     "canasta.line.canastas",
     "canasta.line.dirtySamba",
     "canasta.line.goingOut",
@@ -610,6 +646,7 @@
     "ginrummy.zone.knockerHand",
     "ginrummy.zone.melds",
     "guide.blackjack.basics.title",
+    "guide.blackpeter.basics.title",
     "guide.canasta.basics.title",
     "guide.ferbl.basics.title",
     "guide.ginrummy.basics.title",
@@ -1777,6 +1814,22 @@
     "blackjack.rules.stakeFromStack",
     "blackjack.rules.standsSoft17",
     "blackjack.rules.surrender",
+    "blackpeter.rules.deal",
+    "blackpeter.rules.deck",
+    "blackpeter.rules.draw",
+    "blackpeter.rules.goal",
+    "blackpeter.rules.layPairs",
+    "blackpeter.rules.lose",
+    "blackpeter.rules.match",
+    "blackpeter.rules.nextDeal",
+    "blackpeter.rules.out",
+    "blackpeter.rules.pairsColour",
+    "blackpeter.rules.pairsRank",
+    "blackpeter.rules.pass",
+    "blackpeter.rules.section.cards",
+    "blackpeter.rules.section.end",
+    "blackpeter.rules.section.goal",
+    "blackpeter.rules.section.play",
     "canasta.remedy.blackThreesNeedCanastas",
     "canasta.remedy.blackThreesOnTheWayOut",
     "canasta.remedy.captureFromHand",
@@ -2533,6 +2586,48 @@
       "value"
     ],
     "blackjack.status.dealerStands": [
+      "n",
+      "value"
+    ],
+    "blackpeter.fact.from": [
+      "n",
+      "player"
+    ],
+    "blackpeter.header.round": [
+      "n",
+      "of"
+    ],
+    "blackpeter.move.dealtPairs": [
+      "n",
+      "player"
+    ],
+    "blackpeter.move.lost": [
+      "player"
+    ],
+    "blackpeter.move.out": [
+      "player"
+    ],
+    "blackpeter.move.pair": [
+      "cards",
+      "player"
+    ],
+    "blackpeter.move.took": [
+      "from",
+      "player"
+    ],
+    "blackpeter.prompt.draw": [
+      "player"
+    ],
+    "blackpeter.round.first": [
+      "player"
+    ],
+    "blackpeter.round.loser": [
+      "player"
+    ],
+    "blackpeter.rules.match": [
+      "n"
+    ],
+    "blackpeter.seat.cards": [
       "n",
       "value"
     ],
@@ -4333,6 +4428,18 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "blackpeter.fact.from",
+    "blackpeter.header.round",
+    "blackpeter.move.dealtPairs",
+    "blackpeter.move.lost",
+    "blackpeter.move.out",
+    "blackpeter.move.pair",
+    "blackpeter.move.took",
+    "blackpeter.prompt.draw",
+    "blackpeter.round.first",
+    "blackpeter.round.loser",
+    "blackpeter.rules.match",
+    "blackpeter.seat.cards",
     "canasta.line.dirtySamba",
     "canasta.line.goingOut",
     "canasta.line.goingOutConcealed",

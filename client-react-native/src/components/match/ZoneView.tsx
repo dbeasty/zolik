@@ -120,7 +120,11 @@ type Props = {
    * `share` is how far down the target the press landed, 0 to 1, where the
    * target knows its own height — what picks an end of a run on a tap.
    */
-  onPressDrop?: (elementId: string, pageY: number, share?: number) => void;
+  /**
+   * `pick` is which face-down card was pressed, for a zone that is another
+   * player's hand being drawn from — see `PICK_PARAM`.
+   */
+  onPressDrop?: (elementId: string, pageY: number, share?: number, pick?: number) => void;
   /**
    * Group ids (a meld's own id, not an element id) that could be *aimed at*
    * right now — pointed at before any card is picked, so a move can be made
@@ -225,8 +229,12 @@ export function ZoneView({
   const owner = ownerNameOf(zone, speech.players, speech.viewerId);
 
   const zoneLabel = label(zone.labelKey) || zone.id;
-  const title = titleOverride || zoneLabel;
-  const subtitle = titleOverride ? subtitleOverride ?? zoneLabel : subtitleOverride;
+  // Another player's zone is named by its owner first — "Anna", then "Hand" —
+  // the way the row of spreads names each player's melds: three opponents'
+  // hands all titled "Hand" say nothing about whose is whose.
+  const othersOwner = !titleOverride && zone.ownerId && zone.ownerId !== speech.viewerId ? owner : undefined;
+  const title = titleOverride || othersOwner || zoneLabel;
+  const subtitle = titleOverride || othersOwner ? subtitleOverride ?? zoneLabel : subtitleOverride;
 
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
@@ -370,12 +378,44 @@ export function ZoneView({
    */
   const concealed = concealedCount(zone);
   /**
+   * Another player's hand that a press takes a card from — Black Peter's
+   * neighbour, holding their cards out face down. Then every back is drawn,
+   * however many, and each is its own button: *which* card is the player's
+   * one decision, and a count in place of the cards would take it away.
+   */
+  const takeFromBacks =
+    zone.kind === 'hand' &&
+    concealed > 0 &&
+    (sourceDrops?.has(zoneElementId(zone.id)) ?? false) &&
+    (pressableDrops?.has(zoneElementId(zone.id)) ?? false);
+  /**
    * The backs themselves. Built once and placed twice: beside the cards a
    * zone *is* showing, where a dealer's hole card belongs next to its
    * upcard rather than on a row of its own, and on its own line where there
    * are no loose cards to sit beside.
    */
-  const backs =
+  const backs = takeFromBacks ? (
+    <View style={[styles.cards, styles.fan]} testID={`zone-backs-${zone.id}`}>
+      {Array.from({ length: concealed }).map((_, i) => (
+        <View key={`pick-${i}`} style={i > 0 ? styles.fanOverlap : undefined}>
+          <Tip text={t('a11y.board.back.tip')}>
+            <Pressable
+              testID={`card-${zone.id}-pick-${i}`}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.board.back.take', { n: i + 1, count: concealed, player: owner ?? '' })}
+              onPress={(e) => onPressDrop?.(zoneElementId(zone.id), e.nativeEvent.pageY, undefined, i)}
+              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+                styles.pickBack,
+                (pressed || hovered) && styles.pickBackLifted,
+              ]}
+            >
+              <CardView card="" faceDown compact={compact} />
+            </Pressable>
+          </Tip>
+        </View>
+      ))}
+    </View>
+  ) :
     concealed > 0 ? (
       <>
         {Array.from({ length: Math.min(concealed, MAX_BACKS) }).map((_, i) => (
@@ -460,7 +500,7 @@ export function ZoneView({
   const pressName = zoneIsSource
     ? t('a11y.board.pile.take', { pile: spokenName })
     : t('a11y.board.playSelected', { target: spokenName });
-  const pressOverlay = zonePressable ? (
+  const pressOverlay = zonePressable && !takeFromBacks ? (
     <Tip text={zoneIsSource ? t('a11y.board.pile.tipTake', { pile: spokenName }) : t('a11y.board.pile.tipPlay')} style={StyleSheet.absoluteFill}>
       <Pressable
         testID={`zone-press-${zone.id}`}
@@ -1205,6 +1245,10 @@ function zoneStyles(m: Metrics, s: Skin) {
     // left edge — where the index is — in view.
     fan: { flexWrap: 'nowrap', gap: 0 },
     fanOverlap: { marginLeft: -(m.card.compactWidth * 0.62) },
+    // A back in a neighbour's hand being drawn from: lifted when pointed at,
+    // the way a card is half-drawn out of a fan before it is taken.
+    pickBack: { transitionDuration: '120ms' } as object,
+    pickBackLifted: { transform: [{ translateY: -8 }] },
     // A wide table spread takes the whole width of the row it sits in...
     widePanel: { flexBasis: '100%', flexGrow: 1, flexShrink: 1, minWidth: 0 },
     // A spread of melds filling what its row leaves over — see `stretchesInRow`.

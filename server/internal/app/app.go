@@ -22,6 +22,7 @@ import (
 	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/blackpeter"
 	"zolik/server/internal/botsettings"
 	"zolik/server/internal/botstats"
 	"zolik/server/internal/buildinfo"
@@ -732,7 +733,7 @@ func (a *App) matchManager() *match.Manager {
 func (a *App) hostedModules() []module.GameModule {
 	all := []module.GameModule{
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(),
-		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(),
+		rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(), blackpeter.New(),
 	}
 	if a.outbox() == nil {
 		return all

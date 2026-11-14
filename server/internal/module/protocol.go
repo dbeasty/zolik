@@ -459,6 +459,20 @@ type Placement struct {
 // placement hint generically, the same way it renders a declared ParamSpec.
 const PositionParam = "position"
 
+// PickParam is which face-down card an offer takes out of another player's
+// hand: its position, from 0, in the order the hand's backs are drawn.
+//
+// Black Peter added it. Every source before it was a pile — the deck, the
+// discard pile — where there is nothing to choose: you take the top. Taking a
+// card from a neighbour's fanned hand is a choice made with a finger, among
+// cards nobody can see, and that is the whole of the game. An offer whose
+// Source names another player's hand (FromHand, OwnerID set to someone else)
+// takes it optionally: a client that lets the player point at one back sends
+// its position, and one that only has a button sends nothing and the module
+// picks for it. With every card face down the two are the same draw, so the
+// button loses nothing but the gesture.
+const PickParam = "pick"
+
 // PickOrderParam marks an action whose Cards are listed in the order the
 // player picked them, rather than the order they sit in hand. A client that
 // keeps that order sends it as "1"; a module whose melds can be laid more than

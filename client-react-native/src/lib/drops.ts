@@ -457,6 +457,14 @@ export function companyFor(offers: ActionOffer[], card: string): string[] {
  * is the same move the other way round. Either way the pile a player points
  * at is the stack, which is where the press is offered.
  *
+ * A pile or a stack, or one more thing a person points at and means "that
+ * one": another player's hand, held out face down. Black Peter is played by
+ * taking a card from the neighbour's fan, and an offer that names that hand as
+ * its source and the viewer's own as its target is the same draw as one from
+ * the deck — only the place it comes from is a person. The hand is then drawn
+ * as a fan of backs (see `ZoneView`), each one pressable, and which back was
+ * pressed travels as `PICK_PARAM`.
+ *
  * Where two such offers name the same pile, neither is offered: a press has
  * exactly one meaning, and guessing which of two moves was meant is the
  * mistake this whole protocol exists to avoid. The control bar still lists
@@ -476,7 +484,9 @@ export function sourceSpotsFor(offers: ActionOffer[], zones: Zone[], viewerId: s
 
     const fromId = offer.source?.zoneId;
     const from = fromId ? byId.get(fromId) : undefined;
-    if (!from || (from.kind !== 'pile' && from.kind !== 'stack')) continue;
+    if (!from) continue;
+    const othersHand = isOthersHand(from, viewerId);
+    if (from.kind !== 'pile' && from.kind !== 'stack' && !othersHand) continue;
 
     const to = offer.target?.zoneId ? byId.get(offer.target.zoneId) : undefined;
     if (!to) continue;
@@ -495,4 +505,9 @@ export function sourceSpotsFor(offers: ActionOffer[], zones: Zone[], viewerId: s
   }
 
   return [...claims.values()].filter((s) => s.length === 1).map((s) => s[0]!);
+}
+
+/** A hand that belongs to somebody other than the viewer. */
+export function isOthersHand(zone: Zone, viewerId: string): boolean {
+  return zone.kind === 'hand' && !!zone.ownerId && zone.ownerId !== viewerId;
 }

@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/blackpeter"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
@@ -125,6 +126,8 @@ func replayables() []replayable {
 		{"pinochle/doubledeck", pinochle.New(), refs("p1", "p2", "p3", "p4"),
 			module.MatchConfig{Variation: pinochle.VarDoubleDeck},
 			[]string{"continue", "pass", "name_trump", "play_card"}, nil},
+		{"blackpeter", blackpeter.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
+			[]string{"continue", "draw"}, nil},
 	}
 }
 
@@ -206,7 +209,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 func replayManager() *Manager {
 	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(),
+		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(), blackpeter.New(),
 	)}
 }
 

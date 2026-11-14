@@ -17,6 +17,7 @@ export const DEFAULT_POPULARITY_ORDER: readonly string[] = [
   'canasta',
   'pinochle',
   'rummytiles',
+  'blackpeter',
   'prsi',
   'marias',
   'lora',

@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/blackpeter"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ferbl"
 	"zolik/server/internal/ginrummy"
@@ -40,10 +41,10 @@ import (
 
 func main() {
 	keys, err := module.CollectKeys(
-		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New()),
+		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New(), klondike.New(), lastcard.New(), snaps.New(), sedma.New(), okobere.New(), ferbl.New(), lora.New(), sietemedio.New(), pinochle.New(), blackpeter.New()),
 		"internal/admission", "internal/rules", "internal/prsi", "internal/canasta", "internal/holdem",
 		"internal/zolikmod", "internal/match", "internal/module", "internal/lobby", "internal/ginrummy",
-		"internal/rummytiles", "internal/blackjack", "internal/klondike", "internal/notify", "internal/marias", "internal/lastcard", "internal/snaps", "internal/sedma", "internal/okobere", "internal/ferbl", "internal/lora", "internal/sietemedio", "internal/pinochle",
+		"internal/rummytiles", "internal/blackjack", "internal/klondike", "internal/notify", "internal/marias", "internal/lastcard", "internal/snaps", "internal/sedma", "internal/okobere", "internal/ferbl", "internal/lora", "internal/sietemedio", "internal/pinochle", "internal/blackpeter",
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "dump-keys:", err)
