@@ -87,7 +87,7 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 	newDevice := guestID == ""
 	if newDevice {
 		var err error
-		if guestID, err = NewRandomToken(16); err != nil {
+		if guestID, err = NewGuestID(); err != nil {
 			return SessionTokens{}, err
 		}
 	}
@@ -133,7 +133,7 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 	// and it says so with its own key. A node with no key issues none, and
 	// the guest is exactly as well off as they were before receipts existed.
 	receipt, err := CreateSeatReceipt(guestID)
-	if err != nil && !errors.Is(err, ErrNoNodeKey) {
+	if err != nil && !errors.Is(err, ErrNoNodeKey) && !errors.Is(err, ErrNotThisNodesGuest) {
 		log.Printf("auth: seat receipt for %s: %v", guestID, err)
 	}
 	return SessionTokens{

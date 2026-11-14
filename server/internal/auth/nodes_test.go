@@ -255,7 +255,7 @@ func mustPublicKey(t *testing.T, encoded string) ed25519.PublicKey {
 func TestVerifySeatReceiptFromNode(t *testing.T) {
 	resetKeys(t)
 	pub := newNodeKey(t)
-	guestID, err := NewRandomToken(16)
+	guestID, err := NewGuestID()
 	if err != nil {
 		t.Fatal(err)
 	}

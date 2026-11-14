@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/identity"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
+	"zolik/server/internal/ratelimit"
 )
 
 // Token lifetimes. A guest's access token is long-lived because a guest has no
@@ -111,7 +112,24 @@ type Handlers struct {
 
 	// metrics counts first-time guests. Never nil after NewHandlers.
 	metrics metrics.Sink
+
+	// verifyByEmail and verifyByIP throttle /auth/email/verify. The code's
+	// own attempt count is what actually burns a code; these stop a caller
+	// from requesting fresh codes and guessing at each of them as fast as
+	// the mailer allows, and from spraying guesses across many addresses.
+	verifyByEmail *ratelimit.Limiter
+	verifyByIP    *ratelimit.Limiter
 }
+
+const (
+	// emailVerifyWindow and the two ceilings below bound guesses at sign-in
+	// codes. Per address: enough for every code the address may be sent in a
+	// window to be typed with a slip or two, and no more. Per client: room
+	// for a household or office behind one address.
+	emailVerifyWindow     = 15 * time.Minute
+	emailVerifyPerAddress = 20
+	emailVerifyPerClient  = 60
+)
 
 // SetOfflineKeys gives an embedded host the cloud keys it verifies offline
 // passes with. It is a setter rather than another field on Deps because the
@@ -178,6 +196,8 @@ func NewHandlers(d Deps) *Handlers {
 		allowedReturnURLs: d.AllowedReturnURLs,
 		testEndpoints:     d.TestEndpointsEnabled,
 		devMailer:         devMailer,
+		verifyByEmail:     ratelimit.New(emailVerifyWindow, emailVerifyPerAddress),
+		verifyByIP:        ratelimit.New(emailVerifyWindow, emailVerifyPerClient),
 		metrics:           metrics.Nop(),
 	}
 }
@@ -504,6 +524,18 @@ func (h *Handlers) emailVerify(w http.ResponseWriter, req *http.Request) {
 	var body emailVerifyReq
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	// Throttled before anything is looked up. The refusal is the same
+	// CODE_INVALID a wrong guess gets, so it says nothing about whether the
+	// address has a code outstanding; only the status tells a client to slow
+	// down. The per-client ceiling is off where the test endpoints are on,
+	// because an end-to-end suite signs everybody in from one address.
+	now := time.Now()
+	email := NormalizeEmail(body.Email)
+	if !h.verifyByEmail.Allow(email, now) ||
+		(!h.testEndpoints && !h.verifyByIP.Allow(ratelimit.ClientIP(req), now)) {
+		writeAuthError(w, http.StatusTooManyRequests, "CODE_INVALID", ErrInvalidCode.Error())
 		return
 	}
 	claims, err := h.email.VerifyCode(req.Context(), body.Email, body.Code)

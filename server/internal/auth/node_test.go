@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -30,7 +31,7 @@ func TestSeatReceiptRoundTrip(t *testing.T) {
 	resetKeys(t)
 	pub := newNodeKey(t)
 
-	guestID, err := NewRandomToken(16)
+	guestID, err := NewGuestID()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +66,7 @@ func TestSeatReceiptRoundTrip(t *testing.T) {
 func TestSeatReceiptFailsClosed(t *testing.T) {
 	resetKeys(t)
 	pub := newNodeKey(t)
-	guestID, err := NewRandomToken(16)
+	guestID, err := NewGuestID()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +124,7 @@ func TestSeatReceiptFailsClosed(t *testing.T) {
 
 func TestSeatReceiptNeedsANodeKey(t *testing.T) {
 	resetKeys(t)
-	guestID, err := NewRandomToken(16)
+	guestID, err := NewGuestID()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,5 +204,57 @@ func TestConfigureNodeKeyWithoutOneIsNotAnError(t *testing.T) {
 	}
 	if NodeID() != "" {
 		t.Fatal("a node id appeared from nowhere")
+	}
+}
+
+// A node vouches for the guests it minted and nobody else. Any account can
+// enrol a node with a key of its own, so a receipt that could name any guest
+// id would let it claim a guest it had only seen across a table.
+func TestSeatReceiptOnlyVouchesForTheNodesOwnGuests(t *testing.T) {
+	resetKeys(t)
+	pub := newNodeKey(t)
+
+	mine, err := NewGuestID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !guestMintedBy(mine, pub) {
+		t.Fatalf("a guest this node minted (%s) is not in its namespace", mine)
+	}
+	other, err := NewGuestID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if other == mine {
+		t.Fatal("two guests minted by one node share an id")
+	}
+
+	// A guest the cloud minted, or another node did.
+	foreign, err := NewRandomToken(16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CreateSeatReceipt(foreign); !errors.Is(err, ErrNotThisNodesGuest) {
+		t.Fatalf("a receipt for another's guest: %v, want ErrNotThisNodesGuest", err)
+	}
+
+	// Signed by hand, the way a node somebody wrote themselves would.
+	nodeIdentity.RLock()
+	priv := nodeIdentity.priv
+	nodeIdentity.RUnlock()
+	forged, err := signEdDSA(&signingKey{kid: KeyIDFor(pub), priv: priv}, SeatReceiptClaims{
+		GuestID: foreign,
+		NodeID:  NodeIDFor(pub),
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:  foreign,
+			Audience: jwt.ClaimStrings{AudienceSeat},
+			IssuedAt: jwt.NewNumericDate(time.Now()),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := VerifySeatReceipt(forged, pub); err == nil {
+		t.Fatal("a node's receipt for a guest it never minted was accepted")
 	}
 }

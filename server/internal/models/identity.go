@@ -69,7 +69,8 @@ type LoginCode struct {
 	Email string `bson:"email"`
 	// CodeHash is a bcrypt hash of the code.
 	CodeHash string `bson:"codeHash"`
-	// Attempts counts wrong guesses; the code dies after MaxCodeAttempts.
+	// Attempts counts guesses, each taken before it is compared; the code
+	// dies after maxCodeAttempts.
 	Attempts int `bson:"attempts"`
 	// ConsumedAt marks a code that has been redeemed. Redeemed codes are kept
 	// until they expire rather than deleted, so a replayed request gets a

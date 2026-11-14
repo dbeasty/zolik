@@ -145,15 +145,22 @@ func (e *EmailAuth) VerifyCode(ctx context.Context, email, code string) (identit
 		return identity.Claims{}, ErrInvalidCode
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(rec.CodeHash), []byte(code)); err != nil {
-		// Count the miss before answering, so a burst of parallel guesses is
-		// still counted even though each one is told the same thing.
-		_ = e.store.RecordCodeAttempt(ctx, rec.ID)
+	// The guess is paid for before it is compared, atomically. Checking the
+	// count on the snapshot above and incrementing after the compare let a
+	// burst of parallel guesses all read the same count and all be compared:
+	// sixty at once got sixty tries at a code meant to allow five. The store
+	// only takes the attempt while guesses remain, so at most maxCodeAttempts
+	// comparisons ever happen per code, however the requests interleave.
+	if err := e.store.TakeCodeAttempt(ctx, rec.ID, maxCodeAttempts); err != nil {
 		return identity.Claims{}, ErrInvalidCode
 	}
-	// Consuming is conditional on the code still being unspent, so two
-	// simultaneous correct submissions produce one sign-in, not two.
-	if err := e.store.ConsumeLoginCode(ctx, rec.ID); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(rec.CodeHash), []byte(code)); err != nil {
+		return identity.Claims{}, ErrInvalidCode
+	}
+	// Consuming is conditional on the code still being unspent and not
+	// burned, so two simultaneous correct submissions produce one sign-in,
+	// not two.
+	if err := e.store.ConsumeLoginCode(ctx, rec.ID, maxCodeAttempts); err != nil {
 		return identity.Claims{}, ErrInvalidCode
 	}
 
