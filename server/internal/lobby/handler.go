@@ -113,6 +113,10 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Hijacked out of net/http at the upgrade, so nothing upstream closes it:
+	// a read loop that ends on a deadline or an oversized frame must.
+	defer conn.Close()
+	conn.SetReadLimit(ws.MaxIdleMessageBytes)
 	conn.SetReadDeadline(time.Now().Add(pongWait))
 	conn.SetPongHandler(func(string) error {
 		conn.SetReadDeadline(time.Now().Add(pongWait))
