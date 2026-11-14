@@ -149,15 +149,55 @@ final class NearbyService {
     return nil
   }
 
-  private func connectBlocking(_ peripheral: String, _ instance: String) -> String? {
-    let done = DispatchSemaphore(value: 0)
-    var out: (String, Data)?
-    radioConnect(peripheral) { result in
-      if case .success(let v) = result { out = v }
-      done.signal()
+  // How long the core's goroutines wait on the radio before giving up. The
+  // radio answers every call itself (NearbyBle bounds its connect and info
+  // read at 10 s each, and fails queued writes when a link drops), so these
+  // only fire if that ever breaks; without them one lost callback held Go's
+  // tunnel locks for good and froze the table.
+  private static let connectWait: TimeInterval = 30
+  private static func sendWait(_ bytes: Int) -> TimeInterval {
+    // Writes with response move a few KiB a second; allow for big messages.
+    30 + TimeInterval(bytes) / 4096
+  }
+
+  /// The answer a blocked caller waits for, safe to fill from the radio's
+  /// queue at any time, including after the caller stopped waiting.
+  private final class Answer<T> {
+    private let lock = NSLock()
+    private var value: T?
+    private var abandoned = false
+    private let ready = DispatchSemaphore(value: 0)
+
+    /// Gives the answer; false when the caller has already given up on it
+    /// (or a first answer was already given).
+    @discardableResult func give(_ v: T) -> Bool {
+      lock.lock()
+      let taken = value == nil && !abandoned
+      if taken { value = v }
+      lock.unlock()
+      if taken { ready.signal() }
+      return taken
     }
-    done.wait()
-    guard let (link, info) = out else { return nil }
+
+    /// The answer, or nil after `seconds`; once nil, a later answer is refused.
+    func wait(_ seconds: TimeInterval) -> T? {
+      _ = ready.wait(timeout: .now() + seconds)
+      lock.lock()
+      defer { lock.unlock() }
+      if value == nil { abandoned = true }
+      return value
+    }
+  }
+
+  private func connectBlocking(_ peripheral: String, _ instance: String) -> String? {
+    let answer = Answer<Result<(String, Data), Error>>()
+    radioConnect(peripheral) { [weak self] result in
+      // A link that opens after the wait gave up belongs to nobody: hang up.
+      if !answer.give(result), case .success(let (link, _)) = result {
+        self?.radioDisconnect(link)
+      }
+    }
+    guard case .success(let (link, info))? = answer.wait(Self.connectWait) else { return nil }
     let id = ((try? JSONSerialization.jsonObject(with: info)) as? [String: Any])?["id"] as? String
     guard id == instance else {
       radioDisconnect(link)
@@ -168,13 +208,15 @@ final class NearbyService {
   }
 
   fileprivate func radioSend(_ linkId: String, _ msg: Data) -> Error? {
-    let done = DispatchSemaphore(value: 0)
-    var failure: Error?
-    radioWrite(linkId, msg) { error in
-      failure = error
-      done.signal()
+    let answer = Answer<Error?>()
+    radioWrite(linkId, msg) { error in answer.give(error) }
+    guard let failure = answer.wait(Self.sendWait(msg.count)) else {
+      // The write may still be in the air, half a message on the link: the
+      // link is no good now. Hanging up fails the write, and the core hears
+      // the link closed and reconnects.
+      radioDisconnect(linkId)
+      return Failure("the table did not take the message")
     }
-    done.wait()
     return failure
   }
 

@@ -318,3 +318,141 @@ func (t *guestTunnel) CheckCodeForTest() string {
 	defer t.mu.Unlock()
 	return t.check
 }
+
+// stallingRadio is a radio whose native side can lose its callbacks: a send
+// or a connect that never returns, or a send that fails without the link
+// ever being reported closed. That is what NearbyBle did when a peripheral
+// dropped mid-write, and the tunnel held its locks across the wait for good.
+type stallingRadio struct {
+	*fakeRadio
+	mu          sync.Mutex
+	stallSend   bool
+	failSend    bool
+	stallDial   bool
+	release     chan struct{}
+	disconnects []string
+}
+
+func (r *stallingRadio) Send(linkID string, msg []byte) error {
+	r.mu.Lock()
+	stall, fail := r.stallSend, r.failSend
+	r.failSend = false
+	r.mu.Unlock()
+	if stall {
+		<-r.release
+		return errors.New("released")
+	}
+	if fail {
+		return errors.New("the write failed")
+	}
+	return r.fakeRadio.Send(linkID, msg)
+}
+
+func (r *stallingRadio) Connect(instanceID string) (string, error) {
+	r.mu.Lock()
+	stall := r.stallDial
+	r.mu.Unlock()
+	if stall {
+		<-r.release
+	}
+	return r.fakeRadio.Connect(instanceID)
+}
+
+func (r *stallingRadio) Disconnect(linkID string) {
+	r.mu.Lock()
+	r.disconnects = append(r.disconnects, linkID)
+	r.mu.Unlock()
+	r.fakeRadio.Disconnect(linkID)
+}
+
+func (r *stallingRadio) set(f func()) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	f()
+}
+
+// A radio that stops answering does not freeze the table: the request fails
+// in bounded time, the locks are let go, and the next request redials.
+func TestAGuestTunnelRecoversFromARadioThatStopsAnswering(t *testing.T) {
+	oldDial, oldSend := linkDialTimeout, linkSendTimeout
+	linkDialTimeout, linkSendTimeout = 300*time.Millisecond, 300*time.Millisecond
+	t.Cleanup(func() { linkDialTimeout, linkSendTimeout = oldDial, oldSend })
+
+	h := startHost(t, t.TempDir())
+	radio := &stallingRadio{fakeRadio: &fakeRadio{h: h, links: map[string]*Tunnel{}}, release: make(chan struct{})}
+	t.Cleanup(func() { close(radio.release) })
+
+	g, err := JoinBle(radio, h.InstanceID(), radio.open(), "")
+	if err != nil {
+		t.Fatalf("JoinBle: %v", err)
+	}
+	t.Cleanup(LeaveGuestTables)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	post := func() (int, error) {
+		res, err := client.Post(g.BaseURL()+"/auth/guest", "application/json", strings.NewReader(`{"guestName":"Bea"}`))
+		if err != nil {
+			return 0, err
+		}
+		res.Body.Close()
+		return res.StatusCode, nil
+	}
+	opened := func() int {
+		radio.fakeRadio.mu.Lock()
+		defer radio.fakeRadio.mu.Unlock()
+		return radio.fakeRadio.opened
+	}
+	if code, err := post(); err != nil || code != 200 {
+		t.Fatalf("first request: %d %v", code, err)
+	}
+
+	// A send that never returns, and no close: the request fails instead of
+	// hanging, and so does one queued behind it on the send lock.
+	radio.set(func() { radio.stallSend = true })
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if code, err := post(); err != nil || code == 200 {
+				t.Errorf("request over a stalled send: %d %v (want a bounded failure)", code, err)
+			}
+		}()
+	}
+	wg.Wait()
+	radio.set(func() { radio.stallSend = false })
+	before := opened()
+	if code, err := post(); err != nil || code != 200 {
+		t.Fatalf("request after the stall: %d %v", code, err)
+	}
+	if opened() != before+1 {
+		t.Errorf("links opened %d → %d: want a redial after the stall", before, opened())
+	}
+
+	// A send that fails without the link being reported closed: the session
+	// is retired and the next request redials rather than reuse it.
+	radio.set(func() { radio.failSend = true })
+	if code, err := post(); err != nil || code == 200 {
+		t.Fatalf("request over a failing send: %d %v", code, err)
+	}
+	before = opened()
+	if code, err := post(); err != nil || code != 200 {
+		t.Fatalf("request after the failed send: %d %v", code, err)
+	}
+	if opened() != before+1 {
+		t.Errorf("links opened %d → %d: want a redial after the failed send", before, opened())
+	}
+
+	// A connect that never returns: the dial gives up and lets the next
+	// request try again.
+	radio.set(func() { radio.failSend = true })
+	_, _ = post() // drops the live link, so the next request dials
+	radio.set(func() { radio.stallDial = true })
+	if code, err := post(); err != nil || code == 200 {
+		t.Fatalf("request over a stalled connect: %d %v", code, err)
+	}
+	radio.set(func() { radio.stallDial = false })
+	if code, err := post(); err != nil || code != 200 {
+		t.Fatalf("request after the stalled connect: %d %v", code, err)
+	}
+}

@@ -138,7 +138,7 @@ func (t *guestTunnel) ensure() (*guestSession, error) {
 	if err != nil {
 		return nil, err
 	}
-	link, err := t.dial(
+	link, err := t.dialWithin(
 		func(msg []byte) { t.receive(sess, msg) },
 		func(code int) { t.dropped(sess, code) },
 	)
@@ -146,7 +146,7 @@ func (t *guestTunnel) ensure() (*guestSession, error) {
 		return nil, err
 	}
 	sess.link = link
-	if err := link.send(helloMsg); err != nil {
+	if err := sendWithin(link, helloMsg); err != nil {
 		link.close()
 		return nil, err
 	}
@@ -199,6 +199,70 @@ func (t *guestTunnel) ensure() (*guestSession, error) {
 	t.away = ""
 	t.mu.Unlock()
 	return sess, nil
+}
+
+// How long the tunnel waits on a link's platform calls. A radio's dial and
+// send block on native callbacks (NearbyService.connectBlocking and
+// radioSend on the Mac), and both are held under a lock here: ensureMu across
+// the dial, sendMu across the send. One callback that never came used to hold
+// that lock for good, and every later request and reconnect on the table
+// waited behind it. The native side bounds its own waits; these are the
+// backstop, longer than any of those, so they only fire if one breaks.
+var (
+	linkDialTimeout = 2 * time.Minute
+	linkSendTimeout = 90 * time.Second
+)
+
+// linkSendWait allows for big messages: a radio moves a few KiB a second.
+func linkSendWait(n int) time.Duration {
+	return linkSendTimeout + time.Duration(n/1024)*time.Second
+}
+
+// dialWithin dials, giving up after linkDialTimeout. A link that opens after
+// that is closed: nothing holds it.
+func (t *guestTunnel) dialWithin(onMessage func([]byte), onClose func(code int)) (guestLink, error) {
+	type dialed struct {
+		link guestLink
+		err  error
+	}
+	out := make(chan dialed, 1)
+	abandon := make(chan struct{})
+	go func() {
+		link, err := t.dial(onMessage, onClose)
+		select {
+		case out <- dialed{link, err}:
+		case <-abandon:
+			if link != nil {
+				link.close()
+			}
+		}
+	}()
+	select {
+	case d := <-out:
+		return d.link, d.err
+	case <-time.After(linkDialTimeout):
+		close(abandon)
+		// The dial may have finished in the same instant.
+		select {
+		case d := <-out:
+			return d.link, d.err
+		default:
+		}
+		return nil, errors.New("could not reach the table: the radio did not answer")
+	}
+}
+
+// sendWithin sends, giving up after linkSendWait. The send goroutine is left
+// to finish on its own; the caller closes the link, which ends it.
+func sendWithin(link guestLink, msg []byte) error {
+	done := make(chan error, 1)
+	go func() { done <- link.send(msg) }()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(linkSendWait(len(msg))):
+		return errors.New("the link to the table stopped taking messages")
+	}
 }
 
 // receive takes one message from the host's link.
@@ -348,16 +412,35 @@ func (t *guestTunnel) post(v tunnelMsg) error {
 	// needs t.mu. Held across the send, one message arriving mid-write stopped
 	// the link for good, and the next status check froze the whole Mac app.
 	t.sendMu.Lock()
-	defer t.sendMu.Unlock()
 	t.mu.Lock()
 	if t.live != sess {
 		t.mu.Unlock()
+		t.sendMu.Unlock()
 		return errors.New("the link to the table dropped")
 	}
 	t.mu.Unlock()
 	sealed := sess.g2h.Seal([]byte{msgSealed}, nonce(sess.sendCount), plain, []byte{msgSealed})
 	sess.sendCount++
-	return sess.link.send(sealed)
+	err = sendWithin(sess.link, sealed)
+	t.sendMu.Unlock()
+	if err != nil {
+		// The counter has moved past a message the host may never have had
+		// whole, so this session cannot carry another. Retire it now, not
+		// when the link's close arrives, so the next request redials.
+		t.retire(sess)
+		sess.link.close()
+	}
+	return err
+}
+
+// retire stops a session being the live one, so ensure() shakes hands again.
+// What waits on it is failed by dropped(), when its link's close arrives.
+func (t *guestTunnel) retire(sess *guestSession) {
+	t.mu.Lock()
+	if t.live == sess {
+		t.live = nil
+	}
+	t.mu.Unlock()
 }
 
 func (t *guestTunnel) newID() int64 {
