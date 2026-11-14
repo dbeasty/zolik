@@ -128,6 +128,9 @@ the header (naming the server's too, only when it differs — see
 
 ## Documents
 
+- [`docs/architecture/`](docs/architecture/README.md) and
+  [`docs/developer/`](docs/developer/README.md) — the current architecture
+  and the developer guide (start here)
 - [`docs/architecture.md`](docs/architecture.md) — the original review, and
   what had to change
 - [`docs/extensibility-plan.md`](docs/extensibility-plan.md) — phases 0–4: the

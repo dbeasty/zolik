@@ -1,5 +1,7 @@
 # Zolik Engine Blueprint
 
+> Historical review. For the system as it is now, see [`architecture/`](architecture/README.md).
+
 Architecture review and forward plan for the Žolíky server, its rules core, its AI, and its
 clients — and what has to change for the same engine to run a different card game behind a
 different UI.
