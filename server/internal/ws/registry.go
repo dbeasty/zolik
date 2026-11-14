@@ -125,13 +125,19 @@ func (r *ConnRegistry) Has(gameID, playerID string) bool {
 	return r.conns[gameID][playerID] != nil
 }
 
+// WriteJSON sends payload to playerID's connection in gameID, if there is one.
+//
+// The connection is looked up under the registry lock and written to after
+// releasing it. The write is a socket write: to a dead peer whose TCP buffer
+// is full it blocks until the write deadline. Done under r.mu, that one stuck
+// socket held a read lock, the next Add or RemoveIfCurrent queued for the
+// write lock behind it, and every later RLock queued behind *that* — so one
+// dead phone froze every broadcast to every table on the instance. Writes to
+// one connection stay serialized by its syncConn, which is all gorilla needs.
 func (r *ConnRegistry) WriteJSON(gameID, playerID string, payload interface{}) bool {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if r.conns[gameID] == nil {
-		return false
-	}
 	conn := r.conns[gameID][playerID]
+	r.mu.RUnlock()
 	if conn == nil {
 		return false
 	}
@@ -161,6 +167,43 @@ func (r *ConnRegistry) ForGame(gameID string) map[string]WSConn {
 // get the control-frame deadline wrong.
 type PingableConn struct {
 	*websocket.Conn
+}
+
+// Limits shared by every socket a client opens to the game server.
+const (
+	// MaxActionMessageBytes bounds one inbound frame on a socket that carries
+	// player actions (the match socket). The largest legitimate message is a
+	// module.Action: a verb, an offer id, a few params and at most a whole
+	// hand of card ids — well under 4 KiB even for a two-deck rummy hand.
+	// Without a limit gorilla reads a frame of any size into memory, so one
+	// guest could exhaust the process with a single multi-gigabyte frame.
+	MaxActionMessageBytes = 64 << 10
+
+	// MaxIdleMessageBytes bounds one inbound frame on a socket the client
+	// only listens on (the waiting room, notifications). Nothing a client
+	// sends there means anything; the read loop exists to notice a dead peer.
+	MaxIdleMessageBytes = 4 << 10
+
+	// WriteWait bounds one write to a client. A dead peer's full TCP buffer
+	// otherwise blocks a write for as long as the kernel keeps retrying —
+	// many minutes — holding that connection's write lock all the while.
+	WriteWait = 10 * time.Second
+)
+
+// writeWait is WriteWait, as a variable only so a test can shorten it.
+var writeWait = WriteWait
+
+// WriteJSON writes v with a deadline. A write that times out leaves a gorilla
+// connection unusable for writing, so it is closed as well: the read loop
+// then fails and the handler's own cleanup removes it from the registry,
+// rather than leaving a seat that looks connected but can hear nothing.
+func (c PingableConn) WriteJSON(v interface{}) error {
+	_ = c.SetWriteDeadline(time.Now().Add(writeWait))
+	err := c.Conn.WriteJSON(v)
+	if err != nil {
+		_ = c.Conn.Close()
+	}
+	return err
 }
 
 func (c PingableConn) Ping() error {

@@ -1422,6 +1422,15 @@ func (h *Handlers) deleteMatch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": id, "status": "deleted"})
 }
 
+// Keepalive for the match socket: the same intervals as the waiting room and
+// the notification socket. Without them a peer that vanished without a FIN —
+// a phone that lost signal — held its seat as "connected" until the kernel
+// gave up on the TCP connection, many minutes later.
+const (
+	wsPingInterval = 25 * time.Second
+	wsPongWait     = 60 * time.Second
+)
+
 // handleWS carries actions in and per-viewer state out.
 //
 // Compare game.handleWS: no phases, no undo verbs, no rules error taxonomy —
@@ -1443,6 +1452,8 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			return
 		}
+		conn.SetReadLimit(ws.MaxActionMessageBytes)
+		_ = conn.SetWriteDeadline(time.Now().Add(ws.WriteWait))
 		_ = conn.WriteJSON(map[string]any{
 			"type": "error", "code": "MATCH_NOT_FOUND", "message": matchID,
 		})
@@ -1486,7 +1497,19 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "upgrade failed", http.StatusBadRequest)
 		return
 	}
+	// Hijacked out of net/http at the upgrade, so nothing upstream closes it:
+	// a read loop that ends on a missed pong or an oversized frame must.
+	defer conn.Close()
+	// Bounded reads, and the same keepalive as the waiting room: a peer that
+	// stops answering pings is noticed by a failed read within wsPongWait,
+	// and the deferred cleanup below takes its seat out of the registry.
+	conn.SetReadLimit(ws.MaxActionMessageBytes)
+	_ = conn.SetReadDeadline(time.Now().Add(wsPongWait))
+	conn.SetPongHandler(func(string) error {
+		return conn.SetReadDeadline(time.Now().Add(wsPongWait))
+	})
 	if handedAway {
+		_ = conn.SetWriteDeadline(time.Now().Add(ws.WriteWait))
 		_ = conn.WriteJSON(map[string]any{"type": "error", "code": module.CodeOf(errSeatHandedOver)})
 		_ = conn.Close()
 		return
@@ -1596,6 +1619,23 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	if m.Status == string(rules.StatusActive) {
 		h.manager.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
 	}
+
+	pingDone := make(chan struct{})
+	defer close(pingDone)
+	go func() {
+		ticker := time.NewTicker(wsPingInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := wsConn.Ping(); err != nil {
+					return
+				}
+			case <-pingDone:
+				return
+			}
+		}
+	}()
 
 	for {
 		_, data, err := conn.ReadMessage()
