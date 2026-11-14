@@ -39,43 +39,63 @@ export function useLobbySocket(
   const [status, setStatus] = useState<LobbyConnectionStatus>('connecting');
   const [attempts, setAttempts] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
-  const closingRef = useRef(false);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectRef = useRef<() => void>(() => {});
   const onInvitedRef = useRef(onInvited);
   onInvitedRef.current = onInvited;
 
   useEffect(() => {
     if (!enabled) return undefined;
-    closingRef.current = false;
+    // Whether *this* run of the effect has been torn down, and this run's own
+    // pending reconnect. Both are plain locals rather than refs shared with
+    // the next run, mirroring useMatchSocket/useUserSocket. A shared ref could
+    // not tell the previous run's socket that its chain was over: cleanup set
+    // it true, the next run (a moduleId change, or Stop then Make available)
+    // set it straight back to false, and the old socket's onclose — which
+    // lands after both — read false, probed capacity and reopened a socket for
+    // the OLD module. The server keeps only a player's newest lobby
+    // connection, so the two chains then displaced each other forever.
+    let closing = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     let attemptCount = 0;
 
+    function clearTimer() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    }
+
     function scheduleReconnect(busy = false) {
+      if (closing) return;
+      clearTimer();
       attemptCount += 1;
       setAttempts(attemptCount);
       setStatus(busy ? 'busy' : 'reconnecting');
       const delay = busy
         ? busyBackoff(attemptCount - 1)
         : jitteredBackoff(attemptCount - 1, initialRetryDelayMs, maxRetryDelayMs);
-      reconnectTimerRef.current = setTimeout(connect, delay);
+      timer = setTimeout(connect, delay);
     }
 
     function connect() {
-      if (closingRef.current) return;
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
+      if (closing) return;
+      clearTimer();
       const ws = new WebSocket(apiClient.lobbyWsUrl(moduleId));
       wsRef.current = ws;
+      // Events from a socket this run has since replaced (retryNow) or torn
+      // down are ignored, so only the current socket can drive state or
+      // schedule a reconnect.
+      const current = () => !closing && wsRef.current === ws;
 
       ws.onopen = () => {
+        if (!current()) return;
         attemptCount = 0;
         setAttempts(0);
         setStatus('open');
       };
 
       ws.onmessage = (event) => {
+        if (!current()) return;
         let msg: LobbyWSMessage;
         try {
           msg = JSON.parse(String(event.data));
@@ -91,22 +111,23 @@ export function useLobbySocket(
       };
 
       ws.onclose = () => {
-        if (closingRef.current) return;
+        if (!current()) return;
         // The list is deliberately left as-is rather than cleared: it was
         // true a moment ago and is more useful than a blank screen while a
         // reconnect is in flight, which is usually seconds.
         void (async () => {
-          if (closingRef.current) return;
+          let busy = false;
           try {
             const cap = await apiClient.getCapacity();
-            if (!cap.waitingRoomOpen) {
-              scheduleReconnect(true);
-              return;
-            }
+            busy = !cap.waitingRoomOpen;
           } catch {
             /* probe failed — ordinary reconnect */
           }
-          scheduleReconnect(false);
+          // Re-checked after the probe: a teardown or a retryNow may have
+          // happened while it was in flight, and either already owns the
+          // next socket.
+          if (!current()) return;
+          scheduleReconnect(busy);
         })();
       };
 
@@ -117,18 +138,26 @@ export function useLobbySocket(
     }
 
     connectRef.current = () => {
+      if (closing) return;
       attemptCount = 0;
       setAttempts(0);
       setStatus('connecting');
+      // Close the socket being replaced first, so a retry never leaves two
+      // live connections (the server would displace one with the other).
+      // Clearing the ref before close() makes its handlers stale.
+      const old = wsRef.current;
+      wsRef.current = null;
+      old?.close();
       connect();
     };
 
     connect();
     return () => {
-      closingRef.current = true;
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      wsRef.current?.close();
+      closing = true;
+      clearTimer();
+      const ws = wsRef.current;
       wsRef.current = null;
+      ws?.close();
     };
   }, [enabled, moduleId]);
 

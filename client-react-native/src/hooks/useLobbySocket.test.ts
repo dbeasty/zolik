@@ -20,7 +20,7 @@ const mockGetCapacity = jest.fn(async () => ({
 
 jest.mock('@/src/api/client', () => ({
   apiClient: {
-    lobbyWsUrl: () => 'ws://lobby?token=t',
+    lobbyWsUrl: (moduleId?: string) => `ws://lobby?token=t${moduleId ? `&module=${moduleId}` : ''}`,
     get getCapacity() {
       return mockGetCapacity;
     },
@@ -52,7 +52,15 @@ class FakeWebSocket {
 
   close() {
     this.closedByClient = true;
+    // A real browser delivers onclose as a later task, never synchronously
+    // inside close() — by which time the effect's next run has already
+    // committed. Tests that opt in see exactly that ordering.
+    if (FakeWebSocket.asyncCloseOnClientClose) {
+      setTimeout(() => this.fireClose(), 0);
+    }
   }
+
+  static asyncCloseOnClientClose = false;
 
   send() {}
 
@@ -92,6 +100,18 @@ function ProbeComponent({ on, probe }: { on: boolean; probe: Probe }) {
   probe.attempts = attempts;
   probe.retryNow = retryNow;
   return null;
+}
+
+function ModuleProbe({ on, moduleId, probe }: { on: boolean; moduleId: string; probe: Probe }) {
+  const { status, attempts, retryNow } = useLobbySocket(on, () => {}, moduleId);
+  probe.status = status;
+  probe.attempts = attempts;
+  probe.retryNow = retryNow;
+  return null;
+}
+
+function liveSockets() {
+  return FakeWebSocket.instances.filter((ws) => !ws.closedByClient && ws.readyState !== 3);
 }
 
 // Every renderer created by renderProbe is tracked here and unmounted in
@@ -136,6 +156,7 @@ describe('useLobbySocket', () => {
 
   beforeEach(() => {
     FakeWebSocket.instances = [];
+    FakeWebSocket.asyncCloseOnClientClose = false;
     (global as { WebSocket?: unknown }).WebSocket = FakeWebSocket;
     jest.useFakeTimers();
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
@@ -321,5 +342,118 @@ describe('useLobbySocket', () => {
 
     act(() => jest.advanceTimersByTime(25_000));
     expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
+  });
+
+  describe('with onclose delivered asynchronously, as a browser does', () => {
+    beforeEach(() => {
+      FakeWebSocket.asyncCloseOnClientClose = true;
+    });
+
+    function renderModule(moduleId: string, on = true) {
+      const probe = { players: [], status: 'connecting', attempts: 0, retryNow: () => {}, invited: null } as Probe;
+      let renderer!: ReactTestRenderer;
+      act(() => {
+        renderer = create(React.createElement(ModuleProbe, { on, moduleId, probe }));
+      });
+      activeRenderers.push(renderer);
+      const update = (next: { on?: boolean; moduleId?: string }) =>
+        act(() =>
+          renderer.update(
+            React.createElement(ModuleProbe, {
+              on: next.on ?? on,
+              moduleId: next.moduleId ?? moduleId,
+              probe,
+            }),
+          ),
+        );
+      return { probe, update };
+    }
+
+    async function settle(ms: number) {
+      // Fire the queued onclose, let the capacity probe resolve, then run
+      // any reconnect timer that would follow it.
+      act(() => jest.advanceTimersByTime(0));
+      await flushClose();
+      await flushClose();
+      act(() => jest.advanceTimersByTime(ms));
+    }
+
+    it('switching module never reconnects the old module once its socket closes', async () => {
+      const { update } = renderModule('canasta');
+      act(() => FakeWebSocket.instances[0].fireOpen());
+
+      update({ moduleId: 'zoliky' });
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(FakeWebSocket.instances[1].url).toContain('module=zoliky');
+      act(() => FakeWebSocket.instances[1].fireOpen());
+
+      // The old socket's onclose lands only now, after the new run committed.
+      await settle(30_000);
+
+      expect(mockGetCapacity).not.toHaveBeenCalled();
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(FakeWebSocket.instances.some((ws, i) => i > 0 && ws.url.includes('module=canasta'))).toBe(false);
+      expect(liveSockets()).toEqual([FakeWebSocket.instances[1]]);
+    });
+
+    it('Stop then Make available quickly leaves exactly one socket', async () => {
+      const { update } = renderModule('canasta');
+      act(() => FakeWebSocket.instances[0].fireOpen());
+
+      update({ on: false });
+      update({ on: true });
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      act(() => FakeWebSocket.instances[1].fireOpen());
+
+      await settle(30_000);
+
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(liveSockets()).toEqual([FakeWebSocket.instances[1]]);
+    });
+
+    it('retryNow during a pending capacity probe closes the old socket and opens only one', async () => {
+      let resolveProbe!: (v: Awaited<ReturnType<typeof mockGetCapacity>>) => void;
+      mockGetCapacity.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveProbe = resolve;
+          }),
+      );
+      const { probe } = renderModule('canasta');
+      act(() => FakeWebSocket.instances[0].fireOpen());
+
+      // Server drops the connection; the probe is now in flight.
+      act(() => FakeWebSocket.instances[0].fireClose());
+      await flushClose();
+      expect(mockGetCapacity).toHaveBeenCalledTimes(1);
+
+      act(() => probe.retryNow());
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      act(() => FakeWebSocket.instances[1].fireOpen());
+
+      // The stale probe resolving must not schedule a third socket.
+      await act(async () => {
+        resolveProbe({ accepting: true, waitingRoomOpen: true, startingMatches: true, live: 0 });
+        await Promise.resolve();
+      });
+      await settle(30_000);
+
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(liveSockets()).toEqual([FakeWebSocket.instances[1]]);
+      expect(probe.status).toBe('open');
+    });
+
+    it('retryNow with an open socket closes it before connecting', async () => {
+      const { probe } = renderModule('canasta');
+      act(() => FakeWebSocket.instances[0].fireOpen());
+
+      act(() => probe.retryNow());
+      expect(FakeWebSocket.instances[0].closedByClient).toBe(true);
+      act(() => FakeWebSocket.instances[1].fireOpen());
+
+      await settle(30_000);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      expect(liveSockets()).toEqual([FakeWebSocket.instances[1]]);
+    });
   });
 });
