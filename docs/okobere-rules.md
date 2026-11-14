@@ -45,7 +45,10 @@ details. Where they differ, the app either picks the majority reading or makes i
 3. **The bank passes on a schedule.** It moves after a set number of rounds, or as soon as it is
    broken, rather than by "malá domů", the banker's call to end their bank on a king of hearts or
    an eight.
-4. **Oko pays out of the bank**, and never more than the bank holds.
+4. **Oko pays out of the bank**, and never more than the bank has left once the other stakes still
+   on the table are covered — the `bank` rule's "a round's stakes together can be no more than the
+   bank" is a promise the bank must still keep after the oko is paid. So an oko always collects at
+   least its stake, but three times a large stake can be cut short when others have staked too.
 
 ## Options
 
