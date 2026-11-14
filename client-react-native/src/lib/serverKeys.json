@@ -33,6 +33,7 @@
     "CARD_NOT_IN_HAND",
     "DEADWOOD_TOO_HIGH",
     "DEAL_LINK_INVALID",
+    "DEAL_TOO_LARGE",
     "DISCARD_CARD_NOT_MELDED",
     "DISCARD_LOCKED",
     "DISCARD_PICKUP_UNPLAYABLE",
@@ -1310,6 +1311,7 @@
     "prompt.yourTurnMeld",
     "prsi.move.drew",
     "prsi.move.missedTurn",
+    "prsi.move.nothingToDraw",
     "prsi.move.played",
     "prsi.move.playedAce",
     "prsi.move.playedQueen",
@@ -1323,8 +1325,10 @@
     "prsi.remedy.playOrDraw",
     "prsi.rules.aces",
     "prsi.rules.deal",
+    "prsi.rules.dealLimit",
     "prsi.rules.deck",
     "prsi.rules.end",
+    "prsi.rules.end.blocked",
     "prsi.rules.goal",
     "prsi.rules.queens",
     "prsi.rules.section.end",
@@ -1335,6 +1339,7 @@
     "prsi.rules.sevens",
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
+    "prsi.rules.turn.nothingToDraw",
     "round.continue",
     "rules.standIn.after",
     "rules.standIn.record",
@@ -2236,8 +2241,10 @@
     "prsi.remedy.playOrDraw",
     "prsi.rules.aces",
     "prsi.rules.deal",
+    "prsi.rules.dealLimit",
     "prsi.rules.deck",
     "prsi.rules.end",
+    "prsi.rules.end.blocked",
     "prsi.rules.goal",
     "prsi.rules.queens",
     "prsi.rules.section.end",
@@ -2248,6 +2255,7 @@
     "prsi.rules.sevens",
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
+    "prsi.rules.turn.nothingToDraw",
     "rummytiles.remedy.emptyTheTray",
     "rummytiles.remedy.fixOrReset",
     "rummytiles.remedy.matchTheJoker",
@@ -3803,6 +3811,9 @@
     "prsi.move.missedTurn": [
       "player"
     ],
+    "prsi.move.nothingToDraw": [
+      "player"
+    ],
     "prsi.move.played": [
       "card",
       "player"
@@ -3843,6 +3854,10 @@
     ],
     "prsi.rules.deal": [
       "n"
+    ],
+    "prsi.rules.dealLimit": [
+      "n",
+      "seats"
     ],
     "prsi.rules.deck": [
       "value"
@@ -4683,6 +4698,7 @@
     "prompt.pickupMustBeMelded",
     "prsi.move.drew",
     "prsi.move.missedTurn",
+    "prsi.move.nothingToDraw",
     "prsi.move.played",
     "prsi.move.playedAce",
     "prsi.move.playedQueen",
@@ -4693,6 +4709,7 @@
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.playOrDraw",
     "prsi.rules.deal",
+    "prsi.rules.dealLimit",
     "prsi.rules.deck",
     "rules.standIn.after",
     "rummytiles.fact.setCards",

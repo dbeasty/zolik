@@ -143,14 +143,17 @@ export const pt: Record<string, string> = {
   'prsi.rules.goal': 'Sê o primeiro a jogar todas as cartas da tua mão.',
   'prsi.rules.deck': 'Joga-se com um baralho de {value} cartas (do 7 para cima).',
   'prsi.rules.deal': 'Cada jogador começa com {n} cartas.',
+  'prsi.rules.dealLimit': 'Tem de sobrar uma carta para virar e uma para comprar, por isso {seats} jogadores recebem no máximo {n} cartas cada.',
   'prsi.rules.turn.match':
     'Joga uma carta que coincida no naipe ou no valor com a do topo — ou compra, se não puderes.',
   'prsi.rules.turn.draw': 'Comprar termina a tua vez sem jogares.',
+  'prsi.rules.turn.nothingToDraw': 'Se não houver nada para comprar e nenhuma carta tua servir, comprar termina a tua vez sem carta.',
   'prsi.rules.sevens':
     'Joga um 7 e o jogador seguinte compra duas cartas, a menos que responda com um 7 dele.',
   'prsi.rules.aces': 'Joga um ás e o jogador seguinte perde a vez.',
   'prsi.rules.queens': 'Joga um svršek (o Ober) e diz o naipe que continua.',
   'prsi.rules.end': 'A partida acaba no momento em que a mão de alguém fica vazia.',
+  'prsi.rules.end.blocked': 'Se todos os jogadores passarem assim à vez, ninguém pode jogar: ganha quem tiver menos cartas, e um empate partilha a vitória.',
   'prsi.remedy.matchOrDraw': 'Joga uma carta de {suit} ou uma que sirva em {card} — caso contrário, compra.',
   'prsi.remedy.answerSevenOrTake': 'Responde com um sete teu, ou leva as {n} cartas.',
   'prsi.remedy.playOrDraw': 'Não tens nenhuma vez para saltar — joga uma carta de {suit} ou compra.',
@@ -165,6 +168,7 @@ export const pt: Record<string, string> = {
   'prsi.move.drew': '{player} comprou uma carta',
   'prsi.move.tookMany': '{player} levou {n} cartas',
   'prsi.move.missedTurn': '{player} perde a vez',
+  'prsi.move.nothingToDraw': '{player} não tinha nada para comprar',
 
   'canasta.rules.section.goal': 'Objetivo',
   'canasta.rules.section.setup': 'Preparação',
@@ -418,6 +422,7 @@ export const pt: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Responde com um sete, ou leva as cartas',
   'err.NOTHING_TO_SKIP': 'Não há nenhuma vez para saltar',
   'err.NOTHING_TO_DRAW': 'Não resta nada para comprar',
+  'err.DEAL_TOO_LARGE': 'Não há cartas suficientes para dar tantas a cada jogador. Dá menos cartas ou senta menos jogadores.',
   'err.PILE_EMPTY': 'O monte está vazio',
   'err.PILE_BLOCKED': 'O monte está bloqueado — está um três preto por cima',
   'err.PILE_FROZEN': 'O monte está congelado — precisas de duas cartas naturais do valor da carta do topo',

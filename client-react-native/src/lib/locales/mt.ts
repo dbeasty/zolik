@@ -143,13 +143,16 @@ export const mt: Record<string, string> = {
   'prsi.rules.goal': 'Kun l-ewwel wieħed li jilgħab kull karta minn idu.',
   'prsi.rules.deck': "Jintlagħab b'mazz ta' {value} karti (mis-7 'il fuq).",
   'prsi.rules.deal': "Kull plejer jibda b'{n} karti.",
+  'prsi.rules.dealLimit': 'Irid tibqa\' karta biex taqlibha u oħra biex tiġbed, għalhekk {seats} plejers jieħdu l-aktar {n} karti kull wieħed.',
   'prsi.rules.turn.match':
     "Ilgħab karta li taqbel mal-kulur jew mal-valur tal-karta ta' fuq — jew iġbed, jekk ma tistax.",
   'prsi.rules.turn.draw': 'Il-ġbid itemm id-dawra tiegħek mingħajr ma tilgħab.',
+  'prsi.rules.turn.nothingToDraw': 'Jekk ma fadal xejn x\'tiġbed u l-ebda karta tiegħek ma taqbel, il-ġbid itemm id-dawra mingħajr karta.',
   'prsi.rules.sevens': "Ilgħab 7 u l-plejer li jmiss jiġbed żewġ karti, ħlief jekk iwieġeb b'7 tiegħu.",
   'prsi.rules.aces': 'Ilgħab ass u d-dawra tal-plejer li jmiss taqbeż.',
   'prsi.rules.queens': 'Ilgħab svršek (Ober) u semmi l-kulur li jkompli.',
   'prsi.rules.end': 'Il-partita tispiċċa fil-mument li id xi ħadd tkun vojta.',
+  'prsi.rules.end.blocked': 'Jekk il-plejers kollha jgħaddu hekk wieħed wara l-ieħor, ħadd ma jista\' jilgħab: jirbaħ l-inqas karti, u d-draw jaqsam ir-rebħa.',
   'prsi.remedy.matchOrDraw': "Illiegħeb karta ta' {suit} jew waħda li taqbel ma' {card} — inkella iġbed.",
   'prsi.remedy.answerSevenOrTake': "Wieġeb b'sebgħa tiegħek, jew ħu l-{n} karti.",
   'prsi.remedy.playOrDraw': "M'hemm l-ebda dawra x'taqbeż — illiegħeb karta ta' {suit}, jew iġbed.",
@@ -164,6 +167,7 @@ export const mt: Record<string, string> = {
   'prsi.move.drew': '{player}: karta mill-mazz',
   'prsi.move.tookMany': '{player}: {n} mill-mazz',
   'prsi.move.missedTurn': '{player}: dawra maqbuża',
+  'prsi.move.nothingToDraw': '{player} ma kellu xejn x\'jiġbed',
 
   'canasta.rules.section.goal': 'Għan',
   'canasta.rules.section.setup': 'Tħejjija',
@@ -420,6 +424,7 @@ export const mt: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': "Wieġeb b'sebgħa, jew ħu l-karti",
   'err.NOTHING_TO_SKIP': "M'hemm l-ebda dawra x'taqbeż",
   'err.NOTHING_TO_DRAW': "Ma baqa' xejn x'tiġbed",
+  'err.DEAL_TOO_LARGE': 'M\'hemmx biżżejjed karti biex kull plejer jieħu daqshekk. Qassam inqas karti jew poġġi inqas plejers.',
   'err.PILE_EMPTY': 'Il-munzell huwa vojt',
   'err.PILE_BLOCKED': 'Il-munzell huwa mblukkat — hemm tlieta sewda fuq',
   'err.PILE_FROZEN':

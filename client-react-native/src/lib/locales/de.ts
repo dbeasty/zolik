@@ -143,14 +143,17 @@ export const de: Record<string, string> = {
   'prsi.rules.goal': 'Spiel als Erster jede Karte deiner Hand aus.',
   'prsi.rules.deck': 'Gespielt mit einem Blatt aus {value} Karten (ab der 7).',
   'prsi.rules.deal': 'Jeder Spieler beginnt mit {n} Karten.',
+  'prsi.rules.dealLimit': 'Es muss eine Karte zum Aufdecken und eine zum Ziehen übrig bleiben, also erhalten {seats} Spieler höchstens {n} Karten.',
   'prsi.rules.turn.match':
     'Spiel eine Karte, die Farbe oder Wert der obersten Karte trifft — oder zieh, wenn du nicht kannst.',
   'prsi.rules.turn.draw': 'Ziehen beendet deinen Zug ohne Ausspielen.',
+  'prsi.rules.turn.nothingToDraw': 'Ist nichts mehr zum Ziehen da und passt keine deiner Karten, beendet Ziehen deinen Zug ohne Karte.',
   'prsi.rules.sevens':
     'Spielst du eine 7, zieht der nächste Spieler zwei Karten — außer er kontert mit einer eigenen 7.',
   'prsi.rules.aces': 'Spielst du ein Ass, wird der nächste Spieler übersprungen.',
   'prsi.rules.queens': 'Spiel einen Svršek (den Ober) und nenne die Farbe, die weitergeht.',
   'prsi.rules.end': 'Die Partie endet in dem Moment, in dem jemandes Hand leer ist.',
+  'prsi.rules.end.blocked': 'Passen so alle Spieler der Reihe nach, kann niemand mehr ziehen: Die wenigsten Karten gewinnen, bei Gleichstand wird der Sieg geteilt.',
   'prsi.remedy.matchOrDraw': 'Spiel eine {suit}-Karte oder eine, die zu {card} passt — sonst zieh.',
   'prsi.remedy.answerSevenOrTake': 'Antworte mit einer eigenen Sieben, oder nimm die {n} Karten.',
   'prsi.remedy.playOrDraw': 'Es wartet kein Aussetzen auf dich — spiel eine {suit}-Karte oder zieh.',
@@ -165,6 +168,7 @@ export const de: Record<string, string> = {
   'prsi.move.drew': '{player} hat eine Karte gezogen',
   'prsi.move.tookMany': '{player} hat {n} Karten genommen',
   'prsi.move.missedTurn': '{player} setzt aus',
+  'prsi.move.nothingToDraw': '{player} hatte nichts mehr zum Ziehen',
 
   'canasta.rules.section.goal': 'Ziel',
   'canasta.rules.section.setup': 'Vorbereitung',
@@ -424,6 +428,7 @@ export const de: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Kontere mit einer Sieben oder nimm die Karten',
   'err.NOTHING_TO_SKIP': 'Es gibt kein Aussetzen zu übernehmen',
   'err.NOTHING_TO_DRAW': 'Es ist nichts mehr zum Ziehen da',
+  'err.DEAL_TOO_LARGE': 'Nicht genug Karten, um jedem so viele zu geben. Gib weniger Karten oder setze weniger Spieler ein.',
   'err.PILE_EMPTY': 'Der Stapel ist leer',
   'err.PILE_BLOCKED': 'Der Stapel ist blockiert — oben liegt eine schwarze Drei',
   'err.PILE_FROZEN':

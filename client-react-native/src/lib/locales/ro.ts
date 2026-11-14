@@ -143,13 +143,16 @@ export const ro: Record<string, string> = {
   'prsi.rules.goal': 'Fii primul care joacă toate cărțile din mână.',
   'prsi.rules.deck': 'Se joacă cu un pachet de {value} cărți (de la 7 în sus).',
   'prsi.rules.deal': 'Fiecare jucător începe cu {n} cărți.',
+  'prsi.rules.dealLimit': 'Trebuie să rămână o carte de întors și una de tras, deci {seats} jucători primesc cel mult {n} cărți fiecare.',
   'prsi.rules.turn.match':
     'Joacă o carte care se potrivește la culoare sau la valoare cu cea de deasupra — sau trage, dacă nu poți.',
   'prsi.rules.turn.draw': 'Tragerea îți încheie rândul fără să joci.',
+  'prsi.rules.turn.nothingToDraw': 'Dacă nu mai e nimic de tras și nicio carte de-a ta nu se potrivește, tragerea îți încheie tura fără carte.',
   'prsi.rules.sevens': 'Joacă un 7 și următorul jucător trage două cărți, dacă nu răspunde cu un 7 al lui.',
   'prsi.rules.aces': 'Joacă un as și rândul următorului jucător este sărit.',
   'prsi.rules.queens': 'Joacă un svršek (Ober) și spune culoarea care continuă.',
   'prsi.rules.end': 'Meciul se încheie în clipa în care mâna cuiva este goală.',
+  'prsi.rules.end.blocked': 'Dacă toți jucătorii trec așa pe rând, nimeni nu mai poate juca: câștigă cele mai puține cărți, iar la egalitate victoria se împarte.',
   'prsi.remedy.matchOrDraw':
     'Joacă o carte de {suit} sau una care se potrivește peste {card} — altfel trage.',
   'prsi.remedy.answerSevenOrTake': 'Răspunde cu un șapte de-al tău sau ia cele {n} cărți.',
@@ -165,6 +168,7 @@ export const ro: Record<string, string> = {
   'prsi.move.drew': '{player} a tras o carte',
   'prsi.move.tookMany': '{player} a luat cărți: {n}',
   'prsi.move.missedTurn': '{player} pierde rândul',
+  'prsi.move.nothingToDraw': '{player} nu a avut ce trage',
 
   'canasta.rules.section.goal': 'Scop',
   'canasta.rules.section.setup': 'Pregătire',
@@ -417,6 +421,7 @@ export const ro: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Răspunde cu un șapte, sau ia cărțile',
   'err.NOTHING_TO_SKIP': 'Nu e niciun rând de sărit',
   'err.NOTHING_TO_DRAW': 'Nu a mai rămas nimic de tras',
+  'err.DEAL_TOO_LARGE': 'Nu sunt destule cărți pentru a da atâtea fiecărui jucător. Împarte mai puține cărți sau așază mai puțini jucători.',
   'err.PILE_EMPTY': 'Teancul este gol',
   'err.PILE_BLOCKED': 'Teancul este blocat — deasupra stă un trei negru',
   'err.PILE_FROZEN':

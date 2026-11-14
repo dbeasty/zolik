@@ -143,14 +143,17 @@ export const fr: Record<string, string> = {
   'prsi.rules.goal': 'Sois le premier à jouer toutes les cartes de ta main.',
   'prsi.rules.deck': 'Se joue avec un jeu de {value} cartes (à partir du 7).',
   'prsi.rules.deal': 'Chaque joueur commence avec {n} cartes.',
+  'prsi.rules.dealLimit': 'Il doit rester une carte à retourner et une à piocher, donc {seats} joueurs reçoivent au plus {n} cartes chacun.',
   'prsi.rules.turn.match':
     'Joue une carte de la même couleur ou du même rang que celle du dessus — ou pioche si tu ne peux pas.',
   'prsi.rules.turn.draw': 'Piocher met fin à ton tour sans jouer de carte.',
+  'prsi.rules.turn.nothingToDraw': 'S’il n’y a plus rien à piocher et qu’aucune de tes cartes ne convient, piocher termine ton tour sans carte.',
   'prsi.rules.sevens':
     "Joue un 7 et le joueur suivant pioche deux cartes, à moins qu'il ne réponde par un 7.",
   'prsi.rules.aces': 'Joue un as et le tour du joueur suivant est sauté.',
   'prsi.rules.queens': 'Joue un svršek (Ober) et annonce la couleur qui continue.',
   'prsi.rules.end': "La partie s'arrête dès qu'une main est vide.",
+  'prsi.rules.end.blocked': 'Si tous les joueurs passent ainsi à tour de rôle, plus personne ne peut jouer : le moins de cartes gagne, et une égalité partage la victoire.',
   'prsi.remedy.matchOrDraw': 'Joue une carte de {suit} ou une qui va sur {card} — sinon, pioche.',
   'prsi.remedy.answerSevenOrTake': 'Réponds avec un sept à toi, ou prends les {n} cartes.',
   'prsi.remedy.playOrDraw': "Aucun tour à passer ne t'attend — joue une carte de {suit}, ou pioche.",
@@ -165,6 +168,7 @@ export const fr: Record<string, string> = {
   'prsi.move.drew': '{player} a pioché une carte',
   'prsi.move.tookMany': '{player} a pris {n} cartes',
   'prsi.move.missedTurn': '{player} passe son tour',
+  'prsi.move.nothingToDraw': '{player} n’avait plus rien à piocher',
 
   'canasta.rules.section.goal': 'But',
   'canasta.rules.section.setup': 'Mise en place',
@@ -419,6 +423,7 @@ export const fr: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Réponds par un sept, ou prends les cartes',
   'err.NOTHING_TO_SKIP': "Il n'y a aucun tour à passer",
   'err.NOTHING_TO_DRAW': "Il n'y a plus rien à piocher",
+  'err.DEAL_TOO_LARGE': 'Pas assez de cartes pour en donner autant à chaque joueur. Distribuez moins de cartes ou installez moins de joueurs.',
   'err.PILE_EMPTY': 'La pile est vide',
   'err.PILE_BLOCKED': 'La pile est bloquée — un trois noir est sur le dessus',
   'err.PILE_FROZEN': 'La pile est gelée — il te faut deux cartes naturelles du rang de la carte du dessus',

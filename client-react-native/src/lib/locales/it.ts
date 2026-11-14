@@ -142,14 +142,17 @@ export const it: Record<string, string> = {
   'prsi.rules.goal': 'Sii il primo a giocare tutte le carte della tua mano.',
   'prsi.rules.deck': 'Si gioca con un mazzo da {value} carte (dal 7 in su).',
   'prsi.rules.deal': 'Ogni giocatore parte con {n} carte.',
+  'prsi.rules.dealLimit': 'Deve restare una carta da scoprire e una da pescare, quindi {seats} giocatori ricevono al massimo {n} carte ciascuno.',
   'prsi.rules.turn.match':
     'Gioca una carta che corrisponda al seme o al valore della carta in cima — oppure pesca se non puoi.',
   'prsi.rules.turn.draw': 'Pescare chiude il tuo turno senza giocare.',
+  'prsi.rules.turn.nothingToDraw': 'Se non resta nulla da pescare e nessuna tua carta va bene, pescare chiude il tuo turno senza carte.',
   'prsi.rules.sevens':
     'Gioca un 7 e il giocatore successivo pesca due carte, a meno che non risponda con un 7 suo.',
   'prsi.rules.aces': 'Gioca un asso e il turno del giocatore successivo salta.',
   'prsi.rules.queens': 'Gioca uno svršek (Ober) e indica il seme che prosegue.',
   'prsi.rules.end': 'La partita finisce nel momento in cui una mano resta vuota.',
+  'prsi.rules.end.blocked': 'Se tutti i giocatori a turno passano così, nessuno può più giocare: vince chi ha meno carte, e a parità la vittoria è condivisa.',
   'prsi.remedy.matchOrDraw': 'Gioca una carta di {suit} o una che va su {card} — altrimenti pesca.',
   'prsi.remedy.answerSevenOrTake': 'Rispondi con un tuo sette, oppure prendi le {n} carte.',
   'prsi.remedy.playOrDraw': "Non c'è nessun turno da saltare — gioca una carta di {suit} o pesca.",
@@ -164,6 +167,7 @@ export const it: Record<string, string> = {
   'prsi.move.drew': '{player} ha pescato una carta',
   'prsi.move.tookMany': '{player} ha preso {n} carte',
   'prsi.move.missedTurn': '{player} salta il turno',
+  'prsi.move.nothingToDraw': '{player} non aveva niente da pescare',
 
   'canasta.rules.section.goal': 'Obiettivo',
   'canasta.rules.section.setup': 'Preparazione',
@@ -417,6 +421,7 @@ export const it: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Rispondi con un sette, oppure prendi le carte',
   'err.NOTHING_TO_SKIP': "Non c'è nessun turno da saltare",
   'err.NOTHING_TO_DRAW': 'Non è rimasto nulla da pescare',
+  'err.DEAL_TOO_LARGE': 'Non ci sono abbastanza carte per darne tante a ogni giocatore. Distribuisci meno carte o fai sedere meno giocatori.',
   'err.PILE_EMPTY': 'La pila è vuota',
   'err.PILE_BLOCKED': "La pila è bloccata — in cima c'è un tre nero",
   'err.PILE_FROZEN': 'La pila è congelata — ti servono due carte naturali del valore della carta in cima',

@@ -16,10 +16,13 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		module.Section("prsi.rules.section.setup",
 			module.Fact{LabelKey: "prsi.rules.deck", Value: "32"},
 			module.Fact{LabelKey: "prsi.rules.deal", Params: map[string]any{"n": handSize}},
+			// Why six players cannot be dealt six: 36 from a 32-card pack.
+			module.Fact{LabelKey: "prsi.rules.dealLimit", Params: map[string]any{"seats": 6, "n": maxHandSize(6)}},
 		),
 		module.Section("prsi.rules.section.turn",
 			module.Fact{LabelKey: "prsi.rules.turn.match"},
 			module.Fact{LabelKey: "prsi.rules.turn.draw"},
+			module.Fact{LabelKey: "prsi.rules.turn.nothingToDraw"},
 		),
 		module.Section("prsi.rules.section.special",
 			module.Fact{LabelKey: "prsi.rules.sevens"},
@@ -28,6 +31,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		),
 		module.Section("prsi.rules.section.end",
 			module.Fact{LabelKey: "prsi.rules.end"},
+			module.Fact{LabelKey: "prsi.rules.end.blocked"},
 		),
 	}, nil
 }

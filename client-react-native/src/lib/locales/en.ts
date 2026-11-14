@@ -149,14 +149,17 @@ export const en: Record<string, string> = {
   'prsi.rules.goal': 'Be the first to play every card in your hand.',
   'prsi.rules.deck': 'Played with a {value}-card deck (7 and up).',
   'prsi.rules.deal': 'Each player starts with {n} cards.',
+  'prsi.rules.dealLimit': 'There must be a card left to turn up and one to draw, so {seats} players are dealt at most {n} cards each.',
   'prsi.rules.turn.match':
     "Play a card that matches the top card's suit or rank — or draw if you can't.",
   'prsi.rules.turn.draw': 'Drawing ends your turn without a play.',
+  'prsi.rules.turn.nothingToDraw': 'If nothing is left to draw and none of your cards fits, drawing passes your turn without a card.',
   'prsi.rules.sevens':
     'Play a 7 and the next player draws two cards, unless they can answer with a 7 of their own.',
   'prsi.rules.aces': "Play an ace and the next player's turn is skipped.",
   'prsi.rules.queens': 'Play a svršek (the Ober) and name the suit that continues.',
   'prsi.rules.end': "The match ends the moment someone's hand is empty.",
+  'prsi.rules.end.blocked': 'If every player in turn passes like that, nobody can move: the fewest cards wins, and a tie shares the win.',
   'prsi.remedy.matchOrDraw': 'Play a {suit} card, or one that matches {card} — otherwise draw.',
   'prsi.remedy.answerSevenOrTake': 'Answer with a seven of your own, or take the {n} cards.',
   'prsi.remedy.playOrDraw': 'There is no skip waiting for you — play a {suit} card, or draw.',
@@ -171,6 +174,7 @@ export const en: Record<string, string> = {
   'prsi.move.drew': '{player} drew a card',
   'prsi.move.tookMany': '{player} took {n} cards',
   'prsi.move.missedTurn': '{player} misses a turn',
+  'prsi.move.nothingToDraw': '{player} had nothing left to draw',
 
   'canasta.rules.section.goal': 'Goal',
   'canasta.rules.section.setup': 'Setup',
@@ -430,6 +434,7 @@ export const en: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Answer with a seven, or take the cards',
   'err.NOTHING_TO_SKIP': 'There is no skip to take',
   'err.NOTHING_TO_DRAW': 'There is nothing left to draw',
+  'err.DEAL_TOO_LARGE': 'Not enough cards to deal that many to every player. Deal fewer cards or seat fewer players.',
   'err.PILE_EMPTY': 'The pile is empty',
   'err.PILE_BLOCKED': 'The pile is blocked — a black three is on top',
   'err.PILE_FROZEN': 'The pile is frozen — you need two natural cards of the top card\'s rank',

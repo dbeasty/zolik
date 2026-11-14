@@ -72,8 +72,9 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, offers []module.
 			o.RemedyOfferID = enabled(OfferPlay)
 
 		case ErrNothingToDraw:
-			// The pile is out and cannot be recycled, so drawing is not a move
-			// any more. Play, or take the skip.
+			// The pile is out and cannot be recycled, and this player holds a
+			// card that fits — an empty draw is only for a player who cannot
+			// play. Play, or take the skip.
 			o.Remedy = &module.Fact{LabelKey: "prsi.remedy.nothingLeftToDraw"}
 			o.RemedyOfferID = enabled(OfferPlay, OfferPass)
 		}

@@ -179,8 +179,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			// Value: one seat's win and a split are the same sentence to a
 			// client, and every module saying it the same way is what lets
 			// there be one sentence rather than one per game.
+			// A blocked match can be shared by everyone tied on the fewest
+			// cards, and then Value is empty and the list says who.
 			LabelKey: "status.winner", Value: s.WinnerID,
-			Params: map[string]any{"winners": []string{s.WinnerID}},
+			Params: map[string]any{"winners": s.winners()},
 		})
 	}
 	return vm, nil

@@ -145,14 +145,17 @@ export const ga: Record<string, string> = {
   'prsi.rules.goal': 'Bí ar an gcéad duine a imríonn gach cárta as a lámh.',
   'prsi.rules.deck': 'Imrítear le paca {value} cárta (ón seacht aníos).',
   'prsi.rules.deal': 'Tosaíonn gach imreoir le {n} chárta.',
+  'prsi.rules.dealLimit': 'Caithfidh cárta a bheith fágtha le hiompú agus ceann le tarraingt, mar sin faigheann {seats} imreoir {n} chárta ar a mhéad.',
   'prsi.rules.turn.match':
     'Imir cárta a mheaitseálann dath nó luach an chárta uachtaraigh — nó tarraing, mura féidir leat.',
   'prsi.rules.turn.draw': 'Cuireann tarraingt deireadh le do sheal gan imirt.',
+  'prsi.rules.turn.nothingToDraw': 'Mura bhfuil faic fágtha le tarraingt agus nach n-oireann aon chárta leat, críochnaíonn tarraingt do sheal gan chárta.',
   'prsi.rules.sevens':
     'Imir 7 agus tarraingíonn an chéad imreoir eile dhá chárta, mura bhfreagraíonn sé le seacht dá chuid féin.',
   'prsi.rules.aces': 'Imir aonach agus scipeáiltear seal an chéad imreora eile.',
   'prsi.rules.queens': 'Imir svršek (Ober) agus ainmnigh an dath a leanann.',
   'prsi.rules.end': 'Críochnaíonn an cluiche an nóiméad a bhíonn lámh duine éigin folamh.',
+  'prsi.rules.end.blocked': 'Má théann gach imreoir thart mar sin ina seal, ní féidir le duine ar bith imirt: buann an líon is lú cártaí, agus roinntear an bua ar chomhscór.',
   'prsi.remedy.matchOrDraw': 'Imir cárta {suit} nó ceann a fheileann do {card} — nó tarraing.',
   'prsi.remedy.answerSevenOrTake': 'Freagair le seacht de do chuid féin, nó tóg na {n} gcárta.',
   'prsi.remedy.playOrDraw': 'Níl aon seal le scipeáil agat — imir cárta {suit}, nó tarraing.',
@@ -167,6 +170,7 @@ export const ga: Record<string, string> = {
   'prsi.move.drew': 'Tharraing {player} cárta',
   'prsi.move.tookMany': 'Thóg {player} {n} cárta',
   'prsi.move.missedTurn': 'Cailleann {player} seal',
+  'prsi.move.nothingToDraw': 'Ní raibh faic fágtha ag {player} le tarraingt',
 
   'canasta.rules.section.goal': 'Aidhm',
   'canasta.rules.section.setup': 'Socrú',
@@ -429,6 +433,7 @@ export const ga: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Freagair le seacht, nó tóg na cártaí',
   'err.NOTHING_TO_SKIP': 'Níl aon seal le scipeáil',
   'err.NOTHING_TO_DRAW': 'Níl aon rud fágtha le tarraingt',
+  'err.DEAL_TOO_LARGE': 'Níl go leor cártaí ann le an méid sin a roinnt ar gach imreoir. Roinn níos lú cártaí nó cuir níos lú imreoirí.',
   'err.PILE_EMPTY': 'Tá an carn folamh',
   'err.PILE_BLOCKED': 'Tá an carn dúnta — tá trí dhubh ar a bharr',
   'err.PILE_FROZEN': 'Tá an carn reoite — teastaíonn dhá chárta nádúrtha de luach an chárta uachtaraigh uait',

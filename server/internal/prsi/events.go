@@ -51,7 +51,8 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 		case n > 1:
 			move.Fact = module.Fact{LabelKey: "prsi.move.tookMany", Params: map[string]any{"player": player, "n": n}}
 		default:
-			return module.Move{}, false
+			// The pile was out: the turn passed with no card.
+			move.Fact = module.Fact{LabelKey: "prsi.move.nothingToDraw", Params: map[string]any{"player": player}}
 		}
 	case "turn_skipped":
 		move.Fact = module.Fact{LabelKey: "prsi.move.missedTurn", Params: map[string]any{"player": player}}
