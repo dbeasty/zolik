@@ -401,8 +401,56 @@ export const CARD_SIZE_FACTOR: Record<CardSize, number> = {
  * `zoom` is the board's − / + (`boardZoom.ts`), layered over the card size the
  * same way and for the same reason; 1 everywhere off the board.
  */
-export function metricsFor(width: number, cardSize: CardSize = 'normal', zoom = 1): Metrics {
-  const widthScale = scaleFor(width);
+/**
+ * The rest of the screen, beyond its width: how tall it is, and whether it is
+ * an iPhone's. Optional, so a caller that only knows a width — a test, the
+ * skin chosen at startup — gets exactly the width's answer.
+ */
+export type ScreenShape = { height?: number; ios?: boolean };
+
+/**
+ * A screen whose short side is under this, and long side under the next, is
+ * a phone, whichever way up it is held. The largest iPhone is 440 by 956; the
+ * smallest iPad is 744 across. The long side keeps a short but wide desktop
+ * window — a browser with its developer tools open below — sized by its
+ * width, as it always was.
+ */
+export const PHONE_SHORT_SIDE = 600;
+export const PHONE_LONG_SIDE = 1024;
+
+/**
+ * How much smaller an iPhone's cards are drawn than the width table gives.
+ * A phone held in the hand sits closer to the eye than a browser window of
+ * the same width, and the table's rows were set against a browser: at the
+ * table's own size the hand, the piles and the controls did not leave room
+ * for the melds.
+ */
+export const IOS_PHONE_FACTOR = 0.85;
+
+/**
+ * The card scale a screen draws at, before the player's size and the zoom.
+ *
+ * A phone sizes its cards from its *short* side, so turning it on its side
+ * changes nothing. Sized from the width, a landscape iPhone (852 across, 393
+ * high) came out as a laptop — a card twice the size, on a screen with less
+ * than half the height to put it in — and the hand alone filled the screen.
+ * The width a phone gains on its side goes to the rows, not to the cards.
+ */
+export function screenScale(width: number, screen: ScreenShape = {}): number {
+  const height = screen.height ?? width;
+  const short = Math.min(width, height);
+  if (short >= PHONE_SHORT_SIDE || Math.max(width, height) >= PHONE_LONG_SIDE) return scaleFor(width);
+  const phone = scaleFor(short);
+  return screen.ios ? Math.round(phone * IOS_PHONE_FACTOR * 100) / 100 : phone;
+}
+
+export function metricsFor(
+  width: number,
+  cardSize: CardSize = 'normal',
+  zoom = 1,
+  screen: ScreenShape = {},
+): Metrics {
+  const widthScale = screenScale(width, screen);
   // Rounded to a hundredth so a factor's float noise never reaches a
   // `Math.round` on its knife edge; `normal` at zoom 1 is untouched, to the bit.
   const factor = CARD_SIZE_FACTOR[cardSize] * zoom;
@@ -460,7 +508,7 @@ export function metricsFor(width: number, cardSize: CardSize = 'normal', zoom = 
   return {
     scale,
     narrow,
-    // From the width alone: `roomy` says there is *room* to spend on more
+    // From the screen alone: `roomy` says there is *room* to spend on more
     // than size (the dealer's own place at the table), and a bigger card
     // takes room rather than making any.
     roomy: widthScale > 1,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { storage } from '@/src/context/SessionContext';
-import { metricsFor, type CardSize } from '@/src/lib/layout';
+import { metricsFor, type CardSize, type ScreenShape } from '@/src/lib/layout';
 
 /**
  * How far the player has zoomed the board — the − / + beside Layout.
@@ -49,8 +49,8 @@ export const MIN_ZOOMED_CARD_WIDTH = 20;
  * The smallest step this window can draw. A wide screen goes all the way to
  * the first step; a phone, whose cards start small, stops sooner.
  */
-export function smallestZoom(width: number, cardSize: CardSize = 'normal'): number {
-  for (const s of ZOOM_STEPS) if (metricsFor(width, cardSize, s).card.width >= MIN_ZOOMED_CARD_WIDTH) return s;
+export function smallestZoom(width: number, cardSize: CardSize = 'normal', screen: ScreenShape = {}): number {
+  for (const s of ZOOM_STEPS) if (metricsFor(width, cardSize, s, screen).card.width >= MIN_ZOOMED_CARD_WIDTH) return s;
   return 1;
 }
 
