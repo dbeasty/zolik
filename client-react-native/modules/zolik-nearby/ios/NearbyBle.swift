@@ -196,7 +196,9 @@ final class NearbyBleHost: NSObject, CBPeripheralManagerDelegate {
 final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
   private let queue = DispatchQueue(label: "zolik.ble.guest")
   private var manager: CBCentralManager?
-  private var poweredOn: [() -> Void] = []
+  // Work waiting for the radio. `orElse` is how a waiting call with a
+  // caller blocked on it hears that the radio is off rather than wait for ever.
+  private var poweredOn: [(run: () -> Void, orElse: ((Error) -> Void)?)] = []
   private var seen: [UUID: CBPeripheral] = [:]
   private var links: [String: Link] = [:]
 
@@ -213,7 +215,14 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     let reassembler = Reassembler()
     var outbox: [(Data, Bool)] = []  // chunk, last-of-message
     var writing = false
-    var sendDone: [() -> Void] = []
+    // One per message in the outbox, in order. Every one is called exactly
+    // once: with nil when its last chunk is acknowledged, or with the error
+    // that ended the link. Callers (NearbyService.radioSend, the module's
+    // bleSend promise, Go's tunnel under its send lock) wait on these.
+    var sendDone: [(Error?) -> Void] = []
+    // Set once the link has failed: later sends fail at once instead of
+    // queueing behind a link that will never write again.
+    var dead: Error?
     var connected: ((Result<String, Error>) -> Void)?
     init(id: String, peripheral: CBPeripheral) {
       self.id = id
@@ -221,13 +230,27 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     }
   }
 
-  private func whenOn(_ run: @escaping () -> Void) {
+  private func whenOn(_ run: @escaping () -> Void, orElse: ((Error) -> Void)? = nil) {
     queue.async {
       if self.manager == nil {
         self.manager = CBCentralManager(delegate: self, queue: self.queue)
       }
-      if self.manager?.state == .poweredOn { run() } else { self.poweredOn.append(run) }
+      guard let m = self.manager, m.state != .poweredOn else {
+        run()
+        return
+      }
+      if let orElse, Self.settledOff(m.state) {
+        orElse(BleError("Bluetooth is off"))
+        return
+      }
+      self.poweredOn.append((run, orElse))
     }
+  }
+
+  /// A state the radio has settled in that is not on: nothing waiting for it
+  /// to come on should hold a caller.
+  private static func settledOff(_ state: CBManagerState) -> Bool {
+    state == .poweredOff || state == .unauthorized || state == .unsupported
   }
 
   private var settled: [(String) -> Void] = []
@@ -239,10 +262,25 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
       let s = state()
       waiting.forEach { $0(s) }
     }
-    guard central.state == .poweredOn else { return }
+    guard central.state == .poweredOn else {
+      // Off, reset or taken away: every connection is gone, and CoreBluetooth
+      // does not promise a didDisconnect for each. Fail them all here.
+      if central.state != .unknown {
+        dropAll(BleError("Bluetooth went off"))
+      }
+      if Self.settledOff(central.state) {
+        // Calls with a caller waiting on them fail now; a scan stays queued
+        // for when the radio comes back.
+        let failing = poweredOn.compactMap { $0.orElse }
+        poweredOn = poweredOn.filter { $0.orElse == nil }
+        let e = BleError("Bluetooth is off")
+        failing.forEach { $0(e) }
+      }
+      return
+    }
     let waiting = poweredOn
     poweredOn = []
-    waiting.forEach { $0() }
+    waiting.forEach { $0.run() }
   }
 
   /// The radio's state once iOS knows it. Creating the manager is what asks
@@ -291,8 +329,11 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     onFound?(["peripheralId": peripheral.identifier.uuidString, "name": name ?? "", "rssi": RSSI.intValue])
   }
 
-  func connect(peripheralId: String, done: @escaping (Result<(String, Data), Error>) -> Void) {
-    whenOn {
+  func connect(peripheralId: String, done rawDone: @escaping (Result<(String, Data), Error>) -> Void) {
+    // Every path below ends in done; once guards the ones that race (a
+    // timeout and a late answer, a disconnect mid-read).
+    let done = callOnce(rawDone)
+    whenOn({
       guard let uuid = UUID(uuidString: peripheralId),
         let peripheral = self.seen[uuid] ?? self.manager?.retrievePeripherals(withIdentifiers: [uuid]).first
       else {
@@ -308,11 +349,19 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
           // The info characteristic, read now: it says which table this is
           // before a single tunnel message is spent.
           guard let info = link.info else {
+            self.links.removeValue(forKey: link.id)
+            self.manager?.cancelPeripheralConnection(peripheral)
             done(.failure(BleError("not a Zolik table")))
             return
           }
-          self.pendingInfo[link.id] = { data in done(.success((link.id, data))) }
+          self.pendingInfo[link.id] = { result in done(result.map { (link.id, $0) }) }
           peripheral.readValue(for: info)
+          // A read never times out on its own either.
+          self.queue.asyncAfter(deadline: .now() + 10) {
+            guard let waiting = self.pendingInfo.removeValue(forKey: link.id) else { return }
+            waiting(.failure(BleError("the table did not answer")))
+            self.manager?.cancelPeripheralConnection(peripheral)
+          }
         case .failure(let e):
           self.links.removeValue(forKey: link.id)
           done(.failure(e))
@@ -327,10 +376,12 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
           link.connected = nil
         }
       }
-    }
+    }, orElse: { done(.failure($0)) })
   }
 
-  private var pendingInfo: [String: (Data) -> Void] = [:]
+  /// The info read each connect is waiting on, by link id. Removed when it
+  /// is answered, so each is called once.
+  private var pendingInfo: [String: (Result<Data, Error>) -> Void] = [:]
 
   func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
     peripheral.discoverServices([NearbyBleIDs.service])
@@ -348,8 +399,31 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
   ) {
     for (id, link) in links where link.peripheral === peripheral {
       links.removeValue(forKey: id)
-      link.connected?(.failure(error ?? BleError("disconnected")))
-      link.connected = nil
+      failLink(link, error ?? BleError("disconnected"))
+      onClosed?(id)
+    }
+  }
+
+  /// Ends everything a link owes its callers, once: the connect (or its info
+  /// read) and every queued message fail with `error`. Runs on `queue`.
+  private func failLink(_ link: Link, _ error: Error) {
+    if link.dead == nil { link.dead = error }
+    link.connected?(.failure(error))
+    link.connected = nil
+    pendingInfo.removeValue(forKey: link.id)?(.failure(error))
+    let waiting = link.sendDone
+    link.sendDone = []
+    link.outbox = []
+    link.writing = false
+    waiting.forEach { $0(error) }
+  }
+
+  /// Every link at once: the radio went off. Runs on `queue`.
+  private func dropAll(_ error: Error) {
+    let all = links
+    links = [:]
+    for (id, link) in all {
+      failLink(link, error)
       onClosed?(id)
     }
   }
@@ -401,28 +475,38 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
   }
 
   func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-    guard let link = links.values.first(where: { $0.peripheral === peripheral }),
-      let value = characteristic.value
-    else { return }
+    guard let link = links.values.first(where: { $0.peripheral === peripheral }) else { return }
     if characteristic.uuid == NearbyBleIDs.info {
-      pendingInfo.removeValue(forKey: link.id)?(value)
+      let value = characteristic.value ?? Data()
+      if let error {
+        pendingInfo.removeValue(forKey: link.id)?(.failure(error))
+        manager?.cancelPeripheralConnection(peripheral)
+      } else {
+        pendingInfo.removeValue(forKey: link.id)?(.success(value))
+      }
       return
     }
+    guard error == nil, let value = characteristic.value else { return }
     for msg in link.reassembler.feed(value) {
       onMessage?(link.id, msg)
     }
   }
 
-  func send(linkId: String, msg: Data, done: @escaping (Error?) -> Void) {
+  func send(linkId: String, msg: Data, done rawDone: @escaping (Error?) -> Void) {
+    let done = callOnce(rawDone)
     queue.async {
       guard let link = self.links[linkId] else {
         done(BleError("the link to the table is closed"))
         return
       }
+      if let dead = link.dead {
+        done(dead)
+        return
+      }
       let size = link.peripheral.maximumWriteValueLength(for: .withResponse)
       let chunks = frameChunks(msg, size: min(size, 512))
       for (i, c) in chunks.enumerated() { link.outbox.append((c, i == chunks.count - 1)) }
-      link.sendDone.append { done(nil) }
+      link.sendDone.append(done)
       self.pump(link)
     }
   }
@@ -438,12 +522,17 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
   func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
     guard let link = links.values.first(where: { $0.peripheral === peripheral }) else { return }
     link.writing = false
-    if error != nil {
-      disconnect(linkId: link.id)
+    if let error {
+      // The message is half written and the host's reassembler is out of
+      // step: the link is done. Its callers hear now, not when (or if) the
+      // disconnect arrives; that disconnect then reports the link closed.
+      failLink(link, error)
+      manager?.cancelPeripheralConnection(peripheral)
       return
     }
+    guard !link.outbox.isEmpty else { return }
     let (_, last) = link.outbox.removeFirst()
-    if last, !link.sendDone.isEmpty { link.sendDone.removeFirst()() }
+    if last, !link.sendDone.isEmpty { link.sendDone.removeFirst()(nil) }
     pump(link)
   }
 
@@ -475,6 +564,20 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     case .unauthorized: return "unauthorized"
     default: return "unknown"
     }
+  }
+}
+
+/// Wraps a completion so that only its first call goes through: a success
+/// arriving after the failure that already answered the caller is dropped.
+func callOnce<T>(_ f: @escaping (T) -> Void) -> (T) -> Void {
+  let lock = NSLock()
+  var called = false
+  return { value in
+    lock.lock()
+    let first = !called
+    called = true
+    lock.unlock()
+    if first { f(value) }
   }
 }
 
