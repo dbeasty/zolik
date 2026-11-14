@@ -144,13 +144,16 @@ export const pl: Record<string, string> = {
   'prsi.rules.goal': 'Bądź pierwszym, który zagra wszystkie karty z ręki.',
   'prsi.rules.deck': 'Gra się talią {value} kart (od siódemki wzwyż).',
   'prsi.rules.deal': 'Każdy gracz zaczyna z {n} kartami.',
+  'prsi.rules.dealLimit': 'Musi zostać karta do odkrycia i jedna do dobrania, więc {seats} graczy dostaje najwyżej {n} kart.',
   'prsi.rules.turn.match':
     'Zagraj kartę zgodną z kolorem albo wartością wierzchniej karty — albo dobierz, jeśli nie możesz.',
   'prsi.rules.turn.draw': 'Dobranie kończy twoją kolejkę bez zagrania.',
+  'prsi.rules.turn.nothingToDraw': 'Jeśli nie ma czego dobrać i żadna twoja karta nie pasuje, dobranie kończy ruch bez karty.',
   'prsi.rules.sevens': 'Zagraj 7, a następny gracz dobiera dwie karty — chyba że odpowie własną siódemką.',
   'prsi.rules.aces': 'Zagraj asa, a następny gracz traci kolejkę.',
   'prsi.rules.queens': 'Zagraj svrška (wyżnika) i podaj kolor, który obowiązuje dalej.',
   'prsi.rules.end': 'Mecz kończy się w chwili, gdy czyjaś ręka jest pusta.',
+  'prsi.rules.end.blocked': 'Jeśli wszyscy gracze po kolei tak spasują, nikt nie może grać: wygrywa najmniej kart, a remis dzieli zwycięstwo.',
   'prsi.remedy.matchOrDraw':
     'Zagraj kartę w kolorze {suit} albo taką, która pasuje do {card} — inaczej dobierz.',
   'prsi.remedy.answerSevenOrTake': 'Odpowiedz własną siódemką albo weź {n} kart.',
@@ -166,6 +169,7 @@ export const pl: Record<string, string> = {
   'prsi.move.drew': '{player} dobiera kartę',
   'prsi.move.tookMany': '{player} dobiera karty: {n}',
   'prsi.move.missedTurn': '{player} traci kolejkę',
+  'prsi.move.nothingToDraw': '{player} nie miał czego dobrać',
 
   'canasta.rules.section.goal': 'Cel',
   'canasta.rules.section.setup': 'Przygotowanie',
@@ -426,6 +430,7 @@ export const pl: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Odpowiedz siódemką albo weź karty',
   'err.NOTHING_TO_SKIP': 'Nie ma kolejki do pominięcia',
   'err.NOTHING_TO_DRAW': 'Nie ma już czego dobierać',
+  'err.DEAL_TOO_LARGE': 'Za mało kart, by każdy dostał tyle. Rozdaj mniej kart albo posadź mniej graczy.',
   'err.PILE_EMPTY': 'Stos jest pusty',
   'err.PILE_BLOCKED': 'Stos jest zablokowany — na wierzchu leży czarna trójka',
   'err.PILE_FROZEN': 'Stos jest zamrożony — potrzebujesz dwóch naturalnych kart o wartości wierzchniej karty',

@@ -142,14 +142,17 @@ export const fi: Record<string, string> = {
   'prsi.rules.goal': 'Pelaa ensimmäisenä kaikki korttisi kädestä.',
   'prsi.rules.deck': 'Pelataan {value} kortin pakalla (seiskasta ylöspäin).',
   'prsi.rules.deal': 'Jokainen pelaaja aloittaa {n} kortilla.',
+  'prsi.rules.dealLimit': 'Jäljelle on jäätävä kortti käännettäväksi ja yksi nostettavaksi, joten {seats} pelaajaa saa enintään {n} korttia.',
   'prsi.rules.turn.match':
     'Pelaa kortti, joka vastaa päällimmäisen kortin maata tai arvoa — tai nosta, jos et voi.',
   'prsi.rules.turn.draw': 'Nostaminen päättää vuorosi ilman pelaamista.',
+  'prsi.rules.turn.nothingToDraw': 'Jos nostettavaa ei ole eikä mikään korteistasi sovi, nosto päättää vuorosi ilman korttia.',
   'prsi.rules.sevens':
     'Pelaa 7, niin seuraava pelaaja nostaa kaksi korttia, ellei hän vastaa omalla seiskallaan.',
   'prsi.rules.aces': 'Pelaa ässä, niin seuraavan pelaajan vuoro ohitetaan.',
   'prsi.rules.queens': 'Pelaa svršek (Ober) ja nimeä maa, joka jatkuu.',
   'prsi.rules.end': 'Ottelu päättyy sillä hetkellä, kun jonkun käsi on tyhjä.',
+  'prsi.rules.end.blocked': 'Jos kaikki pelaajat vuorollaan ohittavat näin, kukaan ei voi pelata: vähiten kortteja voittaa, ja tasapelissä voitto jaetaan.',
   'prsi.remedy.matchOrDraw': 'Pelaa {suit}-kortti tai sellainen, joka sopii korttiin {card} — muuten nosta.',
   'prsi.remedy.answerSevenOrTake': 'Vastaa omalla seiskallasi tai ota {n} korttia.',
   'prsi.remedy.playOrDraw': 'Sinulla ei ole väliin jäävää vuoroa — pelaa {suit}-kortti tai nosta.',
@@ -164,6 +167,7 @@ export const fi: Record<string, string> = {
   'prsi.move.drew': '{player} nosti kortin',
   'prsi.move.tookMany': '{player} otti {n} korttia',
   'prsi.move.missedTurn': '{player} jättää vuoron väliin',
+  'prsi.move.nothingToDraw': '{player} ei voinut nostaa mitään',
 
   'canasta.rules.section.goal': 'Tavoite',
   'canasta.rules.section.setup': 'Valmistelu',
@@ -422,6 +426,7 @@ export const fi: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Vastaa seiskalla tai ota kortit',
   'err.NOTHING_TO_SKIP': 'Väliin jäävää vuoroa ei ole',
   'err.NOTHING_TO_DRAW': 'Nostettavaa ei ole enää jäljellä',
+  'err.DEAL_TOO_LARGE': 'Kortit eivät riitä jakamaan niin monta jokaiselle. Jaa vähemmän kortteja tai ota vähemmän pelaajia.',
   'err.PILE_EMPTY': 'Pino on tyhjä',
   'err.PILE_BLOCKED': 'Pino on tukossa — päällimmäisenä on musta kolmonen',
   'err.PILE_FROZEN': 'Pino on jäädytetty — tarvitset kaksi luonnollista korttia päällimmäisen kortin arvosta',

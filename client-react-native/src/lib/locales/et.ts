@@ -141,13 +141,16 @@ export const et: Record<string, string> = {
   'prsi.rules.goal': 'Ole esimene, kes mängib välja kõik oma käes olevad kaardid.',
   'prsi.rules.deck': 'Mängitakse {value} kaardiga pakiga (seitsmest ülespoole).',
   'prsi.rules.deal': 'Iga mängija alustab {n} kaardiga.',
+  'prsi.rules.dealLimit': 'Alles peab jääma kaart avamiseks ja üks võtmiseks, seega saab {seats} mängijat kuni {n} kaarti.',
   'prsi.rules.turn.match':
     'Mängi kaart, mis sobib pealmise kaardi masti või väärtusega — või tõmba, kui ei saa.',
   'prsi.rules.turn.draw': 'Tõmbamine lõpetab su käigu ilma mängimata.',
+  'prsi.rules.turn.nothingToDraw': 'Kui võtta pole midagi ja ükski su kaart ei sobi, lõpetab võtmine su käigu ilma kaardita.',
   'prsi.rules.sevens': 'Mängi 7 ja järgmine mängija tõmbab kaks kaarti, kui ta ei vasta oma seitsmega.',
   'prsi.rules.aces': 'Mängi äss ja järgmise mängija käik jäetakse vahele.',
   'prsi.rules.queens': 'Mängi svršek (Ober) ja nimeta mast, mis jätkub.',
   'prsi.rules.end': 'Matš lõpeb hetkel, mil kellegi käsi on tühi.',
+  'prsi.rules.end.blocked': 'Kui kõik mängijad järjest nii mööduvad, ei saa keegi käia: võidab vähim kaartidega ja viigi korral jagatakse võit.',
   'prsi.remedy.matchOrDraw':
     'Käi {suit} kaardiga või sellisega, mis sobib kaardile {card} — muidu võta kaart.',
   'prsi.remedy.answerSevenOrTake': 'Vasta oma seitsmega või võta {n} kaarti.',
@@ -163,6 +166,7 @@ export const et: Record<string, string> = {
   'prsi.move.drew': '{player} võttis kaardi',
   'prsi.move.tookMany': '{player} võttis {n} kaarti',
   'prsi.move.missedTurn': '{player} jääb käigust ilma',
+  'prsi.move.nothingToDraw': '{player} ei saanud midagi võtta',
 
   'canasta.rules.section.goal': 'Eesmärk',
   'canasta.rules.section.setup': 'Ettevalmistus',
@@ -422,6 +426,7 @@ export const et: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Vasta seitsmega või võta kaardid',
   'err.NOTHING_TO_SKIP': 'Vahele jätta pole midagi',
   'err.NOTHING_TO_DRAW': 'Tõmmata pole enam midagi',
+  'err.DEAL_TOO_LARGE': 'Kaarte pole nii paljudele mängijatele piisavalt. Jaga vähem kaarte või vähem mängijaid.',
   'err.PILE_EMPTY': 'Hunnik on tühi',
   'err.PILE_BLOCKED': 'Hunnik on blokeeritud — peal on must kolm',
   'err.PILE_FROZEN': 'Hunnik on külmutatud — vaja on kaht loomulikku pealmise kaardi väärtusega kaarti',

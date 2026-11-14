@@ -138,14 +138,17 @@ export const da: Record<string, string> = {
   'prsi.rules.goal': 'Vær den første til at spille alle kort på hånden ud.',
   'prsi.rules.deck': 'Spilles med et spil på {value} kort (fra 7 og op).',
   'prsi.rules.deal': 'Hver spiller starter med {n} kort.',
+  'prsi.rules.dealLimit': 'Der skal være et kort tilbage at vende og et at trække, så {seats} spillere får højst {n} kort hver.',
   'prsi.rules.turn.match':
     'Spil et kort, der passer med det øverste korts farve eller værdi — eller træk, hvis du ikke kan.',
   'prsi.rules.turn.draw': 'At trække afslutter din tur uden udspil.',
+  'prsi.rules.turn.nothingToDraw': 'Er der intet tilbage at trække, og passer ingen af dine kort, afslutter et træk din tur uden kort.',
   'prsi.rules.sevens':
     "Spil en 7'er, og den næste spiller trækker to kort, medmindre vedkommende svarer med sin egen 7'er.",
   'prsi.rules.aces': 'Spil et es, og den næste spillers tur springes over.',
   'prsi.rules.queens': 'Spil en svršek (Ober) og nævn den farve, der fortsætter.',
   'prsi.rules.end': 'Matchen slutter i det øjeblik, en hånd er tom.',
+  'prsi.rules.end.blocked': 'Går alle spillere på skift videre sådan, kan ingen spille: færrest kort vinder, og står det lige, deles sejren.',
   'prsi.remedy.matchOrDraw': 'Spil et {suit}-kort eller et, der passer på {card} — ellers træk.',
   'prsi.remedy.answerSevenOrTake': 'Svar med din egen syver, eller tag de {n} kort.',
   'prsi.remedy.playOrDraw': 'Der venter ingen overspringelse — spil et {suit}-kort, eller træk.',
@@ -160,6 +163,7 @@ export const da: Record<string, string> = {
   'prsi.move.drew': '{player} trak et kort',
   'prsi.move.tookMany': '{player} tog {n} kort',
   'prsi.move.missedTurn': '{player} springes over',
+  'prsi.move.nothingToDraw': '{player} havde intet at trække',
 
   'canasta.rules.section.goal': 'Mål',
   'canasta.rules.section.setup': 'Opstilling',
@@ -417,6 +421,7 @@ export const da: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Svar med en syver, eller tag kortene',
   'err.NOTHING_TO_SKIP': 'Der er ingen tur at springe over',
   'err.NOTHING_TO_DRAW': 'Der er ikke mere at trække',
+  'err.DEAL_TOO_LARGE': 'Der er ikke kort nok til at give alle så mange. Giv færre kort eller sæt færre spillere.',
   'err.PILE_EMPTY': 'Bunken er tom',
   'err.PILE_BLOCKED': 'Bunken er blokeret — der ligger en sort treer øverst',
   'err.PILE_FROZEN': 'Bunken er frosset — du skal bruge to naturlige kort af det øverste korts værdi',

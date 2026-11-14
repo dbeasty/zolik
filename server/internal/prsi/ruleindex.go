@@ -31,7 +31,9 @@ func refusalRules(code string) []string {
 	case ErrNotYourTurn, ErrCardDoesNotFit:
 		return []string{"prsi.rules.turn.match"}
 	case ErrNothingToDraw:
-		return []string{"prsi.rules.turn.draw"}
+		return []string{"prsi.rules.turn.nothingToDraw"}
+	case ErrDealTooLarge:
+		return []string{"prsi.rules.dealLimit"}
 
 	// The three special cards, each of which is a rule a player meets first as
 	// a refusal: a seven you have to answer, an ace you have to take, a queen

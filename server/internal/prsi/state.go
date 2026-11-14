@@ -26,6 +26,10 @@
 //   - A skips the next player.
 //   - Q is wild: play it on anything and name the suit that follows.
 //   - Empty your hand to win.
+//   - Nothing left to draw and nothing that fits: drawing passes the turn
+//     with no card. If every seat in turn does so, the fewest cards wins
+//     (a tie shares the win).
+//   - Seats times cards dealt must leave a card to turn up and one to draw.
 package prsi
 
 import (
@@ -81,7 +85,17 @@ type GameState struct {
 	OpenDiscard bool `json:"openDiscard,omitempty"`
 
 	WinnerID string `json:"winnerId,omitempty"`
-	Seed     int64  `json:"seed"`
+	// Winners is everyone who won. One seat when somebody went out (and then
+	// WinnerID too); possibly several when the match ended blocked and they
+	// tied on the fewest cards — see endBlocked.
+	Winners []string `json:"winners,omitempty"`
+
+	// BlankDraws counts consecutive free turns on which there was nothing to
+	// draw and nothing to play. When it reaches the number of seats nobody
+	// can ever move again, and the match ends on the fewest cards.
+	BlankDraws int `json:"blankDraws,omitempty"`
+
+	Seed int64 `json:"seed"`
 	// Reshuffles counts how many times the pile has been recycled, which also
 	// varies the reshuffle seed so the same cards do not come back in the
 	// same order.
@@ -106,8 +120,14 @@ const (
 	ErrMustAnswerDraw = "MUST_ANSWER_DRAW_OR_TAKE"
 	ErrSuitRequired   = "SUIT_REQUIRED"
 	ErrUnknownSuit    = "UNKNOWN_SUIT"
-	ErrNothingToDraw  = "NOTHING_TO_DRAW"
-	ErrUnknownAction  = "UNKNOWN_ACTION"
+	// ErrNothingToDraw is a draw from an empty pile by a player who could
+	// play instead. With nothing playable the same draw is allowed and ends
+	// the turn with no card.
+	ErrNothingToDraw = "NOTHING_TO_DRAW"
+	// ErrDealTooLarge is a table whose seats times cards dealt leaves no card
+	// to turn up and none to draw from the 32.
+	ErrDealTooLarge  = "DEAL_TOO_LARGE"
+	ErrUnknownAction = "UNKNOWN_ACTION"
 )
 
 // Verbs this module accepts.
@@ -129,6 +149,17 @@ func suitOf(card string) string {
 		return ""
 	}
 	return card[len(card)-1:]
+}
+
+// winners is everyone who won a completed match.
+func (s *GameState) winners() []string {
+	if len(s.Winners) > 0 {
+		return append([]string(nil), s.Winners...)
+	}
+	if s.WinnerID != "" {
+		return []string{s.WinnerID}
+	}
+	return nil
 }
 
 func (s *GameState) top() string {

@@ -141,14 +141,17 @@ export const nl: Record<string, string> = {
   'prsi.rules.goal': 'Wees de eerste die elke kaart uit zijn hand speelt.',
   'prsi.rules.deck': 'Gespeeld met een spel van {value} kaarten (vanaf de 7).',
   'prsi.rules.deal': 'Elke speler begint met {n} kaarten.',
+  'prsi.rules.dealLimit': 'Er moet een kaart over zijn om om te draaien en een om te pakken, dus {seats} spelers krijgen hoogstens {n} kaarten.',
   'prsi.rules.turn.match':
     'Speel een kaart die past bij de kleur of de waarde van de bovenste kaart — of pak er een als dat niet lukt.',
   'prsi.rules.turn.draw': 'Pakken beëindigt je beurt zonder te spelen.',
+  'prsi.rules.turn.nothingToDraw': 'Is er niets meer te pakken en past geen van je kaarten, dan eindigt pakken je beurt zonder kaart.',
   'prsi.rules.sevens':
     'Speel een 7 en de volgende speler pakt twee kaarten, tenzij die met een eigen 7 antwoordt.',
   'prsi.rules.aces': 'Speel een aas en de beurt van de volgende speler wordt overgeslagen.',
   'prsi.rules.queens': 'Speel een svršek (Ober) en noem de kleur die verdergaat.',
   'prsi.rules.end': 'De partij eindigt op het moment dat iemands hand leeg is.',
+  'prsi.rules.end.blocked': 'Als alle spelers om de beurt zo passen, kan niemand meer spelen: de minste kaarten wint, en bij gelijkspel wordt de winst gedeeld.',
   'prsi.remedy.matchOrDraw': 'Speel een {suit}-kaart of een die op {card} past — anders pak je een kaart.',
   'prsi.remedy.answerSevenOrTake': 'Antwoord met een eigen zeven, of pak de {n} kaarten.',
   'prsi.remedy.playOrDraw': 'Er wacht geen beurt om over te slaan — speel een {suit}-kaart of pak een kaart.',
@@ -163,6 +166,7 @@ export const nl: Record<string, string> = {
   'prsi.move.drew': '{player} pakte een kaart',
   'prsi.move.tookMany': '{player} pakte {n} kaarten',
   'prsi.move.missedTurn': '{player} slaat een beurt over',
+  'prsi.move.nothingToDraw': '{player} had niets meer te pakken',
 
   'canasta.rules.section.goal': 'Doel',
   'canasta.rules.section.setup': 'Opzet',
@@ -427,6 +431,7 @@ export const nl: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Antwoord met een zeven, of neem de kaarten',
   'err.NOTHING_TO_SKIP': 'Er is geen beurt om over te slaan',
   'err.NOTHING_TO_DRAW': 'Er is niets meer om te pakken',
+  'err.DEAL_TOO_LARGE': 'Niet genoeg kaarten om iedereen zoveel te geven. Deel minder kaarten of laat minder spelers aanschuiven.',
   'err.PILE_EMPTY': 'De stapel is leeg',
   'err.PILE_BLOCKED': 'De stapel is geblokkeerd — er ligt een zwarte drie bovenop',
   'err.PILE_FROZEN':

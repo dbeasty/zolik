@@ -38,6 +38,12 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		return nil, module.Error{Code: "TOO_FEW_PLAYERS", Message: "prsi needs at least two players"}
 	}
 	handSize := cfg.Opt(OptHandSize, defaultHandSize)
+	if !dealFits(len(players), handSize) {
+		// Six players at six cards is 36 from a 32-card pack. Refused rather
+		// than quietly dealt short: the host chose the number, and the reason
+		// names the written rule so they can pick a smaller one.
+		return nil, module.Error{Code: ErrDealTooLarge, Message: "not enough cards to deal that many to every player"}
+	}
 
 	deck := shuffle(buildDeck(), seed)
 	s := &GameState{
@@ -62,7 +68,11 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	// Turn the first card. A wild would leave nobody having named a suit, so
 	// bury it and try the next — simpler and less surprising than asking the
 	// dealer to declare one before anyone has looked at their hand.
-	for len(deck) > 1 && rankOf(deck[0]) == rankWild {
+	//
+	// Bounded by the cards left: a short pile that is nothing but queens
+	// would otherwise rotate forever. Then a queen is turned after all, and
+	// its own suit is the one in play (suitInPlay).
+	for tries := len(deck); tries > 1 && rankOf(deck[0]) == rankWild; tries-- {
 		deck = append(deck[1:], deck[0])
 	}
 	s.DiscardPile = []string{deck[0]}
@@ -136,6 +146,7 @@ func (m *Module) applyPlay(s *GameState, playerID string, a module.Action) (modu
 
 	s.Hands[playerID] = removeCard(s.Hands[playerID], card)
 	s.DiscardPile = append(s.DiscardPile, card)
+	s.BlankDraws = 0
 	s.DeclaredSuit = declared
 
 	events := []module.Event{{Type: "card_played", Data: map[string]any{
@@ -176,7 +187,20 @@ func (m *Module) applyPlay(s *GameState, playerID string, a module.Action) (modu
 // draw one" and "I could not answer a 7, so I take the two". They are the
 // same gesture at a table, and splitting them would make a client decide
 // which one it was — a rule the client would then own.
+//
+// When the pile has nothing to give — every card is in a hand or is the top
+// of the discard pile — the draw still ends the turn, with no card: a turn
+// must never be left with no legal way to end it. That is refused only to a
+// player who could play instead, so it is never a way to stall. A seven's
+// debt is paid with whatever the pile has, which may be nothing. And once
+// every seat in turn has passed that way with nothing owed, nobody can ever
+// move again, so the match ends on the fewest cards (endBlocked).
 func (m *Module) applyDraw(s *GameState, playerID string) (module.State, []module.Event, error) {
+	owed := s.PendingDraw > 0 || s.SkipPending
+	if !s.canDraw() && !owed && s.holdsPlayable(playerID) {
+		return nil, nil, module.Error{Code: ErrNothingToDraw}
+	}
+
 	count := 1
 	if s.PendingDraw > 0 {
 		count = s.PendingDraw
@@ -190,21 +214,74 @@ func (m *Module) applyDraw(s *GameState, playerID string) (module.State, []modul
 		}
 		drawn = append(drawn, card)
 	}
-	if len(drawn) == 0 {
-		// Nothing anywhere. The turn still has to move, or play deadlocks.
-		if s.PendingDraw == 0 {
-			return nil, nil, module.Error{Code: ErrNothingToDraw}
-		}
-	}
 	s.Hands[playerID] = append(s.Hands[playerID], drawn...)
 	s.PendingDraw = 0
 	s.SkipPending = false
-	s.Current = s.nextPlayer(playerID)
 
-	out, err := encode(s)
-	return out, []module.Event{{Type: "cards_drawn", Data: map[string]any{
+	events := []module.Event{{Type: "cards_drawn", Data: map[string]any{
 		"playerId": playerID, "count": len(drawn),
-	}}}, err
+	}}}
+
+	// Only a free turn counts towards the circle: a player who just paid a
+	// seven or an ace with nothing has not yet had the chance to play on
+	// this pile, and may well be able to next time round.
+	if len(drawn) == 0 && !owed {
+		s.BlankDraws++
+	} else {
+		s.BlankDraws = 0
+	}
+	if s.BlankDraws >= len(s.TurnOrder) {
+		events = append(events, s.endBlocked()...)
+		out, err := encode(s)
+		return out, events, err
+	}
+
+	s.Current = s.nextPlayer(playerID)
+	out, err := encode(s)
+	return out, events, err
+}
+
+// endBlocked ends a match nobody can move in: the fewest cards in hand wins,
+// and players tied on the fewest share the win.
+func (s *GameState) endBlocked() []module.Event {
+	fewest := -1
+	for _, p := range s.TurnOrder {
+		if n := len(s.Hands[p]); fewest < 0 || n < fewest {
+			fewest = n
+		}
+	}
+	s.Winners = nil
+	for _, p := range s.TurnOrder {
+		if len(s.Hands[p]) == fewest {
+			s.Winners = append(s.Winners, p)
+		}
+	}
+	s.WinnerID = ""
+	if len(s.Winners) == 1 {
+		s.WinnerID = s.Winners[0]
+	}
+	s.Status = "completed"
+	s.Current = ""
+	s.BlankDraws = 0
+	return []module.Event{{Type: "game_ended", Data: map[string]any{
+		"winnerIds": append([]string(nil), s.Winners...), "blocked": true,
+	}}}
+}
+
+// canDraw is whether the pile can give a card, counting the discard pile it
+// would be recycled from (everything under its top card).
+func (s *GameState) canDraw() bool {
+	return len(s.DrawPile) > 0 || len(s.DiscardPile) > 1
+}
+
+// holdsPlayable is whether any card in this player's hand fits the pile.
+func (s *GameState) holdsPlayable(playerID string) bool {
+	for _, c := range s.Hands[playerID] {
+		if s.playable(c) {
+			return true
+		}
+	}
+	return false
 }
 
 // applyPass takes the turn an Ace cost you. Only legal while a skip is
@@ -214,6 +291,7 @@ func (m *Module) applyPass(s *GameState, playerID string) (module.State, []modul
 		return nil, nil, module.Error{Code: ErrNothingToSkip, Message: "nothing to pass on"}
 	}
 	s.SkipPending = false
+	s.BlankDraws = 0
 	s.Current = s.nextPlayer(playerID)
 	out, err := encode(s)
 	return out, []module.Event{{Type: "turn_skipped", Data: map[string]any{"playerId": playerID}}}, err
@@ -253,10 +331,24 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	if err != nil {
 		return false, nil, err
 	}
-	if s.Status != "completed" || s.WinnerID == "" {
-		return s.Status == "completed", nil, nil
+	if s.Status != "completed" {
+		return false, nil, nil
 	}
-	return true, []string{s.WinnerID}, nil
+	return true, s.winners(), nil
+}
+
+// dealFits is whether a deal of handSize to each of n players leaves a card to
+// turn up and at least one to draw. Rules() states it (prsi.rules.dealLimit).
+func dealFits(n, handSize int) bool {
+	return n*handSize+2 <= len(ranks)*len(suits)
+}
+
+// maxHandSize is the most cards each of n players can be dealt.
+func maxHandSize(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	return (len(ranks)*len(suits) - 2) / n
 }
 
 func isSuit(s string) bool {

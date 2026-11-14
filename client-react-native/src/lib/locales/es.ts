@@ -144,14 +144,17 @@ export const es: Record<string, string> = {
   'prsi.rules.goal': 'Sé el primero en jugar todas las cartas de tu mano.',
   'prsi.rules.deck': 'Se juega con una baraja de {value} cartas (del 7 en adelante).',
   'prsi.rules.deal': 'Cada jugador empieza con {n} cartas.',
+  'prsi.rules.dealLimit': 'Debe quedar una carta para descubrir y otra para robar, así que {seats} jugadores reciben como máximo {n} cartas cada uno.',
   'prsi.rules.turn.match':
     'Juega una carta que coincida en palo o valor con la de encima — o roba si no puedes.',
   'prsi.rules.turn.draw': 'Robar termina tu turno sin jugar carta.',
+  'prsi.rules.turn.nothingToDraw': 'Si no queda nada que robar y ninguna de tus cartas encaja, robar termina tu turno sin carta.',
   'prsi.rules.sevens':
     'Juega un 7 y el siguiente jugador roba dos cartas, salvo que responda con un 7 propio.',
   'prsi.rules.aces': 'Juega un as y el siguiente jugador pierde su turno.',
   'prsi.rules.queens': 'Juega un svršek (el Ober) y di el palo que continúa.',
   'prsi.rules.end': 'La partida termina en cuanto una mano se queda vacía.',
+  'prsi.rules.end.blocked': 'Si todos los jugadores pasan así por turno, nadie puede jugar: gana quien tenga menos cartas y un empate comparte la victoria.',
   'prsi.remedy.matchOrDraw': 'Juega una carta de {suit} o una que case con {card}; si no, roba.',
   'prsi.remedy.answerSevenOrTake': 'Responde con un siete tuyo, o llévate las {n} cartas.',
   'prsi.remedy.playOrDraw': 'No hay ningún turno que saltarte: juega una carta de {suit} o roba.',
@@ -166,6 +169,7 @@ export const es: Record<string, string> = {
   'prsi.move.drew': '{player} robó una carta',
   'prsi.move.tookMany': '{player} se llevó {n} cartas',
   'prsi.move.missedTurn': '{player} pierde el turno',
+  'prsi.move.nothingToDraw': '{player} no tenía nada que robar',
 
   'canasta.rules.section.goal': 'Objetivo',
   'canasta.rules.section.setup': 'Preparación',
@@ -425,6 +429,7 @@ export const es: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Responde con un siete, o llévate las cartas',
   'err.NOTHING_TO_SKIP': 'No hay ningún turno que saltarse',
   'err.NOTHING_TO_DRAW': 'No queda nada que robar',
+  'err.DEAL_TOO_LARGE': 'No hay cartas suficientes para repartir tantas a cada jugador. Reparte menos cartas o sienta a menos jugadores.',
   'err.PILE_EMPTY': 'El montón está vacío',
   'err.PILE_BLOCKED': 'El montón está bloqueado — hay un tres negro encima',
   'err.PILE_FROZEN':

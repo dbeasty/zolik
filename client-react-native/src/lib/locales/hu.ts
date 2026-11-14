@@ -144,14 +144,17 @@ export const hu: Record<string, string> = {
   'prsi.rules.goal': 'Játszd ki elsőként a kezedben lévő összes lapot.',
   'prsi.rules.deck': '{value} lapos paklival játsszák (héttől felfelé).',
   'prsi.rules.deal': 'Minden játékos {n} lappal kezd.',
+  'prsi.rules.dealLimit': 'Maradnia kell egy lapnak a felfordításhoz és egynek a húzáshoz, így {seats} játékos legfeljebb {n} lapot kap.',
   'prsi.rules.turn.match':
     'Játssz ki egy lapot, amely illik a felső lap színéhez vagy értékéhez — vagy húzz, ha nem tudsz.',
   'prsi.rules.turn.draw': 'A húzás kijátszás nélkül zárja le a köröd.',
+  'prsi.rules.turn.nothingToDraw': 'Ha nincs mit húzni, és egyik lapod sem illik, a húzás lap nélkül zárja a köröd.',
   'prsi.rules.sevens':
     'Ha 7-est játszol ki, a következő játékos két lapot húz, hacsak nem válaszol saját 7-essel.',
   'prsi.rules.aces': 'Ha ászt játszol ki, a következő játékos köre kimarad.',
   'prsi.rules.queens': 'Játssz ki egy svršeket (felsőt), és mondd meg, melyik szín folytatódik.',
   'prsi.rules.end': 'A mérkőzés abban a pillanatban véget ér, amikor valakinek üres a keze.',
+  'prsi.rules.end.blocked': 'Ha sorban minden játékos így passzol, senki sem léphet: a legkevesebb lap nyer, döntetlennél a győzelem megosztott.',
   'prsi.remedy.matchOrDraw':
     'Tegyél le egy {suit} lapot, vagy olyat, ami illik a(z) {card} lapra — különben húzz.',
   'prsi.remedy.answerSevenOrTake': 'Válaszolj saját hetessel, vagy húzd fel a(z) {n} lapot.',
@@ -167,6 +170,7 @@ export const hu: Record<string, string> = {
   'prsi.move.drew': '{player} húzott egy lapot',
   'prsi.move.tookMany': '{player} felhúzott {n} lapot',
   'prsi.move.missedTurn': '{player} kimarad egy körből',
+  'prsi.move.nothingToDraw': '{player} nem tudott mit húzni',
 
   'canasta.rules.section.goal': 'Cél',
   'canasta.rules.section.setup': 'Előkészítés',
@@ -429,6 +433,7 @@ export const hu: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Válaszolj hetessel, vagy vedd fel a lapokat',
   'err.NOTHING_TO_SKIP': 'Nincs kihagyandó kör',
   'err.NOTHING_TO_DRAW': 'Nem maradt mit húzni',
+  'err.DEAL_TOO_LARGE': 'Nincs elég lap, hogy mindenki ennyit kapjon. Osszatok kevesebb lapot, vagy üljön le kevesebb játékos.',
   'err.PILE_EMPTY': 'A pakli üres',
   'err.PILE_BLOCKED': 'A pakli le van zárva — fekete hármas van a tetején',
   'err.PILE_FROZEN': 'A pakli be van fagyasztva — két természetes lap kell a felső lap értékéből',

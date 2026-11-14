@@ -142,14 +142,17 @@ export const lv: Record<string, string> = {
   'prsi.rules.goal': 'Esi pirmais, kas izspēlē visas rokas kārtis.',
   'prsi.rules.deck': 'Spēlē ar {value} kāršu kavām (no septītnieka uz augšu).',
   'prsi.rules.deal': 'Katrs spēlētājs sāk ar {n} kārtīm.',
+  'prsi.rules.dealLimit': 'Jāpaliek kārtij atvēršanai un vienai vilkšanai, tāpēc {seats} spēlētāji saņem ne vairāk kā {n} kārtis.',
   'prsi.rules.turn.match':
     'Izspēlē kārti, kas atbilst augšējās kārts krāsai vai vērtībai — vai velc, ja nevari.',
   'prsi.rules.turn.draw': 'Vilkšana beidz tavu gājienu bez izspēles.',
+  'prsi.rules.turn.nothingToDraw': 'Ja vairs nav ko vilkt un neviena tava kārts neder, vilkšana beidz gājienu bez kārts.',
   'prsi.rules.sevens':
     'Izspēlē 7, un nākamais spēlētājs velk divas kārtis, ja vien viņš neatbild ar savu septītnieku.',
   'prsi.rules.aces': 'Izspēlē dūzi, un nākamā spēlētāja gājiens tiek izlaists.',
   'prsi.rules.queens': 'Izspēlē svršeku (oberi) un nosauc krāsu, kas turpinās.',
   'prsi.rules.end': 'Mačs beidzas brīdī, kad kāda roka ir tukša.',
+  'prsi.rules.end.blocked': 'Ja visi spēlētāji pēc kārtas tā izlaiž, neviens nevar spēlēt: uzvar vismazāk kāršu, un neizšķirts uzvaru dala.',
   'prsi.remedy.matchOrDraw': 'Izspēlē {suit} kārti vai tādu, kas der uz {card} — citādi velc.',
   'prsi.remedy.answerSevenOrTake': 'Atbildi ar savu septītnieku vai paņem {n} kārtis.',
   'prsi.remedy.playOrDraw': 'Tevi negaida neviens izlaidums — izspēlē {suit} kārti vai velc.',
@@ -164,6 +167,7 @@ export const lv: Record<string, string> = {
   'prsi.move.drew': '{player} velk kārti',
   'prsi.move.tookMany': '{player} paņem kārtis: {n}',
   'prsi.move.missedTurn': '{player} izlaiž gājienu',
+  'prsi.move.nothingToDraw': '{player} nebija ko vilkt',
 
   'canasta.rules.section.goal': 'Mērķis',
   'canasta.rules.section.setup': 'Sagatavošana',
@@ -422,6 +426,7 @@ export const lv: Record<string, string> = {
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Atbildi ar septītnieku vai paņem kārtis',
   'err.NOTHING_TO_SKIP': 'Nav neviena izlaižama gājiena',
   'err.NOTHING_TO_DRAW': 'Vairs nav ko vilkt',
+  'err.DEAL_TOO_LARGE': 'Nepietiek kāršu, lai katram iedalītu tik daudz. Izdaliet mazāk kāršu vai sēdiniet mazāk spēlētāju.',
   'err.PILE_EMPTY': 'Kaudze ir tukša',
   'err.PILE_BLOCKED': 'Kaudze ir bloķēta — virspusē guļ melns trijnieks',
   'err.PILE_FROZEN': 'Kaudze ir iesaldēta — tev vajadzīgas divas dabiskas augšējās kārts vērtības kārtis',
