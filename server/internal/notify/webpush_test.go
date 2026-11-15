@@ -70,7 +70,7 @@ func TestWebPushEncryptsForTheSubscriptionAndSignsWithVAPID(t *testing.T) {
 
 	var gotBody []byte
 	var gotHeaders http.Header
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotHeaders = r.Header.Clone()
 		gotBody, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusCreated)
@@ -85,6 +85,7 @@ func TestWebPushEncryptsForTheSubscriptionAndSignsWithVAPID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sender.Client, sender.allowPrivate = srv.Client(), true
 	d := Device{ID: "d", Kind: DeviceWebPush, Subscription: &Subscription{Endpoint: srv.URL + "/push/abc"}}
 	d.Subscription.Keys.P256dh = enc.EncodeToString(ua.PublicKey().Bytes())
 	d.Subscription.Keys.Auth = enc.EncodeToString(secret)
@@ -123,12 +124,13 @@ func TestWebPushEncryptsForTheSubscriptionAndSignsWithVAPID(t *testing.T) {
 }
 
 func TestWebPushGoneMeansDelete(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusGone)
 	}))
 	defer srv.Close()
 	pub, priv, _ := GenerateVAPIDKeys()
 	sender, _ := NewWebPushSender(pub, priv, "mailto:x@example.com")
+	sender.Client, sender.allowPrivate = srv.Client(), true
 	ua, _ := ecdh.P256().GenerateKey(rand.Reader)
 	d := Device{Subscription: &Subscription{Endpoint: srv.URL}}
 	d.Subscription.Keys.P256dh = base64.RawURLEncoding.EncodeToString(ua.PublicKey().Bytes())
