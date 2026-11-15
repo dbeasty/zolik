@@ -338,7 +338,7 @@ if [[ "$SKIP_NGINX" == false ]]; then
   say "nginx vhosts and TLS for play.limidus.com ${JOKERLESS_NAMES[*]}"
 
   tmp_nginx="$(mktemp -d)"
-  for f in zolik-proxy play-limidus jokerless-http jokerless; do
+  for f in zolik-log-format zolik-proxy play-limidus jokerless-http jokerless; do
     # Substitute service IP if overridden (templates ship with 192.168.13.13).
     sed "s/192\\.168\\.13\\.13/${SERVICE_IP}/g" \
       "${ROOT}/deploy/nginx/${f}.conf" > "${tmp_nginx}/zolik-${f}.conf"
@@ -349,6 +349,8 @@ if [[ "$SKIP_NGINX" == false ]]; then
   ssh_admin "sudo bash -s" <<'EOF'
 set -euo pipefail
 mkdir -p /etc/nginx/snippets /var/www/letsencrypt
+# Before the snippet that names the format, or nginx -t fails on it.
+install -m 0644 /tmp/zolik-zolik-log-format.conf /etc/nginx/conf.d/zolik-log-format.conf
 install -m 0644 /tmp/zolik-zolik-proxy.conf    /etc/nginx/snippets/zolik-proxy.conf
 install -m 0644 /tmp/zolik-play-limidus.conf   /etc/nginx/sites-available/play-limidus
 install -m 0644 /tmp/zolik-jokerless-http.conf /etc/nginx/sites-available/jokerless-http
@@ -388,7 +390,7 @@ EOF
 set -euo pipefail
 install -m 0644 /tmp/zolik-jokerless.conf /etc/nginx/sites-available/jokerless
 ln -sfn /etc/nginx/sites-available/jokerless /etc/nginx/sites-enabled/jokerless
-rm -f /tmp/zolik-zolik-proxy.conf /tmp/zolik-play-limidus.conf /tmp/zolik-jokerless-http.conf /tmp/zolik-jokerless.conf
+rm -f /tmp/zolik-zolik-log-format.conf /tmp/zolik-zolik-proxy.conf /tmp/zolik-play-limidus.conf /tmp/zolik-jokerless-http.conf /tmp/zolik-jokerless.conf
 nginx -t
 systemctl reload nginx
 EOF

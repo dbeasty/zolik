@@ -82,6 +82,9 @@ services:
     env_file:
       - .env
     environment:
+      # The development stack, so local unless .env or the shell says
+      # otherwise. Stated because an unset APP_ENV now means production.
+      APP_ENV: "${APP_ENV:-local}"
       REDIS_URL: redis://redis:6379/0
       PORT: "8090"
       SSH_ENABLED: "true"
@@ -103,6 +106,9 @@ services:
     env_file:
       - .env
     environment:
+      # The development stack, so local unless .env or the shell says
+      # otherwise. Stated because an unset APP_ENV now means production.
+      APP_ENV: "${APP_ENV:-local}"
       REDIS_URL: redis://redis:6379/0
       PORT: "8092"
       # Only `app` hosts the SSH TUI (it publishes 2222). Without this, APP_ENV=local

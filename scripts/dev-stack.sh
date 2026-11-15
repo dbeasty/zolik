@@ -114,7 +114,9 @@ compose() {
   # reads sign-in codes back through /auth/dev/last-code. Both are shut in the
   # compose file by default, because that file is also the shape the public
   # host runs; this is the local stack, so this is where they are opened.
-  (cd "$SERVER_DIR" && ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
+  # APP_ENV is said out loud too: unset means production on the server, and
+  # this is the local stack.
+  (cd "$SERVER_DIR" && APP_ENV="${APP_ENV:-local}" ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
     ZOLIK_DEBUG_ENDPOINTS="${ZOLIK_DEBUG_ENDPOINTS:-true}" \
     ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
     ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \

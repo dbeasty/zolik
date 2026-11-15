@@ -58,6 +58,11 @@ services:
     # These override .env, so the container's shape is stated here rather than
     # depending on what a particular host's .env happens to hold.
     environment:
+      # Stated rather than left to .env: an unset APP_ENV is production, and
+      # local is what opens the development hatches. scripts/dev-stack.sh
+      # passes APP_ENV=local; a .env that says otherwise wins over this
+      # default, and nothing ever gets local by omission.
+      APP_ENV: "${APP_ENV:-production}"
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
       # KDB 0.4.0's history retention modes, behind a flag and off by default.
