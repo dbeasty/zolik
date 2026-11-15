@@ -1563,16 +1563,7 @@ export const ro: Record<string, string> = {
   'record.won': 'Câștigate',
   'record.lost': 'Pierdute',
   'record.winRate': 'Rata de victorii',
-  'record.streak': 'Serie',
   'record.atThisGame': 'La acest joc',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 victorie',
-  'record.streakWinMany': '{n} victorii',
-  'record.streakLossOne': '1 înfrângere',
-  'record.streakLossMany': '{n} înfrângeri',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Trage o carte de-a lungul evantaiului ca să o rearanjezi, sau pe masă ca să o joci',

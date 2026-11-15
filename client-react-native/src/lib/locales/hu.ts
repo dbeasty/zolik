@@ -1561,16 +1561,7 @@ export const hu: Record<string, string> = {
   'record.won': 'Nyert',
   'record.lost': 'Vesztett',
   'record.winRate': 'Nyerési arány',
-  'record.streak': 'Sorozat',
   'record.atThisGame': 'Ebben a játékban',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 győzelem',
-  'record.streakWinMany': '{n} győzelem',
-  'record.streakLossOne': '1 vereség',
-  'record.streakLossMany': '{n} vereség',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Húzd a lapot a legyező mentén az átrendezéshez, vagy az asztalra a kijátszáshoz',

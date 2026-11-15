@@ -1567,16 +1567,7 @@ export const mt: Record<string, string> = {
   'record.won': 'Rebħin',
   'record.lost': 'Telfiet',
   'record.winRate': "Rata ta' rebħ",
-  'record.streak': 'Sensiela',
   'record.atThisGame': "F'din il-logħba",
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 rebħa',
-  'record.streakWinMany': '{n} rebħiet',
-  'record.streakLossOne': '1 telfa',
-  'record.streakLossMany': '{n} telfiet',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': "Iġbed karta tul il-mruħa biex terġa' tirranġaha, jew fuq il-mejda biex tilgħabha",

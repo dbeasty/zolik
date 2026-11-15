@@ -1556,16 +1556,7 @@ export const bg: Record<string, string> = {
   'record.won': 'Спечелени',
   'record.lost': 'Загубени',
   'record.winRate': 'Процент победи',
-  'record.streak': 'Серия',
   'record.atThisGame': 'В тази игра',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 победа',
-  'record.streakWinMany': '{n} победи',
-  'record.streakLossOne': '1 загуба',
-  'record.streakLossMany': '{n} загуби',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Влачи карта по ветрилото, за да я пренаредиш, или върху масата, за да я изиграеш',

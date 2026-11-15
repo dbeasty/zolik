@@ -354,7 +354,7 @@ func (r *kdbRepository) EachMatch(ctx context.Context, fn func(MatchResult) erro
 	return nil
 }
 
-func (r *kdbRepository) ReplaceMatchDraw(ctx context.Context, m MatchResult) error {
+func (r *kdbRepository) ReplaceMatchPartnership(ctx context.Context, m MatchResult) error {
 	return r.k.Update(db.NSMatchResults, func(tx *db.Tx) error {
 		key := resultKey(m.MatchID)
 		doc, err := tx.Get(key)
@@ -374,6 +374,7 @@ func (r *kdbRepository) ReplaceMatchDraw(ctx context.Context, m MatchResult) err
 		}
 		cur.IsDraw = m.IsDraw
 		cur.Participants = m.Participants
+		cur.Sides = m.Sides
 		next, err := db.MarshalDoc(cur)
 		if err != nil {
 			return err

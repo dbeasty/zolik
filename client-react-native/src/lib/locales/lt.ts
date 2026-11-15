@@ -1545,16 +1545,7 @@ export const lt: Record<string, string> = {
   'record.won': 'Laimėta',
   'record.lost': 'Pralaimėta',
   'record.winRate': 'Pergalių dalis',
-  'record.streak': 'Serija',
   'record.atThisGame': 'Šiame žaidime',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 pergalė',
-  'record.streakWinMany': 'Pergalės: {n}',
-  'record.streakLossOne': '1 pralaimėjimas',
-  'record.streakLossMany': 'Pralaimėjimai: {n}',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Tempk kortą palei vėduoklę, kad ją perstumtum, arba ant stalo, kad ją sužaistum',

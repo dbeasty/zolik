@@ -2,6 +2,7 @@ import type { MatchModule } from '@/src/api/matchTypes';
 import type { TallyView } from '@/src/api/types';
 import { setLocale } from '@/src/lib/i18n';
 import {
+  recordFigures,
   aiLabel,
   avgRankText,
   difficultySplits,
@@ -75,6 +76,29 @@ describe('streakText', () => {
 
   it('treats zero — a draw, or no matches — as no streak', () => {
     expect(streakText(0)).toBe('No streak');
+  });
+});
+
+describe('recordFigures', () => {
+  // The screenshot that prompted this: 55 played, 29 won, and a streak of
+  // "1 loss" in the slot where the losses belonged.
+  it('shows the losses beside the wins, so the row adds up', () => {
+    const figures = recordFigures(
+      tally({ matches: 55, wins: 29, losses: 26, winRate: 29 / 55 }),
+    );
+    expect(figures.map((f) => [f.key, f.value])).toEqual([
+      ['played', '55'],
+      ['won', '29'],
+      ['lost', '26'],
+      ['winRate', '53%'],
+    ]);
+  });
+
+  it('shows draws only once there is one', () => {
+    const figures = recordFigures(
+      tally({ matches: 4, wins: 1, losses: 2, draws: 1, winRate: 0.25 }),
+    );
+    expect(figures.map((f) => f.key)).toEqual(['played', 'won', 'lost', 'drawn', 'winRate']);
   });
 });
 

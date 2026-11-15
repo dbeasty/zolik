@@ -45,6 +45,15 @@ type MatchResult struct {
 	// Canasta, several seats when a fixed-length match ends level.
 	Winners []string `bson:"winners,omitempty" json:"winners,omitempty"`
 	IsDraw  bool     `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
+	// Sides is who played with whom, as player ids grouped one slice per
+	// partnership, or nil where everyone played for themselves. It is what
+	// keeps a partner out of the opponents a seat is credited with facing:
+	// sitting beside a Hard bot is not playing against one.
+	//
+	// Nil on rows written before it existed, and on rows the partnership
+	// repair has not reached; a reader treats that as "every other seat is an
+	// opponent", which is the old reading.
+	Sides [][]string `bson:"sides,omitempty" json:"sides,omitempty"`
 	// DealFrom is the match whose deal this one was dealt again from, when it
 	// was (models.Match.DealFrom).
 	DealFrom string `bson:"dealFrom,omitempty" json:"dealFrom,omitempty"`

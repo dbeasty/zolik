@@ -4,13 +4,14 @@ import { useRouter } from 'expo-router';
 
 import { useSession } from '@/src/context/SessionContext';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import type { LifetimeStats } from '@/src/api/types';
+import type { LifetimeStats, TallyView } from '@/src/api/types';
 import type { Metrics } from '@/src/lib/layout';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
 import { t } from '@/src/lib/i18n';
+import { recordFigures, streakText } from '@/src/lib/stats';
 
 /**
  * The player's own record, beside the match that just changed it.
@@ -113,17 +114,13 @@ export function LifetimeRecord({ moduleId }: Props) {
 
   return (
     <Panel title={t('record.title')} forceOpen testID="lifetime-record">
-      <View style={styles.grid}>
-        <Figure label={t('record.played')} value={String(stats.overall.matches)} styles={styles} />
-        <Figure label={t('record.won')} value={String(stats.overall.wins)} styles={styles} />
-        <Figure
-          label={t('record.winRate')}
-          value={percent(stats.overall.winRate)}
-          styles={styles}
-          testID="lifetime-win-rate"
-        />
-        <Figure label={t('record.streak')} value={streakText(stats.currentStreak)} styles={styles} />
-      </View>
+      <Tally tally={stats.overall} styles={styles} testID="lifetime-overall" />
+      {/* The streak is a sentence of its own rather than a fifth figure: as
+          "Streak: 1 loss" beside Played and Won it read as a loss count, and
+          55 played, 29 won, 1 loss does not add up. */}
+      <Text style={styles.streak} testID="lifetime-streak">
+        {streakText(stats.currentStreak)}
+      </Text>
 
       {/* Kept separate from the overall figures on purpose: a rummy penalty
           total and a poker stack are not comparable numbers, so an average
@@ -131,15 +128,35 @@ export function LifetimeRecord({ moduleId }: Props) {
       {perGame ? (
         <View style={styles.perGame} testID="lifetime-this-game">
           <Text style={styles.perGameTitle}>{t('record.atThisGame')}</Text>
-          <View style={styles.grid}>
-            <Figure label={t('record.played')} value={String(perGame.matches)} styles={styles} />
-            <Figure label={t('record.won')} value={String(perGame.wins)} styles={styles} />
-            <Figure label={t('record.winRate')} value={percent(perGame.winRate)} styles={styles} />
-            <Figure label={t('record.lost')} value={String(perGame.losses)} styles={styles} />
-          </View>
+          <Tally tally={perGame} styles={styles} />
         </View>
       ) : null}
     </Panel>
+  );
+}
+
+/** One bucket's figures; which ones, and in what order, is recordFigures'. */
+function Tally({
+  tally,
+  styles,
+  testID,
+}: {
+  tally: TallyView;
+  styles: ReturnType<typeof recordStyles>;
+  testID?: string;
+}) {
+  return (
+    <View style={styles.grid} testID={testID}>
+      {recordFigures(tally).map((f) => (
+        <Figure
+          key={f.key}
+          label={f.label}
+          value={f.value}
+          styles={styles}
+          testID={testID ? `${testID}-${f.key}` : undefined}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -164,18 +181,6 @@ function Figure({
   );
 }
 
-function percent(rate: number): string {
-  return `${Math.round(rate * 100)}%`;
-}
-
-/** A signed streak, said in words — "3 wins" reads better than "+3". */
-function streakText(streak: number): string {
-  if (streak === 0) return t('record.streakNone');
-  const n = Math.abs(streak);
-  if (streak > 0) return n === 1 ? t('record.streakWinOne') : t('record.streakWinMany', { n });
-  return n === 1 ? t('record.streakLossOne') : t('record.streakLossMany', { n });
-}
-
 /*
  * Deliberately absent: the best score posted at this game.
  *
@@ -196,9 +201,10 @@ function recordStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   return StyleSheet.create({
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: m.narrow ? 12 : 20 },
-    figure: { minWidth: 72 },
+    figure: { minWidth: m.narrow ? 60 : 72 },
     figureValue: { color: colors.text, fontSize: m.narrow ? 18 : 20, fontWeight: '700' },
     figureLabel: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 2) },
+    streak: { color: colors.muted, fontSize: m.panel.bodyFont, marginTop: 8 },
     perGame: { marginTop: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
     perGameTitle: {
       color: colors.muted,

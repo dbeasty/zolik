@@ -1554,16 +1554,7 @@ export const fi: Record<string, string> = {
   'record.won': 'Voitot',
   'record.lost': 'Häviöt',
   'record.winRate': 'Voittoprosentti',
-  'record.streak': 'Putki',
   'record.atThisGame': 'Tässä pelissä',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 voitto',
-  'record.streakWinMany': '{n} voittoa',
-  'record.streakLossOne': '1 häviö',
-  'record.streakLossMany': '{n} häviötä',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Raahaa korttia viuhkaa pitkin järjestääksesi sen uudelleen, tai pöydälle pelataksesi sen',

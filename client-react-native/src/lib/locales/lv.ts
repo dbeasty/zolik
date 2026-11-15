@@ -1544,16 +1544,7 @@ export const lv: Record<string, string> = {
   'record.won': 'Uzvaras',
   'record.lost': 'Zaudējumi',
   'record.winRate': 'Uzvaru daļa',
-  'record.streak': 'Sērija',
   'record.atThisGame': 'Šajā spēlē',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 uzvara',
-  'record.streakWinMany': 'Uzvaras: {n}',
-  'record.streakLossOne': '1 zaudējums',
-  'record.streakLossMany': 'Zaudējumi: {n}',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Velc kārti gar vēdekli, lai to pārkārtotu, vai uz galda, lai to izspēlētu',

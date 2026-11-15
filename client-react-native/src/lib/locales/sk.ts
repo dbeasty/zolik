@@ -1544,16 +1544,7 @@ export const sk: Record<string, string> = {
   'record.won': 'Výhry',
   'record.lost': 'Prehry',
   'record.winRate': 'Úspešnosť',
-  'record.streak': 'Séria',
   'record.atThisGame': 'V tejto hre',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 výhra',
-  'record.streakWinMany': 'Výhry: {n}',
-  'record.streakLossOne': '1 prehra',
-  'record.streakLossMany': 'Prehry: {n}',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Ťahaj kartu pozdĺž vejára, ak ju chceš preusporiadať, alebo na stôl, ak ju chceš zahrať',

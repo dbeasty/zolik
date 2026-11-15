@@ -490,3 +490,62 @@ func TestASentDealIsAFirstAttempt(t *testing.T) {
 		t.Fatal("a sent deal is marked as a repeat")
 	}
 }
+
+// A partner shares the result rather than contesting it. Sitting beside a
+// friend against two bots is a match against bots, not against people, and
+// sitting beside a Hard bot is not a match against Hard — and a partner gets
+// no head-to-head row, where two teammates would only ever pile up "level".
+func TestAPartnerIsNotAnOpponent(t *testing.T) {
+	// p0+p2 against p1+p3, partners opposite, the way Canasta seats four.
+	match, standings := testMatch(t,
+		[]string{"user:me", "ai:easy", "user:friend", "ai:easy"},
+		[]int{30, 10, 30, 10}, "completed", "p0", "p2")
+	match.ModuleID = "canasta"
+	sides := [][]string{{"p0", "p2"}, {"p1", "p3"}}
+	sb := BuildScoreboard(match, module.Outcome{Standings: standings, Sides: sides})
+	m := BuildMatchResult(sb, match.ID, testClock.Add(-time.Hour), testClock, testClock)
+	if len(m.Sides) != 2 {
+		t.Fatalf("the record kept sides %v, want the two partnerships", m.Sides)
+	}
+	// The record must not alias the module's slices.
+	sides[0][0] = "changed"
+	if m.Sides[0][0] != "p0" {
+		t.Fatal("the record shares the module's sides slice")
+	}
+
+	ps := applyOne(t, ZeroStats(Subject{Kind: SubjectUser, ID: "me"}), m, "user:me")
+	if ps.Overall.Wins != 1 || ps.Overall.Draws != 0 {
+		t.Errorf("overall %+v, want one win and no draw", ps.Overall)
+	}
+	if ps.VsHumans.Matches != 0 {
+		t.Errorf("vs humans counted %d matches; the only human was my partner", ps.VsHumans.Matches)
+	}
+	if ps.VsAI.Matches != 1 || ps.VsAI.Wins != 1 {
+		t.Errorf("vs AI %+v, want one win", ps.VsAI)
+	}
+	if _, ok := ps.HeadToHead["user:friend"]; ok {
+		t.Error("a head-to-head row against my partner")
+	}
+
+	// And the other way round: a Hard bot as partner is not a Hard opponent.
+	match, standings = testMatch(t,
+		[]string{"user:me", "ai:easy", "ai:hard", "ai:easy"},
+		[]int{30, 10, 30, 10}, "completed", "p0", "p2")
+	sb = BuildScoreboard(match, module.Outcome{Standings: standings, Sides: [][]string{{"p0", "p2"}, {"p1", "p3"}}})
+	m = BuildMatchResult(sb, match.ID, testClock.Add(-time.Hour), testClock, testClock)
+	ps = applyOne(t, ZeroStats(Subject{Kind: SubjectUser, ID: "me"}), m, "user:me")
+	if _, ok := ps.ByAIDifficulty["hard"]; ok {
+		t.Errorf("vs Hard counted, but Hard was my partner: %v", ps.ByAIDifficulty)
+	}
+	if ps.ByAIDifficulty["easy"].Matches != 1 {
+		t.Errorf("vs Easy %+v, want the one match", ps.ByAIDifficulty["easy"])
+	}
+
+	// A record from before sides were kept reads the old way: everyone else
+	// is an opponent.
+	m.Sides = nil
+	ps = applyOne(t, ZeroStats(Subject{Kind: SubjectUser, ID: "me"}), m, "user:me")
+	if _, ok := ps.ByAIDifficulty["hard"]; !ok {
+		t.Error("a record without sides lost its opponents")
+	}
+}

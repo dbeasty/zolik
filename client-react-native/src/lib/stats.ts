@@ -67,6 +67,30 @@ export function avgRankText(tally: TallyView | undefined): string {
   return tally.avgRank.toFixed(1);
 }
 
+/** One figure in a record's row: what it is called and what it reads. */
+export type RecordFigure = { key: string; label: string; value: string };
+
+/**
+ * A bucket's counts as a row of figures, ordered so they add up on sight:
+ * played, then every way a match can end, then the rate. Without Lost beside
+ * them, "55 played, 29 won" left a reader to find the other 26 themselves.
+ *
+ * Drawn appears only once there is a draw. Most games cannot end level, and a
+ * permanent "Drawn 0" beside them is noise.
+ */
+export function recordFigures(tally: TallyView): RecordFigure[] {
+  const out: RecordFigure[] = [
+    { key: 'played', label: t('record.played'), value: String(tally.matches) },
+    { key: 'won', label: t('record.won'), value: String(tally.wins) },
+    { key: 'lost', label: t('record.lost'), value: String(tally.losses) },
+  ];
+  if (tally.draws > 0) {
+    out.push({ key: 'drawn', label: t('stats.drawn'), value: String(tally.draws) });
+  }
+  out.push({ key: 'winRate', label: t('record.winRate'), value: winPercentText(tally) });
+  return out;
+}
+
 /** A count with its noun, so callers stop writing `n === 1 ? …` inline.
  *  English only — a translated count is a whole phrase per count (see
  *  `playerCountLabel`), since most of the other languages do not pluralise

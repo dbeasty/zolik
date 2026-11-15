@@ -1548,16 +1548,7 @@ export const et: Record<string, string> = {
   'record.won': 'Võidud',
   'record.lost': 'Kaotused',
   'record.winRate': 'Võiduprotsent',
-  'record.streak': 'Seeria',
   'record.atThisGame': 'Selles mängus',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 võit',
-  'record.streakWinMany': '{n} võitu',
-  'record.streakLossOne': '1 kaotus',
-  'record.streakLossMany': '{n} kaotust',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Lohista kaarti mööda lehvikut, et see ümber paigutada, või lauale, et see välja mängida',

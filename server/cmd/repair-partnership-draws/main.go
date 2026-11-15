@@ -1,11 +1,15 @@
-// Command repair-partnership-draws stores partnership wins that were recorded
-// as draws as the wins they were, and rebuilds the lifetime records they fed.
+// Command repair-partnership-draws brings partnership match records written by
+// older scoreboards up to date, and rebuilds the lifetime records they fed.
 //
 // Until the scoreboard learned about sides, any match with more than one
 // winner was recorded as a draw. A Canasta partnership always has two winners,
 // so every partnership win went down as a draw for both partners, and a player
-// who won every match had a record of none. The fix stopped new records going
-// wrong; this repairs the ones already written. See stats.RepairPartnershipDraws.
+// who won every match had a record of none. And until the record kept its
+// sides, a partner counted as an opponent: a head-to-head row against them, a
+// "vs Hard" match for sitting beside a Hard bot. The fixes stopped new records
+// going wrong; this repairs the ones already written, storing each record's
+// sides and turning a one-sided "draw" into the win it was. See
+// stats.RepairPartnerships.
 //
 // Run it with the server stopped when the store is kdb, which is single-process.
 // It is safe to run more than once.
@@ -18,7 +22,8 @@
 // Sides come from each module's own Seated.Sides, asked with the seats in the
 // order the record kept them. A record keeps its variation but not its table
 // options, so a module whose sides depended on an option would be asked without
-// it; Canasta, the only game with sides, decides them from the seat count alone.
+// it; Canasta, Sedma and Pinochle, the games with sides, decide them from the
+// seat count alone.
 package main
 
 import (
@@ -72,7 +77,7 @@ func main() {
 
 	ctx := context.Background()
 	var (
-		report stats.DrawRepairReport
+		report stats.PartnershipRepairReport
 		err    error
 	)
 	switch {
@@ -81,7 +86,7 @@ func main() {
 		if openErr != nil {
 			log.Fatalf("opening %s (is the server still running?): %v", *kdbPath, openErr)
 		}
-		report, err = stats.RepairPartnershipDraws(ctx, stats.NewKDBRepository(k), sidesOf, *dry)
+		report, err = stats.RepairPartnerships(ctx, stats.NewKDBRepository(k), sidesOf, *dry)
 		if closeErr := k.Close(ctx); closeErr != nil && err == nil {
 			err = closeErr
 		}
@@ -90,7 +95,7 @@ func main() {
 		if connErr != nil {
 			log.Fatalf("connecting: %v", connErr)
 		}
-		report, err = stats.RepairPartnershipDraws(ctx, stats.NewRepository(m), sidesOf, *dry)
+		report, err = stats.RepairPartnerships(ctx, stats.NewRepository(m), sidesOf, *dry)
 	default:
 		log.Fatal("one of -kdb or -mongo-uri is required")
 	}

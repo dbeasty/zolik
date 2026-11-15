@@ -1543,16 +1543,7 @@ export const hr: Record<string, string> = {
   'record.won': 'Pobjede',
   'record.lost': 'Porazi',
   'record.winRate': 'Postotak pobjeda',
-  'record.streak': 'Niz',
   'record.atThisGame': 'U ovoj igri',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 pobjeda',
-  'record.streakWinMany': '{n} pobjeda',
-  'record.streakLossOne': '1 poraz',
-  'record.streakLossMany': '{n} poraza',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Povuci kartu duž lepeze da je premjestiš, ili na stol da je odigraš',

@@ -41,6 +41,7 @@ func BuildMatchResult(sb Scoreboard, matchID bson.ObjectID, startedAt, completed
 		SubjectKeys:     flat,
 		Winners:         sb.Winners,
 		IsDraw:          sb.IsDraw,
+		Sides:           sb.Sides,
 		Rounds:          sb.Rounds,
 		RoundLabelKey:   sb.RoundLabelKey,
 		DealFrom:        sb.DealFrom,
@@ -149,18 +150,41 @@ func matchRef(m MatchResult, seat Standing, opponents []Standing) MatchRef {
 	}
 }
 
-// opponentsOf returns every participant other than the given seat. It matches
-// on player ID, not subject, so that when one AI difficulty holds two seats
-// each bot correctly counts as the other's opponent.
+// opponentsOf returns every participant other than the given seat and its
+// partners. It matches on player ID, not subject, so that when one AI
+// difficulty holds two seats on opposing sides each bot correctly counts as
+// the other's opponent.
 func opponentsOf(m MatchResult, seat Standing) []Standing {
+	team := teammatesOf(m.Sides, seat.PlayerID)
 	out := make([]Standing, 0, len(m.Participants))
 	for _, p := range m.Participants {
-		if p.PlayerID == seat.PlayerID {
+		if p.PlayerID == seat.PlayerID || team[p.PlayerID] {
 			continue
 		}
 		out = append(out, p)
 	}
 	return out
+}
+
+// teammatesOf is the seats that played on the same side as id. A partner
+// shares the result rather than contesting it, so they are nobody's opponent:
+// not a head-to-head row, not a "vs humans" match, not a difficulty faced.
+func teammatesOf(sides [][]string, id string) map[string]bool {
+	for _, side := range sides {
+		for _, member := range side {
+			if member != id {
+				continue
+			}
+			out := map[string]bool{}
+			for _, other := range side {
+				if other != id {
+					out[other] = true
+				}
+			}
+			return out
+		}
+	}
+	return nil
 }
 
 func anyHuman(ss []Standing) bool {

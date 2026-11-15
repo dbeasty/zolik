@@ -64,6 +64,8 @@ type Scoreboard struct {
 	// draw, but two seats level on chips at the end of a fixed-length poker
 	// match is.
 	IsDraw bool `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
+	// Sides is the module's partnerships, or nil; see MatchResult.Sides.
+	Sides [][]string `bson:"sides,omitempty" json:"sides,omitempty"`
 
 	Standings   []Standing  `bson:"standings" json:"standings"`
 	Composition Composition `bson:"composition" json:"composition"`
@@ -128,6 +130,7 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 		Repeat:    m.DealRepeat,
 	}
 	sb.IsDraw = sb.Complete && sidesAmong(sb.Winners, out.Sides) > 1
+	sb.Sides = copySides(out.Sides)
 
 	seatOf := map[string]int{}
 	for i, id := range seatOrder(m) {
@@ -206,6 +209,18 @@ func sidesAmong(winners []string, sides [][]string) int {
 		seen[key] = true
 	}
 	return len(seen)
+}
+
+// copySides is a deep copy, so a stored record never aliases a module's state.
+func copySides(sides [][]string) [][]string {
+	if len(sides) == 0 {
+		return nil
+	}
+	out := make([][]string, len(sides))
+	for i, side := range sides {
+		out[i] = append([]string(nil), side...)
+	}
+	return out
 }
 
 // boolOr picks the authoritative answer when there is one.
