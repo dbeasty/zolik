@@ -23,7 +23,7 @@ import { useLocale } from '@/src/hooks/useLocale';
 export default function AuthCallbackScreen() {
   useLocale();
   const params = useGlobalSearchParams<{ code?: string; error?: string }>();
-  const { client, setSession } = useSession();
+  const { client, setSession, loading } = useSession();
   const [message, setMessage] = useState(() => t('a11y.auth.signingIn'));
   const ran = useRef(false);
 
@@ -33,6 +33,10 @@ export default function AuthCallbackScreen() {
     // guard it rather than let that failure overwrite a success already in
     // flight.
     if (ran.current) return;
+    // The exchange carries this browser's session, which a link flow needs
+    // (the server only attaches the identity for the account that started
+    // it), so wait for the stored session to be restored first.
+    if (loading && params.code) return;
     ran.current = true;
 
     if (params.error) {
@@ -48,6 +52,13 @@ export default function AuthCallbackScreen() {
     client
       .exchangeOAuthCode(code)
       .then(async (outcome) => {
+        // A link answers with no new session: the account signed in here
+        // is the one it was linked to, and keeps its own tokens.
+        if (!outcome.session.accessToken) {
+          setMessage(t('auth.callback.signedIn'));
+          router.replace('/');
+          return;
+        }
         await setSession(outcome.session);
         const claimed = claimedMessage(outcome.claimedMatches);
         setMessage(claimed ?? t('auth.callback.signedIn'));
@@ -57,7 +68,7 @@ export default function AuthCallbackScreen() {
         setMessage(e instanceof Error ? e.message : t('error.signIn'));
         setTimeout(() => router.replace('/auth/login'), 1500);
       });
-  }, [params.code, params.error, client, setSession]);
+  }, [params.code, params.error, client, setSession, loading]);
 
   return (
     <Screen title={t('nav.signingIn')}>

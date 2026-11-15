@@ -289,9 +289,12 @@ export class ZolikClient {
     );
   }
 
-  /** Swaps the one-time code from the callback for real tokens. */
+  /** Swaps the one-time code from the callback for real tokens. Sent with
+   *  the current session: a link flow is only completed for the account that
+   *  started it, which is what stops a link URL handed to somebody else from
+   *  attaching their identity to the sender's account. */
   async exchangeOAuthCode(code: string): Promise<SignInOutcome> {
-    return this.toOutcome(await this.post<SignInResponse>('/auth/oauth/exchange', { code }, false));
+    return this.toOutcome(await this.post<SignInResponse>('/auth/oauth/exchange', { code }, true));
   }
 
   /** Signs in with an ID token from a native SDK (Google Sign-In, Sign in
@@ -1135,9 +1138,13 @@ export class ZolikClient {
   /** Adopts a completed sign-in as the current session. One place, so every
    *  sign-in path leaves the client in the same state. */
   private toOutcome(data: SignInResponse): SignInOutcome {
-    this.accessToken = data.accessToken;
-    this.refreshToken = this.held(data.refreshToken);
-    this.userId = data.userId;
+    // A link answers with no tokens: the session this client holds is still
+    // the one in use, and must not be replaced with nothing.
+    if (data.accessToken) {
+      this.accessToken = data.accessToken;
+      this.refreshToken = this.held(data.refreshToken);
+      this.userId = data.userId;
+    }
     return {
       session: {
         accessToken: data.accessToken,

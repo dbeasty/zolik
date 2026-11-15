@@ -182,9 +182,13 @@ func (h *Handlers) oauthCallback(w http.ResponseWriter, req *http.Request) {
 		claims.Name = appleFormName(req.Form.Get("user"))
 	}
 
+	if flow.LinkUserID != "" {
+		h.holdLink(w, req, flow, claims)
+		return
+	}
+
 	result, err := h.accounts.SignIn(ctx, claims, SignInOptions{
-		GuestID:      flow.GuestID,
-		LinkToUserID: flow.LinkUserID,
+		GuestID: flow.GuestID,
 	})
 	if errors.Is(err, ErrIdentityTaken) {
 		h.failFlow(w, req, flow, "already_linked")
@@ -199,23 +203,59 @@ func (h *Handlers) oauthCallback(w http.ResponseWriter, req *http.Request) {
 	out := models.OAuthFlowResult{
 		UserID:         result.User.ID.Hex(),
 		Username:       result.User.Username,
-		Linked:         result.Linked && flow.LinkUserID != "",
 		ClaimedMatches: result.ClaimedMatches,
 	}
-	// A pure link flow deliberately mints no session: the person is already
-	// signed in on the device that started it, and handing back a second set
-	// of tokens would quietly replace their session with an identical one.
-	if flow.LinkUserID == "" {
-		tokens, err := h.issueUserSession(ctx, result.User)
-		if err != nil {
-			log.Printf("auth: issuing session failed: %v", err)
-			h.failFlow(w, req, flow, "sign_in_failed")
-			return
-		}
-		out.AccessToken, out.RefreshToken = tokens.AccessToken, tokens.RefreshToken
-		out.OfflinePass = tokens.OfflinePass
+	tokens, err := h.issueUserSession(ctx, result.User)
+	if err != nil {
+		log.Printf("auth: issuing session failed: %v", err)
+		h.failFlow(w, req, flow, "sign_in_failed")
+		return
 	}
+	out.AccessToken, out.RefreshToken = tokens.AccessToken, tokens.RefreshToken
+	out.OfflinePass = tokens.OfflinePass
+	h.finishFlow(w, req, flow, out)
+}
 
+// holdLink ends the callback of a link flow without making the link.
+//
+// The browser that reaches the callback is whoever opened the provider URL,
+// and a link flow's URL can be started by one account and handed to somebody
+// else: opened by a victim already signed in to the provider, it would attach
+// the victim's identity to the attacker's account. So the callback only
+// checks the identity and holds it; oauthExchange attaches it, and only for a
+// request carrying the token of the account that started the flow. The
+// exchange code goes to the browser that finished the flow, so an attacker
+// who started it never has the code, and a victim's app never has the
+// attacker's token.
+//
+// A cookie set at /start would not do this: the native app starts the flow
+// from its own HTTP stack and finishes it in a system browser session that
+// does not share that stack's cookies, and Apple's form_post callback is a
+// cross-site POST that a SameSite cookie is not sent with.
+func (h *Handlers) holdLink(w http.ResponseWriter, req *http.Request, flow models.OAuthFlow, claims identity.Claims) {
+	// Told now rather than at the exchange, where the app would have no
+	// reason code to explain it with.
+	if existing, err := h.store.FindIdentity(req.Context(), claims.Provider, claims.Subject); err == nil && existing.UserID != flow.LinkUserID {
+		h.failFlow(w, req, flow, "already_linked")
+		return
+	}
+	h.finishFlow(w, req, flow, models.OAuthFlowResult{
+		UserID: flow.LinkUserID,
+		PendingLink: &models.PendingLink{
+			Provider:      claims.Provider,
+			Subject:       claims.Subject,
+			Email:         claims.Email,
+			EmailVerified: claims.EmailVerified,
+			Name:          claims.Name,
+			Picture:       claims.Picture,
+		},
+	})
+}
+
+// finishFlow stores a callback's outcome behind a one-time exchange code and
+// sends the browser back to the app with it.
+func (h *Handlers) finishFlow(w http.ResponseWriter, req *http.Request, flow models.OAuthFlow, out models.OAuthFlowResult) {
+	ctx := req.Context()
 	exchangeCode, err := NewRandomToken(32)
 	if err != nil {
 		h.failFlow(w, req, flow, "sign_in_failed")
@@ -248,6 +288,10 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	r := flow.Result
+	if r.PendingLink != nil {
+		h.completeLink(w, req, flow)
+		return
+	}
 	out := map[string]any{
 		"accessToken":    r.AccessToken,
 		"refreshToken":   r.RefreshToken,
@@ -262,6 +306,40 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 		out["offlinePass"] = r.OfflinePass
 	}
 	writeTokens(w, req, out)
+}
+
+// completeLink attaches a link flow's identity, for the account that started
+// the flow and nobody else; see holdLink.
+func (h *Handlers) completeLink(w http.ResponseWriter, req *http.Request, flow models.OAuthFlow) {
+	uc, ok := GetUserContext(req)
+	if !ok || uc.IsGuest || uc.UserID != flow.LinkUserID {
+		// 403 rather than 401: a refreshed token would not change the answer,
+		// and the code is spent either way.
+		http.Error(w, "this link was started by a different account", http.StatusForbidden)
+		return
+	}
+	p := flow.Result.PendingLink
+	claims := identity.Claims{
+		Provider: p.Provider, Subject: p.Subject,
+		Email: p.Email, EmailVerified: p.EmailVerified,
+		Name: p.Name, Picture: p.Picture,
+	}
+	result, err := h.accounts.SignIn(req.Context(), claims, SignInOptions{LinkToUserID: flow.LinkUserID})
+	if errors.Is(err, ErrIdentityTaken) {
+		http.Error(w, "that account is already linked to another player", http.StatusConflict)
+		return
+	}
+	if err != nil {
+		internalError(w, "oauthExchange", err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"userId":   result.User.ID.Hex(),
+		"username": result.User.Username,
+		"isGuest":  false,
+		"linked":   true,
+		"provider": flow.Provider,
+	})
 }
 
 type oauthTokenReq struct {

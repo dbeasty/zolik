@@ -229,3 +229,37 @@ describe('cookie session (web)', () => {
     expect(client.refreshToken).toBe(COOKIE_HELD_REFRESH);
   });
 });
+
+describe('the OAuth exchange', () => {
+  function recording(body: unknown) {
+    const calls: { path: string; auth?: string }[] = [];
+    const transport = {
+      fetch: async (path: string, init: { headers?: Record<string, string> }) => {
+        calls.push({ path, auth: init.headers?.Authorization });
+        return { status: 200, ok: true, headers: { get: () => null }, text: async () => JSON.stringify(body) };
+      },
+      socketUrl: (p: string) => p,
+      openSocket: () => {
+        throw new Error('unused');
+      },
+    };
+    const client = new ZolikClient('http://x', transport as never);
+    client.bindSession({ accessToken: 'mine', refreshToken: 'r', userId: 'u1' } as never);
+    return { client, calls };
+  }
+
+  // The server completes a link only for the account that started it, so
+  // the exchange has to say who is asking.
+  it('carries the current session', async () => {
+    const { client, calls } = recording({ userId: 'u1', username: 'me', linked: true });
+    await client.exchangeOAuthCode('c');
+    expect(calls[0]).toEqual({ path: '/auth/oauth/exchange', auth: 'Bearer mine' });
+  });
+
+  it('keeps the session a link answers without tokens', async () => {
+    const { client, calls } = recording({ userId: 'u1', username: 'me', linked: true });
+    await client.exchangeOAuthCode('c');
+    await client.exchangeOAuthCode('c');
+    expect(calls[1].auth).toBe('Bearer mine');
+  });
+});

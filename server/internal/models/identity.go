@@ -149,4 +149,22 @@ type OAuthFlowResult struct {
 	// a browser flow is a sign-in like any other, and a client that collected
 	// one here would otherwise have no pass until its next refresh.
 	OfflinePass string `bson:"offlinePass,omitempty"`
+	// PendingLink is the identity a link flow proved, waiting to be attached.
+	// A link is not made at the callback: the browser that arrives there is
+	// whoever opened the provider URL, and that may not be the person whose
+	// account started the flow (a link CSRF). It is made at the exchange,
+	// which must carry that same account's token.
+	PendingLink *PendingLink `bson:"pendingLink,omitempty"`
+}
+
+// PendingLink is a provider's verified claims about a person, held between a
+// link flow's callback and its exchange. The same fields as identity.Claims,
+// which this package cannot import.
+type PendingLink struct {
+	Provider      string `bson:"provider"`
+	Subject       string `bson:"subject"`
+	Email         string `bson:"email,omitempty"`
+	EmailVerified bool   `bson:"emailVerified,omitempty"`
+	Name          string `bson:"name,omitempty"`
+	Picture       string `bson:"picture,omitempty"`
 }

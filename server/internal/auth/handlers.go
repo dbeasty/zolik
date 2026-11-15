@@ -225,7 +225,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.Get("/auth/oauth/{provider}/callback", h.oauthCallback)
 	// Apple posts its callback as a form when name/email scopes are requested.
 	r.Post("/auth/oauth/{provider}/callback", h.oauthCallback)
-	r.Post("/auth/oauth/exchange", h.oauthExchange)
+	// Optionally authenticated because a link flow's exchange must carry the
+	// token of the account that started it; see holdLink.
+	r.With(OptionalAuthMiddleware).Post("/auth/oauth/exchange", h.oauthExchange)
 	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/token", h.oauthNativeToken)
 
 	// Replicas. Enrolling one is something an account does, not something a
