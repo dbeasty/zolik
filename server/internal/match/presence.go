@@ -70,17 +70,36 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 	if err != nil {
 		return
 	}
+	// Back already. A socket that died on its own runs this from its handler's
+	// deferred cleanup, and nothing orders that against the player's next
+	// socket: the new one can register and run ResumeIfReturning before this
+	// gets the lock, and suspending then would pause the table on a player
+	// who is sitting at it, with every move they make refused as
+	// MATCH_NOT_ACTIVE and nothing left to resume it. Asked under the match
+	// lock, which ResumeIfReturning also takes after registering, so either
+	// this sees the new socket or the resume comes after it and undoes it.
+	if m.seatHere(matchID, playerID) {
+		e.mu.Unlock()
+		return
+	}
 	// The stand-in clock starts when they go, whether or not the table is
 	// waiting on them yet: by the time it is, they may have been gone long
 	// enough already.
-	wait := m.standInAfter(e.match)
-	if wait > 0 {
-		if p := playerByID(e.match.Players, playerID); p != nil && !p.IsAI {
-			m.markAway(matchID, playerID, time.Now())
+	//
+	// Only while there is a game to be away from: a socket closing on a
+	// finished table, or a lobby, would otherwise start a clock nothing ever
+	// stops, one entry per seat per finished match.
+	wait := time.Duration(0)
+	if s := e.match.Status; s == string(rules.StatusActive) || s == string(rules.StatusSuspended) {
+		wait = m.standInAfter(e.match)
+		if wait > 0 {
+			if p := playerByID(e.match.Players, playerID); p != nil && !p.IsAI {
+				m.markAway(matchID, playerID, time.Now())
+			}
 		}
+		// And, at a cash table, the clock on getting up for them.
+		m.noteAwayToLeave(e.match, playerID)
 	}
-	// And, at a cash table, the clock on getting up for them.
-	m.noteAwayToLeave(e.match, playerID)
 	suspended, ok := m.suspendLocked(ctx, e, playerID)
 	e.mu.Unlock()
 	if !ok {
@@ -517,6 +536,7 @@ func (m *Manager) DeleteAsHost(ctx context.Context, idOrCode, playerID string) e
 	}
 	e.loaded = false
 	m.live.forget(id.Hex())
+	m.forgetAway(id.Hex())
 
 	m.metrics.Add(metrics.MatchesDeletedByHost, 1)
 	log.Printf("match=%s host=%s deleted a %s table", id.Hex(), playerID, status)

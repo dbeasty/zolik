@@ -213,3 +213,45 @@ func TestATableTakesSoManyGuests(t *testing.T) {
 		t.Fatalf("one guest too many: %v, want close 4004", err)
 	}
 }
+
+// The same phone coming back on a fresh connection before its old one is
+// noticed dead: the new connection has never heard of the guests' tunnels, so
+// they must be let go — told the host went, so they reconnect and the phone
+// hears an open for each — rather than kept on a tunnel nothing answers.
+func TestAHostReattachingLetsItsGuestsGo(t *testing.T) {
+	srv, hub := newServer(t)
+	host, code := dialHost(t, srv, "n1", "")
+	defer host.Close()
+	g, _, err := websocket.DefaultDialer.Dial(wsURL(srv, "/relay/join/"+code), nil)
+	if err != nil {
+		t.Fatalf("guest dial: %v", err)
+	}
+	defer g.Close()
+	readText(t, host) // open
+
+	back, again := dialHost(t, srv, "n1", code)
+	defer back.Close()
+	if again != code {
+		t.Fatalf("code after re-attach = %s, want %s", again, code)
+	}
+
+	_ = g.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _, err = g.ReadMessage()
+	var ce *websocket.CloseError
+	if !errors.As(err, &ce) || ce.Code != CloseHostGone {
+		t.Fatalf("guest read %v, want close %d", err, CloseHostGone)
+	}
+	if info, _ := hub.Info(code); info.Guests != 0 || !info.Online {
+		t.Errorf("after re-attach: %+v, want online with no guests", info)
+	}
+
+	// The guest coming back is opened on the new connection.
+	g2, _, err := websocket.DefaultDialer.Dial(wsURL(srv, "/relay/join/"+code), nil)
+	if err != nil {
+		t.Fatalf("guest redial: %v", err)
+	}
+	defer g2.Close()
+	if m := readText(t, back); m["t"] != "open" {
+		t.Fatalf("new host connection heard %v, want open", m)
+	}
+}

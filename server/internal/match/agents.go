@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"zolik/server/internal/db"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
@@ -168,8 +169,10 @@ func (m *Manager) drivenSeat(match models.Match, mod module.GameModule, awaited 
 }
 
 // TrackAgent remembers that an agent holds a seat at a match, so the sweep
-// below can watch it. In memory only: an agent's next call re-registers it
-// after a restart.
+// below can watch it. In memory only, and so wound again from the match
+// itself whenever it is started or loaded (see trackAgentsOf): an agent that
+// went quiet across a restart never makes the call that would re-register it,
+// and it is exactly that agent the sweep is for.
 func (m *Manager) TrackAgent(matchID, playerID string) {
 	m.awayMu.Lock()
 	defer m.awayMu.Unlock()
@@ -180,6 +183,18 @@ func (m *Manager) TrackAgent(matchID, playerID string) {
 		m.agentTables[matchID] = map[string]bool{}
 	}
 	m.agentTables[matchID][playerID] = true
+}
+
+// trackAgentsOf tracks every agent seat at a match that is not over.
+func (m *Manager) trackAgentsOf(match models.Match) {
+	if over(match.Status) {
+		return
+	}
+	for _, p := range match.Players {
+		if p.IsAgent {
+			m.TrackAgent(match.ID.Hex(), p.ID)
+		}
+	}
 }
 
 // SweepAgents acts on agent seats that have gone quiet. A drop-in table gets
@@ -198,10 +213,18 @@ func (m *Manager) SweepAgents(ctx context.Context) {
 
 	for matchID, seats := range tables {
 		match, err := m.current(ctx, matchID)
-		if err != nil || (match.Status != "active" && match.Status != "suspended") {
+		// Let go only of a table that is gone or over. A lobby is kept: it
+		// used to be dropped here, and nothing tracked the seat again when
+		// the game started, so an agent that went quiet after the deal left
+		// the table waiting on it for good. A store error is kept too: it says
+		// nothing about the table.
+		if (err != nil && db.IsNotFound(err)) || (err == nil && over(match.Status)) {
 			m.awayMu.Lock()
 			delete(m.agentTables, matchID)
 			m.awayMu.Unlock()
+			continue
+		}
+		if err != nil || (match.Status != "active" && match.Status != "suspended") {
 			continue
 		}
 		for _, pid := range seats {

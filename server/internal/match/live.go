@@ -3,7 +3,6 @@ package match
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -70,6 +69,33 @@ type liveMatch struct {
 	// has just worked out for the seat it is about to play.
 	proj   module.Projection
 	projOf []byte
+
+	// sentMu orders the table's state broadcasts. A board is copied under mu
+	// and sent after mu is released, so two writers' broadcasts can reach
+	// the wire in either order — and a stale board arriving last left a
+	// player looking at a turn that had already passed. Held across the send,
+	// so sends of one match go out one at a time, and sent is the newest copy
+	// sent so far: an older one arriving after it is dropped. Never held with
+	// mu, so a slow socket can delay this table's next broadcast but never
+	// its next move.
+	sentMu sync.Mutex
+	sent   struct {
+		version int64
+		seq     int
+		any     bool
+	}
+}
+
+// claimBroadcast reports whether a copy of the match at (version, seq) is
+// still worth sending, and if so records it as the newest sent. sentMu must be
+// held. Equal is sent: a broadcast without a write — somebody arriving or
+// leaving — carries presence the last one did not.
+func (e *liveMatch) claimBroadcast(version int64, seq int) bool {
+	if e.sent.any && (version < e.sent.version || (version == e.sent.version && seq < e.sent.seq)) {
+		return false
+	}
+	e.sent.version, e.sent.seq, e.sent.any = version, seq, true
+	return true
 }
 
 // recentMoves is how many moves each live broadcast carries: about a round of
@@ -308,6 +334,7 @@ func (m *Manager) load(ctx context.Context, e *liveMatch, id bson.ObjectID) erro
 	e.match, e.seq, e.rounds, e.stateErr = env, 0, 0, nil
 	e.touched = env.UpdatedAt
 	e.loaded = true
+	m.trackAgentsOf(env)
 	if env.Status == "lobby" {
 		return nil
 	}
@@ -318,6 +345,7 @@ func (m *Manager) load(ctx context.Context, e *liveMatch, id bson.ObjectID) erro
 	}
 	e.match.State = models.JSONDoc(state)
 	e.seq = seq
+	e.match.LogSeq = seq
 	if r := module.RoundsFor(m.registry.Get(env.ModuleID), state); r != nil {
 		e.rounds = len(r.Rounds)
 	}
@@ -374,14 +402,14 @@ func (m *Manager) rebuild(ctx context.Context, env models.Match) (module.State, 
 func (m *Manager) saveLocked(ctx context.Context, e *liveMatch, next models.Match) error {
 	expected := e.match.Version
 	if err := m.repo.UpdateWithVersion(ctx, e.match.ID, expected, next); err != nil {
-		if errors.Is(err, ErrVersionConflict) {
-			e.loaded = false
-		}
+		// Any failure, not only a conflict: a write whose answer was lost may
+		// still have landed, and only the store knows. See applyLocked.
+		e.loaded = false
 		return err
 	}
 	now := time.Now().UTC()
 	next.ID, next.Version, next.UpdatedAt = e.match.ID, expected+1, now
-	next.State = e.match.State
+	next.State, next.LogSeq = e.match.State, e.seq
 	e.match, e.touched = next, now
 	return nil
 }
@@ -392,14 +420,12 @@ func (m *Manager) snapshotLocked(ctx context.Context, e *liveMatch, next models.
 	expected := e.match.Version
 	next.Snapshots = withSnapshot(next.Snapshots, e.seq)
 	if err := m.repo.CommitSnapshot(ctx, e.match.ID, expected, next, nil, e.seq, models.JSONDoc(state)); err != nil {
-		if errors.Is(err, ErrVersionConflict) {
-			e.loaded = false
-		}
+		e.loaded = false // as saveLocked
 		return err
 	}
 	now := time.Now().UTC()
 	next.ID, next.Version, next.UpdatedAt = e.match.ID, expected+1, now
-	next.State = models.JSONDoc(state)
+	next.State, next.LogSeq = models.JSONDoc(state), e.seq
 	e.match, e.touched = next, now
 	return nil
 }

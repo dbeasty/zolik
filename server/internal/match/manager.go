@@ -3,7 +3,6 @@ package match
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -653,6 +652,7 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 		return models.Match{}, err
 	}
 	m.metrics.Add(metrics.MatchesStarted, 1)
+	m.trackAgentsOf(started)
 	m.lobbyClosed(started.ID.Hex())
 	m.Broadcast(started)
 	// A bot may be first to act — in Hold'em it usually is, since the blinds
@@ -771,7 +771,7 @@ func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a
 	}
 	m.noteMove(match.ID.Hex(), playerID)
 	if match.Status != "active" {
-		m.matchStopped(match.ID.Hex())
+		m.matchStopped(match.ID.Hex(), match.Status)
 	}
 	mod := m.registry.Get(match.ModuleID)
 
@@ -896,10 +896,15 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 		err = m.repo.AppendMove(ctx, match.ID, entry)
 	}
 	if err != nil {
-		if errors.Is(err, ErrVersionConflict) {
-			// Another writer got here first; this entry is behind the store.
-			e.loaded = false
-		}
+		// The entry is no longer known to match the store, whatever the error.
+		// A conflict is another writer getting here first. Anything else may
+		// be a write that half landed — CommitSnapshot is the move, then the
+		// snapshot, then the envelope, with no transaction on Mongo — or one
+		// that landed and whose answer was lost: keeping the entry then left
+		// the board a move behind the log, and a finishing move's table
+		// "active" in memory while its move was stored. The next lock reloads
+		// from what the store actually holds.
+		e.loaded = false
 		log.Printf("match=%s player=%s action=%s persist failed: %v", match.ID.Hex(), playerID, a.Verb, err)
 		return models.Match{}, nil, nil, nil, err
 	}
@@ -909,7 +914,7 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 		envelope.Version, envelope.UpdatedAt = match.Version+1, now
 		e.touched = now
 	}
-	envelope.State = models.JSONDoc(next)
+	envelope.State, envelope.LogSeq = models.JSONDoc(next), entry.Seq
 	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
 	e.proj, e.projOf = proj, envelope.State
 	players := make([]string, 0, len(match.Players))
@@ -964,6 +969,23 @@ func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog, pro
 	if mod := m.registry.Get(match.ModuleID); mod != nil {
 		d := mod.Descriptor()
 		o.desc = &d
+	}
+	// In order, and never backwards: see liveMatch.sentMu. Version orders
+	// envelope writes and LogSeq the moves between them, so the pair puts any
+	// two copies the runtime handed out in the order they were made. A table
+	// no longer held has nothing to be ordered against.
+	//
+	// Ordered here rather than by broadcasting under the match lock, which
+	// would make every move at the table wait on its slowest socket's write,
+	// and rather than by a seq for clients to compare, which every client —
+	// the app, the terminal one, the desktop shells — would each have to get
+	// right before any of them stopped drawing a stale board.
+	if e := m.live.peek(id); e != nil {
+		e.sentMu.Lock()
+		defer e.sentMu.Unlock()
+		if !e.claimBroadcast(match.Version, match.LogSeq) {
+			return
+		}
 	}
 	facts := m.seatFacts(match)
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
