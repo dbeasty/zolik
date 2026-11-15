@@ -119,6 +119,13 @@ type Handlers struct {
 	// the mailer allows, and from spraying guesses across many addresses.
 	verifyByEmail *ratelimit.Limiter
 	verifyByIP    *ratelimit.Limiter
+
+	// loginByName, loginByIP and registerByIP throttle the legacy password
+	// routes. Each attempt costs a bcrypt hash (~250 ms of CPU) and a login
+	// is an online password guess, so neither may be free to repeat.
+	loginByName  *ratelimit.Limiter
+	loginByIP    *ratelimit.Limiter
+	registerByIP *ratelimit.Limiter
 }
 
 const (
@@ -129,6 +136,16 @@ const (
 	emailVerifyWindow     = 15 * time.Minute
 	emailVerifyPerAddress = 20
 	emailVerifyPerClient  = 60
+
+	// The password routes. Per account: a person who has forgotten their
+	// password gets a dozen tries; a guesser gets a dozen per quarter hour.
+	// Per client: room for a household or office behind one address.
+	// Registering is rarer still, and each one is an account row.
+	passwordWindow    = 15 * time.Minute
+	loginPerAccount   = 12
+	loginPerClient    = 60
+	registerWindow    = time.Hour
+	registerPerClient = 10
 )
 
 // SetOfflineKeys gives an embedded host the cloud keys it verifies offline
@@ -198,6 +215,9 @@ func NewHandlers(d Deps) *Handlers {
 		devMailer:         devMailer,
 		verifyByEmail:     ratelimit.New(emailVerifyWindow, emailVerifyPerAddress),
 		verifyByIP:        ratelimit.New(emailVerifyWindow, emailVerifyPerClient),
+		loginByName:       ratelimit.New(passwordWindow, loginPerAccount),
+		loginByIP:         ratelimit.New(passwordWindow, loginPerClient),
+		registerByIP:      ratelimit.New(registerWindow, registerPerClient),
 		metrics:           metrics.Nop(),
 	}
 }
@@ -673,6 +693,13 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	// Before the hash, which is the expensive part. Per client only: there
+	// is no account yet to count against. Off where the test endpoints are
+	// on, because an end-to-end suite registers everybody from one address.
+	if !h.testEndpoints && !h.registerByIP.Allow(ratelimit.ClientIP(req), time.Now()) {
+		writeRateLimited(w)
+		return
+	}
 	body.Username = CleanDisplayName(body.Username, MaxUsernameRunes)
 	if body.Username == "" || body.Password == "" {
 		writeAuthError(w, http.StatusBadRequest, "CREDENTIALS_REQUIRED", "username/password required")
@@ -740,7 +767,17 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	u, err := h.store.FindUserByUsername(ctx, CleanDisplayName(body.Username, MaxUsernameRunes))
+	// Counted whether or not the name exists, so the refusal says nothing
+	// about which names are accounts. The per-account ceiling stays on under
+	// test endpoints: no suite signs one name in a dozen times a quarter hour.
+	name := CleanDisplayName(body.Username, MaxUsernameRunes)
+	now := time.Now()
+	if !h.loginByName.Allow(strings.ToLower(name), now) ||
+		(!h.testEndpoints && !h.loginByIP.Allow(ratelimit.ClientIP(req), now)) {
+		writeRateLimited(w)
+		return
+	}
+	u, err := h.store.FindUserByUsername(ctx, name)
 	if err != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
@@ -970,6 +1007,13 @@ func clientIP(req *http.Request) string {
 
 // writeAuthError answers a refusal the player is meant to read, as a code the
 // client words in its own language ("err.<code>") plus an English fallback.
+// writeRateLimited is a throttled password route's refusal. RATE_LIMITED is
+// a code the clients already explain.
+func writeRateLimited(w http.ResponseWriter) {
+	w.Header().Set("Retry-After", "60")
+	writeAuthError(w, http.StatusTooManyRequests, "RATE_LIMITED", "too many attempts — try again in a few minutes")
+}
+
 func writeAuthError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

@@ -110,13 +110,21 @@ func newTestBackend(t *testing.T) (auth.Store, auth.SessionRepository, stats.Rep
 
 func newTestHarness(t *testing.T) *testHarness {
 	t.Helper()
+	return newTestHarnessWith(t, nil)
+}
+
+// newTestHarnessWith is newTestHarness with the dependencies adjusted first,
+// for a test that needs a deployment shaped differently (test endpoints off,
+// say).
+func newTestHarnessWith(t *testing.T, adjust func(*auth.Deps)) *testHarness {
+	t.Helper()
 
 	store, sessions, statsRepo := newTestBackend(t)
 
 	oidc := newFakeOIDC(t)
 	mailer := &capturingMailer{}
 
-	h := auth.NewHandlers(auth.Deps{
+	deps := auth.Deps{
 		Store:                store,
 		Sessions:             sessions,
 		Providers:            identity.NewRegistry(oidc.provider(t)),
@@ -126,7 +134,11 @@ func newTestHarness(t *testing.T) *testHarness {
 		AllowedReturnURLs:    []string{"app://return"},
 		AppName:              "TestApp",
 		TestEndpointsEnabled: true,
-	})
+	}
+	if adjust != nil {
+		adjust(&deps)
+	}
+	h := auth.NewHandlers(deps)
 
 	r := chi.NewRouter()
 	h.RegisterRoutes(r)
