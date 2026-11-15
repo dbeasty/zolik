@@ -94,7 +94,14 @@ func (m *Manager) Rematch(ctx context.Context, idOrCode, callerID string) (model
 // openRematch creates the new lobby for Rematch, seating the host and every
 // bot and holding a seat for every other human.
 func (m *Manager) openRematch(ctx context.Context, old models.Match, host models.Player) (models.Match, error) {
-	lobby, err := m.Create(ctx, old.ModuleID, module.MatchConfig{Variation: old.Variation, Options: old.Options}, host)
+	// The old table's options as today's descriptor still offers them: a
+	// value retired since the table was created would otherwise make Create
+	// refuse the rematch, every time, from every seat.
+	opts := old.Options
+	if mod := m.registry.Get(old.ModuleID); mod != nil {
+		opts = mod.Descriptor().CarryOptions(old.Options)
+	}
+	lobby, err := m.Create(ctx, old.ModuleID, module.MatchConfig{Variation: old.Variation, Options: opts}, host)
 	if err != nil {
 		return models.Match{}, err
 	}

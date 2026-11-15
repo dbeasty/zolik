@@ -311,6 +311,49 @@ func (d ModuleDescriptor) ValidateOptions(opts map[string]*int) error {
 	return nil
 }
 
+// CarryOptions is a finished table's options, made fit to open a new table
+// with today's descriptor. A table outlives the choices it was created with:
+// the stand-in waits went from 30 s/5 min to 1/2/4/10 min, and a table set to
+// 5 minutes before that could not be played again, because Create refuses a
+// value the descriptor no longer offers.
+//
+// An option the module no longer declares is dropped, so the variation's
+// default applies. A value that is no longer offered moves to the nearest
+// choice that is, the larger one on a tie, so the table keeps roughly what
+// its host picked rather than whatever the default happens to be now.
+func (d ModuleDescriptor) CarryOptions(opts Options) Options {
+	if opts == nil {
+		return nil
+	}
+	out := make(Options, len(opts))
+	for name, v := range opts {
+		spec := d.Option(name)
+		if spec == nil || len(spec.Choices) == 0 {
+			continue
+		}
+		if spec.Allows(v) {
+			out[name] = v
+			continue
+		}
+		best := spec.Choices[0].Value
+		for _, c := range spec.Choices[1:] {
+			dc, db := absInt(c.Value-v), absInt(best-v)
+			if dc < db || (dc == db && c.Value > best) {
+				best = c.Value
+			}
+		}
+		out[name] = best
+	}
+	return out
+}
+
+func absInt(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
 // Registry holds the modules this server can host.
 //
 // In-process and compile-time, per the blueprint's open decision 2: a
