@@ -295,3 +295,38 @@ func TestDecliningTellsTheNotifications(t *testing.T) {
 		t.Errorf("released %v, want bob", log.released)
 	}
 }
+
+// A table created before the stand-in waits changed (30 s/5 min became
+// 1/2/4/10 min) still says 300. Play again used to hand that to Create, which
+// refused it as OPTION_NOT_ALLOWED from every seat, so the table could never
+// be played again. It opens with the nearest wait still offered instead.
+func TestRematchCarriesARetiredOptionValueToTheNearestChoice(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	ended := time.Now().UTC().Add(-time.Minute)
+	old, err := repo.Insert(ctx, models.Match{
+		ModuleID:  "prsi",
+		Status:    "completed",
+		Options:   module.Options{module.OptStandInAfter: 300, "noLongerAnOption": 1},
+		Players:   []models.Player{human("ann"), human("bob")},
+		TurnOrder: []string{"ann", "bob"},
+		HostID:    "ann",
+		JoinCode:  "OLDOPT",
+		EndedAt:   &ended,
+		CreatedAt: ended,
+	})
+	if err != nil {
+		t.Fatalf("inserting a finished match: %v", err)
+	}
+
+	next, err := m.Rematch(ctx, old.ID.Hex(), "ann")
+	if err != nil {
+		t.Fatalf("rematch of a table with a retired stand-in wait: %v", err)
+	}
+	if got := next.Options[module.OptStandInAfter]; got != 240 {
+		t.Errorf("standInAfter = %d, want 240 (nearest to the old 300)", got)
+	}
+	if _, ok := next.Options["noLongerAnOption"]; ok {
+		t.Errorf("an option the game no longer declares was carried over: %v", next.Options)
+	}
+}
