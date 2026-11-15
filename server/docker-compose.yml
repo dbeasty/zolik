@@ -30,7 +30,9 @@ services:
     ports:
       # Host-side only (Compass/mongosh). Services reach mongo at mongo:27017 on the
       # compose network, so this can be anything free; 27018 dodges a local mongo on 27017.
-      - "27018:27017"
+      # Loopback: this mongod has no authentication, so on every interface it is
+      # an open database to the whole LAN. The same goes for every port below.
+      - "127.0.0.1:27018:27017"
     volumes:
       - mongo_data:/data/db
     # Without this, `depends_on: [mongo]` below only waits for the *container*
@@ -58,13 +60,13 @@ services:
       ME_CONFIG_BASICAUTH_USERNAME: dev
       ME_CONFIG_BASICAUTH_PASSWORD: dev
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
@@ -88,9 +90,17 @@ services:
       SSH_PORT: "2222"
       SSH_HOST_KEY_PATH: /tmp/zolik-ssh/zolik_host_key
       SSH_ALLOW_ALL_KEYS: "true"
+    healthcheck: &app-healthcheck
+      test: ["CMD", "/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    # Loopback unless asked, as in docker-compose.kdb.yml: ZOLIK_BIND=0.0.0.0
+    # for another machine on the LAN. SSH here admits any key.
     ports:
-      - "8090:8090"
-      - "2222:2222"
+      - "${ZOLIK_BIND:-127.0.0.1}:8090:8090"
+      - "${ZOLIK_BIND:-127.0.0.1}:2222:2222"
 
   app2:
     build: *server-build
@@ -109,8 +119,9 @@ services:
       # defaults SSH_ENABLED=true and SSHHostKeyPath to the relative ".ssh/zolik_host_key",
       # which this distroless nonroot image cannot create at WORKDIR / -> log.Fatalf -> restart loop.
       SSH_ENABLED: "false"
+    healthcheck: *app-healthcheck
     ports:
-      - "8092:8092"
+      - "${ZOLIK_BIND:-127.0.0.1}:8092:8092"
 
 volumes:
   mongo_data:

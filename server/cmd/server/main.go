@@ -25,6 +25,12 @@ import (
 )
 
 func main() {
+	// The compose healthcheck: see healthcheck.go. Before godotenv, so it reads
+	// the container's own PORT rather than whatever a .env in WORKDIR says.
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(healthcheck(os.Getenv("PORT")))
+	}
+
 	_ = godotenv.Load()
 
 	cfg := app.LoadConfig()
