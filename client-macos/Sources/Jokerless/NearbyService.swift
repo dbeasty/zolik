@@ -39,14 +39,36 @@ final class NearbyService {
   private let bleGuest = NearbyBleGuest()
   private let thermal = NearbyThermal()
   private var ticker: Timer?
-  /// Where the core's slow calls run: starting and stopping the host, and
-  /// opening and closing its doors, each of which can take seconds (a
-  /// database opening, a server draining, OpenRelay waiting up to 15 s for
-  /// the cloud). They used to run on the main thread, which froze every
-  /// window for as long as they took. Serial, so a page that opens the room
-  /// right after starting the host finds the host there, and a stop is never
-  /// overtaken by the start that follows it.
-  private let hostQueue = DispatchQueue(label: "jokerless.nearby.host", qos: .userInitiated)
+  /// Where the core's slow calls run, off the main thread: they used to run
+  /// on it and froze every window for as long as they took.
+  ///
+  /// lifecycleQueue starts and stops the host (a database opening, a server
+  /// draining). The page's own requests to the host are dispatched through it
+  /// too (see afterLifecycle), which keeps the order the main thread used to
+  /// give for free: a request the page sends after asking for a stop or a
+  /// start reaches the host after that stop or start, not into the gap
+  /// between them.
+  ///
+  /// doorQueue opens and closes the room and the relay (OpenRelay waits up
+  /// to 15 s for the cloud). It waits for lifecycleQueue first, so a room
+  /// opened right after a start finds the host there, but the page's
+  /// requests never wait for it.
+  private let lifecycleQueue = DispatchQueue(label: "jokerless.nearby.lifecycle", qos: .userInitiated)
+  private let doorQueue = DispatchQueue(label: "jokerless.nearby.doors", qos: .userInitiated)
+
+  private func onDoorQueue(_ work: @escaping () -> Void) {
+    doorQueue.async { [lifecycleQueue] in
+      lifecycleQueue.sync {}
+      work()
+    }
+  }
+
+  /// Runs work once every host start and stop asked for so far has finished.
+  /// For dispatching the page's requests to the host; the work itself must
+  /// not block.
+  func afterLifecycle(_ work: @escaping () -> Void) {
+    lifecycleQueue.async(execute: work)
+  }
 
   init() {
     bonjour.onFound = { [weak self] host in self?.event("onHostFound", host) }
@@ -313,7 +335,7 @@ final class NearbyService {
       case "startHost", "startNode":
         let dir = try Self.dataDir()
         let (credential, user, cloud) = (string(0), string(1), string(2))
-        hostQueue.async { [weak self] in
+        lifecycleQueue.async { [weak self] in
           var error: NSError?
           let started =
             method == "startHost"
@@ -400,7 +422,7 @@ final class NearbyService {
         }
       case "followMatch":
         let match = string(0)
-        hostQueue.async {
+        onDoorQueue {
           do {
             try host().followMatch(match)
             finish(nil)
@@ -408,7 +430,7 @@ final class NearbyService {
         }
       case "openRoom":
         let name = string(0)
-        hostQueue.async { [weak self] in
+        onDoorQueue { [weak self] in
           do {
             let h = try host()
             var port = 0
@@ -429,13 +451,13 @@ final class NearbyService {
         }
       case "closeRoom":
         bonjour.unpublish()
-        hostQueue.async {
+        onDoorQueue {
           ZolikcoreCurrent()?.closeLAN()
           finish(nil)
         }
       case "openRelay":
         let name = string(0)
-        hostQueue.async {
+        onDoorQueue {
           do {
             let h = try host()
             var error: NSError?
@@ -445,12 +467,12 @@ final class NearbyService {
           } catch { fail(error) }
         }
       case "closeRelay":
-        hostQueue.async {
+        onDoorQueue {
           ZolikcoreCurrent()?.closeRelay()
           finish(nil)
         }
       case "hostResumed":
-        hostQueue.async {
+        onDoorQueue {
           ZolikcoreCurrent()?.resumed()
           finish(nil)
         }
@@ -521,17 +543,17 @@ final class NearbyService {
   /// nothing left to keep responsive.
   func shutdown() {
     stopNearby()
-    hostQueue.sync { ZolikcoreCurrent()?.stop() }
+    lifecycleQueue.sync { ZolikcoreCurrent()?.stop() }
     pushState()
   }
 
-  /// shutdown for the page: the same, with the core's part on hostQueue so
+  /// shutdown for the page: the same, with the core's part on lifecycleQueue so
   /// the windows keep drawing while the host drains. The Swift half — the
   /// advert, the radio, the ticker — goes at once, so nothing announces a
   /// table that is on its way down.
   private func stopHost(_ then: @escaping () -> Void) {
     stopNearby()
-    hostQueue.async { [weak self] in
+    lifecycleQueue.async { [weak self] in
       ZolikcoreCurrent()?.stop()
       self?.pushState()
       then()
