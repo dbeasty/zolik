@@ -366,7 +366,7 @@ func New(cfg Config) (*App, error) {
 		Claimer:              claimChain{Claimer: stats.NewClaimer(r.stats), notify: notifySvc},
 		PublicBaseURL:        cfg.PublicBaseURL,
 		AllowedReturnURLs:    cfg.AllowedReturnURLs,
-		AppName:              "Žolíky",
+		AppName:              ProductName,
 		TestEndpointsEnabled: cfg.TestEndpointsEnabled,
 	})
 

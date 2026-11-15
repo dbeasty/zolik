@@ -12,7 +12,7 @@
 #
 # Options:
 #   --init-env     overwrite server .env from deploy/env.production.example
-#                  (generates fresh JWT secrets; the old file is kept as
+#                  (generates a fresh JWT signing secret; the old file is kept as
 #                  .env.bak.<UTC timestamp> beside it)
 #   --snapshot     tar the database volume on the host before switching images
 #   --skip-nginx   skip nginx vhosts and TLS certificates (docker only)
@@ -205,17 +205,15 @@ if [[ "$INIT_ENV" == true || "$env_state" == absent ]]; then
     say "backed up ${ENV_REMOTE} to ${env_backup}"
   fi
   access_secret="$(openssl rand -hex 32)"
-  refresh_secret="$(openssl rand -hex 32)"
   tmp_env="$(mktemp)"
   sed \
     -e "s|JWT_ACCESS_SECRET=REPLACE_ON_FIRST_DEPLOY|JWT_ACCESS_SECRET=${access_secret}|" \
-    -e "s|JWT_REFRESH_SECRET=REPLACE_ON_FIRST_DEPLOY|JWT_REFRESH_SECRET=${refresh_secret}|" \
     "${ENV_TEMPLATE}" > "$tmp_env"
   scp -q "$tmp_env" "${DEPLOY_SSH}:/tmp/zolik-server.env"
   rm -f "$tmp_env"
   ssh_admin "sudo mv /tmp/zolik-server.env ${ENV_REMOTE} && sudo chown ${DEPLOY_USER}:${DEPLOY_USER} ${ENV_REMOTE} && sudo chmod 600 ${ENV_REMOTE}"
   say "wrote ${ENV_REMOTE}"
-  warn "fresh JWT secrets — any existing session is now invalid"
+  warn "fresh JWT signing secret — any existing session is now invalid"
 else
   say "keeping existing ${ENV_REMOTE} (pass --init-env to replace)"
 fi

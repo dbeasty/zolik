@@ -80,8 +80,7 @@ type Config struct {
 	// match.Manager.ReplayAvailable.
 	ReplayEnabled bool
 
-	JWTAccessSecret  string
-	JWTRefreshSecret string
+	JWTAccessSecret string
 
 	RedisURL   string
 	InstanceID string
@@ -122,7 +121,7 @@ type Config struct {
 	// validation — lets e2e tests jump straight into a specific mid-round
 	// UI state instead of playing a full deal turn-by-turn. Defaults on for
 	// local dev (same as SSHAllowAllKeys) but must be explicitly opted into
-	// anywhere APP_ENV is set.
+	// anywhere APP_ENV is not local.
 	TestEndpointsEnabled bool
 
 	// DebugEndpointsEnabled gates /debug/memory and /debug/pprof, which
@@ -203,6 +202,12 @@ type Config struct {
 // an unset APP_ENV into EnvProduction.
 func (c Config) IsLocal() bool { return c.Env == "" || c.Env == EnvLocal }
 
+// ProductName is what the deployment calls itself where a person reads it:
+// the sign-in mail's subject and body, and its From name unless
+// SMTP_FROM_NAME says otherwise. The module is still Žolíky; the product is
+// Jokerless.
+const ProductName = "Jokerless"
+
 // EnvLocal and EnvProduction are the two APP_ENV values a server reads.
 const (
 	EnvLocal      = "local"
@@ -256,8 +261,7 @@ func LoadConfig() Config {
 		// passed through. Both have to be said.
 		ReplayEnabled: envBool("FEATURE_FLAG_MATCH_REPLAY", false),
 
-		JWTAccessSecret:  envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
-		JWTRefreshSecret: envOr("JWT_REFRESH_SECRET", "dev_refresh_secret_change_me"),
+		JWTAccessSecret: envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
 
 		RedisURL:   envOr("REDIS_URL", ""),
 		InstanceID: envOr("INSTANCE_ID", ""),
@@ -298,7 +302,7 @@ func LoadConfig() Config {
 			Username: os.Getenv("SMTP_USERNAME"),
 			Password: os.Getenv("SMTP_PASSWORD"),
 			From:     os.Getenv("SMTP_FROM"),
-			FromName: envOr("SMTP_FROM_NAME", "Žolíky"),
+			FromName: envOr("SMTP_FROM_NAME", ProductName),
 		},
 
 		Push: PushConfig{

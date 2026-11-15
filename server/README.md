@@ -304,7 +304,7 @@ carried; `cmd/migrate-games` moves any documents left behind.
   - Offline scoring: `/scoring-sessions/*` (a pen-and-paper scorepad, unrelated to hosted
     matches)
 
-Dev-only, when `APP_ENV` is unset or `local`:
+Dev-only, when `APP_ENV` is `local` (unset means production):
 
 - `POST /matches/:id/debug-state` — replaces a match's state with the module's own state blob,
   so a test can start from the position it wants. It bypasses every rule by design.

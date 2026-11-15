@@ -329,7 +329,7 @@ func (h *Handlers) RegisterLocalRoutes(r chi.Router) {
 // automated test to complete a flow that, for a real user, requires reading
 // an actual inbox. Only mounted when TestEndpointsEnabled is set (default on
 // for local dev, same as ENABLE_TEST_ENDPOINTS elsewhere; must be explicitly
-// opted into anywhere APP_ENV is set) — see devMailer.
+// opted into anywhere APP_ENV is not local) — see devMailer.
 func (h *Handlers) devLastCode(w http.ResponseWriter, req *http.Request) {
 	email := NormalizeEmail(req.URL.Query().Get("email"))
 	if email == "" || h.devMailer == nil {

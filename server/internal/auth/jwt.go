@@ -89,9 +89,9 @@ func accessSecret() string {
 // would let anyone sign a token as any player. A key set in-process with
 // SetAccessSecret is the embedded host's own per-install secret, and passes.
 //
-// There is no matching check for JWT_REFRESH_SECRET: refresh tokens are
-// opaque random strings looked up in the database, not signed, so that
-// variable is never read.
+// There is no refresh-token secret at all: refresh tokens are opaque random
+// strings looked up in the database, not signed. (JWT_REFRESH_SECRET was
+// configured for years and never read; it is gone.)
 func CheckAccessSecret(local bool) error {
 	if local {
 		return nil
