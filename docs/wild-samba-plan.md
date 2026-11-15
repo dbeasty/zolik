@@ -30,7 +30,8 @@ two canastas to go out, 10 000 to win) except where it says otherwise.
   at most 2 jokers, at least twice as many 2s as jokers).
 - Seven cards is a canasta and counts toward the two needed to go out:
   - all 2s — **2250** (Samba's 1500 + 50%);
-  - with jokers — **1500**.
+  - with jokers — **1875** (Samba + 25%): seven wilds are harder to gather
+    than a clean sequence, but jokers still cost it the top prize.
 - Not part of an initial meld: three 2s are 60 points, which would make opening
   trivial. Laid only once the side has opened.
 
@@ -132,7 +133,7 @@ be selected or dragged (only hand cards can).
 - Bots: poach off opponents (never the last wild of a canasta, which would
   pay them), move a card only to finish a canasta without breaking one, and
   lay dirty runs and the 2s meld through the ordinary meld offers.
-- Decided in chat: a 2s canasta with jokers pays 1500; a poached wild may be
+- Decided in chat: a 2s canasta with jokers pays 1875 (raised from 1500); a poached wild may be
   laid the same turn.
 - Not yet: choosing which end a wild goes on when laying a *new* dirty run
   (it goes on top unless the top is the ace); a trained model for CanastaX.

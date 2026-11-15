@@ -228,14 +228,14 @@ func TestWildMeld(t *testing.T) {
 		}
 	})
 
-	t.Run("seven 2s pay 2250, with jokers 1500, and both count to go out", func(t *testing.T) {
+	t.Run("seven 2s pay 2250, with jokers 1875, and both count to go out", func(t *testing.T) {
 		r := canastaXRules()
 		clean := Meld{Kind: meldWild, Rank: rankTwo, Cards: []string{"2C", "2D", "2H", "2S", "2C", "2D", "2H"}}
 		dirty := Meld{Kind: meldWild, Rank: rankTwo, Cards: []string{"2C", "2D", "2H", "2S", "2C", "JOKER1", "2H"}}
 		if got := canastaScore(r, &Team{Melds: []Meld{clean}}); got != 2250 {
 			t.Errorf("clean %d", got)
 		}
-		if got := canastaScore(r, &Team{Melds: []Meld{dirty}}); got != 1500 {
+		if got := canastaScore(r, &Team{Melds: []Meld{dirty}}); got != 1875 {
 			t.Errorf("with a joker %d", got)
 		}
 		if (&Team{Melds: []Meld{clean, dirty}}).canastas() != 2 {
