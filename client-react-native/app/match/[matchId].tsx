@@ -3,6 +3,7 @@ import { isMeldLift } from '@/src/lib/meldLift';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   Animated,
+  Dimensions,
   Platform,
   Pressable,
   ScrollView,
@@ -67,6 +68,7 @@ import { usePanelState } from '@/src/hooks/usePanelState';
 import { useBoardArrangement } from '@/src/hooks/useBoardArrangement';
 import { LayoutEditBar } from '@/src/components/match/LayoutEditor';
 import { bandOf, TWO_COLUMN_MAX_WIDTH, TWO_COLUMN_MIN_WIDTH, type RegionId } from '@/src/lib/boardArrangement';
+import { isPhoneScreen, PHONE_FOLDED_PANELS } from '@/src/lib/layout';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
@@ -1986,10 +1988,17 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   // A stable id for remembering whether a zone's own panel is put away —
   // shared by every place this screen draws one.
   const panelIdFor = (zoneId: string) => `zone:${zoneId}`;
+  // A phone starts with everything but the melds and the hand put away (see
+  // `PHONE_FOLDED_PANELS`). The screen, not the window, so turning the phone
+  // or a narrow browser on a desktop changes nothing.
+  const deviceScreen = Dimensions.get('screen');
+  const phoneScreen = isPhoneScreen(deviceScreen.width, deviceScreen.height);
   const zonePanelProps = (zoneId: string) => {
-    // A zone the module asks to start folded is stored the other way round,
-    // as the results are: present means the player opened it out.
-    const folded = zones.some((z) => z.id === zoneId && z.folded);
+    // A zone that starts folded — because the module asks, or because this
+    // is a phone — is stored the other way round, as the results are:
+    // present means the player opened it out.
+    const folded =
+      (phoneScreen && PHONE_FOLDED_PANELS.has(zoneId)) || zones.some((z) => z.id === zoneId && z.folded);
     const stored = folded ? `${panelIdFor(zoneId)}:open` : panelIdFor(zoneId);
     return {
       panelId: panelIdFor(zoneId),

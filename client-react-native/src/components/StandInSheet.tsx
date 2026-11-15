@@ -7,6 +7,7 @@ import { formatApiError } from '@/src/lib/apiError';
 import { shareInviteLink } from '@/src/lib/inviteLink';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
+import { MODAL_ORIENTATIONS } from '@/src/lib/modalOrientations';
 
 const SKILLS = ['easy', 'medium', 'hard'] as const;
 
@@ -78,7 +79,7 @@ export function useStandIn(client: ZolikClient, matchId: string, isHost: boolean
           {error}
         </Text>
       ) : null}
-      <Modal transparent animationType="fade" visible={!!target} onRequestClose={close}>
+      <Modal transparent animationType="fade" visible={!!target} onRequestClose={close} supportedOrientations={MODAL_ORIENTATIONS}>
         <Pressable style={styles.backdrop} onPress={close} testID="standin-backdrop">
           {/* Stops a press inside the panel from closing it. */}
           <Pressable style={styles.sheet} onPress={() => {}} testID="standin-sheet">

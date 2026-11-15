@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Modal, Platform, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { webAttrs } from '@/src/a11y/props';
+import { MODAL_ORIENTATIONS } from '@/src/lib/modalOrientations';
 
 /**
  * A panel over the screen — a menu, a picker, a list — that behaves as a
@@ -61,6 +62,7 @@ export function Sheet({
       animationType={animationType}
       visible={visible}
       onRequestClose={onClose}
+      supportedOrientations={MODAL_ORIENTATIONS}
       {...(webAttrs({ 'aria-label': label }) as object)}
     >
       <Pressable
