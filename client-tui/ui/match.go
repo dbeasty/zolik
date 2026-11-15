@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -31,7 +33,11 @@ type matchModel struct {
 	root    *Root
 	matchID string
 	state   api.MatchState
-	ws      *websocket.Conn
+	conn    *matchConn
+	// live is set once the socket has delivered a board. From then on the
+	// HTTP read, which may have been answered before the move the socket
+	// reported, is stale and is dropped.
+	live bool
 
 	// cursor is which offer is highlighted; selected is which of the viewer's
 	// own cards are picked, by index into the hand zone.
@@ -47,14 +53,105 @@ func newMatchModel(root *Root) matchModel {
 	return matchModel{root: root, selected: map[int]bool{}, params: map[string]string{}}
 }
 
+// --- the socket -------------------------------------------------------------
+
+// matchConn owns one match socket and its one reader.
+//
+// gorilla allows a single concurrent reader per connection. The screen used
+// to read from inside a tea.Cmd and re-arm that command after every state —
+// including the state the plain HTTP read delivered, which re-armed a second
+// reader while the first still sat in ReadMessage. Now one goroutine, started
+// with the connection, reads until it fails and hands each message over a
+// channel; the command only waits on the channel. Writes happen on Update's
+// goroutine alone, so there is one writer too.
+type matchConn struct {
+	ws        *websocket.Conn
+	in        chan tea.Msg
+	closeOnce sync.Once
+}
+
+func newMatchConn(ws *websocket.Conn) *matchConn {
+	c := &matchConn{ws: ws, in: make(chan tea.Msg, 16)}
+	go c.read()
+	return c
+}
+
+func (c *matchConn) read() {
+	defer close(c.in)
+	for {
+		_, data, err := c.ws.ReadMessage()
+		if err != nil {
+			return
+		}
+		var probe struct {
+			Type    string `json:"type"`
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(data, &probe) != nil {
+			continue
+		}
+		switch probe.Type {
+		case "match_state":
+			var s api.MatchState
+			if json.Unmarshal(data, &s) == nil {
+				c.in <- wsStateMsg{conn: c, state: s}
+			}
+		case "error":
+			c.in <- wsErrMsg{conn: c, code: probe.Code, message: probe.Message}
+		}
+	}
+}
+
+// next waits for the reader's next message. Only a message that came from
+// the socket re-arms it, so there is never more than one waiter.
+func (c *matchConn) next() tea.Cmd {
+	return func() tea.Msg {
+		msg, ok := <-c.in
+		if !ok {
+			return matchClosedMsg{conn: c}
+		}
+		return msg
+	}
+}
+
+// Close hangs up. Safe to call more than once and from any goroutine; the
+// reader then fails out of ReadMessage and closes its channel.
+func (c *matchConn) Close() {
+	if c == nil {
+		return
+	}
+	c.closeOnce.Do(func() {
+		_ = c.ws.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+			time.Now().Add(time.Second))
+		_ = c.ws.Close()
+	})
+}
+
 // --- messages ---------------------------------------------------------------
 
+// matchStateMsg and matchErrMsg come from the HTTP read; the ws* ones from
+// the socket, tagged with the connection they came from so a socket the
+// player has already left cannot reach the screen.
 type matchStateMsg struct{ state api.MatchState }
 type matchErrMsg struct{ code, message string }
-type matchClosedMsg struct{}
+type wsStateMsg struct {
+	conn  *matchConn
+	state api.MatchState
+}
+type wsErrMsg struct {
+	conn          *matchConn
+	code, message string
+}
+type matchClosedMsg struct{ conn *matchConn }
 
 func (m matchModel) Init() tea.Cmd {
-	return tea.Batch(m.connect(), m.listen())
+	cmds := []tea.Cmd{m.connect()}
+	if m.conn != nil {
+		cmds = append(cmds, m.conn.next())
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m matchModel) connect() tea.Cmd {
@@ -67,38 +164,9 @@ func (m matchModel) connect() tea.Cmd {
 	}
 }
 
-// listen pumps the socket. One message type matters — the whole board, already
-// filtered for this viewer — so there is nothing to merge and no local
-// projection that could drift.
-func (m matchModel) listen() tea.Cmd {
-	return func() tea.Msg {
-		if m.ws == nil {
-			return nil
-		}
-		for {
-			_, data, err := m.ws.ReadMessage()
-			if err != nil {
-				return matchClosedMsg{}
-			}
-			var probe struct {
-				Type    string `json:"type"`
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			}
-			if json.Unmarshal(data, &probe) != nil {
-				continue
-			}
-			switch probe.Type {
-			case "match_state":
-				var s api.MatchState
-				if json.Unmarshal(data, &s) == nil {
-					return matchStateMsg{state: s}
-				}
-			case "error":
-				return matchErrMsg{code: probe.Code, message: probe.Message}
-			}
-		}
-	}
+// close hangs up the socket, if there is one.
+func (m *matchModel) close() {
+	m.conn.Close()
 }
 
 // --- update -----------------------------------------------------------------
@@ -106,21 +174,34 @@ func (m matchModel) listen() tea.Cmd {
 func (m matchModel) update(msg tea.Msg) (matchModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case matchStateMsg:
-		m.state = msg.state
-		render.SetDeck(m.state.Deck)
-		if m.cursor >= len(m.state.LegalActions) {
-			m.cursor = 0
+		if !m.live {
+			m.setState(msg.state)
 		}
-		return m, m.listen()
+		return m, nil
 
 	case matchErrMsg:
-		m.status = msg.code
-		if msg.message != "" {
-			m.status += ": " + msg.message
+		m.setErr(msg.code, msg.message)
+		return m, nil
+
+	case wsStateMsg:
+		if msg.conn != m.conn {
+			return m, nil
 		}
-		return m, m.listen()
+		m.live = true
+		m.setState(msg.state)
+		return m, m.conn.next()
+
+	case wsErrMsg:
+		if msg.conn != m.conn {
+			return m, nil
+		}
+		m.setErr(msg.code, msg.message)
+		return m, m.conn.next()
 
 	case matchClosedMsg:
+		if msg.conn != m.conn {
+			return m, nil
+		}
 		m.status = "connection closed"
 		return m, nil
 
@@ -130,14 +211,27 @@ func (m matchModel) update(msg tea.Msg) (matchModel, tea.Cmd) {
 	return m, nil
 }
 
+func (m *matchModel) setState(s api.MatchState) {
+	m.state = s
+	render.SetDeck(m.state.Deck)
+	if m.cursor >= len(m.state.LegalActions) {
+		m.cursor = 0
+	}
+}
+
+func (m *matchModel) setErr(code, message string) {
+	m.status = code
+	if message != "" {
+		m.status += ": " + message
+	}
+}
+
 func (m matchModel) key(msg tea.KeyMsg) (matchModel, tea.Cmd) {
 	offers := m.state.LegalActions
 
 	switch msg.String() {
 	case "q", "esc":
-		if m.ws != nil {
-			_ = m.ws.Close()
-		}
+		m.close()
 		m.root.screen = ScreenMainMenu
 		return m, nil
 
@@ -252,11 +346,11 @@ func (m matchModel) send() (matchModel, tea.Cmd) {
 		}
 	}
 
-	if m.ws == nil {
+	if m.conn == nil {
 		m.status = "not connected"
 		return m, nil
 	}
-	if err := m.root.api.SendWS(m.ws, action); err != nil {
+	if err := m.root.api.SendWS(m.conn.ws, action); err != nil {
 		m.status = err.Error()
 		return m, nil
 	}

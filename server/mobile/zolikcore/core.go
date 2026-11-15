@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"zolik/server/internal/netvia"
 
@@ -86,8 +87,15 @@ type Host struct {
 }
 
 var (
+	// mu serialises bringing a host up and putting it down, which can take
+	// seconds (a database opening, a server draining).
 	mu      sync.Mutex
 	current *Host
+	// live mirrors current for Current, which must never wait on mu: the Mac
+	// reads it on its main thread every couple of seconds, and a start or
+	// stop on another thread would otherwise freeze the app for as long as
+	// it took.
+	live atomic.Pointer[Host]
 )
 
 // Start brings the host up on dataDir, which must be a directory the app
@@ -175,12 +183,34 @@ func Revive() error {
 // reviveLocked replaces a dead host with a fresh one for the same account, on
 // the same loopback port where it can get it, since that port is the address
 // the app's client already holds. The tables are on disk and come back with it.
+//
+// A host that was open to the room, or to the internet, is opened again the
+// same way: the revive used to put both doors down with the old host and
+// bring the new one up shut, so the phone's screen still said "open" while
+// nobody could reach the table. The room comes back on the port it had,
+// which is the one the guests and the Bonjour advert already hold, and the
+// relay asks for the code it had, which the cloud keeps for a phone that
+// dropped without ending the table.
 func reviveLocked() (*Host, error) {
 	old := current
 	port := old.Port()
+	lanPort := old.LANPort()
+	relayName, relayCode, relayOpen := old.relayDoor()
 	log.Printf("zolikcore: host %s stopped serving; restarting it on port %d", old.instanceID, port)
-	old.stopLocked()
-	return startLocked(old.dataDir, old.nodeCredential, old.userHex, old.cloudBaseURL, port)
+	old.stop(false)
+	h, err := startLocked(old.dataDir, old.nodeCredential, old.userHex, old.cloudBaseURL, port)
+	if err != nil {
+		return nil, err
+	}
+	if lanPort != 0 {
+		if _, err := h.openLAN(lanPort); err != nil {
+			log.Printf("zolikcore: reopening the room after a revive: %v", err)
+		}
+	}
+	if relayOpen {
+		h.resumeRelay(relayName, relayCode)
+	}
+	return h, nil
 }
 
 // dead reports whether the host's accept loop has ended without anybody
@@ -296,6 +326,7 @@ func startLocked(dataDir, nodeCredential, userHex, cloudBaseURL string, port int
 	}()
 	log.Printf("zolikcore: host %s listening on %s", id.InstanceID, ln.Addr())
 	current = h
+	live.Store(h)
 	return h, nil
 }
 
@@ -375,12 +406,17 @@ func newServer(h http.Handler) *http.Server {
 // is free and on any port otherwise, and returns that port. It is idempotent:
 // a host that is already open answers with the port it already has.
 func (h *Host) OpenLAN() (int, error) {
+	return h.openLAN(LANPort)
+}
+
+// openLAN is OpenLAN on the port asked for, falling back to any.
+func (h *Host) openLAN(prefer int) (int, error) {
 	h.lanMu.Lock()
 	defer h.lanMu.Unlock()
 	if h.lanLn != nil {
 		return h.lanLn.Addr().(*net.TCPAddr).Port, nil
 	}
-	raw, err := net.Listen("tcp", ":"+strconv.Itoa(LANPort))
+	raw, err := net.Listen("tcp", ":"+strconv.Itoa(prefer))
 	if err != nil {
 		if raw, err = net.Listen("tcp", ":0"); err != nil {
 			return 0, fmt.Errorf("lan listen: %w", err)
@@ -405,17 +441,20 @@ func (h *Host) OpenLAN() (int, error) {
 // host's own loopback socket, and every table, are untouched.
 func (h *Host) CloseLAN() {
 	h.lanMu.Lock()
-	defer h.lanMu.Unlock()
-	if h.lanSrv == nil {
+	srv, ln := h.lanSrv, h.lanLn
+	h.lanSrv, h.lanLn = nil, nil
+	h.lanMu.Unlock()
+	if srv == nil {
 		return
 	}
+	// Drained outside lanMu, so LANPort — read on the Mac's main thread —
+	// does not wait out the drain.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_ = h.lanSrv.Shutdown(ctx)
+	_ = srv.Shutdown(ctx)
 	// Shutdown leaves hijacked connections alone, and every guest at a table
 	// is on one: see trackingListener.
-	h.lanLn.closeAll()
-	h.lanSrv, h.lanLn = nil, nil
+	ln.closeAll()
 }
 
 // LANPort is the port other devices reach the host on, or 0 when it is not
@@ -429,11 +468,10 @@ func (h *Host) LANPort() int {
 	return h.lanLn.Addr().(*net.TCPAddr).Port
 }
 
-// Current is the running host, or nil.
+// Current is the running host, or nil. It does not wait for a start or a
+// stop in progress: during one it answers with the host as it stood before.
 func Current() *Host {
-	mu.Lock()
-	defer mu.Unlock()
-	return current
+	return live.Load()
 }
 
 // PublicKey is the Bluetooth tunnel's static public key, base64.
@@ -502,12 +540,20 @@ func (h *Host) Stop() {
 // are already in it - StartNode, which has to put a host down before it can
 // bring the same database up replicating for somebody who has just signed in.
 func (h *Host) stopLocked() {
+	h.stop(true)
+}
+
+// stop puts the host down. endRelay tells the cloud the table is over, so
+// its code is let go; a revive passes false, because the same table is about
+// to dial back in for the same code.
+func (h *Host) stop(endRelay bool) {
 	if current != h {
 		return
 	}
 	current = nil
+	live.Store(nil)
 	h.CloseLAN()
-	h.CloseRelay()
+	h.closeRelay(endRelay)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	h.app.Stop(ctx)

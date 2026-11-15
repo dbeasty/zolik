@@ -96,6 +96,13 @@ func teaProgram(deps Deps) bubblessh.Handler {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		sess := sessionForSSH(s, deps)
 		m := ui.NewRoot(s, deps.ServerURL, sess, deps.Build)
+		// The server outlives every session, so whatever the session left
+		// open on the game server — a match socket and its reader — is
+		// released when the connection ends, quit or not.
+		go func() {
+			<-s.Context().Done()
+			m.Close()
+		}()
 		opts := []tea.ProgramOption{
 			tea.WithInput(s),
 			tea.WithOutput(s),

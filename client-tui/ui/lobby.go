@@ -152,6 +152,7 @@ func (m lobbyModel) update(msg tea.Msg) (lobbyModel, tea.Cmd) {
 		}
 		if msg.state.Status != "lobby" {
 			// Started. Everything from here is the match screen's job.
+			m.root.match.close()
 			m.root.match = newMatchModel(m.root)
 			m.root.match.matchID = m.matchID
 			ws, err := m.root.api.DialWS(m.matchID)
@@ -159,7 +160,8 @@ func (m lobbyModel) update(msg tea.Msg) (lobbyModel, tea.Cmd) {
 				m.errMsg = err.Error()
 				return m, nil
 			}
-			m.root.match.ws = ws
+			m.root.match.conn = newMatchConn(ws)
+			m.root.adopt(m.root.match.conn)
 			m.root.screen = ScreenMatch
 			return m, m.root.match.Init()
 		}

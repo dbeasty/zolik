@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -58,11 +59,16 @@ type Root struct {
 	scoreTable scoreTableModel
 
 	status string
+
+	// conn is the open match socket, mirrored here under a lock because Close
+	// may be called from the SSH server's goroutine, not the program's.
+	connMu sync.Mutex
+	conn   *matchConn
 }
 
 func NewRoot(_ any, serverURL string, sess PlayerSession, build Build) *Root {
 	c := api.New(serverURL)
-	c.SetAuth(sess.AccessToken, sess.UserID)
+	c.SetAuth(sess.AccessToken, sess.RefreshToken, sess.UserID)
 	r := &Root{
 		screen:    ScreenMainMenu,
 		serverURL: serverURL,
@@ -121,6 +127,7 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.height = msg.Height
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
+			r.Close()
 			return r, tea.Quit
 		}
 	case statsMsg:
@@ -159,6 +166,33 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.scoreTable, cmd = r.scoreTable.update(msg)
 	}
 	return r, cmd
+}
+
+// Close releases what the session holds open on the server: the match
+// socket, if a match is on screen. Quitting calls it, and so does the SSH
+// server when a session ends without a quit (the terminal closed, the
+// network dropped), because over SSH the process outlives every session and a
+// socket left open stays open until the server restarts. Safe to call more
+// than once, and from another goroutine than the program's.
+func (r *Root) Close() {
+	r.connMu.Lock()
+	c := r.conn
+	r.conn = nil
+	r.connMu.Unlock()
+	c.Close()
+}
+
+// adopt records the match socket now open, for Close to find from any
+// goroutine. The previous one, if a stale one is somehow still held, is
+// hung up.
+func (r *Root) adopt(c *matchConn) {
+	r.connMu.Lock()
+	prev := r.conn
+	r.conn = c
+	r.connMu.Unlock()
+	if prev != c {
+		prev.Close()
+	}
 }
 
 func (r *Root) View() string {

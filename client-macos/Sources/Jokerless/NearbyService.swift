@@ -39,6 +39,14 @@ final class NearbyService {
   private let bleGuest = NearbyBleGuest()
   private let thermal = NearbyThermal()
   private var ticker: Timer?
+  /// Where the core's slow calls run: starting and stopping the host, and
+  /// opening and closing its doors, each of which can take seconds (a
+  /// database opening, a server draining, OpenRelay waiting up to 15 s for
+  /// the cloud). They used to run on the main thread, which froze every
+  /// window for as long as they took. Serial, so a page that opens the room
+  /// right after starting the host finds the host there, and a stop is never
+  /// overtaken by the start that follows it.
+  private let hostQueue = DispatchQueue(label: "jokerless.nearby.host", qos: .userInitiated)
 
   init() {
     bonjour.onFound = { [weak self] host in self?.event("onHostFound", host) }
@@ -302,25 +310,27 @@ final class NearbyService {
 
     do {
       switch method {
-      case "startHost":
-        var error: NSError?
-        guard let h = ZolikcoreStart(try Self.dataDir(), &error) else {
-          throw Failure(error?.localizedDescription ?? "the offline table did not start")
+      case "startHost", "startNode":
+        let dir = try Self.dataDir()
+        let (credential, user, cloud) = (string(0), string(1), string(2))
+        hostQueue.async { [weak self] in
+          var error: NSError?
+          let started =
+            method == "startHost"
+            ? ZolikcoreStart(dir, &error) : ZolikcoreStartNode(dir, credential, user, cloud, &error)
+          guard let h = started else {
+            fail(Failure(error?.localizedDescription ?? "the offline table did not start"))
+            return
+          }
+          let described = Self.describe(h)
+          DispatchQueue.main.async {
+            self?.thermal.start()
+            self?.startTicking()
+            done(.success(described))
+          }
         }
-        thermal.start()
-        startTicking()
-        finish(Self.describe(h))
-      case "startNode":
-        var error: NSError?
-        guard let h = ZolikcoreStartNode(try Self.dataDir(), string(0), string(1), string(2), &error) else {
-          throw Failure(error?.localizedDescription ?? "the offline table did not start")
-        }
-        thermal.start()
-        startTicking()
-        finish(Self.describe(h))
       case "stopHost":
-        shutdown()
-        finish(nil)
+        stopHost { finish(nil) }
       case "relayJoin":
         // A table across the internet: the core holds the tunnel and serves
         // the table on this machine, so any window can use its address.
@@ -389,34 +399,61 @@ final class NearbyService {
           } catch { fail(error) }
         }
       case "followMatch":
-        let h = try host()
-        try h.followMatch(string(0))
-        finish(nil)
+        let match = string(0)
+        hostQueue.async {
+          do {
+            try host().followMatch(match)
+            finish(nil)
+          } catch { fail(error) }
+        }
       case "openRoom":
-        let h = try host()
-        var port = 0
-        try h.openLAN(&port)
         let name = string(0)
-        bonjour.publish(
-          name: name, port: Int32(port),
-          txt: ["v": String(ZolikcoreProtocolVersion), "id": h.instanceID(), "n": name])
-        finish(["port": port, "addresses": NearbyAddresses.ipv4()])
+        hostQueue.async { [weak self] in
+          do {
+            let h = try host()
+            var port = 0
+            try h.openLAN(&port)
+            let instance = h.instanceID()
+            DispatchQueue.main.async {
+              // A stop that came in meanwhile wins: no advert for a room
+              // that is already shut.
+              guard ZolikcoreCurrent() != nil, h.lanPort() == port else {
+                return done(.failure(Failure("the offline table stopped")))
+              }
+              self?.bonjour.publish(
+                name: name, port: Int32(port),
+                txt: ["v": String(ZolikcoreProtocolVersion), "id": instance, "n": name])
+              done(.success(["port": port, "addresses": NearbyAddresses.ipv4()]))
+            }
+          } catch { fail(error) }
+        }
       case "closeRoom":
         bonjour.unpublish()
-        ZolikcoreCurrent()?.closeLAN()
-        finish(nil)
+        hostQueue.async {
+          ZolikcoreCurrent()?.closeLAN()
+          finish(nil)
+        }
       case "openRelay":
-        let h = try host()
-        var error: NSError?
-        _ = h.openRelay(string(0), error: &error)
-        if let error { throw error }
-        finish(Self.relay(h))
+        let name = string(0)
+        hostQueue.async {
+          do {
+            let h = try host()
+            var error: NSError?
+            _ = h.openRelay(name, error: &error)
+            if let error { throw error }
+            finish(Self.relay(h))
+          } catch { fail(error) }
+        }
       case "closeRelay":
-        ZolikcoreCurrent()?.closeRelay()
-        finish(nil)
+        hostQueue.async {
+          ZolikcoreCurrent()?.closeRelay()
+          finish(nil)
+        }
       case "hostResumed":
-        ZolikcoreCurrent()?.resumed()
-        finish(nil)
+        hostQueue.async {
+          ZolikcoreCurrent()?.resumed()
+          finish(nil)
+        }
       case "startBrowsing":
         bonjour.browse()
         finish(nil)
@@ -480,15 +517,33 @@ final class NearbyService {
   }
 
   /// Ends the table properly: the room is told it closed, and the database
-  /// is shut cleanly.
+  /// is shut cleanly. Blocks until it has; for quitting, where there is
+  /// nothing left to keep responsive.
   func shutdown() {
+    stopNearby()
+    hostQueue.sync { ZolikcoreCurrent()?.stop() }
+    pushState()
+  }
+
+  /// shutdown for the page: the same, with the core's part on hostQueue so
+  /// the windows keep drawing while the host drains. The Swift half — the
+  /// advert, the radio, the ticker — goes at once, so nothing announces a
+  /// table that is on its way down.
+  private func stopHost(_ then: @escaping () -> Void) {
+    stopNearby()
+    hostQueue.async { [weak self] in
+      ZolikcoreCurrent()?.stop()
+      self?.pushState()
+      then()
+    }
+  }
+
+  private func stopNearby() {
     ticker?.invalidate()
     ticker = nil
     bonjour.unpublish()
     bleHost.stop()
     thermal.stop()
-    ZolikcoreCurrent()?.stop()
-    pushState()
   }
 
   private func event(_ name: String, _ payload: Any) {

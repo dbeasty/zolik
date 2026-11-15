@@ -59,14 +59,7 @@ func (h *Host) OpenRelay(name string) (string, error) {
 	if h.nodeCredential == "" || h.cloudBaseURL == "" {
 		return "", errors.New("sign in to let people join over the internet")
 	}
-	h.relayMu.Lock()
-	r := h.relay
-	if r == nil {
-		r = &relayLink{h: h, name: name, status: RelayConnecting, tunnels: map[uint32]*Tunnel{}, stop: make(chan struct{})}
-		h.relay = r
-		go r.run()
-	}
-	h.relayMu.Unlock()
+	r := h.startRelay(name, "")
 
 	deadline := time.Now().Add(15 * time.Second)
 	for time.Now().Before(deadline) {
@@ -78,9 +71,56 @@ func (h *Host) OpenRelay(name string) (string, error) {
 	return "", errors.New("could not reach the server to open the table to the internet")
 }
 
+// startRelay starts the link, or returns the one already up. code is the
+// code to ask the cloud for; empty lets it choose.
+func (h *Host) startRelay(name, code string) *relayLink {
+	h.relayMu.Lock()
+	defer h.relayMu.Unlock()
+	r := h.relay
+	if r == nil {
+		r = &relayLink{h: h, name: name, code: code, status: RelayConnecting, tunnels: map[uint32]*Tunnel{}, stop: make(chan struct{})}
+		h.relay = r
+		go r.run()
+	}
+	return r
+}
+
+// resumeRelay reopens the internet door on a revived host, asking for the
+// code the table had, without waiting for the cloud: Revive holds the
+// package lock and runs as the app comes to the foreground. The remote
+// guests dropped with the old host, so until the link is up no bot takes
+// their seats (see run).
+func (h *Host) resumeRelay(name, code string) {
+	h.app.HoldStandIns(true)
+	r := h.startRelay(name, code)
+	r.mu.Lock()
+	r.wasUp = true
+	r.mu.Unlock()
+}
+
+// relayDoor reports whether the internet door is open, and as what.
+func (h *Host) relayDoor() (name, code string, open bool) {
+	h.relayMu.Lock()
+	r := h.relay
+	h.relayMu.Unlock()
+	if r == nil {
+		return "", "", false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.name, r.code, true
+}
+
 // CloseRelay shuts the internet door: remote guests are let go, and the code
 // stops working.
 func (h *Host) CloseRelay() {
+	h.closeRelay(true)
+}
+
+// closeRelay puts the link down. Only with end is the cloud told the table
+// is over; without it the cloud sees a phone that dropped, and keeps the
+// code for it to come back to.
+func (h *Host) closeRelay(end bool) {
 	h.relayMu.Lock()
 	r := h.relay
 	h.relay = nil
@@ -94,9 +134,11 @@ func (h *Host) CloseRelay() {
 	r.status = RelayOff
 	r.mu.Unlock()
 	if ws != nil {
-		r.wmu.Lock()
-		_ = ws.WriteJSON(map[string]string{"t": "end"})
-		r.wmu.Unlock()
+		if end {
+			r.wmu.Lock()
+			_ = ws.WriteJSON(map[string]string{"t": "end"})
+			r.wmu.Unlock()
+		}
 		_ = ws.Close()
 	}
 	r.closeTunnels()
