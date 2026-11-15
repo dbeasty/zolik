@@ -583,3 +583,29 @@ func TestLANPortDoesNotWaitForTheRoomToDrain(t *testing.T) {
 	}
 	close(hold)
 }
+
+// A host brought back up in the same process — stopped and started again, or
+// restarted in node mode when somebody signs in — listens where the last one
+// did. Signing in does exactly that in the background, and the Play offline
+// button pressed meanwhile had been handed the old address: its next request
+// was refused ("connect: connection refused" on the Mac).
+func TestAHostStartedAgainKeepsItsAddress(t *testing.T) {
+	dir := t.TempDir()
+	h := startHost(t, dir)
+	base := h.BaseURL()
+	h.Stop()
+	again := startHost(t, dir)
+	if again.BaseURL() != base {
+		t.Errorf("after a stop and start the host is at %s, want %s", again.BaseURL(), base)
+	}
+	// Somebody signs in: the host serving nobody restarts as a node.
+	node, err := StartNode(dir, "node-credential", "0123456789abcdef", "http://127.0.0.1:1")
+	if err != nil {
+		t.Fatalf("StartNode: %v", err)
+	}
+	t.Cleanup(node.Stop)
+	if node == again || node.BaseURL() != base {
+		t.Errorf("the node is at %s (same host %v), want a restarted host at %s", node.BaseURL(), node == again, base)
+	}
+	postJSON[map[string]any](t, node, "/auth/guest", "", map[string]any{"guestName": "Still here"}, http.StatusOK)
+}

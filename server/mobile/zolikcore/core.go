@@ -96,6 +96,9 @@ var (
 	// stop on another thread would otherwise freeze the app for as long as
 	// it took.
 	live atomic.Pointer[Host]
+	// lastPort is the loopback port the most recent host listened on, for
+	// the next one to ask for (see StartNode).
+	lastPort int
 )
 
 // Start brings the host up on dataDir, which must be a directory the app
@@ -159,7 +162,12 @@ func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, er
 			return nil, fmt.Errorf("a host is already running for %s", describeAccount(current.userHex))
 		}
 	}
-	return startLocked(dataDir, nodeCredential, userHex, cloudBaseURL, 0)
+	// The loopback port the last host in this process had, if any: the app's
+	// client may still hold that address. Signing in stops the host and
+	// starts it again in node mode, and a table started a moment before (the
+	// Play offline button) would otherwise be left talking to a port nobody
+	// listens on any more.
+	return startLocked(dataDir, nodeCredential, userHex, cloudBaseURL, lastPort)
 }
 
 // Revive brings the host back if iOS has taken its listener away.
@@ -327,6 +335,7 @@ func startLocked(dataDir, nodeCredential, userHex, cloudBaseURL string, port int
 	log.Printf("zolikcore: host %s listening on %s", id.InstanceID, ln.Addr())
 	current = h
 	live.Store(h)
+	lastPort = h.Port()
 	return h, nil
 }
 
