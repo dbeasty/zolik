@@ -122,12 +122,12 @@ type ruleset struct {
 
 // The CanastaX bonuses, for a table that switches one of its rules on under a
 // variation that does not declare them itself. A clean meld of 2s is Samba's
-// 1500 and half again; one with jokers in it is paid as a samba; a dirty
+// 1500 and half again; one with jokers in it is a quarter over a samba; a dirty
 // sequence sits between a mixed canasta and a samba.
 const (
 	defaultDirtySambaBonus       = 700
 	defaultWildCanastaBonus      = 2250
-	defaultWildMixedCanastaBonus = 1500
+	defaultWildMixedCanastaBonus = 1875
 )
 
 // floor is one band of the initial-meld minimum: at Above points and up, a side
