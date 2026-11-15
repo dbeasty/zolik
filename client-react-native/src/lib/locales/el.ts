@@ -1585,16 +1585,7 @@ export const el: Record<string, string> = {
   'record.won': 'Κερδισμένα',
   'record.lost': 'Χαμένα',
   'record.winRate': 'Ποσοστό νικών',
-  'record.streak': 'Σερί',
   'record.atThisGame': 'Σε αυτό το παιχνίδι',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 νίκη',
-  'record.streakWinMany': '{n} νίκες',
-  'record.streakLossOne': '1 ήττα',
-  'record.streakLossMany': '{n} ήττες',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint':

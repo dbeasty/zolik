@@ -1579,16 +1579,7 @@ export const ga: Record<string, string> = {
   'record.won': 'Buaite',
   'record.lost': 'Caillte',
   'record.winRate': 'Ráta buaite',
-  'record.streak': 'Sraith',
   'record.atThisGame': 'Ag an gcluiche seo',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 bhua',
-  'record.streakWinMany': '{n} bua',
-  'record.streakLossOne': '1 chailliúint',
-  'record.streakLossMany': '{n} gcailliúint',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Tarraing cárta feadh an fheanna chun é a atheagrú, nó ar an mbord chun é a imirt',

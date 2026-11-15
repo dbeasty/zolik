@@ -10,10 +10,11 @@ import (
 	"zolik/server/internal/module"
 )
 
-// TestRepairPartnershipDraws — records written before the scoreboard knew
-// about sides hold a partnership's win as a draw. The repair turns those into
-// wins, leaves a genuine tie alone, and rebuilds the lifetime records.
-func TestRepairPartnershipDraws(t *testing.T) {
+// TestRepairPartnerships — records written before the scoreboard knew about
+// sides hold a partnership's win as a draw, and no sides. The repair turns
+// those into wins, stores the sides, leaves a genuine tie alone, and rebuilds
+// the lifetime records.
+func TestRepairPartnerships(t *testing.T) {
 	ctx := context.Background()
 	repo := newKDBRepo(t)
 	at := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
@@ -58,15 +59,15 @@ func TestRepairPartnershipDraws(t *testing.T) {
 		return [][]string{{seats[0], seats[2]}, {seats[1], seats[3]}}
 	}
 
-	dry, err := RepairPartnershipDraws(ctx, repo, sidesOf, true)
-	if err != nil || dry.Draws != 2 || dry.Fixed != 1 || dry.Rebuilt != 0 {
-		t.Fatalf("dry run: %+v (%v), want 2 draws, 1 fixed, nothing rebuilt", dry, err)
+	dry, err := RepairPartnerships(ctx, repo, sidesOf, true)
+	if err != nil || dry.Draws != 2 || dry.Fixed != 1 || dry.SidesAdded != 1 || dry.Rebuilt != 0 {
+		t.Fatalf("dry run: %+v (%v), want 2 draws, 1 fixed, 1 given sides, nothing rebuilt", dry, err)
 	}
 	if ps, _ := repo.FindPlayerStats(ctx, a.Key()); ps.Overall.Wins != 0 {
 		t.Fatal("a dry run wrote a lifetime record")
 	}
 
-	report, err := RepairPartnershipDraws(ctx, repo, sidesOf, false)
+	report, err := RepairPartnerships(ctx, repo, sidesOf, false)
 	if err != nil || report.Fixed != 1 || report.Rebuilt != 4 {
 		t.Fatalf("repair: %+v (%v), want 1 fixed and 4 rebuilt", report, err)
 	}
@@ -88,8 +89,18 @@ func TestRepairPartnershipDraws(t *testing.T) {
 		}
 	}
 
-	again, err := RepairPartnershipDraws(ctx, repo, sidesOf, false)
-	if err != nil || again.Draws != 1 || again.Fixed != 0 {
+	// The partner is no longer an opponent: a faced c only across the poker
+	// table, which c was not at, so not at all.
+	ps, _ := repo.FindPlayerStats(ctx, a.Key())
+	if _, ok := ps.HeadToHead[Subject{Kind: SubjectUser, ID: "c"}.Key()]; ok {
+		t.Errorf("a has a head-to-head row against their partner c")
+	}
+	if got := ps.HeadToHead[Subject{Kind: SubjectUser, ID: "b"}.Key()].Matches; got != 2 {
+		t.Errorf("a faced b in %d matches, want 2", got)
+	}
+
+	again, err := RepairPartnerships(ctx, repo, sidesOf, false)
+	if err != nil || again.Draws != 1 || again.Fixed != 0 || again.SidesAdded != 0 {
 		t.Fatalf("second run: %+v (%v), want only the poker tie left and nothing fixed", again, err)
 	}
 }

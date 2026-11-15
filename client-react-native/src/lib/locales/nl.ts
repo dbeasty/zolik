@@ -1570,16 +1570,7 @@ export const nl: Record<string, string> = {
   'record.won': 'Gewonnen',
   'record.lost': 'Verloren',
   'record.winRate': 'Winstpercentage',
-  'record.streak': 'Reeks',
   'record.atThisGame': 'Bij dit spel',
-  // A streak is a count with a noun, so it is a whole phrase per count for
-  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
-  // and most of these languages do not share it.
-  'record.streakNone': '—',
-  'record.streakWinOne': '1 overwinning',
-  'record.streakWinMany': '{n} overwinningen',
-  'record.streakLossOne': '1 nederlaag',
-  'record.streakLossMany': '{n} nederlagen',
 
   // --- moving cards ---------------------------------------------------------
   'hand.dragHint': 'Sleep een kaart langs de waaier om hem te verplaatsen, of naar het bord om hem te spelen',
