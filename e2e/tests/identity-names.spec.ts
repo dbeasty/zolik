@@ -140,9 +140,14 @@ test.describe('request size', () => {
     expect(res.status()).toBeLessThan(500);
   });
 
-  test('the scorepad, which needs no sign-in, keeps to its own small limit', async ({ request }) => {
+  test('the scorepad keeps to its own small limit', async ({ request }) => {
+    // A scorepad belongs to an account, so the request needs one to reach
+    // the body limit at all.
+    const reg = await (
+      await request.post(`${API_BASE}/auth/register`, { data: { username: `pad-${rand()}`, password: 'secretpass1' } })
+    ).json();
     const res = await request.post(`${API_BASE}/scoring-sessions`, {
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', Authorization: `Bearer ${reg.accessToken}` },
       data: JSON.stringify({ players: ['A', 'B'], pad: 'y'.repeat(64 * 1024) }),
     });
     expect(res.status()).toBe(400);

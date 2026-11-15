@@ -263,3 +263,27 @@ describe('the OAuth exchange', () => {
     expect(calls[1].auth).toBe('Bearer mine');
   });
 });
+
+describe('the scorepad', () => {
+  it('sends the session on every call', async () => {
+    const calls: { path: string; method?: string; auth?: string }[] = [];
+    const transport = {
+      fetch: async (path: string, init: { method?: string; headers?: Record<string, string> }) => {
+        calls.push({ path, method: init.method, auth: init.headers?.Authorization });
+        return { status: 200, ok: true, headers: { get: () => null }, text: async () => '{"id":"p1"}' };
+      },
+      socketUrl: (p: string) => p,
+      openSocket: () => {
+        throw new Error('unused');
+      },
+    };
+    const client = new ZolikClient('http://x', transport as never);
+    client.bindSession({ accessToken: 'mine', refreshToken: 'r', userId: 'u1' } as never);
+    expect(await client.createScoringSession(['A', 'B'])).toBe('p1');
+    await client.getScoringSession('p1');
+    await client.patchScoringSession('p1', 1, { A: 3 });
+    await client.exportScoringSession('p1');
+    expect(calls.map((c) => c.auth)).toEqual(['Bearer mine', 'Bearer mine', 'Bearer mine', 'Bearer mine']);
+    expect(calls.map((c) => c.method)).toEqual(['POST', 'GET', 'PATCH', 'GET']);
+  });
+});

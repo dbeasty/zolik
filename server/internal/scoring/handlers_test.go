@@ -10,9 +10,12 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"zolik/server/internal/auth"
 )
 
 func TestBuildGetResp_WinnerByLowestTotal(t *testing.T) {
@@ -59,7 +62,10 @@ func (m *memRepo) FindByID(_ context.Context, id bson.ObjectID) (ScoringSession,
 	}
 	return s, nil
 }
-func (m *memRepo) Replace(_ context.Context, s ScoringSession) error {
+func (m *memRepo) Replace(_ context.Context, s ScoringSession, expect int) error {
+	if cur, ok := m.s[s.ID]; ok && cur.Version != expect {
+		return ErrVersionConflict
+	}
 	m.s[s.ID] = s
 	return nil
 }
@@ -80,14 +86,38 @@ func scorepad(t *testing.T) (http.Handler, *memRepo) {
 	return r, repo
 }
 
+// ownerID is the account the plain call helper acts as.
+var ownerID = bson.NewObjectID().Hex()
+
+func tokenFor(t testing.TB, userID string, guest bool) string {
+	t.Helper()
+	tok, err := auth.CreateAccessToken(userID, "someone", guest, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tok
+}
+
+// call acts as ownerID.
 func call(h http.Handler, method, path, body string) *httptest.ResponseRecorder {
+	tok, err := auth.CreateAccessToken(ownerID, "owner", false, time.Hour)
+	if err != nil {
+		panic(err)
+	}
+	return callWith(h, tok, method, path, body)
+}
+
+func callWith(h http.Handler, token, method, path, body string) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	h.ServeHTTP(rec, req)
 	return rec
 }
 
-// A scorepad is an unauthenticated write: the one thing that bounds what it
-// stores is this file.
+// What bounds what a scorepad stores is this file.
 func TestCreateCleansAndBoundsPlayerNames(t *testing.T) {
 	h, repo := scorepad(t)
 	long := strings.Repeat("x", 10_000)

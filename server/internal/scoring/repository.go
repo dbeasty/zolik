@@ -19,15 +19,21 @@ type Repository interface {
 	// FindByID returns db.ErrNotFound (wrapped or not) when the session does
 	// not exist; handlers only ever turn that into a 404.
 	FindByID(ctx context.Context, id bson.ObjectID) (ScoringSession, error)
-	// Replace overwrites an existing session document wholesale. Replacing a
-	// session that does not exist is not an error the handlers care to
-	// distinguish; it simply writes nothing.
-	Replace(ctx context.Context, s ScoringSession) error
+	// Replace overwrites an existing session document wholesale, provided
+	// the stored copy is still at version expect; otherwise it writes
+	// nothing and returns ErrVersionConflict. Replacing a session that does
+	// not exist is not an error the handlers care to distinguish; it simply
+	// writes nothing.
+	Replace(ctx context.Context, s ScoringSession, expect int) error
 	// DeleteForOwner removes every scorepad an account made, for an account
 	// that is deleted. A pad nobody signed in to make has no owner and is
 	// never touched.
 	DeleteForOwner(ctx context.Context, userID string) error
 }
+
+// ErrVersionConflict is a write against a scorepad somebody has changed since
+// it was read.
+var ErrVersionConflict = errors.New("scorepad changed since it was read")
 
 type mongoRepository struct {
 	coll *mongo.Collection
@@ -53,9 +59,23 @@ func (r *mongoRepository) FindByID(ctx context.Context, id bson.ObjectID) (Scori
 	return s, err
 }
 
-func (r *mongoRepository) Replace(ctx context.Context, s ScoringSession) error {
-	_, err := r.coll.ReplaceOne(ctx, bson.M{"_id": s.ID}, s, options.Replace().SetUpsert(false))
-	return err
+func (r *mongoRepository) Replace(ctx context.Context, s ScoringSession, expect int) error {
+	filter := bson.M{"_id": s.ID, "version": expect}
+	if expect == 0 {
+		// A pad from before versions has no field at all.
+		filter = bson.M{"_id": s.ID, "$or": bson.A{bson.M{"version": 0}, bson.M{"version": bson.M{"$exists": false}}}}
+	}
+	res, err := r.coll.ReplaceOne(ctx, filter, s, options.Replace().SetUpsert(false))
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		// Gone, or moved on. Only the second is worth telling apart.
+		if n, err := r.coll.CountDocuments(ctx, bson.M{"_id": s.ID}); err == nil && n > 0 {
+			return ErrVersionConflict
+		}
+	}
+	return nil
 }
 
 func (r *mongoRepository) DeleteForOwner(ctx context.Context, userID string) error {

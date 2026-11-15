@@ -1102,17 +1102,16 @@ export class ZolikClient {
     await this.del(`/notify/devices/${encodeURIComponent(id)}`, true);
   }
 
+  // The scorepad belongs to the signed-in account that made it, so every
+  // call carries the session: the server answers anybody else's pad as
+  // missing, and deletes an account's pads with the account.
   async createScoringSession(players: string[]): Promise<string> {
-    const data = await this.post<{ id: string }>(
-      '/scoring-sessions',
-      { players },
-      false,
-    );
+    const data = await this.post<{ id: string }>('/scoring-sessions', { players }, true);
     return data.id;
   }
 
   async getScoringSession(id: string): Promise<Record<string, unknown>> {
-    return this.get(`/scoring-sessions/${encodeURIComponent(id)}`, false);
+    return this.get(`/scoring-sessions/${encodeURIComponent(id)}`, true);
   }
 
   async patchScoringSession(
@@ -1120,19 +1119,12 @@ export class ZolikClient {
     round: number,
     scores: Record<string, number>,
   ): Promise<void> {
-    await this.patch(`/scoring-sessions/${encodeURIComponent(id)}`, { round, scores });
+    await this.patch(`/scoring-sessions/${encodeURIComponent(id)}`, { round, scores }, true);
   }
 
   async exportScoringSession(id: string): Promise<string> {
-    const res = await this.transport.fetch(
-      `/scoring-sessions/${encodeURIComponent(id)}/export`,
-      { method: 'GET' },
-    );
-    const text = await res.text();
-    if (!res.ok) {
-      throw new ApiError(text || `HTTP ${res.status}`, res.status);
-    }
-    return text;
+    const data = await this.get<unknown>(`/scoring-sessions/${encodeURIComponent(id)}/export`, true);
+    return JSON.stringify(data, null, 2);
   }
 
   /** Adopts a completed sign-in as the current session. One place, so every
@@ -1198,8 +1190,8 @@ export class ZolikClient {
     return this.request<T>('POST', path, body, auth);
   }
 
-  private async patch(path: string, body: unknown): Promise<void> {
-    await this.request('PATCH', path, body, false);
+  private async patch(path: string, body: unknown, auth: boolean): Promise<void> {
+    await this.request('PATCH', path, body, auth);
   }
 
   private async del(path: string, auth: boolean): Promise<void> {

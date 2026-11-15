@@ -67,7 +67,7 @@ func (r *kdbRepository) FindByID(ctx context.Context, id bson.ObjectID) (Scoring
 	return s, nil
 }
 
-func (r *kdbRepository) Replace(ctx context.Context, s ScoringSession) error {
+func (r *kdbRepository) Replace(ctx context.Context, s ScoringSession, expect int) error {
 	doc, err := db.MarshalDoc(s)
 	if err != nil {
 		return err
@@ -75,13 +75,21 @@ func (r *kdbRepository) Replace(ctx context.Context, s ScoringSession) error {
 	owner := ownerSubject(s)
 	namespaces := append([]string{db.NSScoring}, db.UserNamespacesOf(owner)...)
 	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
-		if _, err := tx.Get(db.NSScoring, s.ID.Hex()); err != nil {
+		cur, err := tx.Get(db.NSScoring, s.ID.Hex())
+		if err != nil {
 			if db.IsNotFound(err) {
 				// ReplaceOne without upsert writes nothing for a missing
 				// document, and the handlers do not distinguish that.
 				return nil
 			}
 			return err
+		}
+		var stored ScoringSession
+		if err := db.UnmarshalDoc(cur, &stored); err != nil {
+			return err
+		}
+		if stored.Version != expect {
+			return ErrVersionConflict
 		}
 		tx.Put(db.NSScoring, s.ID.Hex(), doc)
 		return db.MirrorUserDoc(tx, owner, scoringKey(s.ID.Hex()), db.KindScoring, doc)
