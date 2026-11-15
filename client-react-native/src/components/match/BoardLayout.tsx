@@ -743,6 +743,10 @@ export function Section({
       aside={aside}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
+      // A card in flight that could land here opens the section, as it does a
+      // side's melds: a phone starts with the table put away, and the discard
+      // is where every turn ends.
+      forceOpen={zones.some((z) => zoneDropLive(z, drops.activeDrops, drops.pressableDrops))}
       testID={`section-${title.toLowerCase()}`}
       style={flush ? null : styles.section}
       summary={

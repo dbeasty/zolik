@@ -3,6 +3,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from '
 
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
+import { MODAL_ORIENTATIONS } from '@/src/lib/modalOrientations';
 
 /**
  * A small question the board asks, as a sheet of large buttons: where to play
@@ -63,6 +64,7 @@ export function BoardSheet({
       animationType="none"
       visible
       onRequestClose={onCancel}
+      supportedOrientations={MODAL_ORIENTATIONS}
       // The web's Modal is already the dialog (`role="dialog"`, `aria-modal`);
       // this names it, so the question is said before the first answer.
       {...((Platform.OS === 'web' ? { 'aria-label': title } : {}) as object)}

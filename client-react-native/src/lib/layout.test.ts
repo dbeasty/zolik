@@ -1,5 +1,7 @@
 import {
   SCREEN_PADDING,
+  PHONE_FOLDED_PANELS,
+  isPhoneScreen,
   cardIndexBox,
   cardIndexColumn,
   dragPeek,
@@ -354,5 +356,19 @@ describe('a phone on its side', () => {
   it('leaves tablets and short desktop windows to their width', () => {
     expect(metricsFor(1024, 'normal', 1, { height: 768, ios: true }).card.width).toBe(metricsFor(1024).card.width);
     expect(metricsFor(1400, 'normal', 1, { height: 500 }).card.width).toBe(metricsFor(1400).card.width);
+  });
+});
+
+describe('what a phone starts with put away', () => {
+  it('knows a phone whichever way up, and not a tablet or a short desktop window', () => {
+    expect(isPhoneScreen(402, 874)).toBe(true);
+    expect(isPhoneScreen(874, 402)).toBe(true);
+    expect(isPhoneScreen(440, 956)).toBe(true);
+    expect(isPhoneScreen(744, 1133)).toBe(false);
+    expect(isPhoneScreen(1280, 560)).toBe(false);
+  });
+
+  it('keeps the melds and the hand open, and folds the rest', () => {
+    expect([...PHONE_FOLDED_PANELS].sort()).toEqual(['controls', 'seats', 'section:opponents', 'section:table']);
   });
 });

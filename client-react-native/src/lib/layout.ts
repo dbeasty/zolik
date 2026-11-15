@@ -418,6 +418,26 @@ export type ScreenShape = { height?: number; ios?: boolean };
 export const PHONE_SHORT_SIDE = 600;
 export const PHONE_LONG_SIDE = 1024;
 
+/** Whether a screen this size is a phone's — see `PHONE_SHORT_SIDE`. */
+export function isPhoneScreen(width: number, height: number): boolean {
+  return Math.min(width, height) < PHONE_SHORT_SIDE && Math.max(width, height) < PHONE_LONG_SIDE;
+}
+
+/**
+ * The panels a phone starts with put away: everything but the melds and the
+ * hand. A phone's screen holds the hand and the melds and little else, and
+ * the rest is glanced at — each of these still shows its gist folded (the
+ * seats and scores, the discard's top card, the live moves) and opens with
+ * its ▾ like any panel, the player's choice then kept as it always is. Ids
+ * as `zonePanelProps` takes them.
+ */
+export const PHONE_FOLDED_PANELS: ReadonlySet<string> = new Set([
+  'seats',
+  'section:table',
+  'section:opponents',
+  'controls',
+]);
+
 /**
  * How much smaller an iPhone's cards are drawn than the width table gives.
  * A phone held in the hand sits closer to the eye than a browser window of
@@ -438,9 +458,8 @@ export const IOS_PHONE_FACTOR = 0.85;
  */
 export function screenScale(width: number, screen: ScreenShape = {}): number {
   const height = screen.height ?? width;
-  const short = Math.min(width, height);
-  if (short >= PHONE_SHORT_SIDE || Math.max(width, height) >= PHONE_LONG_SIDE) return scaleFor(width);
-  const phone = scaleFor(short);
+  if (!isPhoneScreen(width, height)) return scaleFor(width);
+  const phone = scaleFor(Math.min(width, height));
   return screen.ios ? Math.round(phone * IOS_PHONE_FACTOR * 100) / 100 : phone;
 }
 

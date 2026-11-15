@@ -2,6 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
+import { MODAL_ORIENTATIONS } from '@/src/lib/modalOrientations';
 
 /**
  * Getting up from the table, asked once. The one control at a table that
@@ -10,7 +11,7 @@ import { colors } from '@/src/theme';
  */
 export function LeaveSheet({ visible, onLeave, onCancel }: { visible: boolean; onLeave: () => void; onCancel: () => void }) {
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onCancel}>
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onCancel} supportedOrientations={MODAL_ORIENTATIONS}>
       <Pressable style={styles.backdrop} onPress={onCancel} testID="leave-backdrop">
         {/* Stops a press inside the panel from closing it. */}
         <Pressable style={styles.sheet} onPress={() => {}} testID="leave-sheet">
