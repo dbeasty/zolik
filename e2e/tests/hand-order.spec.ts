@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { dragLocatorTo, dragPointTo, grabPoint, handCards, visiblePart } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
+import { cardByCode, handCodes, selectOnly } from '../helpers/hand';
 import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
@@ -287,7 +288,23 @@ test.describe('arranging your hand', () => {
     page,
     request,
   }) => {
+    test.setTimeout(60_000);
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    // Every board the server pushes to this page, in order. A push that
+    // repeats the board before it is a resend, not a move.
+    const boards: string[] = [];
+    page.on('websocket', (ws) =>
+      ws.on('framereceived', (f) => {
+        try {
+          const m = JSON.parse(String(f.payload));
+          if (m.type !== 'match_state') return;
+          const board = JSON.stringify(m.view);
+          if (boards[boards.length - 1] !== board) boards.push(board);
+        } catch {
+          /* not JSON */
+        }
+      }),
+    );
     await openMatch(page, host, matchId);
 
     const before = await handCards(page);
@@ -300,8 +317,35 @@ test.describe('arranging your hand', () => {
     // recomputed. The server re-pushes the entire board after every move by
     // anyone, in its own order; before this existed, each bot turn silently
     // reshuffled the player's hand back underneath them. Bots move on their
-    // own, so waiting is all it takes to get several pushes.
-    await page.waitForTimeout(4000);
+    // own, so waiting is all it takes to get pushes — but it has to be waited
+    // *for*, and the bot has to be able to move. A fixed four-second pause
+    // passed without testing anything whenever the deal gave the first turn
+    // to the player, which is most of the time: the bot waits on them, and
+    // nothing is pushed at all.
+    //
+    // So on the player's turn the player takes it, through the controls,
+    // without touching the card that was moved: draw, and give back the last
+    // card in the row.
+    const draw = page.getByTestId('offer-draw:deck');
+    if ((await draw.isVisible()) && (await draw.getAttribute('aria-disabled')) !== 'true') {
+      await draw.click();
+      await expect(page.getByTestId('offer-discard')).not.toHaveAttribute('aria-disabled', 'true');
+      const row = await handCodes(page);
+      const giveBack = row.filter((c) => c !== before[5]).at(-1)!;
+      await selectOnly(page, [giveBack]);
+      await page.getByTestId('offer-discard').click();
+      await expect(cardByCode(page, giveBack)).toHaveCount(0);
+    }
+    // Counted from here, so what is waited for is the bot's move, not ours.
+    const pushedAt = boards.length;
+    await expect
+      .poll(() => boards.length - pushedAt, {
+        message: 'the server should push a changed board after the arrangement',
+        timeout: 30_000,
+      })
+      .toBeGreaterThanOrEqual(2);
+    // And let the page render the last of them before reading it.
+    await page.waitForTimeout(500);
 
     const later = await handCards(page);
     expect(later[0]).toBe(before[5]);

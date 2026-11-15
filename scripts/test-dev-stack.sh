@@ -19,7 +19,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT="${1:-${HERE}/dev-stack.sh}"
 [[ -f "$SCRIPT" ]] || { echo "no such script: $SCRIPT" >&2; exit 2; }
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/dev-stack-test.XXXXXX")"
+T="${TMPDIR:-/tmp}"
+WORK="$(mktemp -d "${T%/}/dev-stack-test.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
 ROOT="$WORK/zolik"

@@ -20,7 +20,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT="${1:-${HERE}/phone-e2e-stack.sh}"
 [[ -f "$SCRIPT" ]] || { echo "no such script: $SCRIPT" >&2; exit 2; }
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/phone-stack-test.XXXXXX")"
+T="${TMPDIR:-/tmp}"
+WORK="$(mktemp -d "${T%/}/phone-stack-test.XXXXXX")"
 ROOT="$WORK/zolik"
 BIN="$WORK/bin"
 mkdir -p "$ROOT/scripts" "$ROOT/server" "$ROOT/client-react-native" "$BIN"
