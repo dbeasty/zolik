@@ -296,11 +296,18 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if viewerTeam != nil && t.ID == viewerTeam.ID {
 			z.LabelKey = "zone.teamMelds"
 		}
+		total := 0
 		for _, mm := range meldsInViewOrder(t.Melds) {
-			// What its cards are worth, so a side's meld points can be read off
-			// the table. The cards only: a canasta's bonus is scored apart.
+			// What its cards are worth, and beside it what the meld itself
+			// earns once it is a canasta — "120 + 500" — so a side's points
+			// can be read off the table instead of added up.
+			points, bonus := handValue(mm.Cards), meldBonus(r, mm)
 			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...),
-				Value: strconv.Itoa(handValue(mm.Cards))}
+				Value: strconv.Itoa(points)}
+			if bonus != 0 {
+				g.Value += " + " + strconv.Itoa(bonus)
+			}
+			total += points + bonus
 			if mm.isCanasta() {
 				g.Complete = true
 				g.Face = foldedFace(mm.Cards)
@@ -321,6 +328,11 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			}
 			z.Groups = append(z.Groups, g)
 			z.Count += len(mm.Cards)
+		}
+		// Every meld's cards and every canasta's bonus together. Red threes
+		// are a zone of their own, and the seat's "on table" fact adds them.
+		if len(z.Groups) > 0 {
+			z.Value = strconv.Itoa(total)
 		}
 		vm.Zones = append(vm.Zones, z)
 

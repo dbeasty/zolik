@@ -222,6 +222,10 @@ type Zone struct {
 	Cards    []CardView `json:"cards,omitempty"`
 	Count    int        `json:"count"`
 	Groups   []Group    `json:"groups,omitempty"`
+	// Value is a short figure shown beside the zone's title — what everything
+	// in it is worth together, "1240": every meld's cards and every bonus
+	// they earned. The zone-level counterpart of Group.Value, printed as sent.
+	Value string `json:"value,omitempty"`
 	// Dealer marks the house's own zone: cards the game itself plays, held by
 	// nobody at the table. Blackjack's dealer is the one so far.
 	//

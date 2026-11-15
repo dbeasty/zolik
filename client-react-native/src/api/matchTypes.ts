@@ -120,6 +120,11 @@ export type Zone = {
   count: number;
   groups?: Group[];
   /**
+   * What everything in the zone is worth together — a side's melds and the
+   * bonuses they earned, "1240". Printed as sent beside the zone's title.
+   */
+  value?: string;
+  /**
    * The house's own zone — the cards the game itself plays, held by nobody at
    * the table. Blackjack's dealer is the one that sends it.
    *

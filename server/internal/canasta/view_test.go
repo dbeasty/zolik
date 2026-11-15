@@ -562,3 +562,43 @@ func TestMeldsCarryTheirCardPoints(t *testing.T) {
 	}
 	t.Fatal("no melds zone for team 0")
 }
+
+// TestCanastaShowsItsBonusAndTheSideItsTotal: a canasta shows its cards and,
+// beside them, the bonus the meld earns; the melds zone adds both up.
+func TestCanastaShowsItsBonusAndTheSideItsTotal(t *testing.T) {
+	natural := []string{"KH", "KD", "KC", "KS", "KH", "KD", "KC"}
+	open := []string{"QH", "QD", "2C"}
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "K"), TeamID: 0, Rank: "K", Cards: natural},
+			{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q", Cards: open},
+		}
+	})
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	s, _ := decode(raw)
+	bonus := s.rules().NaturalCanastaBonus
+	for _, z := range vm.Zones {
+		if z.ID != meldsZoneID(0) {
+			continue
+		}
+		got := map[string]string{}
+		for _, g := range z.Groups {
+			got[g.ID] = g.Value
+		}
+		if want := strconv.Itoa(handValue(natural)) + " + " + strconv.Itoa(bonus); got[meldID(0, "K")] != want {
+			t.Errorf("canasta value %q, want %q", got[meldID(0, "K")], want)
+		}
+		if want := strconv.Itoa(handValue(open)); got[meldID(0, "Q")] != want {
+			t.Errorf("open meld value %q, want %q", got[meldID(0, "Q")], want)
+		}
+		if want := strconv.Itoa(handValue(natural) + bonus + handValue(open)); z.Value != want {
+			t.Errorf("zone total %q, want %q", z.Value, want)
+		}
+		return
+	}
+	t.Fatal("no melds zone for team 0")
+}

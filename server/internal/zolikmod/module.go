@@ -559,6 +559,7 @@ func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.Vie
 			ID: meldsZoneID(p), Kind: module.ZoneSpread, OwnerID: p, LabelKey: "zone.melds",
 		}
 		metas := gs.MeldMeta[p]
+		total, valued := 0, false
 		for i, cards := range melds {
 			g := module.Group{ID: fmt.Sprintf("meld_%d", i), Cards: cards}
 			if i < len(metas) {
@@ -572,9 +573,14 @@ func (m *Module) viewOf(s *matchState, viewerID string, reveal bool) (module.Vie
 			// stands for — the figure the opening minimum adds up.
 			if mv, err := rules.ValidateMeldInOrder(cards, cfg); err == nil {
 				g.Value = strconv.Itoa(mv.NaturalValue)
+				total += mv.NaturalValue
+				valued = true
 			}
 			z.Groups = append(z.Groups, g)
 			z.Count += len(cards)
+		}
+		if valued {
+			z.Value = strconv.Itoa(total)
 		}
 		vm.Zones = append(vm.Zones, z)
 	}
