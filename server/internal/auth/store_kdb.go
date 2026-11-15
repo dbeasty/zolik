@@ -218,6 +218,34 @@ func (s *kdbStore) FindUserByVerifiedEmail(ctx context.Context, email string) (m
 	return out, nil
 }
 
+func (s *kdbStore) ReleaseUnverifiedEmail(ctx context.Context, email string, keep bson.ObjectID) error {
+	if email == "" {
+		return nil
+	}
+	var holders []bson.ObjectID
+	err := s.k.Scan(db.NSUsers, func(doc []byte) error {
+		var u models.User
+		if err := db.UnmarshalDoc(doc, &u); err != nil {
+			return err
+		}
+		if u.Email == email && !u.EmailVerified && u.ID != keep {
+			holders = append(holders, u.ID)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// Each account gives the address up in its own transaction, which also
+	// frees the reservation (KDBUpdateUserFields retakes "" for it).
+	for _, id := range holders {
+		if err := db.KDBUpdateUserFields(s.k, id, bson.M{"email": ""}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *kdbStore) UsernameTaken(ctx context.Context, username string) (bool, error) {
 	_, err := db.KDBFindUserByUsername(s.k, username)
 	if db.IsNotFound(err) {
