@@ -559,6 +559,13 @@ export function ZoneView({
       count={foldable ? undefined : zone.count}
       countTestID={foldable ? undefined : `zone-count-${zone.id}`}
       summary={summary}
+      aside={
+        zone.value ? (
+          <Text style={styles.zoneTotal} testID={`zone-total-${zone.id}`}>
+            {t('score.total')} {zone.value}
+          </Text>
+        ) : undefined
+      }
       accessory={
         marked > 0 && !foldable ? (
           <View style={styles.markChip} testID={`zone-marks-${zone.id}`}>
@@ -1387,6 +1394,7 @@ function zoneStyles(m: Metrics, s: Skin) {
     markChip: { backgroundColor: colors.success, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
     markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
+    zoneTotal: { color: colors.gold, fontSize: m.panel.bodyFont, fontWeight: '600' },
     foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
     toggleGlyph: { color: colors.accentButton, fontSize: 11, lineHeight: 11, fontWeight: '700', textAlign: 'center' },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },

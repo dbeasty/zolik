@@ -78,7 +78,8 @@ export function zoneSpokenLabel(zone: Zone, players: MatchPlayer[], viewerId: st
   }
   const groups = zone.groups ?? [];
   if (groups.length) {
-    return t('a11y.board.zone.groups', { zone: name, n: groups.length });
+    const spoken = t('a11y.board.zone.groups', { zone: name, n: groups.length });
+    return zone.value ? `${spoken}, ${t('score.total')} ${zone.value}` : spoken;
   }
   if (faceUp.length && faceUp.length <= 8) {
     const shown = t('a11y.board.zone.cards', { zone: name, cards: cardsSpoken(faceUp.map((c) => c.card)) });

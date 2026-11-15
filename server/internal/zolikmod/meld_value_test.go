@@ -29,6 +29,9 @@ func TestMeldsCarryTheirValue(t *testing.T) {
 	got := map[string]string{}
 	for _, z := range vm.Zones {
 		if z.ID == meldsZoneID("p2") {
+			if z.Value != "67" {
+				t.Errorf("zone total %q, want 67", z.Value)
+			}
 			for _, g := range z.Groups {
 				got[g.ID] = g.Value
 			}

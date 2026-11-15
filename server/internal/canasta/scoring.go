@@ -51,25 +51,30 @@ func redThreeScore(r ruleset, t *Team) int {
 func canastaScore(r ruleset, t *Team) int {
 	total := 0
 	for _, m := range t.Melds {
-		if !m.isCanasta() {
-			continue
-		}
-		switch canastaKind(m) {
-		case "samba":
-			total += r.SambaBonus
-		case "dirtySamba":
-			total += r.DirtySambaBonus
-		case "wild":
-			total += r.WildCanastaBonus
-		case "wildMixed":
-			total += r.WildMixedCanastaBonus
-		case "natural":
-			total += r.NaturalCanastaBonus
-		default:
-			total += r.MixedCanastaBonus
-		}
+		total += meldBonus(r, m)
 	}
 	return total
+}
+
+// meldBonus is what one meld earns on top of its cards: the canasta bonus its
+// kind pays, or nothing for a meld that is not a canasta yet.
+func meldBonus(r ruleset, m Meld) int {
+	switch canastaKind(m) {
+	case "":
+		return 0
+	case "samba":
+		return r.SambaBonus
+	case "dirtySamba":
+		return r.DirtySambaBonus
+	case "wild":
+		return r.WildCanastaBonus
+	case "wildMixed":
+		return r.WildMixedCanastaBonus
+	case "natural":
+		return r.NaturalCanastaBonus
+	default:
+		return r.MixedCanastaBonus
+	}
 }
 
 // meldCardScore is the face value of everything the partnership has on the
