@@ -133,6 +133,13 @@ type Match struct {
 	// filtered replace that fails if someone else wrote first.
 	Version int64 `bson:"version" json:"-"`
 
+	// LogSeq is how many moves the board in State has had applied. Never
+	// stored: the runtime fills it on the copy it holds, so a snapshot taken
+	// under the match lock can be told apart from a later one with the same
+	// Version — moves do not bump Version. (Version, LogSeq) orders the
+	// runtime's copies in time; see Manager.broadcastWith.
+	LogSeq int `bson:"-" json:"-"`
+
 	// MigratedFrom is the `games` document this match was converted from, when
 	// it was. It makes the migration idempotent — a re-run skips anything
 	// already carrying it — and leaves a trail back to the original if a
