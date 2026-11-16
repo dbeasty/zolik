@@ -23,8 +23,24 @@ import { useLocale } from '@/src/hooks/useLocale';
 export default function AuthCallbackScreen() {
   useLocale();
   const params = useGlobalSearchParams<{ code?: string; error?: string }>();
-  const { client, setSession } = useSession();
-  const [message, setMessage] = useState(() => t('a11y.auth.signingIn'));
+  const { completeOAuth } = useSession();
+  // The outcome, not its words: the stored language can finish loading after
+  // this screen has mounted, and a sentence rendered then stayed in English
+  // under a translated title. Worded at render time, it follows the locale.
+  const [outcome, setOutcome] = useState<
+    | { kind: 'signingIn' }
+    | { kind: 'failed'; reason: string }
+    | { kind: 'thrown'; text: string }
+    | { kind: 'signedIn'; claimed: number }
+  >({ kind: 'signingIn' });
+  const message =
+    outcome.kind === 'failed'
+      ? authErrorMessage(outcome.reason)
+      : outcome.kind === 'thrown'
+        ? outcome.text || t('error.signIn')
+        : outcome.kind === 'signedIn'
+          ? (claimedMessage(outcome.claimed) ?? t('auth.callback.signedIn'))
+          : t('a11y.auth.signingIn');
   const ran = useRef(false);
 
   useEffect(() => {
@@ -36,7 +52,7 @@ export default function AuthCallbackScreen() {
     ran.current = true;
 
     if (params.error) {
-      setMessage(authErrorMessage(String(params.error)));
+      setOutcome({ kind: 'failed', reason: String(params.error) });
       setTimeout(() => router.replace('/auth/login'), 1500);
       return;
     }
@@ -45,19 +61,19 @@ export default function AuthCallbackScreen() {
       router.replace('/');
       return;
     }
-    client
-      .exchangeOAuthCode(code)
-      .then(async (outcome) => {
-        await setSession(outcome.session);
-        const claimed = claimedMessage(outcome.claimedMatches);
-        setMessage(claimed ?? t('auth.callback.signedIn'));
+    // Through the same tail as every other sign-in: the claim prompt is
+    // cleared and a guest identity the server just retired is forgotten,
+    // rather than sent again on the next guest sign-in.
+    completeOAuth(code)
+      .then((done) => {
+        setOutcome({ kind: 'signedIn', claimed: done.claimedMatches });
         router.replace('/');
       })
       .catch((e) => {
-        setMessage(e instanceof Error ? e.message : t('error.signIn'));
+        setOutcome({ kind: 'thrown', text: e instanceof Error ? e.message : '' });
         setTimeout(() => router.replace('/auth/login'), 1500);
       });
-  }, [params.code, params.error, client, setSession]);
+  }, [params.code, params.error, completeOAuth]);
 
   return (
     <Screen title={t('nav.signingIn')}>

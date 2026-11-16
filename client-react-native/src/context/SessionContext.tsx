@@ -22,7 +22,7 @@ import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
 import { guestIdOfKey } from '@/src/lib/inviteLink';
 import { DESKTOP_WINDOW, IS_DESKTOP, IS_DESKTOP_GAME_WINDOW, ZOLIK_BASE_URL } from '@/src/config';
 import { bootSeat, postSeat, seatIsShareable, seatKey, subscribeSeat, type SeatTable } from '@/src/desktop/seat';
-import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
+import { hostingTable, hostTable, releaseTable, runningNode, startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
 import { servingTable } from '@/src/net/servingTable';
 import { askToNotify } from '@/src/notify/localNotify';
 import { t } from '@/src/lib/i18n';
@@ -185,6 +185,12 @@ type SessionContextValue = {
   /** Matches on this device that an account could still absorb. */
   claimableMatches: number;
   setSession: (s: PlayerSession | null) => Promise<void>;
+  /**
+   * Finishes a browser sign-in that landed on /auth/callback (the web build's
+   * path): exchanges the code and adopts the outcome like every other
+   * sign-in, which forgets a guest identity whose history was just claimed.
+   */
+  completeOAuth: (code: string) => Promise<SignInOutcome>;
   guestLogin: (name: string) => Promise<void>;
   /** Mails a one-time sign-in code. */
   startEmailSignIn: (email: string) => Promise<void>;
@@ -361,6 +367,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Who this device is currently a node for, so a second sign-in by the same
   // person is not a second enrolment and a different person's is a handover.
   const previousAccount = useRef('');
+  // A sign-in that arrived while this phone was hosting a table: node mode
+  // would restart the server under the table, so it waits for the table to end.
+  const nodeWaitingFor = useRef<PlayerSession | null>(null);
 
   // Starting and stopping this device as a node of the database. It is
   // best-effort in both directions: a phone that cannot enrol, or an app
@@ -371,6 +380,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // is only a view, and any window loading as a guest must not stop the
     // table the main window opened for the room.
     if (IS_DESKTOP && DESKTOP_WINDOW?.role === 'game') return;
+    nodeWaitingFor.current = null;
     try {
       if (!s || s.isGuest) {
         if (IS_DESKTOP && !previousAccount.current) {
@@ -384,6 +394,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
       if (previousAccount.current === s.userId) return;
       if (previousAccount.current) await stopNodeFor(previousAccount.current, nodeCredentialStore);
+      if (hostingTable() && !runningNode()) {
+        previousAccount.current = '';
+        nodeWaitingFor.current = s;
+        setLocalNodeReady(false);
+        return;
+      }
       previousAccount.current = s.userId;
       const started = await startNodeFor(
         s.userId,
@@ -509,9 +525,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [applySession],
   );
 
-  const signInAsGuest = useCallback(
-    async (name: string, proof: GuestProof) => {
-      const s = await apiClient.guestLogin(name, proof);
+  /** Makes a guest session this device's guest, and the current session. */
+  const keepGuest = useCallback(
+    async (s: PlayerSession) => {
       if (s.guestId) {
         await storage.setItem(
           GUEST_KEY,
@@ -526,6 +542,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [applySession],
   );
 
+  const signInAsGuest = useCallback(
+    async (name: string, proof: GuestProof) => keepGuest(await apiClient.guestLogin(name, proof)),
+    [keepGuest],
+  );
+
   const guestLogin = useCallback(
     async (name: string) => {
       await signInAsGuest(name, proofOf(await loadGuestIdentity()));
@@ -535,10 +556,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const resumeGuestFromLink = useCallback(
     async (key: string) => {
-      const s = await signInAsGuest('', { guestKey: key });
-      return !!s.guestId && s.guestId === guestIdOfKey(key);
+      const s = await apiClient.guestLogin('', { guestKey: key });
+      if (s.guestId && s.guestId === guestIdOfKey(key)) {
+        await keepGuest(s);
+        return true;
+      }
+      // The server answers a key it does not recognise — a mistyped or
+      // forged link — with a brand-new guest. That guest is not the one the
+      // link named, and must not be written over the identity this device
+      // already holds: the device goes back to being the guest it was, which
+      // also puts that guest's key back in the web cookie the attempt
+      // replaced. A device with no guest yet keeps the fresh one rather than
+      // being left with no session.
+      const own = proofOf(await loadGuestIdentity());
+      if (own.guestKey || own.refreshToken) await signInAsGuest('', own);
+      else await keepGuest(s);
+      return false;
     },
-    [signInAsGuest],
+    [keepGuest, signInAsGuest],
   );
 
   /** Shared tail of every sign-in: adopt the session and forget the guest
@@ -554,6 +589,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return outcome;
     },
     [applySession],
+  );
+
+  const completeOAuth = useCallback(
+    async (code: string) => adopt(await apiClient.exchangeOAuthCode(code)),
+    [adopt],
   );
 
   const startEmailSignIn = useCallback(async (email: string) => {
@@ -737,7 +777,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const playOffline = useCallback(
     async (name: string) => {
-      const host = await nearby.startHost();
+      const host = await hostTable();
       // The host is told when somebody sits down, by the phone itself when
       // the app is in the background: in the app's words, and only with the
       // player's leave to notify.
@@ -933,9 +973,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       await nearby.closeRelay();
       await nearby.closeRoom();
       await nearby.bleHostStop();
-      await nearby.stopHost();
+      // The server itself stays up while node mode still holds the signed-in
+      // account's data on it; only the table is over.
+      await releaseTable();
+      const waiting = nodeWaitingFor.current;
+      if (waiting) await followAccountOnThisDevice(waiting);
     }
-  }, [offline]);
+  }, [offline, followAccountOnThisDevice]);
 
   // The Mac app keeps the seat itself (client-macos SeatStore), so a game
   // window opened after the player sat down in the main window finds them at
@@ -1111,6 +1155,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       account,
       claimableMatches,
       setSession,
+      completeOAuth,
       guestLogin,
       startEmailSignIn,
       verifyEmailCode,
@@ -1159,6 +1204,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       account,
       claimableMatches,
       setSession,
+      completeOAuth,
       guestLogin,
       startEmailSignIn,
       verifyEmailCode,

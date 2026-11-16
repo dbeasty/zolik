@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Field, FormError } from '@/src/a11y/Field';
@@ -17,6 +17,7 @@ import { moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useHydrated } from '@/src/hooks/useHydrated';
+import { useFocusedPoll } from '@/src/hooks/useFocusedPoll';
 
 /**
  * Joining a table somebody else opened, by code or by invitation.
@@ -45,6 +46,10 @@ function JoinMatchScreenMounted() {
   const [matchId, setMatchId] = useState(invitedMatchId ?? '');
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState('');
+  // A failed poll's own message, kept apart from a failed join's: the next
+  // poll that succeeds clears it, where a shared one stayed on screen for
+  // good after a single dropped request.
+  const [pollError, setPollError] = useState('');
   const [refused, setRefused] = useState('');
   const age = useAgeGate();
   // Everybody else who sits down while this player waits for the host.
@@ -58,19 +63,16 @@ function JoinMatchScreenMounted() {
     try {
       const m = await client.getMatch(matchId);
       setState(m);
-      // The host started it. Everything from here is the shell's job.
-      if (m.status !== 'lobby') router.replace(`/match/${matchId}`);
+      setPollError('');
+      // The host started it. Everything from here is the shell's job — but
+      // only from this screen: one pushed on top is what the player is using.
+      if (m.status !== 'lobby' && focused.current) router.replace(`/match/${matchId}`);
     } catch (e) {
-      setError(formatApiError(e, t('a11y.error.readTable')));
+      setPollError(formatApiError(e, t('a11y.error.readTable')));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, matchId]);
-
-  useEffect(() => {
-    if (!matchId) return;
-    poll();
-    const t = setInterval(poll, 2000);
-    return () => clearInterval(t);
-  }, [matchId, poll]);
+  const focused = useFocusedPoll(poll, 2000, !!matchId);
 
   async function join() {
     setError('');
@@ -143,7 +145,7 @@ function JoinMatchScreenMounted() {
           ? t('lobby.join.joinedGame', { game: moduleName(state.moduleId) })
           : t('lobby.join.joinedTable')}
       </Text>
-      {error ? <FormError message={error} /> : null}
+      {error || pollError ? <FormError testID="lobby-error" message={error || pollError} /> : null}
 
       {/* Anybody at the table can pull in the next player — see the same
           panel on the host's screen. */}
