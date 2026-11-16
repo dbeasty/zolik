@@ -921,3 +921,27 @@ func TestNewMatch_HeadsUpButtonStillReversesBlinds(t *testing.T) {
 		}
 	}
 }
+
+// TestBoardAsksToStayOpen pins the hint that keeps the community cards on a
+// phone's screen: a phone starts the table folded, and poker cannot be played
+// with the board put away. Present before the flop too, so the panel does not
+// change its mind mid-hand.
+func TestBoardAsksToStayOpen(t *testing.T) {
+	raw, err := New().NewMatch(module.MatchConfig{}, refs("p1", "p2"), 1)
+	if err != nil {
+		t.Fatalf("NewMatch: %v", err)
+	}
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	for _, z := range vm.Zones {
+		if z.ID == "board" {
+			if !z.Open || !z.Shared {
+				t.Errorf("board zone open=%v shared=%v, want both", z.Open, z.Shared)
+			}
+			return
+		}
+	}
+	t.Fatal("no board zone before the flop")
+}

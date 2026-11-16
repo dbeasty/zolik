@@ -1,6 +1,8 @@
+import type { Zone } from '@/src/api/matchTypes';
 import {
   SCREEN_PADDING,
   PHONE_FOLDED_PANELS,
+  panelStartsFolded,
   isPhoneScreen,
   cardIndexBox,
   cardIndexColumn,
@@ -370,5 +372,21 @@ describe('what a phone starts with put away', () => {
 
   it('keeps the melds and the hand open, and folds the rest', () => {
     expect([...PHONE_FOLDED_PANELS].sort()).toEqual(['controls', 'seats', 'section:opponents', 'section:table']);
+  });
+
+  it("keeps a phone's table open when a zone on it asks to stay open", () => {
+    const deck = { id: 'deck', kind: 'stack', count: 40 } as Zone;
+    const discard = { id: 'discard', kind: 'pile', count: 1 } as Zone;
+    const board = { id: 'board', kind: 'spread', shared: true, open: true, count: 0 } as Zone;
+    // A meld game's table folds on a phone, and only there.
+    expect(panelStartsFolded('section:table', [deck, discard], true)).toBe(true);
+    expect(panelStartsFolded('section:table', [deck, discard], false)).toBe(false);
+    // Poker's board keeps it open.
+    expect(panelStartsFolded('section:table', [board, deck], true)).toBe(false);
+    // The rest of the phone's folding is untouched.
+    expect(panelStartsFolded('seats', [board, deck], true)).toBe(true);
+    // A module's own fold still wins everywhere.
+    const threes = { id: 'threes', kind: 'spread', folded: true, count: 0 } as Zone;
+    expect(panelStartsFolded('threes', [threes], false)).toBe(true);
   });
 });
