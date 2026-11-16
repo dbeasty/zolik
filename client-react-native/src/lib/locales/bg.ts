@@ -1511,6 +1511,10 @@ export const bg: Record<string, string> = {
   'match.wonBy': 'Спечелено от {names}.',
   'match.pausedFor': 'На пауза — чакаме {name} да се свърже отново.',
   'match.results': 'Резултати',
+  'match.resultsAll': 'Всички {n}',
+  'match.resultsLatest': 'Последни',
+  'match.resultsShowAll': 'Покажи всички {n} резултата',
+  'match.resultsShowLatest': 'Покажи само последните резултати',
   'match.players': 'Играчи',
   'match.toPlay': 'на ход',
 

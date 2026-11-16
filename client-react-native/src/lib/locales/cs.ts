@@ -1492,6 +1492,10 @@ export const cs: Record<string, string> = {
   'match.wonBy': 'Vyhrává {names}.',
   'match.pausedFor': 'Pozastaveno — čekáme, až se {name} znovu připojí.',
   'match.results': 'Výsledky',
+  'match.resultsAll': 'Vše ({n})',
+  'match.resultsLatest': 'Poslední',
+  'match.resultsShowAll': 'Zobrazit všech {n} výsledků',
+  'match.resultsShowLatest': 'Zobrazit jen poslední výsledky',
   'match.players': 'Hráči',
   'match.toPlay': 'na tahu',
 

@@ -1519,6 +1519,10 @@ export const ro: Record<string, string> = {
   'match.wonBy': 'Câștigat de {names}.',
   'match.pausedFor': 'În pauză — așteptăm ca {name} să se reconecteze.',
   'match.results': 'Rezultate',
+  'match.resultsAll': 'Toate ({n})',
+  'match.resultsLatest': 'Ultimele',
+  'match.resultsShowAll': 'Arată toate cele {n} rezultate',
+  'match.resultsShowLatest': 'Arată doar ultimele rezultate',
   'match.players': 'Jucători',
   'match.toPlay': 'la rând',
 

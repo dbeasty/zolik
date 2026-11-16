@@ -1,5 +1,14 @@
-import { memo, useMemo, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import { useArrival } from '@/src/hooks/useArrival';
 import { useMetrics } from '@/src/hooks/useMetrics';
@@ -39,8 +48,9 @@ type Props = {
   onOpenScore?: (playerId: string, round: number) => void;
   /**
    * Folded away while a round is being played, like any other panel. Absent
-   * between rounds and at the end, when the results are the news and are held
-   * open.
+   * between rounds and at the end, when the results are the news: the panel
+   * then opens for each new round and can still be folded by hand, so a long
+   * match never stands between the player and the way on.
    */
   minimized?: boolean;
   onToggleMinimized?: () => void;
@@ -60,14 +70,18 @@ export const RoundResults = memo(function RoundResults({
   const skin = useSkin();
   const styles = useMemo(() => roundStyles(metrics, skin), [metrics, skin]);
 
-  // A column per side, best first. Partners share a score, so a partnership
-  // printed a column per member repeated every number once per partner and
-  // never said the two columns were the same team. Each column is keyed by
-  // one member — the viewer where the viewer is on it — and every member's
-  // row reads the same.
+  // A column per side: the viewer's own first, the rest best first. Partners
+  // share a score, so a partnership printed a column per member repeated
+  // every number once per partner and never said the two columns were the
+  // same team. Each column is keyed by one member — the viewer where the
+  // viewer is on it — and every member's row reads the same.
+  //
+  // The viewer's column leads because it is the one they read every time;
+  // ranked in among the others it moved sideways each time the standings
+  // changed, and had to be found again.
   const columns = useMemo(
     () =>
-      sidesOf(seats ?? [], standings, players).map((members) => ({
+      viewerFirst(sidesOf(seats ?? [], standings, players), viewerId).map((members) => ({
         id: members.includes(viewerId) ? viewerId : members[0],
         members,
       })),
@@ -110,11 +124,37 @@ export const RoundResults = memo(function RoundResults({
   // first one of the match.
   const arrival = useArrival(log.rounds.length);
 
+  // A match of forty hands is forty rows, and between hands the control to
+  // deal the next one sits under the last of them: the player scrolled past
+  // the whole match every hand to reach it. The table shows the latest few
+  // rounds — as many as the window has height for — and the rest on request,
+  // inside a box of its own height that scrolls, so even the full table never
+  // pushes the way on off the screen.
+  const { height } = useWindowDimensions();
+  const latest = latestRows(height);
+  const [all, setAll] = useState(false);
+  const hidden = Math.max(0, log.rounds.length - latest);
+  const capped = hidden > 0;
+  const rows = capped && !all ? log.rounds.slice(-latest) : log.rounds;
+  const fullHeight = Math.max(200, Math.round(height * 0.45));
+  const rowsRef = useRef<ScrollView>(null);
+  // Opened onto the newest rows, which are the news; the old ones are above.
+  useEffect(() => {
+    if (all) rowsRef.current?.scrollToEnd({ animated: false });
+  }, [all, log.rounds.length]);
+
+  // Held open while the results are the news, but never forced: a player who
+  // has read them folds them away, and the next round opens them again.
+  const [folded, setFolded] = useState(false);
+  useEffect(() => setFolded(false), [log.rounds.length]);
+
   if (!log.rounds.length) return null;
 
   const byId = new Map(standings?.map((s) => [s.playerId, s]));
   const unit = standings?.[0]?.labelKey;
   const foldable = !!onToggleMinimized;
+  const isFolded = foldable ? minimized : folded;
+  const toggleFolded = foldable ? onToggleMinimized : () => setFolded((was) => !was);
 
   // What a folded panel still says: the viewer's own standing, since that is
   // the number a player keeps glancing up for mid-round.
@@ -133,11 +173,30 @@ export const RoundResults = memo(function RoundResults({
       <Panel
         title={t('match.results')}
         subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
-        panelId={foldable ? 'results' : undefined}
-        minimized={minimized}
-        onToggleMinimized={onToggleMinimized}
-        forceOpen={!foldable}
+        panelId="results"
+        minimized={isFolded}
+        onToggleMinimized={toggleFolded}
         summary={summary}
+        accessory={
+          capped && !isFolded ? (
+            <Pressable
+              testID="round-results-toggle"
+              accessibilityRole="button"
+              accessibilityState={{ expanded: all }}
+              {...((Platform.OS === 'web' ? { 'aria-expanded': all } : {}) as object)}
+              accessibilityLabel={
+                all ? t('match.resultsShowLatest') : t('match.resultsShowAll', { n: log.rounds.length })
+              }
+              onPress={() => setAll((was) => !was)}
+              hitSlop={8}
+              style={styles.toggle}
+            >
+              <Text style={styles.toggleText}>
+                {all ? `${t('match.resultsLatest')} ⌃` : `${t('match.resultsAll', { n: log.rounds.length })} ⌄`}
+              </Text>
+            </Pressable>
+          ) : undefined
+        }
         testID="round-results"
         // Tinted only between rounds. At the end of a match the banner above
         // is already doing the announcing, and two tinted boxes stacked on one
@@ -174,12 +233,21 @@ export const RoundResults = memo(function RoundResults({
               ))}
             </View>
 
-            {log.rounds.map((r, i) => {
+            <ScrollView
+              ref={rowsRef}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              persistentScrollbar
+              scrollEnabled={all}
+              style={all ? { maxHeight: fullHeight } : undefined}
+              testID="round-results-rows"
+            >
+            {rows.map((r) => {
               const scores = new Map(r.scores.map((s) => [s.playerId, s]));
               const took = new Set(r.winners ?? []);
               // The row that just landed, picked out so a reader arriving at a
               // table of eleven can see which line is the news.
-              const newest = i === log.rounds.length - 1;
+              const newest = r === log.rounds[log.rounds.length - 1];
               return (
                 <View
                   key={r.number}
@@ -243,6 +311,7 @@ export const RoundResults = memo(function RoundResults({
                 </View>
               );
             })}
+            </ScrollView>
 
             {standings?.length ? (
               <View style={[styles.row, styles.totalRow]}>
@@ -267,6 +336,22 @@ export const RoundResults = memo(function RoundResults({
     </Animated.View>
   );
 });
+
+/** The viewer's side moved to the front; every other side keeps its place. */
+export function viewerFirst(sides: string[][], viewerId: string): string[][] {
+  const i = sides.findIndex((members) => members.includes(viewerId));
+  return i <= 0 ? sides : [sides[i], ...sides.slice(0, i), ...sides.slice(i + 1)];
+}
+
+/**
+ * How many of the latest rounds the table shows before the rest are asked
+ * for: three on a phone, more where the window is taller.
+ */
+export function latestRows(windowHeight: number): number {
+  if (windowHeight >= 1200) return 8;
+  if (windowHeight >= 900) return 5;
+  return 3;
+}
 
 /**
  * Separates the facts every round carries from the ones that vary.
@@ -399,6 +484,16 @@ function roundStyles(m: Metrics, s: Skin) {
     up: { color: colors.success },
     down: { color: colors.danger },
     summary: { color: colors.muted, fontSize: m.panel.bodyFont },
+    // The same bordered badge a pile's show-all wears, so the two read as one
+    // kind of control and neither as a second minimize chevron.
+    toggle: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    toggleText: { color: colors.accentButton, fontSize: m.panel.bodyFont, fontWeight: '700' },
     summaryScore: { color: colors.gold, fontWeight: '700' },
   });
 }

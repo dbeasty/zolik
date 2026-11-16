@@ -1524,6 +1524,10 @@ export const nl: Record<string, string> = {
   'match.wonBy': 'Gewonnen door {names}.',
   'match.pausedFor': 'Gepauzeerd — wachten tot {name} opnieuw verbindt.',
   'match.results': 'Uitslag',
+  'match.resultsAll': 'Alle {n}',
+  'match.resultsLatest': 'Laatste',
+  'match.resultsShowAll': 'Alle {n} resultaten tonen',
+  'match.resultsShowLatest': 'Alleen de laatste resultaten tonen',
   'match.players': 'Spelers',
   'match.toPlay': 'aan zet',
 

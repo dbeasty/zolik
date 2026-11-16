@@ -1496,6 +1496,10 @@ export const sv: Record<string, string> = {
   'match.wonBy': 'Vunnen av {names}.',
   'match.pausedFor': 'Pausad — väntar på att {name} återansluter.',
   'match.results': 'Resultat',
+  'match.resultsAll': 'Alla {n}',
+  'match.resultsLatest': 'Senaste',
+  'match.resultsShowAll': 'Visa alla {n} resultat',
+  'match.resultsShowLatest': 'Visa bara de senaste resultaten',
   'match.players': 'Spelare',
   'match.toPlay': 'i tur',
 

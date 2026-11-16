@@ -1498,6 +1498,10 @@ export const da: Record<string, string> = {
   'match.wonBy': 'Vundet af {names}.',
   'match.pausedFor': 'På pause — venter på, at {name} forbinder igen.',
   'match.results': 'Resultater',
+  'match.resultsAll': 'Alle {n}',
+  'match.resultsLatest': 'Seneste',
+  'match.resultsShowAll': 'Vis alle {n} resultater',
+  'match.resultsShowLatest': 'Vis kun de seneste resultater',
   'match.players': 'Spillere',
   'match.toPlay': 'i tur',
 

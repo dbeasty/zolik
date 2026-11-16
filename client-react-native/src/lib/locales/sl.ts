@@ -1493,6 +1493,10 @@ export const sl: Record<string, string> = {
   'match.wonBy': 'Zmaga {names}.',
   'match.pausedFor': 'Zaustavljeno — čakamo, da se {name} znova poveže.',
   'match.results': 'Rezultati',
+  'match.resultsAll': 'Vsi ({n})',
+  'match.resultsLatest': 'Zadnji',
+  'match.resultsShowAll': 'Pokaži vse rezultate ({n})',
+  'match.resultsShowLatest': 'Pokaži samo zadnje rezultate',
   'match.players': 'Igralci',
   'match.toPlay': 'na potezi',
 

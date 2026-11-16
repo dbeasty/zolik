@@ -1503,6 +1503,10 @@ export const et: Record<string, string> = {
   'match.wonBy': 'Võitis {names}.',
   'match.pausedFor': 'Peatatud — ootame, kuni {name} uuesti ühendub.',
   'match.results': 'Tulemused',
+  'match.resultsAll': 'Kõik {n}',
+  'match.resultsLatest': 'Viimased',
+  'match.resultsShowAll': 'Näita kõiki {n} tulemust',
+  'match.resultsShowLatest': 'Näita ainult viimaseid tulemusi',
   'match.players': 'Mängijad',
   'match.toPlay': 'käigul',
 

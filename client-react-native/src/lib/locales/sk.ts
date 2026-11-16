@@ -1500,6 +1500,10 @@ export const sk: Record<string, string> = {
   'match.wonBy': 'Vyhráva {names}.',
   'match.pausedFor': 'Pozastavené — čakáme, kým sa {name} znova pripojí.',
   'match.results': 'Výsledky',
+  'match.resultsAll': 'Všetky ({n})',
+  'match.resultsLatest': 'Posledné',
+  'match.resultsShowAll': 'Zobraziť všetkých {n} výsledkov',
+  'match.resultsShowLatest': 'Zobraziť len posledné výsledky',
   'match.players': 'Hráči',
   'match.toPlay': 'na ťahu',
 

@@ -1535,6 +1535,10 @@ export const ga: Record<string, string> = {
   'match.wonBy': 'Buaite ag {names}.',
   'match.pausedFor': 'Ar sos — ag fanacht le {name} athcheangal.',
   'match.results': 'Torthaí',
+  'match.resultsAll': 'Gach ceann ({n})',
+  'match.resultsLatest': 'Is déanaí',
+  'match.resultsShowAll': 'Taispeáin na {n} toradh go léir',
+  'match.resultsShowLatest': 'Taispeáin na torthaí is déanaí amháin',
   'match.players': 'Imreoirí',
   'match.toPlay': 'le himirt',
 

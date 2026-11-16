@@ -1500,6 +1500,10 @@ export const lt: Record<string, string> = {
   'match.wonBy': 'Laimėjo {names}.',
   'match.pausedFor': 'Sustabdyta — laukiame, kol {name} vėl prisijungs.',
   'match.results': 'Rezultatai',
+  'match.resultsAll': 'Visi ({n})',
+  'match.resultsLatest': 'Naujausi',
+  'match.resultsShowAll': 'Rodyti visus {n} rezultatus',
+  'match.resultsShowLatest': 'Rodyti tik naujausius rezultatus',
   'match.players': 'Žaidėjai',
   'match.toPlay': 'eina',
 
