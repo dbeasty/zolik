@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"zolik/server/internal/metrics"
@@ -13,6 +14,10 @@ import (
 // errInvalidCredentials is the single answer to every failed password login,
 // so the response cannot be used to discover which usernames exist.
 var errInvalidCredentials = errors.New("invalid credentials")
+
+// ErrTooManyAttempts is a password sign-in refused for being one guess too
+// many in the window, whatever the password.
+var ErrTooManyAttempts = errors.New("too many sign-in attempts; try again in a few minutes")
 
 // SessionTokens is one issued session, returned to REST clients and to the
 // SSH/TUI host alike.
@@ -214,8 +219,15 @@ func (h *Handlers) offlinePassFor(ctx context.Context, userID, username string) 
 
 // LoginSession authenticates a legacy username/password account. It stays for
 // the SSH/TUI client, which can neither open a browser nor read mail.
+//
+// It shares the HTTP login's per-account ceiling, or the SSH door would be an
+// unthrottled way to guess the same passwords.
 func (h *Handlers) LoginSession(ctx context.Context, username, password string) (SessionTokens, error) {
-	u, err := h.store.FindUserByUsername(ctx, CleanDisplayName(username, MaxUsernameRunes))
+	name := CleanDisplayName(username, MaxUsernameRunes)
+	if !h.loginByName.Allow(strings.ToLower(name), time.Now()) {
+		return SessionTokens{}, ErrTooManyAttempts
+	}
+	u, err := h.store.FindUserByUsername(ctx, name)
 	if err != nil {
 		return SessionTokens{}, err
 	}

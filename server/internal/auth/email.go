@@ -65,7 +65,7 @@ type EmailAuth struct {
 
 func NewEmailAuth(store Store, mailer Mailer, appName string) *EmailAuth {
 	if appName == "" {
-		appName = "Žolíky"
+		appName = "Jokerless"
 	}
 	return &EmailAuth{store: store, mailer: mailer, appName: appName}
 }

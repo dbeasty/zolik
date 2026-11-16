@@ -154,7 +154,7 @@ unless noted.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `APP_ENV` | unset = local | `production`, `mobile` (embedded) |
+| `APP_ENV` | unset = production | `local` (development), `mobile` (embedded) |
 | `PORT` | 8090 | |
 | `PUBLIC_BASE_URL` | `http://localhost:$PORT` | OAuth callback, invite links |
 | `FEATURE_FLAG_DB_ENGINE` / `FEATURE_FLAG_KDB` | mongo | `kdb` in production |

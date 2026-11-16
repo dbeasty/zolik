@@ -226,6 +226,14 @@ func (a *Accounts) ownerFor(ctx context.Context, claims identity.Claims, opts Si
 		if !errors.Is(err, ErrNotFound) {
 			return models.User{}, false, err
 		}
+		// Nobody has proven this address, but somebody may have typed it
+		// (the legacy register form takes any address). The person proving
+		// it now is its owner; the account that only claimed it gives it up,
+		// or the new account could never be created and the owner would be
+		// locked out of their own address.
+		if err := a.store.ReleaseUnverifiedEmail(ctx, claims.Email, bson.ObjectID{}); err != nil {
+			return models.User{}, false, err
+		}
 	}
 
 	u, err := a.createUser(ctx, claims)
@@ -244,6 +252,7 @@ func (a *Accounts) ownerFor(ctx context.Context, claims identity.Claims, opts Si
 // cannot loop forever.
 func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (models.User, error) {
 	base := suggestUsername(claims)
+	email := claims.Email
 	var lastErr error
 	for attempt := 0; attempt < 5; attempt++ {
 		username, err := a.uniqueUsername(ctx, base)
@@ -252,8 +261,8 @@ func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (mode
 		}
 		u := models.User{
 			Username:      username,
-			Email:         claims.Email,
-			EmailVerified: claims.EmailVerified && claims.Email != "",
+			Email:         email,
+			EmailVerified: claims.EmailVerified && email != "",
 			AuthProvider:  claims.Provider,
 			AvatarURL:     claims.Picture,
 			Preferences: models.UserPreferences{
@@ -275,6 +284,12 @@ func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (mode
 		if !db.IsDuplicateKey(err) {
 			return models.User{}, err
 		}
+		// An address the provider does not vouch for is only a contact
+		// detail, and somebody else may already hold it. It is no reason to
+		// refuse the person an account, so the next attempt goes without it.
+		if !claims.EmailVerified {
+			email = ""
+		}
 		lastErr = err
 	}
 	return models.User{}, fmt.Errorf("could not create an account after retrying past username collisions: %w", lastErr)
@@ -285,6 +300,11 @@ func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (mode
 func (a *Accounts) touchUser(ctx context.Context, u models.User, claims identity.Claims) {
 	set := bson.M{"lastSeenAt": time.Now().UTC()}
 	if claims.Email != "" && claims.EmailVerified && !u.EmailVerified {
+		// The same takeover as in ownerFor: an unproven holder of the
+		// address gives it up to the account that has just proven it.
+		if err := a.store.ReleaseUnverifiedEmail(ctx, claims.Email, u.ID); err != nil {
+			log.Printf("auth: releasing %s from unverified holders failed: %v", claims.Email, err)
+		}
 		set["email"] = claims.Email
 		set["emailVerified"] = true
 	}

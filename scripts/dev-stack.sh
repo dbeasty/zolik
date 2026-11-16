@@ -149,7 +149,9 @@ check_exposure() {
 }
 
 compose() {
-  (cd "$SERVER_DIR" && ZOLIK_BIND="$BIND" ZOLIK_TEST_ENDPOINTS="$TEST_ENDPOINTS" \
+  # APP_ENV is said out loud: unset means production on the server, and this
+  # is the local stack.
+  (cd "$SERVER_DIR" && APP_ENV="${APP_ENV:-local}" ZOLIK_BIND="$BIND" ZOLIK_TEST_ENDPOINTS="$TEST_ENDPOINTS" \
     ZOLIK_DEBUG_ENDPOINTS="$DEBUG_ENDPOINTS" \
     ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
     ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \

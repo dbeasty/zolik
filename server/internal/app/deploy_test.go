@@ -151,6 +151,11 @@ func TestComposeFilesAgreeOnTheContainer(t *testing.T) {
 	devOnly := map[string]bool{
 		"BOT_THINK_MIN_MS": true,
 		"BOT_THINK_MAX_MS": true,
+		// Development states it so the local stack is local by name. A
+		// production host takes it from its env file, where APP_ENV=local is
+		// a deliberate guest-only choice a literal here would override, and
+		// where leaving it out already means production (appEnv).
+		"APP_ENV": true,
 	}
 
 	for key := range dev {

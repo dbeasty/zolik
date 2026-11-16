@@ -12,7 +12,7 @@
 #
 # Options:
 #   --init-env     overwrite server .env from deploy/env.production.example
-#                  (generates fresh JWT secrets; the old file is kept as
+#                  (generates a fresh JWT signing secret; the old file is kept as
 #                  .env.bak.<UTC timestamp> beside it)
 #   --snapshot     tar the database volume on the host before switching images
 #   --skip-nginx   skip nginx vhosts and TLS certificates (docker only)
@@ -205,17 +205,15 @@ if [[ "$INIT_ENV" == true || "$env_state" == absent ]]; then
     say "backed up ${ENV_REMOTE} to ${env_backup}"
   fi
   access_secret="$(openssl rand -hex 32)"
-  refresh_secret="$(openssl rand -hex 32)"
   tmp_env="$(mktemp)"
   sed \
     -e "s|JWT_ACCESS_SECRET=REPLACE_ON_FIRST_DEPLOY|JWT_ACCESS_SECRET=${access_secret}|" \
-    -e "s|JWT_REFRESH_SECRET=REPLACE_ON_FIRST_DEPLOY|JWT_REFRESH_SECRET=${refresh_secret}|" \
     "${ENV_TEMPLATE}" > "$tmp_env"
   scp -q "$tmp_env" "${DEPLOY_SSH}:/tmp/zolik-server.env"
   rm -f "$tmp_env"
   ssh_admin "sudo mv /tmp/zolik-server.env ${ENV_REMOTE} && sudo chown ${DEPLOY_USER}:${DEPLOY_USER} ${ENV_REMOTE} && sudo chmod 600 ${ENV_REMOTE}"
   say "wrote ${ENV_REMOTE}"
-  warn "fresh JWT secrets — any existing session is now invalid"
+  warn "fresh JWT signing secret — any existing session is now invalid"
 else
   say "keeping existing ${ENV_REMOTE} (pass --init-env to replace)"
 fi
@@ -338,7 +336,7 @@ if [[ "$SKIP_NGINX" == false ]]; then
   say "nginx vhosts and TLS for play.limidus.com ${JOKERLESS_NAMES[*]}"
 
   tmp_nginx="$(mktemp -d)"
-  for f in zolik-proxy play-limidus jokerless-http jokerless; do
+  for f in zolik-log-format zolik-proxy play-limidus jokerless-http jokerless; do
     # Substitute service IP if overridden (templates ship with 192.168.13.13).
     sed "s/192\\.168\\.13\\.13/${SERVICE_IP}/g" \
       "${ROOT}/deploy/nginx/${f}.conf" > "${tmp_nginx}/zolik-${f}.conf"
@@ -349,6 +347,8 @@ if [[ "$SKIP_NGINX" == false ]]; then
   ssh_admin "sudo bash -s" <<'EOF'
 set -euo pipefail
 mkdir -p /etc/nginx/snippets /var/www/letsencrypt
+# Before the snippet that names the format, or nginx -t fails on it.
+install -m 0644 /tmp/zolik-zolik-log-format.conf /etc/nginx/conf.d/zolik-log-format.conf
 install -m 0644 /tmp/zolik-zolik-proxy.conf    /etc/nginx/snippets/zolik-proxy.conf
 install -m 0644 /tmp/zolik-play-limidus.conf   /etc/nginx/sites-available/play-limidus
 install -m 0644 /tmp/zolik-jokerless-http.conf /etc/nginx/sites-available/jokerless-http
@@ -388,7 +388,7 @@ EOF
 set -euo pipefail
 install -m 0644 /tmp/zolik-jokerless.conf /etc/nginx/sites-available/jokerless
 ln -sfn /etc/nginx/sites-available/jokerless /etc/nginx/sites-enabled/jokerless
-rm -f /tmp/zolik-zolik-proxy.conf /tmp/zolik-play-limidus.conf /tmp/zolik-jokerless-http.conf /tmp/zolik-jokerless.conf
+rm -f /tmp/zolik-zolik-log-format.conf /tmp/zolik-zolik-proxy.conf /tmp/zolik-play-limidus.conf /tmp/zolik-jokerless-http.conf /tmp/zolik-jokerless.conf
 nginx -t
 systemctl reload nginx
 EOF

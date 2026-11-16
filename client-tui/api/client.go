@@ -273,7 +273,7 @@ func (c *Client) CreateScoringSession(players []string) (string, error) {
 	var resp struct {
 		ID string `json:"id"`
 	}
-	if err := c.postJSON("/scoring-sessions", map[string]any{"players": players}, &resp, false); err != nil {
+	if err := c.postJSON("/scoring-sessions", map[string]any{"players": players}, &resp, true); err != nil {
 		return "", err
 	}
 	return resp.ID, nil
@@ -281,7 +281,7 @@ func (c *Client) CreateScoringSession(players []string) (string, error) {
 
 func (c *Client) GetScoringSession(id string) (map[string]any, error) {
 	var resp map[string]any
-	if err := c.getJSON("/scoring-sessions/"+url.PathEscape(id), &resp, false); err != nil {
+	if err := c.getJSON("/scoring-sessions/"+url.PathEscape(id), &resp, true); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -298,6 +298,9 @@ func (c *Client) ExportScoringSession(id string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, c.BaseURL+"/scoring-sessions/"+url.PathEscape(id)+"/export", nil)
 	if err != nil {
 		return "", err
+	}
+	if token := c.accessToken(); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -337,7 +340,8 @@ func (c *Client) postJSON(path string, body any, out any, auth bool) error {
 }
 
 func (c *Client) patchJSON(path string, body any) error {
-	return c.do(http.MethodPatch, path, body, nil, false)
+	// The one PATCH is the scorepad's, which belongs to an account.
+	return c.do(http.MethodPatch, path, body, nil, true)
 }
 
 func (c *Client) getJSON(path string, out any, auth bool) error {

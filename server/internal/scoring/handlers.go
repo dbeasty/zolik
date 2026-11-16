@@ -2,6 +2,7 @@ package scoring
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,8 +15,8 @@ import (
 	"zolik/server/internal/auth"
 )
 
-// maxBody bounds what an unauthenticated caller can make the server read and
-// store: a scorepad of eight short names and seven rounds is well under 2 KiB.
+// maxBody bounds what a caller can make the server read and store: a
+// scorepad of eight short names and seven rounds is well under 2 KiB.
 const maxBody = 16 << 10
 
 // maxScore bounds one round's score. Real scores are tens or hundreds; the cap
@@ -47,7 +48,12 @@ type createReq struct {
 }
 
 type patchReq struct {
-	Round     int            `json:"round"` // 1..7
+	Round int `json:"round"` // 1..7
+	// Version, when sent, is the version the client last read; a patch
+	// against an older one is refused with 409 rather than undoing a newer
+	// write. Optional, because a client that sends none still gets the
+	// server-side check between its own read and write.
+	Version   *int           `json:"version,omitempty"`
 	Scores    map[string]int `json:"scores,omitempty"`
 	ScoresArr []int          `json:"scoresArr,omitempty"`
 }
@@ -61,21 +67,65 @@ type playerOut struct {
 
 type getResp struct {
 	ID        bson.ObjectID `json:"id"`
+	Version   int           `json:"version"`
 	Players   []playerOut   `json:"players"`
 	Winner    *string       `json:"winner,omitempty"`
 	CreatedAt time.Time     `json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
 }
 
+// RegisterRoutes mounts the scorepad. Every route needs an account: a pad
+// belongs to whoever made it, nobody else can read or write it (the ids are
+// time-ordered and guessable, so an id is no secret), and deleting the
+// account deletes its pads. A guest has nowhere for one to be kept, which is
+// what the clients already tell them.
 func (h *Handlers) RegisterRoutes(r chi.Router) {
-	r.Post("/scoring-sessions", h.create)
-	r.Get("/scoring-sessions/{id}", h.get)
-	r.Patch("/scoring-sessions/{id}", h.patch)
-	r.Get("/scoring-sessions/{id}/export", h.export)
+	r.Group(func(r chi.Router) {
+		r.Use(auth.AuthMiddleware)
+		r.Post("/scoring-sessions", h.create)
+		r.Get("/scoring-sessions/{id}", h.get)
+		r.Patch("/scoring-sessions/{id}", h.patch)
+		r.Get("/scoring-sessions/{id}/export", h.export)
+	})
+}
+
+// owner is the signed-in account a request acts for, or "" (having answered)
+// for a guest.
+func owner(w http.ResponseWriter, req *http.Request) string {
+	uc, ok := auth.GetUserContext(req)
+	if !ok || uc.IsGuest || uc.UserID == "" {
+		http.Error(w, "sign in with an account to keep a score table", http.StatusForbidden)
+		return ""
+	}
+	return uc.UserID
+}
+
+// load reads the pad named in the URL for its owner. Somebody else's pad is
+// answered exactly like a missing one.
+func (h *Handlers) load(w http.ResponseWriter, req *http.Request) (ScoringSession, bool) {
+	userID := owner(w, req)
+	if userID == "" {
+		return ScoringSession{}, false
+	}
+	oid, err := bson.ObjectIDFromHex(chi.URLParam(req, "id"))
+	if err != nil {
+		http.Error(w, "invalid session id", http.StatusBadRequest)
+		return ScoringSession{}, false
+	}
+	s, err := h.repo.FindByID(req.Context(), oid)
+	if err != nil || s.OwnerUser != userID {
+		http.Error(w, "not found", http.StatusNotFound)
+		return ScoringSession{}, false
+	}
+	return s, true
 }
 
 func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
+	userID := owner(w, req)
+	if userID == "" {
+		return
+	}
 	var body createReq
 	if err := json.NewDecoder(http.MaxBytesReader(w, req.Body, maxBody)).Decode(&body); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -103,9 +153,10 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 
 	s := ScoringSession{
 		ID:        bson.NewObjectID(),
-		OwnerUser: "",
+		OwnerUser: userID,
 		Players:   players,
 		Rounds:    7,
+		Version:   1,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -116,36 +167,21 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(map[string]any{"sessionId": s.ID.Hex()})
+	// "id" is what the clients read; "sessionId" is kept for anything that
+	// learned the older name.
+	_ = json.NewEncoder(w).Encode(map[string]any{"id": s.ID.Hex(), "sessionId": s.ID.Hex(), "version": s.Version})
 }
 
 func (h *Handlers) get(w http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
-	idStr := chi.URLParam(req, "id")
-	oid, err := bson.ObjectIDFromHex(idStr)
-	if err != nil {
-		http.Error(w, "invalid session id", http.StatusBadRequest)
+	s, ok := h.load(w, req)
+	if !ok {
 		return
 	}
-
-	s, err := h.repo.FindByID(ctx, oid)
-	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
 	_ = json.NewEncoder(w).Encode(buildGetResp(s))
 }
 
 func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	idStr := chi.URLParam(req, "id")
-	oid, err := bson.ObjectIDFromHex(idStr)
-	if err != nil {
-		http.Error(w, "invalid session id", http.StatusBadRequest)
-		return
-	}
-
 	var body patchReq
 	if err := json.NewDecoder(http.MaxBytesReader(w, req.Body, maxBody)).Decode(&body); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -157,9 +193,13 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	}
 	idx := body.Round - 1
 
-	s, err := h.repo.FindByID(ctx, oid)
-	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+	s, ok := h.load(w, req)
+	if !ok {
+		return
+	}
+	read := s.Version
+	if body.Version != nil && *body.Version != read {
+		conflict(w, s)
 		return
 	}
 
@@ -184,7 +224,15 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	}
 
 	s.UpdatedAt = time.Now().UTC()
-	if err := h.repo.Replace(ctx, s); err != nil {
+	s.Version = read + 1
+	err := h.repo.Replace(ctx, s, read)
+	if errors.Is(err, ErrVersionConflict) {
+		if fresh, ferr := h.repo.FindByID(ctx, s.ID); ferr == nil {
+			conflict(w, fresh)
+			return
+		}
+	}
+	if err != nil {
 		log.Printf("scoring: replace: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -193,18 +241,22 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	_ = json.NewEncoder(w).Encode(buildGetResp(s))
 }
 
+// conflict answers a patch made against an old reading, with the pad as it
+// now stands so the client can redraw it and re-apply.
+func conflict(w http.ResponseWriter, s ScoringSession) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusConflict)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"code":    "SCOREPAD_CHANGED",
+		"message": "this score table changed since you opened it",
+		"current": buildGetResp(s),
+	})
+}
+
 func (h *Handlers) export(w http.ResponseWriter, req *http.Request) {
 	// v1 stub: return JSON that a client can share/print.
-	ctx := req.Context()
-	idStr := chi.URLParam(req, "id")
-	oid, err := bson.ObjectIDFromHex(idStr)
-	if err != nil {
-		http.Error(w, "invalid session id", http.StatusBadRequest)
-		return
-	}
-	s, err := h.repo.FindByID(ctx, oid)
-	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+	s, ok := h.load(w, req)
+	if !ok {
 		return
 	}
 
@@ -291,6 +343,7 @@ func buildGetResp(s ScoringSession) getResp {
 
 	return getResp{
 		ID:        s.ID,
+		Version:   s.Version,
 		Players:   playerTotals,
 		Winner:    winner,
 		CreatedAt: s.CreatedAt,

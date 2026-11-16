@@ -67,6 +67,8 @@ async function startServer() {
     env: {
       ...process.env,
       PORT: String(port),
+      // Unset APP_ENV means production on the server; this is a local run.
+      APP_ENV: 'local',
       SSH_ENABLED: 'false',
       FEATURE_FLAG_DB_ENGINE: 'kdb',
       KDB_PATH: path.join(WORK, 'kdb'),

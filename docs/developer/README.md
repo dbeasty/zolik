@@ -53,10 +53,13 @@ server may be holding it.
 ```sh
 cd server
 go build -o /tmp/zolik-server ./cmd/server
-FEATURE_FLAG_DB_ENGINE=kdb KDB_PATH=/tmp/zolik-kdb REDIS_URL= PORT=8090 /tmp/zolik-server
+APP_ENV=local FEATURE_FLAG_DB_ENGINE=kdb KDB_PATH=/tmp/zolik-kdb REDIS_URL= PORT=8090 /tmp/zolik-server
 ```
 
-Unset `APP_ENV` means local: the dev JWT secret is accepted, SMTP is optional
+`APP_ENV=local` (also in `server/.env.example`, which the server loads from
+its working directory) is what makes it a development server; unset means
+production, which refuses to start without SMTP and a private signing secret.
+Local means: the dev JWT secret is accepted, SMTP is optional
 (sign-in codes are logged; `GET /auth/dev/last-code` returns them), test and
 debug endpoints are on, and the SSH client listens on 2222
 (`ssh -p 2222 guest@localhost`). With `FEATURE_FLAG_DB_ENGINE` unset the server

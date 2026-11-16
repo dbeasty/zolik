@@ -56,6 +56,13 @@ type Store interface {
 	// take over an account by signing up elsewhere claiming its owner's
 	// address.
 	FindUserByVerifiedEmail(ctx context.Context, email string) (models.User, error)
+	// ReleaseUnverifiedEmail takes an address off every account other than
+	// keep that holds it without having proven it. It is how a verified
+	// sign-in takes its address back from somebody who merely typed it: the
+	// address is unique across accounts, so an unproven claim on it would
+	// otherwise lock its real owner out for good. Releasing an address
+	// nobody holds is not an error.
+	ReleaseUnverifiedEmail(ctx context.Context, email string, keep bson.ObjectID) error
 	// UsernameTaken reports whether a name is already in use.
 	UsernameTaken(ctx context.Context, username string) (bool, error)
 	InsertUser(ctx context.Context, u models.User) (models.User, error)
@@ -231,6 +238,18 @@ func (s *mongoStore) FindUserByVerifiedEmail(ctx context.Context, email string) 
 		return models.User{}, ErrNotFound
 	}
 	return u, err
+}
+
+func (s *mongoStore) ReleaseUnverifiedEmail(ctx context.Context, email string, keep bson.ObjectID) error {
+	if email == "" {
+		return nil
+	}
+	filter := bson.M{"email": email, "emailVerified": bson.M{"$ne": true}}
+	if !keep.IsZero() {
+		filter["_id"] = bson.M{"$ne": keep}
+	}
+	_, err := s.users.UpdateMany(ctx, filter, bson.M{"$unset": bson.M{"email": ""}})
+	return err
 }
 
 // UsernameTaken reports whether a name is already in use.

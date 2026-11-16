@@ -992,6 +992,12 @@ func (s *Service) RegisterDevice(ctx context.Context, uc auth.UserContext, reg D
 		if reg.Subscription == nil || reg.Subscription.Endpoint == "" || s.vapidPublicKey == "" {
 			return "", module.Error{Code: "PUSH_UNAVAILABLE"}
 		}
+		// The endpoint is where this server will later POST, so it is the
+		// registrant's choice of target; only a public https push service
+		// is accepted. See CheckPushEndpoint.
+		if CheckPushEndpoint(reg.Subscription.Endpoint) != nil {
+			return "", module.Error{Code: "PUSH_UNAVAILABLE"}
+		}
 		ident = reg.Subscription.Endpoint
 		reg.Token = ""
 	default:

@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -39,9 +40,18 @@ type WebPushSender struct {
 	// Subject is the contact push services use when something goes wrong: a
 	// mailto: or https: URL.
 	Subject string
-	Client  *http.Client
+	// Client is the HTTP client pushes go through. Nil means pushClient,
+	// which only ever connects to public addresses. Whatever is set here,
+	// redirects are never followed.
+	Client *http.Client
 
 	key *ecdsa.PrivateKey
+	// allowPrivate lets a test push to an endpoint on a loopback address.
+	allowPrivate bool
+	// defaultClient is built once, so connections to a push service are
+	// reused across pushes.
+	defaultOnce   sync.Once
+	defaultClient *http.Client
 }
 
 // NewWebPushSender parses and checks the VAPID key pair once, at startup, so
@@ -99,6 +109,12 @@ func (s *WebPushSender) Send(ctx context.Context, d Device, p Push) error {
 	if d.Subscription == nil || d.Subscription.Endpoint == "" {
 		return ErrDeviceGone
 	}
+	// Checked again here, not only at registration: a row stored before
+	// the check existed must not be a way past it. Such a device can never
+	// be reached, so it is dropped like one the push service disowned.
+	if err := CheckPushEndpoint(d.Subscription.Endpoint); err != nil && !s.allowPrivate {
+		return ErrDeviceGone
+	}
 	payload, err := json.Marshal(map[string]any{
 		"type":   p.Data["type"],
 		"invite": p.Data["invite"],
@@ -135,11 +151,7 @@ func (s *WebPushSender) Send(ctx context.Context, d Device, p Push) error {
 		// opened and closed wakes to the revocation, not to both.
 		req.Header.Set("Topic", topicFor(p.Tag))
 	}
-	client := s.Client
-	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
-	}
-	resp, err := client.Do(req)
+	resp, err := s.client().Do(req)
 	if err != nil {
 		return err
 	}
@@ -151,6 +163,16 @@ func (s *WebPushSender) Send(ctx context.Context, d Device, p Push) error {
 		return fmt.Errorf("web push: %s answered %d", req.URL.Host, resp.StatusCode)
 	}
 	return nil
+}
+
+func (s *WebPushSender) client() *http.Client {
+	if s.Client != nil {
+		c := *s.Client
+		c.CheckRedirect = noRedirects
+		return &c
+	}
+	s.defaultOnce.Do(func() { s.defaultClient = pushClient() })
+	return s.defaultClient
 }
 
 // topicFor squeezes a tag into the 32 URL-safe characters a Topic may hold.

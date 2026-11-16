@@ -23,7 +23,7 @@ import { useLocale } from '@/src/hooks/useLocale';
 export default function AuthCallbackScreen() {
   useLocale();
   const params = useGlobalSearchParams<{ code?: string; error?: string }>();
-  const { completeOAuth } = useSession();
+  const { completeOAuth, loading } = useSession();
   // The outcome, not its words: the stored language can finish loading after
   // this screen has mounted, and a sentence rendered then stayed in English
   // under a translated title. Worded at render time, it follows the locale.
@@ -49,6 +49,10 @@ export default function AuthCallbackScreen() {
     // guard it rather than let that failure overwrite a success already in
     // flight.
     if (ran.current) return;
+    // The exchange carries this browser's session, which a link flow needs
+    // (the server only attaches the identity for the account that started
+    // it), so wait for the stored session to be restored first.
+    if (loading && params.code) return;
     ran.current = true;
 
     if (params.error) {
@@ -73,7 +77,7 @@ export default function AuthCallbackScreen() {
         setOutcome({ kind: 'thrown', text: e instanceof Error ? e.message : '' });
         setTimeout(() => router.replace('/auth/login'), 1500);
       });
-  }, [params.code, params.error, completeOAuth]);
+  }, [params.code, params.error, completeOAuth, loading]);
 
   return (
     <Screen title={t('nav.signingIn')}>

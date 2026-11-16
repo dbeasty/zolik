@@ -592,7 +592,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeOAuth = useCallback(
-    async (code: string) => adopt(await apiClient.exchangeOAuthCode(code)),
+    async (code: string) => {
+      const outcome = await apiClient.exchangeOAuthCode(code);
+      // A link answers with no new session: the account signed in here is
+      // the one it was linked to, and keeps its own tokens. Adopting the
+      // empty session would sign it out.
+      if (!outcome.session.accessToken) return outcome;
+      return adopt(outcome);
+    },
     [adopt],
   );
 

@@ -83,8 +83,8 @@ Signing ([`auth/jwt.go`](../../server/internal/auth/jwt.go)):
 - `CheckAccessSecret` refuses to start outside a local `APP_ENV` when
   `JWT_ACCESS_SECRET` is unset, the built-in default, or the
   `REPLACE_ON_FIRST_DEPLOY` placeholder.
-- `JWT_REFRESH_SECRET` is read into config but unused (refresh tokens are not
-  signed).
+- There is no refresh-token secret: refresh tokens are opaque database rows,
+  not signed.
 
 ### Browser cookies
 
@@ -157,7 +157,7 @@ casual guessing, not a distributed attacker.
 
 | Variable | Default | Production | Effect |
 |---|---|---|---|
-| `APP_ENV` | unset (= local) | `production` | Local turns on the switches below by default |
+| `APP_ENV` | unset (= production) | `production` | `local` turns on the switches below by default; it must be named |
 | `ENABLE_TEST_ENDPOINTS` | on when local | `false` | `/matches/{id}/debug-state` (writes state past the rules), `/auth/dev/last-code` (returns mailed codes) |
 | `ENABLE_DEBUG_ENDPOINTS` | on when local | `false` | `/debug/memory`, `/debug/pprof`, `/debug/bots`, `/debug/capacity` |
 | `SSH_ENABLED` | on when local | `false` | SSH terminal client; user `guest` with any password |

@@ -80,8 +80,7 @@ type Config struct {
 	// match.Manager.ReplayAvailable.
 	ReplayEnabled bool
 
-	JWTAccessSecret  string
-	JWTRefreshSecret string
+	JWTAccessSecret string
 
 	RedisURL   string
 	InstanceID string
@@ -122,7 +121,7 @@ type Config struct {
 	// validation — lets e2e tests jump straight into a specific mid-round
 	// UI state instead of playing a full deal turn-by-turn. Defaults on for
 	// local dev (same as SSHAllowAllKeys) but must be explicitly opted into
-	// anywhere APP_ENV is set.
+	// anywhere APP_ENV is not local.
 	TestEndpointsEnabled bool
 
 	// DebugEndpointsEnabled gates /debug/memory and /debug/pprof, which
@@ -197,7 +196,35 @@ type Config struct {
 // anything deciding behaviour on it — the log handler, the admin listener's
 // bind address — asks the one question rather than re-deriving it from Env
 // and drifting.
-func (c Config) IsLocal() bool { return c.Env == "" || c.Env == "local" }
+//
+// An empty Env counts as local only for a Config built in code, which is a
+// test's. A process reading its environment never has one: LoadConfig turns
+// an unset APP_ENV into EnvProduction.
+func (c Config) IsLocal() bool { return c.Env == "" || c.Env == EnvLocal }
+
+// ProductName is what the deployment calls itself where a person reads it:
+// the sign-in mail's subject and body, and its From name unless
+// SMTP_FROM_NAME says otherwise. The module is still Žolíky; the product is
+// Jokerless.
+const ProductName = "Jokerless"
+
+// EnvLocal and EnvProduction are the two APP_ENV values a server reads.
+const (
+	EnvLocal      = "local"
+	EnvProduction = "production"
+)
+
+// appEnv is APP_ENV, with unset meaning production. Local is what opens the
+// test endpoints, admits any SSH key and accepts the published dev signing
+// secret, so it has to be asked for by name: a deployment whose env file
+// lost the line, or a container started without it, must come up shut
+// rather than open.
+func appEnv() string {
+	if env := strings.TrimSpace(os.Getenv("APP_ENV")); env != "" {
+		return env
+	}
+	return EnvProduction
+}
 
 // LoadConfig reads the environment.
 //
@@ -205,8 +232,8 @@ func (c Config) IsLocal() bool { return c.Env == "" || c.Env == "local" }
 // names with a different prefix, so enabling Apple or Microsoft later is a
 // matter of setting variables rather than editing this function.
 func LoadConfig() Config {
-	env := os.Getenv("APP_ENV")
-	local := env == "" || env == "local"
+	env := appEnv()
+	local := env == EnvLocal
 	publicBaseURL := envOr("PUBLIC_BASE_URL", "http://localhost:"+envOr("PORT", "8090"))
 	return Config{
 		Env:  env,
@@ -234,8 +261,7 @@ func LoadConfig() Config {
 		// passed through. Both have to be said.
 		ReplayEnabled: envBool("FEATURE_FLAG_MATCH_REPLAY", false),
 
-		JWTAccessSecret:  envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
-		JWTRefreshSecret: envOr("JWT_REFRESH_SECRET", "dev_refresh_secret_change_me"),
+		JWTAccessSecret: envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
 
 		RedisURL:   envOr("REDIS_URL", ""),
 		InstanceID: envOr("INSTANCE_ID", ""),
@@ -276,7 +302,7 @@ func LoadConfig() Config {
 			Username: os.Getenv("SMTP_USERNAME"),
 			Password: os.Getenv("SMTP_PASSWORD"),
 			From:     os.Getenv("SMTP_FROM"),
-			FromName: envOr("SMTP_FROM_NAME", "Žolíky"),
+			FromName: envOr("SMTP_FROM_NAME", ProductName),
 		},
 
 		Push: PushConfig{

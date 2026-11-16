@@ -46,12 +46,20 @@ func TestKDBScoringSessionLifecycle(t *testing.T) {
 
 	got.Players[0].Scores[0] = 42
 	got.UpdatedAt = now.Add(time.Minute)
-	if err := r.Replace(ctx, got); err != nil {
+	got.Version = 1
+	if err := r.Replace(ctx, got, 0); err != nil {
 		t.Fatalf("replace: %v", err)
 	}
 	again, err := r.FindByID(ctx, s.ID)
 	if err != nil || again.Players[0].Scores[0] != 42 {
 		t.Fatalf("replace did not land: %+v (%v)", again.Players, err)
+	}
+
+	// A write against the reading before that one is refused.
+	stale := again
+	stale.Players[0].Scores[0] = 1
+	if err := r.Replace(ctx, stale, 0); err != ErrVersionConflict {
+		t.Fatalf("stale replace: %v, want ErrVersionConflict", err)
 	}
 
 	if _, err := r.FindByID(ctx, bson.NewObjectID()); !db.IsNotFound(err) {
