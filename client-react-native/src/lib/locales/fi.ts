@@ -103,6 +103,8 @@ export const fi: Record<string, string> = {
   'zolik.rules.section.end': 'Miten ottelu päättyy',
   'zolik.rules.goal':
     'Tyhjennä kätesi ensimmäisenä laskemalla kelvollisia ryhmiä ja suoria, ja kerää mahdollisimman vähän miinuspisteitä niihin kortteihin, jotka sinulla on vielä kädessä, kun joku muu pääsee ulos.',
+  'zolik.rules.deck.packs':
+    'Pelataan {small} pakalla, joissa kussakin on 52 korttia ja 2 jokeria, kun pelaajia on kahdesta neljään, {mid} pakalla viidelle tai kuudelle ja {large} pakalla seitsemälle tai kahdeksalle.',
   'zolik.rules.deal': 'Jokainen pelaaja saa {n} korttia.',
   'zolik.rules.meldShapes':
     'Ryhmä on {set}+ samanarvoista korttia; suora on {run}+ peräkkäistä samanmaista korttia.',
@@ -133,6 +135,9 @@ export const fi: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Käteen jäänyt kortti maksaa: jokeri {joker}, 10, jätkä, rouva tai kuningas {face}, 2–9 numeronsa, ja ässä {ace} — tai vain {aceLow}, jos kädessäsi on myös saman maan kakkonen tai saman maan rouva ja kuningas, tai jos se jatkaisi pöydällä olevaa suoraa.",
   'zolik.rules.end.atScore': 'Jakoa jatketaan, kunnes joku saavuttaa {n} pistettä — sitten se on ohi.',
+  'zolik.rules.end.lowestWins': 'Kun ottelu päättyy, pienin yhteispistemäärä voittaa.',
+  'zolik.rules.end.tieBreak':
+    'Jos usealla on sama pienin yhteispistemäärä, voittaa se, joka voitti vähemmän jakoja; jos sekin on tasan, ottelu päättyy tasapeliin.',
 
   'prsi.rules.section.goal': 'Tavoite',
   'prsi.rules.section.setup': 'Valmistelu',
@@ -143,14 +148,21 @@ export const fi: Record<string, string> = {
   'prsi.rules.deck': 'Pelataan {value} kortin pakalla (seiskasta ylöspäin).',
   'prsi.rules.deal': 'Jokainen pelaaja aloittaa {n} kortilla.',
   'prsi.rules.dealLimit': 'Jäljelle on jäätävä kortti käännettäväksi ja yksi nostettavaksi, joten {seats} pelaajaa saa enintään {n} korttia.',
+  'prsi.rules.firstCard':
+    'Pinon aloittamiseksi käännetty kortti lasketaan kuin se olisi juuri pelattu ensimmäiselle pelaajalle: 7:ään on vastattava tai maksettava, ässään vastattava tai vuoro menetetään. Svršekiä ei koskaan käännetä, jos jokin muu kortti voidaan kääntää — se menee pakan pohjalle.',
   'prsi.rules.turn.match':
     'Pelaa kortti, joka vastaa päällimmäisen kortin maata tai arvoa — tai nosta, jos et voi.',
   'prsi.rules.turn.draw': 'Nostaminen päättää vuorosi ilman pelaamista.',
   'prsi.rules.turn.nothingToDraw': 'Jos nostettavaa ei ole eikä mikään korteistasi sovi, nosto päättää vuorosi ilman korttia.',
   'prsi.rules.sevens':
     'Pelaa 7, niin seuraava pelaaja nostaa kaksi korttia, ellei hän vastaa omalla seiskallaan.',
-  'prsi.rules.aces': 'Pelaa ässä, niin seuraavan pelaajan vuoro ohitetaan.',
+  'prsi.rules.sevens.stack':
+    'Seiskat kasautuvat: jokainen vastaukseksi pelattu 7 lisää kaksi korttia, ja ensimmäinen pelaaja, joka ei voi vastata, nostaa ne kaikki.',
+  'prsi.rules.aces':
+    'Pelaa ässä, niin seuraavan pelaajan vuoro ohitetaan, ellei hän vastaa omalla ässällään — jolloin ohitus siirtyy eteenpäin.',
   'prsi.rules.queens': 'Pelaa svršek (Ober) ja nimeä maa, joka jatkuu.',
+  'prsi.rules.queens.anything':
+    'Svršekin voi pelata mille tahansa kortille — paitsi 7:lle tai ässälle, johon ei vielä ole vastattu — ja seuraavan kortin on oltava nimettyä maata tai toinen svršek.',
   'prsi.rules.end': 'Ottelu päättyy sillä hetkellä, kun jonkun käsi on tyhjä.',
   'prsi.rules.end.blocked': 'Jos kaikki pelaajat vuorollaan ohittavat näin, kukaan ei voi pelata: vähiten kortteja voittaa, ja tasapelissä voitto jaetaan.',
   'prsi.remedy.matchOrDraw': 'Pelaa {suit}-kortti tai sellainen, joka sopii korttiin {card} — muuten nosta.',
@@ -174,13 +186,23 @@ export const fi: Record<string, string> = {
   'canasta.rules.section.melding': 'Laskeminen',
   'canasta.rules.section.end': 'Miten ottelu päättyy',
   'canasta.rules.section.turn': 'Sinun vuorosi',
-  'canasta.rules.goal': 'Pelataan pareittain; ensimmäisenä {n} pisteeseen yltävä puoli voittaa ottelun.',
+  'canasta.rules.goal': 'Ensimmäisenä {n} pisteeseen yltävä puoli voittaa ottelun.',
+  'canasta.rules.partnerships':
+    'Neljä pelaajaa pelaa kahtena parina, parin jäsenet istuvat vastakkain; kaksi tai kolme pelaajaa pelaa kukin yksin.',
+  'canasta.rules.partnershipsSix':
+    'Neljä tai kuusi pelaajaa pelaa kahden hengen pareina, parin jäsenet istuvat vastakkain; kaksi, kolme tai viisi pelaajaa pelaa kukin yksin.',
   'canasta.rules.deck': 'Pelataan {value} kortilla — {decks} pakkaa ja jokerit.',
   'canasta.rules.deal': 'Jokainen pelaaja saa {n} korttia.',
   'canasta.rules.drawCount': 'Nostat {n} korttia vuorosi alussa.',
   'canasta.rules.redThrees':
     'Punainen kolmonen kädessäsi näytetään heti ja se antaa bonuksen — paitsi jos puolesi ei koskaan saa canastaa valmiiksi, jolloin se lasketaan sinua vastaan.',
+  'canasta.rules.redThreesNeedTwo':
+    'Punainen kolmonen kädessäsi näytetään heti ja se antaa bonuksen — paitsi jos puolesi saa valmiiksi alle kaksi canastaa, jolloin kukin lasketaan {n} sinua vastaan.',
+  'canasta.rules.redThreeValues':
+    'Jokaisen punaisen kolmosen arvo on {n}; kaikkien {count} arvo yhteensä on {all}.',
   'canasta.rules.canasta': 'Canasta on yhdistelmä, jossa on {n} tai useampi samanarvoinen kortti.',
+  'canasta.rules.canastaBonus':
+    'Valmis canasta tuo korttiensa lisäksi bonuksen: {natural} puhtaasta ilman jokereita, {mixed} sellaisesta, jossa on jokereita.',
   'canasta.rules.sequences': 'Yhdistelmä voi olla myös jono: kolme tai useampi saman maan kortti peräkkäin, ei koskaan jokeria mukana.',
   'canasta.rules.dirtySequences': 'Yhdistelmä voi olla myös jono: kolmesta seitsemään saman maan korttia peräkkäin. Jokerit voivat korvata puuttuvia kortteja, enintään kaksi eikä koskaan yli puolta luonnollisten korttien määrästä. Seitsemän korttia, joiden joukossa on jokeri, on epäpuhdas samba, arvoltaan {n}.',
   'canasta.rules.wildMeld': 'Kun puolesi on avannut, se saa laskea yhden kakkosten ja jokereiden yhdistelmän missä suhteessa tahansa: kolme jokeriakin käy. Seitsemän korttia on canasta: {n}, jos kaikki ovat kakkosia, {mixed} jokereiden kanssa.',
@@ -224,14 +246,14 @@ export const fi: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Puolellasi voi olla useita saman arvon sarjoja.',
   'canasta.rules.canastaCloses': '{n} kortin kanasta on valmis eikä ota enää kortteja.',
   'canasta.rules.meldsAreShared':
-    'Sarjat kuuluvat parille: kumpi tahansa saa jatkaa niitä, eikä vastustajan sarjoihin kosketa.',
+    'Sarjat kuuluvat puolelle, joka ne laski — paripöydässä molemmille parin jäsenille: kumpi tahansa saa jatkaa niitä, eikä mikään muu puoli saa koskea niihin.',
   'canasta.rules.layOffAfterOpening':
     'Ennen kuin puolesi on tehnyt avaussarjansa, se ei saa liittää kortteja mihinkään pöydässä.',
   'canasta.rules.goOutKeepsACard':
     'Sinun on aina pystyttävä päättämään vuorosi, joten älä koskaan lado koko kättäsi pöytään, ellei se ole juuri ulosmenosiirto.',
   'canasta.rules.oneCanastaToGoOut': 'Yksi valmis canasta riittää, jotta puolesi pääsee ulos.',
   'canasta.rules.twoCanastasToGoOut': 'Puolesi tarvitsee kaksi valmista canastaa ennen kuin se pääsee ulos.',
-  'canasta.rules.end': 'Jakoa jatketaan, kunnes toinen puoli ylittää {n} pistettä — sitten ottelu on ohi.',
+  'canasta.rules.end': 'Jakoa jatketaan, kunnes jokin puoli saavuttaa {n} pistettä — sitten ottelu on ohi.',
 
   'holdem.rules.section.goal': 'Tavoite',
   'holdem.rules.section.setup': 'Valmistelu',
@@ -702,10 +724,11 @@ export const fi: Record<string, string> = {
     'Koputuksen jälkeen, joka ei ole gin, vastustajasi saa liittää oman deadwoodinsa sinun yhdistelmiisi ennen kuin kädet vertaillaan.',
   'ginrummy.rules.deadHandDescription':
     'Jos nostopakassa on enää kaksi korttia eikä kukaan ole koputtanut, jako on kuollut — kukaan ei saa pisteitä ja sama jakaja jakaa uudelleen.',
+  'ginrummy.rules.knockScore': 'Koputus, jota ei aliteta, tuo kahden pelaajan deadwoodien erotuksen.',
   'ginrummy.rules.undercut':
     'Jos vastustajasi deadwood ei ole sinun deadwoodiasi korkeampi, hän alittaa sinut: hän saa erotuksen ja lisäksi {n}.',
   'ginrummy.rules.ginBonus': 'Gin tuo vastustajasi koko käden ja lisäksi {n}.',
-  'ginrummy.rules.target': 'Ensimmäisenä {n} pisteen yli jaon päättyessä yltävä voittaa ottelun.',
+  'ginrummy.rules.target': 'Ensimmäisenä {n} pisteeseen jaon päättyessä yltävä voittaa ottelun.',
   'ginrummy.rules.shutout':
     'Ottelubonus kaksinkertaistuu {n} pisteeseen, jos häviäjä ei saanut yhtäkään pistettä.',
   'ginrummy.rules.box': 'Jokainen voittamasi jako on ottelun lopussa {n} pisteen arvoinen.',
@@ -796,7 +819,7 @@ export const fi: Record<string, string> = {
     'Jos pussi tyhjenee eikä kukaan voi pelata, kierros päättyy ja sen voittaa matalin käsi.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Jos pussi tyhjenee eikä kukaan voi pelata, kierros päättyy ilman voittajaa — jokainen käsi vain lasketaan.',
-  'rummytiles.rules.target': 'Ensimmäisenä {n} pisteen yli kierroksen päättyessä yltävä voittaa ottelun.',
+  'rummytiles.rules.target': 'Ensimmäisenä {n} pisteeseen kierroksen päättyessä yltävä voittaa ottelun.',
   'rummytiles.rules.roundLimit': 'Ottelu päättyy {n} kierroksen jälkeen — korkein pistemäärä voittaa.',
   'rummytiles.remedy.emptyTheTray': 'Aseta {n} laattaa, jotka ovat vielä telineessä, tai nollaa vuoro.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -832,6 +855,7 @@ export const fi: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Nollaa vuoro',
   'rummytiles.offer.commit': 'Valmis',
   'rummytiles.offer.draw': 'Nosta',
+  'rummytiles.offer.pass': 'Passaa',
   'rummytiles.param.position': 'Jaa kohdasta',
 
   // --- blackjack -----------------------------------------------------------
@@ -2162,6 +2186,7 @@ export const fi: Record<string, string> = {
   'rummytiles.move.reset': '{player} palautti pöydän ennalleen',
   'rummytiles.move.committed': '{player} päätti vuoronsa',
   'rummytiles.move.drew': '{player} nosti laatan',
+  'rummytiles.move.passed': '{player} passasi — pussi on tyhjä',
   'moves.last': 'Viimeisin siirto',
   'moves.history': 'Historia',
   'hints.title': 'Vihjeet',
@@ -3148,7 +3173,8 @@ export const fi: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Patarouva voi siis kuulua yhtä aikaa patamariaasiin, rouvakierrokseen ja pinochleen, ja toinen valttikuningas ja -rouva suoran vieressä lasketaan silti valttimariaasiksi.',
   'pinochle.rules.meld.onWin': 'Vain tikin voittaja saa laskea yhdistelmän, ja vain niin kauan kuin nostopakkaa riittää.',
   'pinochle.rules.meld.onePerTurn': 'Yksi yhdistelmä jokaista voitettua tikkiä kohden. Lasketut kortit jäävät pöytään, ja niitä voi yhä pelata.',
-  'pinochle.rules.meld.exchange': 'Valttiysin voi vaihtaa käännettyyn valttikorttiin. Se tuo {n} ja lasketaan sen vuoron yhdistelmäksi.',
+  'pinochle.rules.meld.exchange':
+    'Valttiysin, jota ei ole jo näytetty valttiysiyhdistelmänä, voi vaihtaa käännettyyn valttikorttiin. Se tuo {n} ja lasketaan sen vuoron yhdistelmäksi.',
   'pinochle.rules.meld.staysInHand': 'Kun nostopakka loppuu, kaikki lasketut kortit palaavat omistajansa käteen.',
   'pinochle.rules.meld.shown': 'Kun valtti on valittu, kaikkien yhdistelmät lasketaan ja näytetään pöydällä ensimmäisen tikin ajan.',
   'pinochle.rules.meld.needsTrick': 'Puolen yhdistelmät lasketaan vain, jos se saa vähintään yhden tikin.',

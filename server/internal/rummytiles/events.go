@@ -40,6 +40,8 @@ func (m *Module) NarrateEvent(_ module.State, ev module.Event) (module.Move, boo
 		move.Fact = module.Fact{LabelKey: "rummytiles.move.committed", Params: map[string]any{"player": player}}
 	case "tile_drawn":
 		move.Fact = module.Fact{LabelKey: "rummytiles.move.drew", Params: map[string]any{"player": player}}
+	case "turn_passed":
+		move.Fact = module.Fact{LabelKey: "rummytiles.move.passed", Params: map[string]any{"player": player}}
 	default:
 		return module.Move{}, false
 	}

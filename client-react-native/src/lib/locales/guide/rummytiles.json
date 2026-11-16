@@ -14,7 +14,7 @@
     "guide.rummytiles.freeplay": "Now try it yourself. Play a few turns however you like: place, add, rearrange, commit or draw.",
     "guide.rummytiles.poolLowest": "If the pool runs dry and nobody can play, the round ends and the player with the lowest tile total wins it.",
     "guide.rummytiles.poolNone": "If the pool runs dry and nobody can play, the round ends with no winner. Every hand is simply scored.",
-    "guide.rummytiles.target": "The first player to pass {n} points after a round wins the match.",
+    "guide.rummytiles.target": "The first player to reach {n} points after a round wins the match.",
     "guide.rummytiles.roundLimit": "The match lasts {n} rounds. The highest score at the end wins.",
     "guide.rummytiles.hint": "Stuck? Press the Hint button and we will suggest a play.",
     "guide.rummytiles.done": "That is the basics. Enjoy the game!"
@@ -34,7 +34,7 @@
     "guide.rummytiles.freeplay": "Сега опитай сам. Изиграй няколко хода както искаш: постави, добави, пренареди, потвърди или изтегли.",
     "guide.rummytiles.poolLowest": "Ако купчината свърши и никой не може да играе, рундът приключва и играчът с най-ниска сума на плочките го печели.",
     "guide.rummytiles.poolNone": "Ако купчината свърши и никой не може да играе, рундът приключва без победител. Всички ръце просто се отчитат.",
-    "guide.rummytiles.target": "Първият играч, който премине {n} точки след рунд, печели мача.",
+    "guide.rummytiles.target": "Първият играч, който достигне {n} точки след рунд, печели мача.",
     "guide.rummytiles.roundLimit": "Мачът е {n} рунда. Най-високият резултат в края печели.",
     "guide.rummytiles.hint": "Затруднен ли си? Натисни бутона Подсказка и ще ти предложим ход.",
     "guide.rummytiles.done": "Това са основите. Приятна игра!"
@@ -54,7 +54,7 @@
     "guide.rummytiles.freeplay": "Teď to zkus sám. Zahraj pár tahů, jak chceš: polož, přilož, přeskládej, potvrď, nebo lízni.",
     "guide.rummytiles.poolLowest": "Pokud zásoba dojde a nikdo nemůže hrát, kolo končí a vyhrává ho hráč s nejnižším součtem kamenů.",
     "guide.rummytiles.poolNone": "Pokud zásoba dojde a nikdo nemůže hrát, kolo končí bez vítěze. Všechny ruce se prostě ohodnotí.",
-    "guide.rummytiles.target": "Kdo první po kole překročí {n} bodů, vyhrává zápas.",
+    "guide.rummytiles.target": "Kdo první po kole dosáhne {n} bodů, vyhrává zápas.",
     "guide.rummytiles.roundLimit": "Zápas trvá {n} kol. Vyhrává nejvyšší skóre na konci.",
     "guide.rummytiles.hint": "Nevíš si rady? Stiskni tlačítko Nápověda a navrhneme ti tah.",
     "guide.rummytiles.done": "To jsou základy. Užij si hru!"
@@ -74,7 +74,7 @@
     "guide.rummytiles.freeplay": "Prøv nu selv. Spil et par ture, som du vil: læg, tilføj, omarranger, bekræft eller træk.",
     "guide.rummytiles.poolLowest": "Hvis puljen løber tør, og ingen kan spille, slutter runden, og spilleren med den laveste brikssum vinder den.",
     "guide.rummytiles.poolNone": "Hvis puljen løber tør, og ingen kan spille, slutter runden uden vinder. Alle hænder bliver simpelthen talt op.",
-    "guide.rummytiles.target": "Den første spiller, der passerer {n} point efter en runde, vinder kampen.",
+    "guide.rummytiles.target": "Den første spiller, der når {n} point efter en runde, vinder kampen.",
     "guide.rummytiles.roundLimit": "Kampen varer {n} runder. Den højeste score til sidst vinder.",
     "guide.rummytiles.hint": "Sidder du fast? Tryk på Hint-knappen, så foreslår vi et udspil.",
     "guide.rummytiles.done": "Det var grundreglerne. God fornøjelse med spillet!"
@@ -94,7 +94,7 @@
     "guide.rummytiles.freeplay": "Probiere es jetzt selbst. Spiele ein paar Züge, wie du magst: legen, anlegen, umordnen, bestätigen oder ziehen.",
     "guide.rummytiles.poolLowest": "Ist der Pool leer und niemand kann spielen, endet die Runde, und der Spieler mit der niedrigsten Steinsumme gewinnt sie.",
     "guide.rummytiles.poolNone": "Ist der Pool leer und niemand kann spielen, endet die Runde ohne Gewinner. Alle Hände werden einfach gewertet.",
-    "guide.rummytiles.target": "Wer nach einer Runde als Erster {n} Punkte überschreitet, gewinnt das Match.",
+    "guide.rummytiles.target": "Wer nach einer Runde als Erster {n} Punkte erreicht, gewinnt das Match.",
     "guide.rummytiles.roundLimit": "Das Match dauert {n} Runden. Wer am Ende die höchste Punktzahl hat, gewinnt.",
     "guide.rummytiles.hint": "Unsicher? Drücke die Tipp-Schaltfläche, und wir schlagen dir einen Zug vor.",
     "guide.rummytiles.done": "Das sind die Grundlagen. Viel Spaß beim Spielen!"
@@ -114,7 +114,7 @@
     "guide.rummytiles.freeplay": "Τώρα δοκίμασε μόνος σου. Παίξε μερικές σειρές όπως θες: τοποθέτησε, πρόσθεσε, αναδιάταξε, επιβεβαίωσε ή τράβα.",
     "guide.rummytiles.poolLowest": "Αν αδειάσει η στοίβα και κανείς δεν μπορεί να παίξει, ο γύρος τελειώνει και τον κερδίζει ο παίκτης με το χαμηλότερο σύνολο πλακιδίων.",
     "guide.rummytiles.poolNone": "Αν αδειάσει η στοίβα και κανείς δεν μπορεί να παίξει, ο γύρος τελειώνει χωρίς νικητή. Όλα τα χέρια απλώς βαθμολογούνται.",
-    "guide.rummytiles.target": "Ο πρώτος παίκτης που θα ξεπεράσει τους {n} πόντους μετά από έναν γύρο κερδίζει τον αγώνα.",
+    "guide.rummytiles.target": "Ο πρώτος παίκτης που θα φτάσει τους {n} πόντους μετά από έναν γύρο κερδίζει τον αγώνα.",
     "guide.rummytiles.roundLimit": "Ο αγώνας διαρκεί {n} γύρους. Κερδίζει το υψηλότερο σκορ στο τέλος.",
     "guide.rummytiles.hint": "Κόλλησες; Πάτα το κουμπί Υπόδειξη και θα σου προτείνουμε μια κίνηση.",
     "guide.rummytiles.done": "Αυτά είναι τα βασικά. Καλή διασκέδαση!"
@@ -134,7 +134,7 @@
     "guide.rummytiles.freeplay": "Ahora pruébalo tú. Juega unos turnos como quieras: coloca, añade, reorganiza, confirma o roba.",
     "guide.rummytiles.poolLowest": "Si el montón se agota y nadie puede jugar, la ronda termina y la gana el jugador con el menor total de fichas.",
     "guide.rummytiles.poolNone": "Si el montón se agota y nadie puede jugar, la ronda termina sin ganador. Simplemente se puntúan todas las manos.",
-    "guide.rummytiles.target": "El primer jugador que supere {n} puntos tras una ronda gana la partida.",
+    "guide.rummytiles.target": "El primer jugador que llegue a {n} puntos tras una ronda gana la partida.",
     "guide.rummytiles.roundLimit": "La partida dura {n} rondas. Gana la puntuación más alta al final.",
     "guide.rummytiles.hint": "¿Atascado? Pulsa el botón Pista y te sugeriremos una jugada.",
     "guide.rummytiles.done": "Esos son los fundamentos. ¡Disfruta del juego!"
@@ -154,7 +154,7 @@
     "guide.rummytiles.freeplay": "Proovi nüüd ise. Mängi mõned käigud, nagu soovid: pane, lisa, korralda ümber, kinnita või tõmba.",
     "guide.rummytiles.poolLowest": "Kui hoov saab tühjaks ja keegi ei saa käia, voor lõpeb ja selle võidab mängija, kelle klotside summa on kõige väiksem.",
     "guide.rummytiles.poolNone": "Kui hoov saab tühjaks ja keegi ei saa käia, voor lõpeb ilma võitjata. Kõik käed lihtsalt hinnatakse punktidega.",
-    "guide.rummytiles.target": "Esimene mängija, kes pärast vooru ületab {n} punkti, võidab matši.",
+    "guide.rummytiles.target": "Esimene mängija, kes pärast vooru jõuab {n} punktini, võidab matši.",
     "guide.rummytiles.roundLimit": "Matš kestab {n} vooru. Võidab kõrgeim lõppskoor.",
     "guide.rummytiles.hint": "Jäid kinni? Vajuta nuppu Vihje ja me soovitame käigu.",
     "guide.rummytiles.done": "See ongi alus. Nauti mängu!"
@@ -174,7 +174,7 @@
     "guide.rummytiles.freeplay": "Kokeile nyt itse. Pelaa muutama vuoro miten haluat: aseta, lisää, järjestele uudelleen, vahvista tai nosta.",
     "guide.rummytiles.poolLowest": "Jos varasto loppuu eikä kukaan pysty pelaamaan, kierros päättyy ja sen voittaa pelaaja, jonka laattojen summa on pienin.",
     "guide.rummytiles.poolNone": "Jos varasto loppuu eikä kukaan pysty pelaamaan, kierros päättyy ilman voittajaa. Kaikki kädet vain pisteytetään.",
-    "guide.rummytiles.target": "Ensimmäinen pelaaja, joka ylittää {n} pistettä kierroksen jälkeen, voittaa ottelun.",
+    "guide.rummytiles.target": "Ensimmäinen pelaaja, joka saavuttaa {n} pistettä kierroksen jälkeen, voittaa ottelun.",
     "guide.rummytiles.roundLimit": "Ottelu kestää {n} kierrosta. Korkein pistemäärä lopussa voittaa.",
     "guide.rummytiles.hint": "Jumissa? Paina Vihje-painiketta, niin ehdotamme siirtoa.",
     "guide.rummytiles.done": "Siinä perusteet. Nauti pelistä!"
@@ -194,7 +194,7 @@
     "guide.rummytiles.freeplay": "À vous d’essayer. Jouez quelques tours comme bon vous semble : placez, ajoutez, réarrangez, validez ou piochez.",
     "guide.rummytiles.poolLowest": "Si la pioche est vide et que personne ne peut jouer, la manche s’arrête et le joueur dont le total de tuiles est le plus bas la remporte.",
     "guide.rummytiles.poolNone": "Si la pioche est vide et que personne ne peut jouer, la manche s’arrête sans gagnant. Chaque main est simplement comptée.",
-    "guide.rummytiles.target": "Le premier joueur à dépasser {n} points après une manche remporte la partie.",
+    "guide.rummytiles.target": "Le premier joueur à atteindre {n} points après une manche remporte la partie.",
     "guide.rummytiles.roundLimit": "La partie dure {n} manches. Le meilleur score à la fin gagne.",
     "guide.rummytiles.hint": "Bloqué ? Appuyez sur le bouton Indice et nous vous suggérerons un coup.",
     "guide.rummytiles.done": "Voilà les bases. Bon jeu !"
@@ -214,7 +214,7 @@
     "guide.rummytiles.freeplay": "Bain triail as féin anois. Imir cúpla seal mar is mian leat: cuir, cuir leis, athshocraigh, deimhnigh nó tarraing.",
     "guide.rummytiles.poolLowest": "Má thiriméann an linn agus mura féidir le haon duine imirt, críochnaíonn an babhta agus buann an t-imreoir leis an iomlán tíleanna is ísle é.",
     "guide.rummytiles.poolNone": "Má thiriméann an linn agus mura féidir le haon duine imirt, críochnaíonn an babhta gan buaiteoir. Scórálfar gach lámh go simplí.",
-    "guide.rummytiles.target": "Buann an chéad imreoir a théann thar {n} pointe tar éis babhta an cluiche.",
+    "guide.rummytiles.target": "Buann an chéad imreoir a shroicheann {n} pointe tar éis babhta an cluiche.",
     "guide.rummytiles.roundLimit": "Mairfidh an cluiche {n} babhta. Buann an scór is airde ag an deireadh.",
     "guide.rummytiles.hint": "Greamaithe? Brúigh an cnaipe Leid agus molfaimid imirt.",
     "guide.rummytiles.done": "Sin iad na bunghnéithe. Bain sult as an gcluiche!"
@@ -234,7 +234,7 @@
     "guide.rummytiles.freeplay": "Sada sami probajte. Odigrajte nekoliko poteza kako želite: stavljajte, dodajte, preslažite, potvrdite ili vucite.",
     "guide.rummytiles.poolLowest": "Ako se zaliha isprazni, a nitko ne može igrati, runda završava i pobjeđuje igrač s najnižim zbrojem pločica.",
     "guide.rummytiles.poolNone": "Ako se zaliha isprazni, a nitko ne može igrati, runda završava bez pobjednika. Svaka se ruka jednostavno boduje.",
-    "guide.rummytiles.target": "Prvi igrač koji nakon runde prijeđe {n} bodova pobjeđuje u igri.",
+    "guide.rummytiles.target": "Prvi igrač koji nakon runde dosegne {n} bodova pobjeđuje u igri.",
     "guide.rummytiles.roundLimit": "Igra traje {n} rundi. Pobjeđuje najviši rezultat na kraju.",
     "guide.rummytiles.hint": "Zapeli ste? Pritisnite gumb Savjet i predložit ćemo vam potez.",
     "guide.rummytiles.done": "To su osnove. Uživajte u igri!"
@@ -254,7 +254,7 @@
     "guide.rummytiles.freeplay": "Most próbálja ki maga. Játsszon le néhány kört, ahogy tetszik: helyezzen, adjon hozzá, rendezzen át, hagyja jóvá, vagy húzzon.",
     "guide.rummytiles.poolLowest": "Ha a készlet kifogy, és senki sem tud lépni, a forduló véget ér, és a legalacsonyabb kőösszegű játékos nyeri.",
     "guide.rummytiles.poolNone": "Ha a készlet kifogy, és senki sem tud lépni, a forduló nyertes nélkül ér véget. Minden kezet egyszerűen pontoznak.",
-    "guide.rummytiles.target": "Az első játékos, aki egy forduló után túllépi a {n} pontot, megnyeri a játékot.",
+    "guide.rummytiles.target": "Az első játékos, aki egy forduló után eléri a(z) {n} pontot, megnyeri a játékot.",
     "guide.rummytiles.roundLimit": "A játék {n} fordulóig tart. A végén a legmagasabb pontszám nyer.",
     "guide.rummytiles.hint": "Elakadt? Nyomja meg a Tipp gombot, és javaslunk egy lépést.",
     "guide.rummytiles.done": "Ennyi az alapok. Jó játékot!"
@@ -274,7 +274,7 @@
     "guide.rummytiles.freeplay": "Ora prova da solo. Gioca qualche turno come preferisci: metti, aggiungi, riorganizza, conferma o pesca.",
     "guide.rummytiles.poolLowest": "Se il mazzo finisce e nessuno può giocare, il round termina e lo vince chi ha il totale di tessere più basso.",
     "guide.rummytiles.poolNone": "Se il mazzo finisce e nessuno può giocare, il round termina senza vincitore. Si contano semplicemente tutte le mani.",
-    "guide.rummytiles.target": "Vince la partita il primo giocatore che supera {n} punti dopo un round.",
+    "guide.rummytiles.target": "Vince la partita il primo giocatore che raggiunge {n} punti dopo un round.",
     "guide.rummytiles.roundLimit": "La partita dura {n} round. Vince il punteggio più alto alla fine.",
     "guide.rummytiles.hint": "Sei in difficoltà? Premi il pulsante Suggerimento e ti proporremo una giocata.",
     "guide.rummytiles.done": "Queste sono le basi. Buon divertimento!"
@@ -294,7 +294,7 @@
     "guide.rummytiles.freeplay": "Dabar išbandykite patys. Sužaiskite keletą ėjimų kaip norite: dėkite, pridėkite, pertvarkykite, patvirtinkite ar traukite.",
     "guide.rummytiles.poolLowest": "Jei kaupas išsenka ir niekas negali eiti, raundas baigiasi, o jį laimi mažiausią plytelių sumą turintis žaidėjas.",
     "guide.rummytiles.poolNone": "Jei kaupas išsenka ir niekas negali eiti, raundas baigiasi be laimėtojo. Tiesiog įskaičiuojamos visos rankos.",
-    "guide.rummytiles.target": "Rungtynes laimi pirmasis žaidėjas, po raundo viršijęs {n} taškų.",
+    "guide.rummytiles.target": "Rungtynes laimi pirmasis žaidėjas, po raundo pasiekęs {n} taškų.",
     "guide.rummytiles.roundLimit": "Žaidimas trunka {n} raundų. Laimi didžiausią rezultatą pasiekęs žaidėjas.",
     "guide.rummytiles.hint": "Strigote? Spauskite mygtuką Užuomina ir pasiūlysime ėjimą.",
     "guide.rummytiles.done": "Tai pagrindai. Smagaus žaidimo!"
@@ -314,7 +314,7 @@
     "guide.rummytiles.freeplay": "Tagad izmēģini pats. Nospēlē dažas gaitas, kā vēlies: liec, pievieno, pārkārto, apstiprini vai velc.",
     "guide.rummytiles.poolLowest": "Ja kaudze beidzas un neviens nevar spēlēt, raunds beidzas, un to uzvar spēlētājs ar zemāko kauliņu summu.",
     "guide.rummytiles.poolNone": "Ja kaudze beidzas un neviens nevar spēlēt, raunds beidzas bez uzvarētāja. Visas rokas tiek vienkārši novērtētas.",
-    "guide.rummytiles.target": "Spēli uzvar pirmais spēlētājs, kas pēc raunda pārsniedz {n} punktus.",
+    "guide.rummytiles.target": "Spēli uzvar pirmais spēlētājs, kas pēc raunda sasniedz {n} punktus.",
     "guide.rummytiles.roundLimit": "Spēle ilgst {n} raundus. Uzvar augstākais rezultāts beigās.",
     "guide.rummytiles.hint": "Iestrēgi? Nospied pogu Padoms, un mēs ieteiksim gājienu.",
     "guide.rummytiles.done": "Tie ir pamati. Prieks spēlē!"
@@ -334,7 +334,7 @@
     "guide.rummytiles.freeplay": "Issa pprova waħdek. Lgħab ftit turns kif tixtieq: poġġi, żid, irranġa, ikkonferma jew iġbed.",
     "guide.rummytiles.poolLowest": "Jekk il-pool jinxef u ħadd ma jista’ jilgħab, ir-rawnd jintemm u jirbaħu l-plejer bl-inqas total ta’ tiles.",
     "guide.rummytiles.poolNone": "Jekk il-pool jinxef u ħadd ma jista’ jilgħab, ir-rawnd jintemm mingħajr rebbieħ. Kull id sempliċement tiġi skorjata.",
-    "guide.rummytiles.target": "L-ewwel plejer li jaqbeż {n} punti wara rawnd jirbaħ il-partita.",
+    "guide.rummytiles.target": "L-ewwel plejer li jilħaq {n} punti wara rawnd jirbaħ il-partita.",
     "guide.rummytiles.roundLimit": "Il-partita ddum {n} rawnds. L-ogħla skor fl-aħħar jirbaħ.",
     "guide.rummytiles.hint": "Waqajt? Agħfas il-buttuna Suġġeriment u nissuġġerulek logħba.",
     "guide.rummytiles.done": "Dawn huma l-bażi. Ħu pjaċir bil-logħba!"
@@ -354,7 +354,7 @@
     "guide.rummytiles.freeplay": "Probeer het nu zelf. Speel een paar beurten zoals je wilt: leggen, aanvullen, herschikken, bevestigen of trekken.",
     "guide.rummytiles.poolLowest": "Als de pot leeg is en niemand kan spelen, eindigt de ronde en wint de speler met het laagste totaal aan stenen.",
     "guide.rummytiles.poolNone": "Als de pot leeg is en niemand kan spelen, eindigt de ronde zonder winnaar. Alle handen worden gewoon geteld.",
-    "guide.rummytiles.target": "De eerste speler die na een ronde meer dan {n} punten heeft, wint het spel.",
+    "guide.rummytiles.target": "De eerste speler die na een ronde {n} punten haalt, wint het spel.",
     "guide.rummytiles.roundLimit": "Het spel duurt {n} rondes. De hoogste score aan het einde wint.",
     "guide.rummytiles.hint": "Kom je er niet uit? Druk op de knop Hint en we stellen een zet voor.",
     "guide.rummytiles.done": "Dat zijn de basisregels. Veel plezier met het spel!"
@@ -374,7 +374,7 @@
     "guide.rummytiles.freeplay": "Teraz spróbuj sam. Zagraj kilka tur, jak chcesz: wykładaj, dokładaj, przekładaj, zatwierdzaj lub dobieraj.",
     "guide.rummytiles.poolLowest": "Jeśli pula się wyczerpie i nikt nie może zagrać, runda się kończy, a wygrywa gracz z najniższą sumą kafelków.",
     "guide.rummytiles.poolNone": "Jeśli pula się wyczerpie i nikt nie może zagrać, runda kończy się bez zwycięzcy. Wszystkie ręce są po prostu punktowane.",
-    "guide.rummytiles.target": "Pierwszy gracz, który po rundzie przekroczy {n} punktów, wygrywa mecz.",
+    "guide.rummytiles.target": "Pierwszy gracz, który po rundzie osiągnie {n} punktów, wygrywa mecz.",
     "guide.rummytiles.roundLimit": "Mecz trwa {n} rund. Wygrywa najwyższy wynik na koniec.",
     "guide.rummytiles.hint": "Utknąłeś? Naciśnij przycisk Podpowiedź, a podpowiemy ruch.",
     "guide.rummytiles.done": "To podstawy. Miłej gry!"
@@ -394,7 +394,7 @@
     "guide.rummytiles.freeplay": "Agora experimenta tu. Joga algumas vezes como quiseres: coloca, acrescenta, reorganiza, confirma ou compra.",
     "guide.rummytiles.poolLowest": "Se o monte acabar e ninguém puder jogar, a ronda termina e ganha o jogador com o total de peças mais baixo.",
     "guide.rummytiles.poolNone": "Se o monte acabar e ninguém puder jogar, a ronda termina sem vencedor. Todas as mãos são simplesmente pontuadas.",
-    "guide.rummytiles.target": "O primeiro jogador a passar {n} pontos depois de uma ronda ganha o jogo.",
+    "guide.rummytiles.target": "O primeiro jogador a chegar a {n} pontos depois de uma ronda ganha o jogo.",
     "guide.rummytiles.roundLimit": "O jogo dura {n} rondas. Ganha a pontuação mais alta no fim.",
     "guide.rummytiles.hint": "Estás preso? Carrega no botão Dica e sugerimos-te uma jogada.",
     "guide.rummytiles.done": "Estas são as noções básicas. Bom jogo!"
@@ -414,7 +414,7 @@
     "guide.rummytiles.freeplay": "Acum încearcă singur. Joacă câteva ture cum vrei: așază, adaugă, rearanjează, confirmă sau trage.",
     "guide.rummytiles.poolLowest": "Dacă grămada se golește și nimeni nu mai poate juca, runda se încheie și o câștigă jucătorul cu cel mai mic total de piese.",
     "guide.rummytiles.poolNone": "Dacă grămada se golește și nimeni nu mai poate juca, runda se încheie fără câștigător. Toate mâinile sunt pur și simplu punctate.",
-    "guide.rummytiles.target": "Primul jucător care depășește {n} puncte după o rundă câștigă meciul.",
+    "guide.rummytiles.target": "Primul jucător care ajunge la {n} puncte după o rundă câștigă meciul.",
     "guide.rummytiles.roundLimit": "Meciul durează {n} runde. Câștigă cel mai mare scor la final.",
     "guide.rummytiles.hint": "Te-ai blocat? Apasă butonul Indiciu și îți sugerăm o mutare.",
     "guide.rummytiles.done": "Acestea sunt bazele. Joc plăcut!"
@@ -434,7 +434,7 @@
     "guide.rummytiles.freeplay": "Teraz to skúste sami. Zahrajte pár ťahov, ako chcete: vkladajte, pridávajte, prestavujte, potvrďte alebo ťahajte.",
     "guide.rummytiles.poolLowest": "Ak sa zásoba minie a nikto nemôže hrať, kolo sa skončí a vyhrá ho hráč s najnižším súčtom kameňov.",
     "guide.rummytiles.poolNone": "Ak sa zásoba minie a nikto nemôže hrať, kolo sa skončí bez víťaza. Každá ruka sa jednoducho ohodnotí.",
-    "guide.rummytiles.target": "Zápas vyhrá prvý hráč, ktorý po kole prekročí {n} bodov.",
+    "guide.rummytiles.target": "Zápas vyhrá prvý hráč, ktorý po kole dosiahne {n} bodov.",
     "guide.rummytiles.roundLimit": "Zápas trvá {n} kôl. Vyhráva najvyššie skóre na konci.",
     "guide.rummytiles.hint": "Neviete si rady? Stlačte tlačidlo Hint a navrhneme vám ťah.",
     "guide.rummytiles.done": "To sú základy. Užite si hru!"
@@ -454,7 +454,7 @@
     "guide.rummytiles.freeplay": "Zdaj poskusite sami. Odigrajte nekaj potez po želji: polagajte, dodajajte, preurejajte, potrdite ali vlecite.",
     "guide.rummytiles.poolLowest": "Če se zaloga izprazni in nihče ne more igrati, se krog konča, zmaga pa igralec z najnižjo vsoto ploščic.",
     "guide.rummytiles.poolNone": "Če se zaloga izprazni in nihče ne more igrati, se krog konča brez zmagovalca. Vsaka roka se preprosto točkuje.",
-    "guide.rummytiles.target": "Tekmo dobi prvi igralec, ki po krogu preseže {n} točk.",
+    "guide.rummytiles.target": "Tekmo dobi prvi igralec, ki po krogu doseže {n} točk.",
     "guide.rummytiles.roundLimit": "Tekma traja {n} krogov. Zmaga najvišji rezultat na koncu.",
     "guide.rummytiles.hint": "Ste obstali? Pritisnite gumb Hint in predlagali vam bomo potezo.",
     "guide.rummytiles.done": "To so osnove. Uživajte v igri!"
@@ -474,7 +474,7 @@
     "guide.rummytiles.freeplay": "Prova nu själv. Spela några turer hur du vill: lägg ut, lägg till, ordna om, bekräfta eller dra.",
     "guide.rummytiles.poolLowest": "Om högen tar slut och ingen kan spela avslutas rundan, och spelaren med lägst bricksumma vinner den.",
     "guide.rummytiles.poolNone": "Om högen tar slut och ingen kan spela avslutas rundan utan vinnare. Varje hand poängsätts helt enkelt.",
-    "guide.rummytiles.target": "Den första spelaren som passerar {n} poäng efter en rond vinner matchen.",
+    "guide.rummytiles.target": "Den första spelaren som når {n} poäng efter en rond vinner matchen.",
     "guide.rummytiles.roundLimit": "Matchen pågår i {n} ronder. Högsta poängen i slutet vinner.",
     "guide.rummytiles.hint": "Kört fast? Tryck på Hint-knappen så föreslår vi ett drag.",
     "guide.rummytiles.done": "Det var grunderna. Ha det så roligt med spelet!"

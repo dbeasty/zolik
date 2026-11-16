@@ -56,6 +56,9 @@ func (svc *Service) Coach(in CoachIn) (CoachOut, error) {
 	if err != nil {
 		return CoachOut{}, err
 	}
+	if err := t.mayLookAs(in.Seat); err != nil {
+		return CoachOut{}, err
+	}
 	if !t.isAwaited(s.Player) {
 		return CoachOut{}, fmt.Errorf("seat %d has no decision to make now", s.Index)
 	}

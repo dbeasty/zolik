@@ -119,6 +119,9 @@ func LoadNet(b []byte) (*Net, error) {
 	if err := binary.Read(r, binary.LittleEndian, &hlen); err != nil {
 		return nil, fmt.Errorf("learn: header length: %w", err)
 	}
+	if int64(hlen) > int64(r.Len()) {
+		return nil, fmt.Errorf("learn: header of %d bytes in a %d-byte file", hlen, len(b))
+	}
 	hb := make([]byte, hlen)
 	if _, err := io.ReadFull(r, hb); err != nil {
 		return nil, fmt.Errorf("learn: header: %w", err)
@@ -126,6 +129,13 @@ func LoadNet(b []byte) (*Net, error) {
 	var h header
 	if err := json.Unmarshal(hb, &h); err != nil {
 		return nil, fmt.Errorf("learn: header: %w", err)
+	}
+	// The header's layer sizes decide every allocation below, so they are
+	// checked against the bytes actually there before anything is made: a
+	// corrupt or hostile header would otherwise panic on a negative size or
+	// ask for gigabytes it never supplies.
+	if err := h.fits(r.Len()); err != nil {
+		return nil, err
 	}
 	n := &Net{Game: h.Game, StateDim: h.StateDim, CandDim: h.CandDim}
 	var err error
@@ -142,6 +152,34 @@ func LoadNet(b []byte) (*Net, error) {
 		return nil, fmt.Errorf("learn: %d trailing bytes", r.Len())
 	}
 	return n, n.check()
+}
+
+// maxLayerWidth bounds one layer's input or output. The real models are a few
+// hundred wide; this is far above that and far below an overflow.
+const maxLayerWidth = 1 << 16
+
+// fits checks the header's shapes are sane and that their weights and biases
+// are exactly the rest bytes of the file.
+func (h header) fits(rest int) error {
+	if h.StateDim <= 0 || h.StateDim > maxLayerWidth || h.CandDim < 0 || h.CandDim > maxLayerWidth {
+		return fmt.Errorf("learn: header dimensions %d/%d out of range", h.StateDim, h.CandDim)
+	}
+	floats := int64(0)
+	for _, stack := range [][][2]int{h.Trunk, h.Scorer, h.Value} {
+		for _, s := range stack {
+			if s[0] <= 0 || s[1] <= 0 || s[0] > maxLayerWidth || s[1] > maxLayerWidth {
+				return fmt.Errorf("learn: layer %dx%d out of range", s[0], s[1])
+			}
+			floats += int64(s[0])*int64(s[1]) + int64(s[1])
+			if floats*4 > int64(rest) {
+				return fmt.Errorf("learn: header describes more weights than the %d bytes left", rest)
+			}
+		}
+	}
+	if floats*4 != int64(rest) {
+		return fmt.Errorf("learn: header describes %d bytes of weights, file has %d", floats*4, rest)
+	}
+	return nil
 }
 
 func readStack(r io.Reader, shape [][2]int) ([]Dense, error) {

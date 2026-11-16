@@ -111,6 +111,12 @@ func (m *Module) turnOffers(raw module.State, s *GameState, playerID string) []m
 	// screen that says what it does.
 	draw.Source = &module.Selector{Zone: module.FromDeck, ZoneID: poolZoneID}
 	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
+	if len(s.Pool) == 0 {
+		// Nothing left to draw: the same verb passes the turn
+		// (rummytiles.rules.poolExhaustion*), and there is no tile to carry.
+		draw.LabelKey = "rummytiles.offer.pass"
+		draw.Source, draw.Target = nil, nil
+	}
 	offers = append(offers, draw)
 
 	return offers

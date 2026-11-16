@@ -102,6 +102,8 @@ export const sv: Record<string, string> = {
   'zolik.rules.section.end': 'Så slutar matchen',
   'zolik.rules.goal':
     'Var först med att tömma handen genom att lägga ut giltiga grupper och sviter, och samla så få straffpoäng som möjligt i de kort du fortfarande håller när någon annan går ut.',
+  'zolik.rules.deck.packs':
+    'Spelas med {small} kortlekar om 52 kort plus 2 jokrar vardera för två till fyra spelare, {mid} lekar för fem eller sex och {large} för sju eller åtta.',
   'zolik.rules.deal': 'Varje spelare får {n} kort.',
   'zolik.rules.meldShapes':
     'En grupp är {set}+ kort av samma valör; en svit är {run}+ kort i följd i samma färg.',
@@ -128,6 +130,9 @@ export const sv: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Ett kort som blir kvar på handen kostar: joker {joker}, 10, knekt, dam eller kung {face}, 2 till 9 sitt tal, och ett ess {ace} — eller bara {aceLow} om du också har en tvåa i samma färg, eller dam och kung i samma färg, på handen, eller om det skulle förlänga en svit på bordet.",
   'zolik.rules.end.atScore': 'Man fortsätter ge tills någon når {n} poäng — då är det över.',
+  'zolik.rules.end.lowestWins': 'När matchen slutar vinner den lägsta totalen.',
+  'zolik.rules.end.tieBreak':
+    'Delar flera spelare den lägsta totalen vinner den som vunnit färre givar; är även det lika slutar matchen oavgjort.',
 
   'prsi.rules.section.goal': 'Mål',
   'prsi.rules.section.setup': 'Uppställning',
@@ -138,13 +143,20 @@ export const sv: Record<string, string> = {
   'prsi.rules.deck': 'Spelas med en kortlek på {value} kort (från 7 och uppåt).',
   'prsi.rules.deal': 'Varje spelare börjar med {n} kort.',
   'prsi.rules.dealLimit': 'Det måste finnas ett kort kvar att vända och ett att dra, så {seats} spelare får högst {n} kort var.',
+  'prsi.rules.firstCard':
+    'Kortet som vänds upp för att starta högen räknas som om det just spelats mot den första spelaren: en 7:a måste besvaras eller betalas, ett ess besvaras annars hoppas turen över. En svršek vänds aldrig upp så länge ett annat kort kan vändas — den läggs längst ner i leken.',
   'prsi.rules.turn.match':
     'Spela ett kort som matchar det översta kortets färg eller valör — eller dra, om du inte kan.',
   'prsi.rules.turn.draw': 'Att dra avslutar din tur utan utspel.',
   'prsi.rules.turn.nothingToDraw': 'Finns det inget kvar att dra och passar inget av dina kort, avslutar ett drag din tur utan kort.',
   'prsi.rules.sevens': 'Spela en 7:a så drar nästa spelare två kort, om denne inte svarar med en egen 7:a.',
-  'prsi.rules.aces': 'Spela ett ess så hoppas nästa spelares tur över.',
+  'prsi.rules.sevens.stack':
+    'Sjuor staplas: varje 7:a som spelas som svar lägger till två kort till, och den första spelare som inte kan svara drar alla.',
+  'prsi.rules.aces':
+    'Spela ett ess så hoppas nästa spelares tur över, om denne inte svarar med ett eget ess — då går den överhoppade turen vidare.',
   'prsi.rules.queens': 'Spela en svršek (Ober) och säg vilken färg som gäller vidare.',
+  'prsi.rules.queens.anything':
+    'En svršek kan läggas på vilket kort som helst — utom en 7:a eller ett ess som ännu väntar på svar — och nästa kort måste följa den angivna färgen eller vara en annan svršek.',
   'prsi.rules.end': 'Matchen slutar i samma stund som någons hand är tom.',
   'prsi.rules.end.blocked': 'Om alla spelare i tur passar så, kan ingen spela: färst kort vinner, och lika delar segern.',
   'prsi.remedy.matchOrDraw': 'Spela ett {suit}-kort eller ett som passar på {card} — annars drar du.',
@@ -168,13 +180,22 @@ export const sv: Record<string, string> = {
   'canasta.rules.section.melding': 'Lägga ut',
   'canasta.rules.section.end': 'Så slutar matchen',
   'canasta.rules.section.turn': 'Din tur',
-  'canasta.rules.goal': 'Spelas i par; den sida som först når {n} poäng vinner matchen.',
+  'canasta.rules.goal': 'Den sida som först når {n} poäng vinner matchen.',
+  'canasta.rules.partnerships':
+    'Fyra spelare spelar i två par med partnerna mitt emot varandra; två eller tre spelare spelar var för sig.',
+  'canasta.rules.partnershipsSix':
+    'Fyra eller sex spelare spelar i par om två med partnerna mitt emot varandra; två, tre eller fem spelare spelar var för sig.',
   'canasta.rules.deck': 'Spelas med {value} kort — {decks} lekar plus jokrar.',
   'canasta.rules.deal': 'Varje spelare får {n} kort.',
   'canasta.rules.drawCount': 'Du drar {n} kort i början av din tur.',
   'canasta.rules.redThrees':
     'En röd trea på handen visas genast och ger bonus — utom om din sida aldrig får ihop en canasta, då räknas den mot dig i stället.',
+  'canasta.rules.redThreesNeedTwo':
+    'En röd trea på handen visas genast och ger bonus — utom om din sida får ihop färre än två canastor, då räknas varje röd trea {n} mot dig i stället.',
+  'canasta.rules.redThreeValues': 'Varje röd trea är värd {n}; alla {count} tillsammans är värda {all}.',
   'canasta.rules.canasta': 'En canasta är en kombination av {n} eller fler kort av samma valör.',
+  'canasta.rules.canastaBonus':
+    'En färdig canasta ger en bonus utöver sina kort: {natural} för en ren utan vildkort, {mixed} för en med vildkort i.',
   'canasta.rules.sequences': 'En kombination kan också vara en sekvens: tre eller fler kort i samma färg i följd, aldrig med ett vilt kort bland dem.',
   'canasta.rules.dirtySequences': 'En kombination kan också vara en sekvens: tre till sju kort i samma färg i följd. Vildkort får ersätta saknade kort, högst två och aldrig fler än hälften så många som de naturliga korten. Sju kort med ett vildkort i är en oren samba och ger {n}.',
   'canasta.rules.wildMeld': 'När din sida har gjort sin första utläggning får den lägga en kombination av tvåor och jokrar i valfri blandning: tre jokrar räcker. Sju kort är en canasta: {n} med bara tvåor, {mixed} med jokrar.',
@@ -218,14 +239,14 @@ export const sv: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Din sida får ha flera läggningar av samma valör.',
   'canasta.rules.canastaCloses': 'En canasta på {n} kort är färdig och tar inte emot fler.',
   'canasta.rules.meldsAreShared':
-    'Läggningar tillhör paret: båda partner får bygga på dem, och motståndarnas rör man inte.',
+    'Läggningar tillhör den sida som lade dem — vid ett bord med par båda partnerna: vem som helst av dem får bygga på dem, och ingen annan sida får röra dem.',
   'canasta.rules.layOffAfterOpening':
     'Tills din sida har gjort sin första läggning får den inte lägga till kort på något på bordet.',
   'canasta.rules.goOutKeepsACard':
     'Du måste alltid kunna avsluta din tur, så lägg aldrig ut hela handen om det inte är just draget som gör att du går ut.',
   'canasta.rules.oneCanastaToGoOut': 'En färdig canasta räcker för att din sida ska få gå ut.',
   'canasta.rules.twoCanastasToGoOut': 'Din sida behöver två färdiga canastor innan den får gå ut.',
-  'canasta.rules.end': 'Man fortsätter ge tills en sida passerar {n} poäng — då är matchen över.',
+  'canasta.rules.end': 'Man fortsätter ge tills en sida når {n} poäng — då är matchen över.',
 
   'holdem.rules.section.goal': 'Mål',
   'holdem.rules.section.setup': 'Uppställning',
@@ -695,10 +716,12 @@ export const sv: Record<string, string> = {
     'Efter en knackning som inte är gin får din motståndare lägga sitt eget deadwood på dina kombinationer innan händerna jämförs.',
   'ginrummy.rules.deadHandDescription':
     'Om talongen sjunker till sina sista två kort utan att någon knackat är given död — ingen får poäng, och samma givare ger om.',
+  'ginrummy.rules.knockScore':
+    'En knackning som inte underskärs ger skillnaden mellan de två spelarnas deadwood.',
   'ginrummy.rules.undercut':
     'Är motståndarens deadwood inte högre än ditt, underskär denne dig: motståndaren får mellanskillnaden plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin ger motståndarens hela hand plus {n}.',
-  'ginrummy.rules.target': 'Den som först passerar {n} poäng när en giv är slut vinner matchen.',
+  'ginrummy.rules.target': 'Den som först når {n} poäng när en giv är slut vinner matchen.',
   'ginrummy.rules.shutout': 'Matchbonusen fördubblas till {n} om förloraren aldrig fick en enda poäng.',
   'ginrummy.rules.box': 'Varje giv du vann är värd {n} poäng vid matchens slut.',
   'ginrummy.rules.gameBonus': 'Att vinna matchen ger ytterligare {n} poäng.',
@@ -789,7 +812,7 @@ export const sv: Record<string, string> = {
     'Tar påsen slut och ingen kan spela avslutas ronden, och den lägsta handen vinner den.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Tar påsen slut och ingen kan spela avslutas ronden utan vinnare — varje hand räknas helt enkelt.',
-  'rummytiles.rules.target': 'Den som först passerar {n} poäng när en rond är slut vinner matchen.',
+  'rummytiles.rules.target': 'Den som först når {n} poäng när en rond är slut vinner matchen.',
   'rummytiles.rules.roundLimit': 'Matchen slutar efter {n} ronder — högsta poäng vinner.',
   'rummytiles.remedy.emptyTheTray': 'Placera de {n} brickor som ligger kvar i facket, eller nollställ turen.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -824,6 +847,7 @@ export const sv: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Återställ turen',
   'rummytiles.offer.commit': 'Klar',
   'rummytiles.offer.draw': 'Dra',
+  'rummytiles.offer.pass': 'Passa',
   'rummytiles.param.position': 'Dela vid',
 
   // --- blackjack -----------------------------------------------------------
@@ -2149,6 +2173,7 @@ export const sv: Record<string, string> = {
   'rummytiles.move.reset': '{player} återställde bordet',
   'rummytiles.move.committed': '{player} avslutade sin tur',
   'rummytiles.move.drew': '{player} drog en bricka',
+  'rummytiles.move.passed': '{player} passade — påsen är tom',
   'moves.last': 'Senaste draget',
   'moves.history': 'Historik',
   'hints.title': 'Tips',
@@ -3139,7 +3164,8 @@ export const sv: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Så spaderdamen kan räknas i en spadermariage, i damer runt och i en pinochle på en gång, och en andra trumfkung och trumfdam bredvid en svit räknas fortfarande som trumfmariage.',
   'pinochle.rules.meld.onWin': 'Bara den som vinner ett stick får lägga ut, och bara så länge talongen räcker.',
   'pinochle.rules.meld.onePerTurn': 'En utläggning för varje vunnet stick. Utlagda kort ligger kvar på bordet och kan fortfarande spelas.',
-  'pinochle.rules.meld.exchange': 'En nia i trumf kan bytas mot det uppvända trumfkortet. Den ger {n} och räknas som utläggningen för den turen.',
+  'pinochle.rules.meld.exchange':
+    'En nia i trumf som inte redan visats som trumfnia kan bytas mot det uppvända trumfkortet. Den ger {n} och räknas som utläggningen för den turen.',
   'pinochle.rules.meld.staysInHand': 'När talongen tar slut går alla utlagda kort tillbaka till ägarens hand.',
   'pinochle.rules.meld.shown': 'När trumf har valts räknas allas utläggningar och visas på bordet under första sticket.',
   'pinochle.rules.meld.needsTrick': 'En sidas utläggningar räknas bara om den tar minst ett stick.',

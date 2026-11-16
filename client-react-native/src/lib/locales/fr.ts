@@ -103,6 +103,8 @@ export const fr: Record<string, string> = {
   'zolik.rules.section.end': 'Fin de la partie',
   'zolik.rules.goal':
     "Sois le premier à vider ta main en posant des groupes et des suites valides, en gardant le moins de points de pénalité possible dans les cartes qui te restent quand quelqu'un d'autre termine.",
+  'zolik.rules.deck.packs':
+    'On joue avec {small} jeux de 52 cartes plus 2 jokers chacun de deux à quatre joueurs, {mid} jeux à cinq ou six, et {large} à sept ou huit.',
   'zolik.rules.deal': 'Chaque joueur reçoit {n} cartes.',
   'zolik.rules.meldShapes':
     'Un groupe réunit {set}+ cartes de même rang ; une suite réunit {run}+ cartes consécutives de même couleur.',
@@ -134,6 +136,9 @@ export const fr: Record<string, string> = {
     "Une carte restée en main coûte : joker {joker}, 10, valet, dame ou roi {face}, 2 à 9 sa valeur, et un as {ace} — ou seulement {aceLow} si un 2 de sa couleur, ou la dame et le roi de sa couleur, sont aussi dans votre main, ou s'il prolongerait une suite sur la table.",
   'zolik.rules.end.atScore':
     "On redonne jusqu'à ce que quelqu'un atteigne {n} points — la partie est alors terminée.",
+  'zolik.rules.end.lowestWins': "À la fin de la partie, le total le plus bas l'emporte.",
+  'zolik.rules.end.tieBreak':
+    "Si plusieurs joueurs partagent le total le plus bas, celui qui a gagné le moins de donnes l'emporte ; en cas de nouvelle égalité, la partie est nulle.",
 
   'prsi.rules.section.goal': 'But',
   'prsi.rules.section.setup': 'Mise en place',
@@ -144,14 +149,21 @@ export const fr: Record<string, string> = {
   'prsi.rules.deck': 'Se joue avec un jeu de {value} cartes (à partir du 7).',
   'prsi.rules.deal': 'Chaque joueur commence avec {n} cartes.',
   'prsi.rules.dealLimit': 'Il doit rester une carte à retourner et une à piocher, donc {seats} joueurs reçoivent au plus {n} cartes chacun.',
+  'prsi.rules.firstCard':
+    "La carte retournée pour commencer la pile compte comme si elle venait d'être jouée contre le premier joueur : il faut répondre à un 7 ou payer, répondre à un as ou passer son tour. Un svršek n'est jamais retourné tant qu'une autre carte peut l'être — il va sous le paquet.",
   'prsi.rules.turn.match':
     'Joue une carte de la même couleur ou du même rang que celle du dessus — ou pioche si tu ne peux pas.',
   'prsi.rules.turn.draw': 'Piocher met fin à ton tour sans jouer de carte.',
   'prsi.rules.turn.nothingToDraw': 'S’il n’y a plus rien à piocher et qu’aucune de tes cartes ne convient, piocher termine ton tour sans carte.',
   'prsi.rules.sevens':
     "Joue un 7 et le joueur suivant pioche deux cartes, à moins qu'il ne réponde par un 7.",
-  'prsi.rules.aces': 'Joue un as et le tour du joueur suivant est sauté.',
+  'prsi.rules.sevens.stack':
+    'Les 7 se cumulent : chaque 7 joué en réponse ajoute deux cartes de plus, et le premier joueur qui ne peut pas répondre les pioche toutes.',
+  'prsi.rules.aces':
+    "Joue un as et le joueur suivant passe son tour, à moins qu'il ne réponde par un as — le tour sauté passe alors au joueur d'après.",
   'prsi.rules.queens': 'Joue un svršek (Ober) et annonce la couleur qui continue.',
+  'prsi.rules.queens.anything':
+    "Un svršek se pose sur n'importe quelle carte — sauf un 7 ou un as qui attend encore une réponse — et la carte suivante doit suivre la couleur annoncée, ou être un autre svršek.",
   'prsi.rules.end': "La partie s'arrête dès qu'une main est vide.",
   'prsi.rules.end.blocked': 'Si tous les joueurs passent ainsi à tour de rôle, plus personne ne peut jouer : le moins de cartes gagne, et une égalité partage la victoire.',
   'prsi.remedy.matchOrDraw': 'Joue une carte de {suit} ou une qui va sur {card} — sinon, pioche.',
@@ -175,13 +187,22 @@ export const fr: Record<string, string> = {
   'canasta.rules.section.melding': 'La pose',
   'canasta.rules.section.end': 'Fin de la partie',
   'canasta.rules.section.turn': 'Ton tour',
-  'canasta.rules.goal': 'On joue en équipes ; le premier camp à atteindre {n} points remporte la partie.',
+  'canasta.rules.goal': 'Le premier camp à atteindre {n} points remporte la partie.',
+  'canasta.rules.partnerships':
+    'À quatre, on joue en deux équipes, les partenaires assis face à face ; à deux ou trois, chacun joue seul.',
+  'canasta.rules.partnershipsSix':
+    'À quatre ou six, on joue en équipes de deux, les partenaires assis face à face ; à deux, trois ou cinq, chacun joue seul.',
   'canasta.rules.deck': 'Se joue avec {value} cartes — {decks} jeux plus les jokers.',
   'canasta.rules.deal': 'Chaque joueur reçoit {n} cartes.',
   'canasta.rules.drawCount': 'Tu pioches {n} cartes au début de ton tour.',
   'canasta.rules.redThrees':
     'Un trois rouge dans ta main est montré aussitôt et compte en bonus — sauf si ton camp ne réalise jamais de canasta, auquel cas il compte contre toi.',
+  'canasta.rules.redThreesNeedTwo':
+    'Un trois rouge dans ta main est montré aussitôt et compte en bonus — sauf si ton camp réalise moins de deux canastas : chacun compte alors {n} contre toi.',
+  'canasta.rules.redThreeValues': 'Chaque trois rouge vaut {n} ; les {count} ensemble valent {all}.',
   'canasta.rules.canasta': 'Une canasta est une combinaison de {n} cartes ou plus de même rang.',
+  'canasta.rules.canastaBonus':
+    'Une canasta complète rapporte un bonus en plus de ses cartes : {natural} pour une canasta naturelle, sans joker, {mixed} pour une canasta qui contient des jokers.',
   'canasta.rules.sequences': 'Une combinaison peut aussi être une séquence : trois cartes ou plus de la même couleur qui se suivent, jamais avec un joker parmi elles.',
   'canasta.rules.dirtySequences': 'Une combinaison peut aussi être une séquence : de trois à sept cartes de la même couleur qui se suivent. Des jokers peuvent remplacer des cartes manquantes, deux au plus et jamais plus de la moitié du nombre de cartes naturelles. Sept cartes avec un joker forment un samba sale, qui vaut {n}.',
   'canasta.rules.wildMeld': 'Une fois que ton camp a ouvert, il peut poser une combinaison de deux et de jokers, mélangés comme on veut : trois jokers suffisent. Sept cartes forment une canasta : {n} si ce ne sont que des deux, {mixed} avec des jokers.',
@@ -226,14 +247,14 @@ export const fr: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Ton camp peut avoir plusieurs combinaisons du même rang.',
   'canasta.rules.canastaCloses': "Un canasta de {n} cartes est complet et n'en accepte plus.",
   'canasta.rules.meldsAreShared':
-    "Les combinaisons appartiennent à l'équipe : chaque partenaire peut les prolonger, et on ne touche pas à celles d'en face.",
+    'Les combinaisons appartiennent au camp qui les a posées — en équipes, aux deux partenaires : chacun peut les prolonger, et aucun autre camp ne peut y toucher.',
   'canasta.rules.layOffAfterOpening':
     "Tant que ton camp n'a pas fait sa pose initiale, il ne peut rien compléter sur la table.",
   'canasta.rules.goOutKeepsACard':
     "Tu dois toujours pouvoir finir ton tour : ne pose donc jamais toute ta main, sauf si c'est le coup qui te fait sortir.",
   'canasta.rules.oneCanastaToGoOut': 'Une canasta terminée suffit à ton camp pour sortir.',
   'canasta.rules.twoCanastasToGoOut': 'Ton camp a besoin de deux canastas terminées avant de pouvoir sortir.',
-  'canasta.rules.end': "On redonne jusqu'à ce qu'un camp dépasse {n} points — la partie est alors terminée.",
+  'canasta.rules.end': "On redonne jusqu'à ce qu'un camp atteigne {n} points — la partie est alors terminée.",
 
   'holdem.rules.section.goal': 'But',
   'holdem.rules.section.setup': 'Mise en place',
@@ -706,10 +727,12 @@ export const fr: Record<string, string> = {
     "Après une frappe qui n'est pas gin, ton adversaire peut reporter son propre deadwood sur tes combinaisons avant que les mains soient comparées.",
   'ginrummy.rules.deadHandDescription':
     "S'il ne reste que deux cartes dans la pioche et que personne n'a frappé, la main est morte — personne ne marque, et le même donneur redonne.",
+  'ginrummy.rules.knockScore':
+    "Si l'on frappe sans être contré, on marque la différence entre les deadwood des deux joueurs.",
   'ginrummy.rules.undercut':
     "Si le deadwood de ton adversaire n'est pas supérieur au tien, il te contre : il marque la différence, plus {n}.",
   'ginrummy.rules.ginBonus': 'Gin rapporte toute la main de ton adversaire, plus {n}.',
-  'ginrummy.rules.target': "Le premier à dépasser {n} points à la fin d'une main remporte la partie.",
+  'ginrummy.rules.target': "Le premier à atteindre {n} points à la fin d'une main remporte la partie.",
   'ginrummy.rules.shutout': "Le bonus de partie double à {n} si le perdant n'a pas marqué le moindre point.",
   'ginrummy.rules.box': 'Chaque main gagnée vaut {n} points à la fin de la partie.',
   'ginrummy.rules.gameBonus': 'Remporter la partie rapporte {n} points de plus.',
@@ -802,7 +825,7 @@ export const fr: Record<string, string> = {
     "Si la réserve s'épuise et que personne ne peut jouer, la manche s'arrête et la main de plus faible valeur l'emporte.",
   'rummytiles.rules.poolExhaustionNoWinner':
     "Si la réserve s'épuise et que personne ne peut jouer, la manche s'arrête sans vainqueur — chaque main est simplement décomptée.",
-  'rummytiles.rules.target': "Le premier à dépasser {n} points à la fin d'une manche remporte la partie.",
+  'rummytiles.rules.target': "Le premier à atteindre {n} points à la fin d'une manche remporte la partie.",
   'rummytiles.rules.roundLimit': "La partie s'achève après {n} manches — le plus haut score l'emporte.",
   'rummytiles.remedy.emptyTheTray': 'Place les {n} tuiles encore sur ton chevalet, ou réinitialise le tour.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -838,6 +861,7 @@ export const fr: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Recommencer le tour',
   'rummytiles.offer.commit': 'Terminé',
   'rummytiles.offer.draw': 'Piocher',
+  'rummytiles.offer.pass': 'Passer',
   'rummytiles.param.position': 'Couper à',
 
   // --- blackjack -----------------------------------------------------------
@@ -2178,6 +2202,7 @@ export const fr: Record<string, string> = {
   'rummytiles.move.reset': '{player} a remis la table en l’état',
   'rummytiles.move.committed': '{player} a terminé son tour',
   'rummytiles.move.drew': '{player} a pioché une tuile',
+  'rummytiles.move.passed': '{player} a passé — la réserve est vide',
   'moves.last': 'Dernier coup',
   'moves.history': 'Historique',
   'hints.title': 'Conseils',
@@ -3168,7 +3193,8 @@ export const fr: Record<string, string> = {
   'pinochle.rules.meld.classesExample': "Ainsi la dame de pique peut compter à la fois dans un mariage à pique, dans un carré de dames et dans un pinochle, et un second roi et une seconde dame d'atout à côté d'une quinte comptent toujours comme mariage d'atout.",
   'pinochle.rules.meld.onWin': "Seul le gagnant d'un pli peut annoncer, et seulement tant qu'il reste une pioche.",
   'pinochle.rules.meld.onePerTurn': 'Une annonce par pli gagné. Les cartes annoncées restent sur la table et peuvent encore être jouées.',
-  'pinochle.rules.meld.exchange': "Un neuf d'atout peut être échangé contre la carte d'atout retournée. Il rapporte {n} et compte comme l'annonce de ce tour.",
+  'pinochle.rules.meld.exchange':
+    "Un neuf d'atout qui n'a pas déjà été annoncé peut être échangé contre la carte d'atout retournée. Il rapporte {n} et compte comme l'annonce de ce tour.",
   'pinochle.rules.meld.staysInHand': 'Quand la pioche est épuisée, chaque carte annoncée revient dans la main de son propriétaire.',
   'pinochle.rules.meld.shown': "Une fois l'atout choisi, les annonces de chacun sont comptées et montrées sur la table pendant le premier pli.",
   'pinochle.rules.meld.needsTrick': "Les annonces d'une équipe ne comptent que si elle fait au moins un pli.",

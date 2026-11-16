@@ -181,7 +181,7 @@ func Descriptor() ModuleDescriptor {
 				Name:  OptDiscardDrawMinRound,
 				Type:  OptionEnumInt,
 				Label: "Discard pickup",
-				Help:  "The lap from which the discard pile may be drawn from.",
+				Help:  "The lap from which players may take from the discard pile.",
 				// 0 and 1 both mean "no restriction" to the engine (see
 				// ValidateDraw), but offering both would put two chips
 				// labelled "Open" in the cycle, so tapping would look broken.

@@ -216,14 +216,29 @@ func TestKnock_ZeroDeadwoodIsGinAndSkipsLayoff(t *testing.T) {
 
 // --- the dead hand -------------------------------------------------------
 
-func TestDeadHand_StockDownToOneAfterDiscardWithNoKnock(t *testing.T) {
+// The rules say the hand is dead once the stock is down to its last two
+// cards; it used to let the next player draw the second-last one.
+func TestDeadHand_StockDownToTwoAfterDiscardWithNoKnock(t *testing.T) {
+	alive := withState(t, func(s *GameState) {
+		s.Hands["p1"] = []string{"AH", "3D", "5C", "7S", "9H", "JD", "KC", "2S", "4H", "6D", "8C"}
+		s.Stock = []string{"9C", "TC", "QC"}
+		s.KnockLimit = 0
+	})
+	next, err := apply(t, alive, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}})
+	if err != nil {
+		t.Fatalf("discard: %v", err)
+	}
+	if s := stateOf(t, next); len(s.Rounds) != 0 || s.Phase != phaseDraw || s.Current != "p2" {
+		t.Fatalf("three cards left: the hand goes on, got rounds %+v phase %s", s.Rounds, s.Phase)
+	}
+
 	raw := withState(t, func(s *GameState) {
 		s.Hands["p1"] = []string{"AH", "3D", "5C", "7S", "9H", "JD", "KC", "2S", "4H", "6D", "8C"}
-		s.Stock = []string{"9C"} // one card left after this discard
+		s.Stock = []string{"9C", "TC"} // the last two cards: never drawn
 		s.KnockLimit = 0         // nothing in hand can knock
 		s.Dealer = "p2"
 	})
-	next, err := apply(t, raw, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}})
+	next, err = apply(t, raw, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}})
 	if err != nil {
 		t.Fatalf("discard: %v", err)
 	}

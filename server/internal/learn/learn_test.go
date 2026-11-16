@@ -2,6 +2,7 @@ package learn
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -240,6 +241,26 @@ func TestLoadNetRefusesBrokenModels(t *testing.T) {
 		if _, err := LoadNet(b); err == nil {
 			t.Errorf("%s: loaded", name)
 		}
+	}
+	// A header whose layer sizes the bytes do not back: refused with an
+	// error, not a panic on a negative size or a huge allocation.
+	for name, shape := range map[string][2]int{
+		"negative": {-3, 4},
+		"huge":     {1 << 30, 1 << 30},
+		"oversize": {1 << 20, 1},
+		"zero":     {0, 2},
+	} {
+		b := withTrunk(t, good, shape)
+		func() {
+			defer func() {
+				if p := recover(); p != nil {
+					t.Errorf("%s header: panicked: %v", name, p)
+				}
+			}()
+			if _, err := LoadNet(b); err == nil {
+				t.Errorf("%s header: loaded", name)
+			}
+		}()
 	}
 	bad := preferThird()
 	bad.Scorer = []Dense{dense(3, 1, []float32{0, 0, 1}, []float32{0})} // ignores the embedding width
@@ -754,4 +775,22 @@ func TestLocalHardSeatsTheModelOnlyAtHard(t *testing.T) {
 	if again := LocalHard(nimGame{}, perfect{}); again != bot {
 		t.Error("a second call resolved the model again instead of reusing it")
 	}
+}
+
+// withTrunk rewrites a marshalled model's header so its first trunk layer has
+// the given shape, leaving the weight bytes as they were.
+func withTrunk(t *testing.T, model []byte, shape [2]int) []byte {
+	t.Helper()
+	hlen := binary.LittleEndian.Uint32(model[len(magic):])
+	start := len(magic) + 4
+	var h header
+	if err := json.Unmarshal(model[start:start+int(hlen)], &h); err != nil {
+		t.Fatal(err)
+	}
+	h.Trunk[0] = shape
+	hb, _ := json.Marshal(h)
+	out := append([]byte(magic), 0, 0, 0, 0)
+	binary.LittleEndian.PutUint32(out[len(magic):], uint32(len(hb)))
+	out = append(out, hb...)
+	return append(out, model[start+int(hlen):]...)
 }

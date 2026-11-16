@@ -41,7 +41,8 @@ import (
 // The person is the real login. /oauth/authorize sends them to the app's
 // consent page, where they are signed in as themselves and choose to allow or
 // refuse; the agent that results is its own identity — one per (person, client
-// name), so reconnecting keeps its seat — and its token can only play.
+// name, redirect host), so reconnecting keeps its seat — and its token can
+// only play.
 
 const (
 	oauthScope      = "play"
@@ -331,7 +332,7 @@ func (h *Handlers) oauthApprove(w http.ResponseWriter, req *http.Request) {
 	} else {
 		code, err := signO("code", otoken{
 			ClientID: r.ClientID, ClientName: r.ClientName, RedirectURI: r.RedirectURI,
-			Challenge: r.Challenge, Owner: uc.UserID, Agent: agentIDFor(uc.UserID, r.ClientName),
+			Challenge: r.Challenge, Owner: uc.UserID, Agent: agentIDFor(uc.UserID, r.ClientName, r.RedirectURI),
 		}, codeTTL)
 		if err != nil {
 			oauthErr(w, http.StatusInternalServerError, "server_error", "")
@@ -345,9 +346,21 @@ func (h *Handlers) oauthApprove(w http.ResponseWriter, req *http.Request) {
 
 // agentIDFor is the agent's identity: stable for one person and one client, so
 // a reconnect keeps its seats, and unrelated to the person's own id.
-func agentIDFor(owner, clientName string) string {
+//
+// "One client" is its name and the host its codes are sent to. The name alone
+// is whatever the client chose to register with, so any client calling itself
+// "Claude" would have inherited the real one's seats and tables once the
+// person approved it. The redirect host is the part a client cannot borrow:
+// codes for it go to whoever runs that host. The client_id is not used, since
+// it is minted afresh on every registration and a client that registers again
+// on reconnect must keep its seats.
+func agentIDFor(owner, clientName, redirectURI string) string {
+	host := ""
+	if u, err := url.Parse(redirectURI); err == nil {
+		host = strings.ToLower(u.Host)
+	}
 	mac := hmac.New(sha256.New, auth.DeriveKey("oauth-agent-id"))
-	mac.Write([]byte(owner + "|" + clientName))
+	mac.Write([]byte(owner + "|" + clientName + "|" + host))
 	return "agent:" + hex.EncodeToString(mac.Sum(nil))[:16]
 }
 

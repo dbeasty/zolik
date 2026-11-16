@@ -21,6 +21,14 @@ import (
 // period on top.
 const PresenceTTL = 90 * time.Second
 
+// EvictAfter is how long an agent goes unheard before its record is dropped.
+// Nothing reads a record that old — it is long past PresenceTTL, so it is
+// neither present nor offered to hosts — and without eviction every client
+// that ever connected stays in memory until the server restarts. An agent
+// that comes back after this is told NOT_REGISTERED and registers again,
+// which a client does on every connection anyway.
+const EvictAfter = 24 * time.Hour
+
 // Agent is one registered AI client.
 type Agent struct {
 	ID    string `json:"id"`
@@ -42,6 +50,8 @@ type Registry struct {
 	mu     sync.Mutex
 	agents map[string]*Agent
 	now    func() time.Time
+	// swept is when evictStale last ran; it runs at most once a PresenceTTL.
+	swept time.Time
 }
 
 func NewRegistry() *Registry {
@@ -63,6 +73,7 @@ func clean(s string, max int) string {
 func (r *Registry) Register(id, name, label string, available, guest bool) Agent {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.evictStale()
 	a := r.agents[id]
 	if a == nil {
 		a = &Agent{ID: id}
@@ -79,6 +90,29 @@ func (r *Registry) Register(id, name, label string, available, guest bool) Agent
 	a.Guest = guest
 	a.LastSeen = r.now()
 	return *a
+}
+
+// evictStale drops the agents unheard from for EvictAfter. Called with r.mu
+// held, from Register: a registry only grows there, so sweeping there bounds
+// it by the agents active in the last EvictAfter.
+func (r *Registry) evictStale() {
+	now := r.now()
+	if now.Sub(r.swept) < PresenceTTL {
+		return
+	}
+	r.swept = now
+	for id, a := range r.agents {
+		if now.Sub(a.LastSeen) >= EvictAfter {
+			delete(r.agents, id)
+		}
+	}
+}
+
+// Len is how many agents the registry holds. For tests.
+func (r *Registry) Len() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.agents)
 }
 
 // Touch notes that id was just heard from. Reports whether it is registered.

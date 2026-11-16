@@ -53,10 +53,10 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				Name:  OptTariff,
 				Type:  module.OptionEnumInt,
 				Label: "Stakes",
-				Help:  "What each game is worth. Hra 1, sedma 2 and sto 4 in both; they differ in betl and durch.",
+				Help:  "What each game is worth. Game 1, Seven 2 and Hundred 4 in both; they differ in Betl and Durch.",
 				Choices: []module.OptionChoice{
-					{Value: TariffCSM, Label: "Association (betl 15, durch 30)"},
-					{Value: TariffPub, Label: "Pub (betl 5, durch 10)"},
+					{Value: TariffCSM, Label: "Association (Betl 15, Durch 30)"},
+					{Value: TariffPub, Label: "Pub (Betl 5, Durch 10)"},
 				},
 			},
 			{
@@ -73,19 +73,19 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				Name:  OptFlekLimit,
 				Type:  module.OptionEnumInt,
 				Label: "Doubling limit",
-				Help:  "How many times one game may be doubled: flek, re, tutti, boty, kalhoty…",
+				Help:  "How many times one game may be doubled, each double doubling it again.",
 				Choices: []module.OptionChoice{
 					{Value: FlekUnlimited, Label: "No limit"},
-					{Value: 1, Label: "Flek only"},
-					{Value: 2, Label: "Up to re"},
-					{Value: 4, Label: "Up to boty"},
+					{Value: 1, Label: "Once"},
+					{Value: 2, Label: "Twice"},
+					{Value: 4, Label: "Four times"},
 				},
 			},
 			{
 				Name:  OptZLidu,
 				Type:  module.OptionEnumInt,
 				Label: "Trumps from the people",
-				Help:  "The chooser may take trumps from an unseen card (z lidu) instead of from their first seven.",
+				Help:  "The chooser may take trumps from an unseen card instead of from their first seven.",
 				Choices: []module.OptionChoice{
 					{Value: module.OptOn, Label: "Allowed"},
 					{Value: module.OptOff, Label: "Not allowed"},

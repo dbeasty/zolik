@@ -103,6 +103,8 @@ export const it: Record<string, string> = {
   'zolik.rules.section.end': 'Come finisce la partita',
   'zolik.rules.goal':
     'Sii il primo a svuotare la mano calando gruppi e scale validi, accumulando meno punti di penalità possibile nelle carte che ti restano quando qualcun altro chiude.',
+  'zolik.rules.deck.packs':
+    'Si gioca con {small} mazzi da 52 carte più 2 jolly ciascuno da due a quattro giocatori, {mid} mazzi in cinque o sei e {large} in sette o otto.',
   'zolik.rules.deal': 'A ogni giocatore vengono date {n} carte.',
   'zolik.rules.meldShapes':
     'Un gruppo è formato da {set}+ carte dello stesso valore; una scala da {run}+ carte consecutive dello stesso seme.',
@@ -133,6 +135,9 @@ export const it: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Una carta rimasta in mano costa: jolly {joker}, 10, fante, donna o re {face}, 2-9 il suo numero, e un asso {ace} — o solo {aceLow} se in mano hai anche un 2 del suo seme, o la donna e il re del suo seme, o se allungherebbe una scala sul tavolo.",
   'zolik.rules.end.atScore': 'Si continua a smazzare finché qualcuno raggiunge {n} punti — poi è finita.',
+  'zolik.rules.end.lowestWins': 'Alla fine della partita vince il totale più basso.',
+  'zolik.rules.end.tieBreak':
+    "Se più giocatori hanno il totale più basso, vince chi ha vinto meno smazzate; se c'è ancora parità, la partita è patta.",
 
   'prsi.rules.section.goal': 'Obiettivo',
   'prsi.rules.section.setup': 'Preparazione',
@@ -143,14 +148,21 @@ export const it: Record<string, string> = {
   'prsi.rules.deck': 'Si gioca con un mazzo da {value} carte (dal 7 in su).',
   'prsi.rules.deal': 'Ogni giocatore parte con {n} carte.',
   'prsi.rules.dealLimit': 'Deve restare una carta da scoprire e una da pescare, quindi {seats} giocatori ricevono al massimo {n} carte ciascuno.',
+  'prsi.rules.firstCard':
+    "La carta scoperta per iniziare la pila conta come se fosse appena stata giocata contro il primo giocatore: a un 7 bisogna rispondere o pagare, a un asso rispondere o saltare il turno. Uno svršek non viene mai scoperto finché si può scoprire un'altra carta — va in fondo al mazzo.",
   'prsi.rules.turn.match':
     'Gioca una carta che corrisponda al seme o al valore della carta in cima — oppure pesca se non puoi.',
   'prsi.rules.turn.draw': 'Pescare chiude il tuo turno senza giocare.',
   'prsi.rules.turn.nothingToDraw': 'Se non resta nulla da pescare e nessuna tua carta va bene, pescare chiude il tuo turno senza carte.',
   'prsi.rules.sevens':
     'Gioca un 7 e il giocatore successivo pesca due carte, a meno che non risponda con un 7 suo.',
-  'prsi.rules.aces': 'Gioca un asso e il turno del giocatore successivo salta.',
+  'prsi.rules.sevens.stack':
+    'I 7 si sommano: ogni 7 giocato in risposta aggiunge altre due carte, e il primo giocatore che non può rispondere le pesca tutte.',
+  'prsi.rules.aces':
+    'Gioca un asso e il giocatore successivo salta il turno, a meno che non risponda con un asso suo — che passa il turno saltato al successivo.',
   'prsi.rules.queens': 'Gioca uno svršek (Ober) e indica il seme che prosegue.',
+  'prsi.rules.queens.anything':
+    'Uno svršek va su qualsiasi carta — tranne un 7 o un asso che attende ancora risposta — e la carta successiva deve seguire il seme indicato, o essere un altro svršek.',
   'prsi.rules.end': 'La partita finisce nel momento in cui una mano resta vuota.',
   'prsi.rules.end.blocked': 'Se tutti i giocatori a turno passano così, nessuno può più giocare: vince chi ha meno carte, e a parità la vittoria è condivisa.',
   'prsi.remedy.matchOrDraw': 'Gioca una carta di {suit} o una che va su {card} — altrimenti pesca.',
@@ -174,13 +186,22 @@ export const it: Record<string, string> = {
   'canasta.rules.section.melding': 'Calare',
   'canasta.rules.section.end': 'Come finisce la partita',
   'canasta.rules.section.turn': 'Il tuo turno',
-  'canasta.rules.goal': 'Si gioca a coppie; la prima coppia a raggiungere {n} punti vince la partita.',
+  'canasta.rules.goal': 'La prima parte a raggiungere {n} punti vince la partita.',
+  'canasta.rules.partnerships':
+    "In quattro si gioca in due coppie, con i compagni seduti uno di fronte all'altro; in due o tre ciascuno gioca da solo.",
+  'canasta.rules.partnershipsSix':
+    "In quattro o sei si gioca in coppie, con i compagni seduti uno di fronte all'altro; in due, tre o cinque ciascuno gioca da solo.",
   'canasta.rules.deck': 'Si gioca con {value} carte — {decks} mazzi più i jolly.',
   'canasta.rules.deal': 'A ogni giocatore vengono date {n} carte.',
   'canasta.rules.drawCount': "All'inizio del turno peschi {n} carte.",
   'canasta.rules.redThrees':
     'Un tre rosso in mano si mostra subito e vale come bonus — a meno che la tua coppia non completi mai una canasta, nel qual caso conta contro di te.',
+  'canasta.rules.redThreesNeedTwo':
+    'Un tre rosso in mano si mostra subito e vale come bonus — a meno che la tua parte non completi meno di due canaste, nel qual caso ognuno conta {n} contro di te.',
+  'canasta.rules.redThreeValues': 'Ogni tre rosso vale {n}; tutti e {count} insieme valgono {all}.',
   'canasta.rules.canasta': 'Una canasta è una combinazione di {n} o più carte dello stesso valore.',
+  'canasta.rules.canastaBonus':
+    'Una canasta completata vale un bonus oltre alle sue carte: {natural} se è naturale, senza matte, {mixed} se contiene matte.',
   'canasta.rules.sequences': 'Una combinazione può anche essere una scala: tre o più carte dello stesso seme in fila, mai con un jolly tra loro.',
   'canasta.rules.dirtySequences': 'Una combinazione può anche essere una scala: da tre a sette carte dello stesso seme in fila. Le matte possono sostituire le carte mancanti, al massimo due e mai più della metà delle carte naturali. Sette carte con una matta formano una samba sporca, che vale {n}.',
   'canasta.rules.wildMeld': 'Quando la tua parte ha aperto, può calare una combinazione di due e jolly in qualsiasi proporzione: bastano tre jolly. Sette carte sono una canasta: {n} se tutti due, {mixed} con i jolly.',
@@ -225,14 +246,15 @@ export const it: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'La tua parte può avere più combinazioni dello stesso valore.',
   'canasta.rules.canastaCloses': 'Una canasta di {n} carte è completa e non ne accetta altre.',
   'canasta.rules.meldsAreShared':
-    'Le combinazioni sono della coppia: entrambi i compagni possono allungarle, e quelle avversarie non si toccano.',
+    "Le combinazioni appartengono alla parte che le ha calate — a un tavolo a coppie, a entrambi i compagni: ognuno dei due può allungarle, e nessun'altra parte può toccarle.",
   'canasta.rules.layOffAfterOpening':
     'Finché la tua parte non ha fatto la sua apertura, non può aggiungere carte a nulla sul tavolo.',
   'canasta.rules.goOutKeepsACard':
     'Devi sempre poter finire il tuo turno, quindi non calare mai tutta la mano a meno che non sia la mossa che ti fa chiudere.',
   'canasta.rules.oneCanastaToGoOut': 'Una canasta completa basta alla tua coppia per chiudere.',
   'canasta.rules.twoCanastasToGoOut': 'Alla tua coppia servono due canaste complete prima di poter chiudere.',
-  'canasta.rules.end': 'Si continua a smazzare finché una coppia supera {n} punti — poi la partita è finita.',
+  'canasta.rules.end':
+    'Si continua a smazzare finché una parte raggiunge {n} punti — poi la partita è finita.',
 
   'holdem.rules.section.goal': 'Obiettivo',
   'holdem.rules.section.setup': 'Preparazione',
@@ -703,10 +725,12 @@ export const it: Record<string, string> = {
     'Dopo una bussata che non sia gin, il tuo avversario può attaccare il proprio deadwood alle tue combinazioni prima che le mani vengano confrontate.',
   'ginrummy.rules.deadHandDescription':
     'Se il tallone scende alle ultime due carte e nessuno ha bussato, la mano è morta — nessuno segna e lo stesso mazziere distribuisce di nuovo.',
+  'ginrummy.rules.knockScore':
+    'Una bussata non tagliata segna la differenza tra il deadwood dei due giocatori.',
   'ginrummy.rules.undercut':
     'Se il deadwood del tuo avversario non supera il tuo, ti taglia: segna la differenza, più {n}.',
   'ginrummy.rules.ginBonus': 'Il gin segna tutta la mano del tuo avversario, più {n}.',
-  'ginrummy.rules.target': 'Il primo a superare {n} punti alla fine di una mano vince la partita.',
+  'ginrummy.rules.target': 'Il primo a raggiungere {n} punti alla fine di una mano vince la partita.',
   'ginrummy.rules.shutout':
     'Il bonus di partita raddoppia a {n} se il perdente non ha segnato un solo punto.',
   'ginrummy.rules.box': 'Ogni mano vinta vale {n} punti alla fine della partita.',
@@ -799,7 +823,7 @@ export const it: Record<string, string> = {
     'Se la riserva si esaurisce e nessuno può giocare, il round finisce e lo vince la mano di valore più basso.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Se la riserva si esaurisce e nessuno può giocare, il round finisce senza vincitore — ogni mano viene semplicemente conteggiata.',
-  'rummytiles.rules.target': 'Il primo a superare {n} punti alla fine di un round vince la partita.',
+  'rummytiles.rules.target': 'Il primo a raggiungere {n} punti alla fine di un round vince la partita.',
   'rummytiles.rules.roundLimit': 'La partita finisce dopo {n} round — vince il punteggio più alto.',
   'rummytiles.remedy.emptyTheTray': 'Posiziona le {n} tessere ancora sul leggio, oppure azzera il turno.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -835,6 +859,7 @@ export const it: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Azzera il turno',
   'rummytiles.offer.commit': 'Fatto',
   'rummytiles.offer.draw': 'Pesca',
+  'rummytiles.offer.pass': 'Passa',
   'rummytiles.param.position': 'Dividi a',
 
   // --- blackjack -----------------------------------------------------------
@@ -2168,6 +2193,7 @@ export const it: Record<string, string> = {
   'rummytiles.move.reset': '{player} ha rimesso a posto il tavolo',
   'rummytiles.move.committed': '{player} ha finito il turno',
   'rummytiles.move.drew': '{player} ha pescato una tessera',
+  'rummytiles.move.passed': '{player} ha passato — la riserva è vuota',
   'moves.last': 'Ultima mossa',
   'moves.history': 'Cronologia',
   'hints.title': 'Suggerimenti',
@@ -3158,7 +3184,8 @@ export const it: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Così la donna di picche può contare insieme in un matrimonio di picche, in quattro donne e in un pinochle, e un secondo re e donna di briscola accanto a una scala contano ancora come matrimonio di briscola.',
   'pinochle.rules.meld.onWin': 'Solo chi vince una presa può dichiarare, e solo finché resta il tallone.',
   'pinochle.rules.meld.onePerTurn': 'Una dichiarazione per ogni presa vinta. Le carte dichiarate restano sul tavolo e si possono ancora giocare.',
-  'pinochle.rules.meld.exchange': 'Un nove di briscola si può scambiare con la briscola scoperta. Vale {n} e conta come la dichiarazione di quel turno.',
+  'pinochle.rules.meld.exchange':
+    'Un nove di briscola non già dichiarato si può scambiare con la briscola scoperta. Vale {n} e conta come la dichiarazione di quel turno.',
   'pinochle.rules.meld.staysInHand': 'Quando il tallone finisce, ogni carta dichiarata torna nella mano del suo proprietario.',
   'pinochle.rules.meld.shown': 'Scelta la briscola, le dichiarazioni di tutti vengono contate e mostrate sul tavolo durante la prima presa.',
   'pinochle.rules.meld.needsTrick': 'Le dichiarazioni di una squadra contano solo se fa almeno una presa.',

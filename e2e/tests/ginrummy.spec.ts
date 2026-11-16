@@ -185,7 +185,11 @@ test.describe('ginrummy', () => {
     // sockets, every move persisted, played to a winner by a client that
     // reads only the offer list — knocking and gin included, which is the one
     // thing no Žolíky run can do (extensibility-plan.md §1.1).
-    test.setTimeout(240_000);
+    // A driver that knocks at the first chance and otherwise takes the first
+    // offer plays long matches: over 300 seeds the median is ~1,800 moves and
+    // one in fifteen needs more than 4,000 (the longest 8,729). The cap used to
+    // be 4,000, which failed that tail while the match was still going.
+    test.setTimeout(600_000);
 
     const { matchId, users } = await startMatch(request, { options: { targetScore: 100 } });
     const wsBase = API_BASE.replace(/^http/, 'ws');
@@ -257,7 +261,7 @@ test.describe('ginrummy', () => {
         let winnerId = '';
         const errors: string[] = [];
 
-        for (let step = 0; step < 4000; step++) {
+        for (let step = 0; step < 12000; step++) {
           const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some((o: any) => o.enabled));
           if (idx === -1) break;
 

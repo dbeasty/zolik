@@ -9,8 +9,7 @@ var _ module.LessonProvider = (*Module)(nil)
 // resolves them.
 func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 	v := resolveVariation(cfg)
-	target := cfg.Opt(OptTargetScore, v.targetScore)
-	roundLimit := cfg.Opt(OptRoundLimit, v.roundLimit)
+	target, roundLimit := endConditions(cfg)
 	poolLowestWins := cfg.Opt(OptPoolExhaustion, module.BoolOpt(v.poolExhaustionLowestWins)) == module.OptOn
 
 	steps := []module.LessonStep{
@@ -46,11 +45,14 @@ func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 			About("rummytiles.rules.poolExhaustionNoWinner"))
 	}
 
+	// Either end condition, or both: Rules() writes each one that is set, and
+	// endConditions guarantees at least one.
 	if target > 0 {
 		steps = append(steps, module.Say("match", "guide.rummytiles.target", map[string]any{"n": target}, module.AnchorScore).
 			About("rummytiles.rules.target"))
-	} else {
-		steps = append(steps, module.Say("match", "guide.rummytiles.roundLimit", map[string]any{"n": roundLimit}, module.AnchorScore).
+	}
+	if roundLimit > 0 {
+		steps = append(steps, module.Say("matchRounds", "guide.rummytiles.roundLimit", map[string]any{"n": roundLimit}, module.AnchorScore).
 			About("rummytiles.rules.roundLimit"))
 	}
 

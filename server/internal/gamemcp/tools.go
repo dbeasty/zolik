@@ -89,7 +89,7 @@ var tools = []tool{
 		func(svc *Service, in ListGamesIn) (ListGamesOut, error) { return svc.ListGames(in) }),
 	def("new_table", "Deal a new match. claude_seats are the seats you drive with play; every other seat is a bot (easy, medium, hard, a style, or net:<model path>[@temperature] for a trained model). Bots move automatically until one of your seats is on turn. Returns the table id and your first seat's observation. Deterministic from the seed.",
 		func(svc *Service, in NewTableIn) (NewTableOut, error) { return svc.NewTable(in) }),
-	def("observe", "What one seat may see and nothing more (the module's own per-seat view): its hand, the table, the pile, the other seats' card counts, the scores, whose turn it is, and the numbered legal moves.",
+	def("observe", "What one of your seats may see and nothing more (the module's own per-seat view): its hand, the table, the pile, the other seats' card counts, the scores, whose turn it is, and the numbered legal moves. A bot's seat is refused until the match is over.",
 		func(svc *Service, in ObserveIn) (Observation, error) { return svc.Observe(in) }),
 	def("play", "Make a move for one of your seats, by its number in the last observation's move list (or as an explicit engine action). The bots then play until one of your seats is on turn again. Returns the public log of what everyone did in between and the new observation. An illegal move is refused with the reason.",
 		func(svc *Service, in PlayIn) (PlayOut, error) { return svc.Play(in) }),
