@@ -34,9 +34,24 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
 
   /// Ends every socket the page opened. Called when the page is replaced.
   func closeSockets() {
-    for id in openSockets { ZolikcoreNetSocketClose(id, 1001, "page gone") }
+    // Behind any open still waiting for a host start (see toCore).
+    let ids = openSockets
+    nearby.afterLifecycle { for id in ids { ZolikcoreNetSocketClose(id, 1001, "page gone") } }
     openSockets.removeAll()
     pending.removeAll()
+  }
+
+  /// Hands a request to the core. One for the host on this Mac goes behind
+  /// any host start or stop already asked for (NearbyService.afterLifecycle);
+  /// anything else goes at once. Either way this returns immediately: the
+  /// core answers from its own goroutines.
+  private func toCore(_ url: String, _ send: @escaping () -> Void) {
+    let host = URL(string: url)?.host?.lowercased() ?? ""
+    if host == "127.0.0.1" || host == "localhost" || host == "::1" {
+      nearby.afterLifecycle(send)
+    } else {
+      send()
+    }
   }
 
   init(nearby: NearbyService) {
@@ -65,19 +80,21 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
       }
       let payload = (body["body"] as? String).flatMap { Data(base64Encoded: $0) }
       pending[id] = replyHandler
-      ZolikcoreNetFetch(
-        sink, id, body["method"] as? String ?? "GET", body["url"] as? String ?? "", headersJSON, payload)
+      let (method, url, sink) = (body["method"] as? String ?? "GET", body["url"] as? String ?? "", sink)
+      toCore(url) { ZolikcoreNetFetch(sink, id, method, url, headersJSON, payload) }
     case "ws.open":
-      openSockets.insert(Self.int64(body["id"]))
-      ZolikcoreNetSocketOpen(sink, Self.int64(body["id"]), body["url"] as? String ?? "")
+      let (id, url, sink) = (Self.int64(body["id"]), body["url"] as? String ?? "", sink)
+      openSockets.insert(id)
+      toCore(url) { ZolikcoreNetSocketOpen(sink, id, url) }
       replyHandler(true, nil)
     case "ws.send":
       var error: NSError?
       let ok = ZolikcoreNetSocketSend(Self.int64(body["id"]), body["data"] as? String ?? "", &error)
       replyHandler(ok, ok ? nil : error?.localizedDescription ?? "the socket is closed")
     case "ws.close":
-      ZolikcoreNetSocketClose(
-        Self.int64(body["id"]), (body["code"] as? Int) ?? 1000, body["reason"] as? String ?? "")
+      let (id, code, reason) = (Self.int64(body["id"]), (body["code"] as? Int) ?? 1000, body["reason"] as? String ?? "")
+      // Behind its open, which may still be waiting for a host start.
+      nearby.afterLifecycle { ZolikcoreNetSocketClose(id, code, reason) }
       replyHandler(true, nil)
     case "nearby":
       let method = body["method"] as? String ?? ""

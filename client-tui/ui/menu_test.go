@@ -1,8 +1,12 @@
 package ui
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
 
 	"zolik/client-tui/api"
 )
@@ -36,4 +40,22 @@ func TestMenuView_NamesTheServerOnlyWhenItDiffers(t *testing.T) {
 	if !strings.Contains(got, "server") || !strings.Contains(got, "1.1.1.4") || !strings.Contains(got, "abc1234") {
 		t.Fatalf("buildLine() = %q, want it to name the differing server build", got)
 	}
+}
+
+// Play lists the server's games. The menu switched to the picker without
+// ever asking for them, so the list was always empty and nothing could be
+// started from the terminal at all.
+func TestPlayLoadsTheGameList(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/modules" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"modules":[{"id":"prsi","label":"Prší","minPlayers":2,"maxPlayers":6}]}`))
+	}))
+	defer srv.Close()
+	root := NewRoot(nil, srv.URL, PlayerSession{}, Build{})
+	d := newDriver(t, root)
+	d.send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("1")})
+	d.until("the game list", func() bool { return len(root.lobby.modules) == 1 })
 }

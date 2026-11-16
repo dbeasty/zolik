@@ -528,3 +528,84 @@ func reclaim(t *testing.T, h *Host) {
 		t.Fatal("the host kept serving after its listener closed")
 	}
 }
+
+// Current answers while a start or a stop holds the package lock. The Mac
+// reads it on its main thread every couple of seconds (and after every call
+// from the page); with the lock, a host starting or stopping on another
+// thread froze the app for as long as that took.
+func TestCurrentDoesNotWaitForAStartOrStop(t *testing.T) {
+	h := startHost(t, t.TempDir())
+	mu.Lock()
+	got := make(chan *Host, 1)
+	go func() { got <- Current() }()
+	select {
+	case c := <-got:
+		mu.Unlock()
+		if c != h {
+			t.Errorf("Current() = %v, want the running host", c)
+		}
+	case <-time.After(time.Second):
+		mu.Unlock()
+		t.Fatal("Current waited for the start/stop lock")
+	}
+	h.Stop()
+	if Current() != nil {
+		t.Error("Current() still names a stopped host")
+	}
+}
+
+// LANPort answers while the room is draining. CloseLAN waits up to two
+// seconds for the room's connections to finish, and used to hold the lock
+// LANPort reads under while it did.
+func TestLANPortDoesNotWaitForTheRoomToDrain(t *testing.T) {
+	h := startHost(t, t.TempDir())
+	port, err := h.OpenLAN()
+	if err != nil {
+		t.Fatalf("OpenLAN: %v", err)
+	}
+	// A request in flight keeps Shutdown waiting its full two seconds.
+	hold := make(chan struct{})
+	h.lanMu.Lock()
+	srv := h.lanSrv
+	h.lanMu.Unlock()
+	srv.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-hold })
+	go func() { _, _ = http.Get("http://127.0.0.1:" + strconv.Itoa(port) + "/") }()
+	time.Sleep(100 * time.Millisecond)
+
+	go h.CloseLAN()
+	time.Sleep(100 * time.Millisecond)
+	start := time.Now()
+	if p := h.LANPort(); p != 0 {
+		t.Errorf("LANPort() = %d while closing, want 0", p)
+	}
+	if took := time.Since(start); took > 500*time.Millisecond {
+		t.Errorf("LANPort waited %s for the room to drain", took)
+	}
+	close(hold)
+}
+
+// A host brought back up in the same process — stopped and started again, or
+// restarted in node mode when somebody signs in — listens where the last one
+// did. Signing in does exactly that in the background, and the Play offline
+// button pressed meanwhile had been handed the old address: its next request
+// was refused ("connect: connection refused" on the Mac).
+func TestAHostStartedAgainKeepsItsAddress(t *testing.T) {
+	dir := t.TempDir()
+	h := startHost(t, dir)
+	base := h.BaseURL()
+	h.Stop()
+	again := startHost(t, dir)
+	if again.BaseURL() != base {
+		t.Errorf("after a stop and start the host is at %s, want %s", again.BaseURL(), base)
+	}
+	// Somebody signs in: the host serving nobody restarts as a node.
+	node, err := StartNode(dir, "node-credential", "0123456789abcdef", "http://127.0.0.1:1")
+	if err != nil {
+		t.Fatalf("StartNode: %v", err)
+	}
+	t.Cleanup(node.Stop)
+	if node == again || node.BaseURL() != base {
+		t.Errorf("the node is at %s (same host %v), want a restarted host at %s", node.BaseURL(), node == again, base)
+	}
+	postJSON[map[string]any](t, node, "/auth/guest", "", map[string]any{"guestName": "Still here"}, http.StatusOK)
+}

@@ -3,11 +3,13 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,7 +17,6 @@ import (
 
 type Client struct {
 	BaseURL string
-	Token   string
 	UserID  string
 	// GuestName is what the server decided to call this guest, which is not
 	// necessarily what was asked for: a caller that sends no name gets an
@@ -23,6 +24,18 @@ type Client struct {
 	GuestName string
 
 	client *http.Client
+
+	// The session's tokens. An account's access token lives fifteen minutes
+	// (a guest's a week), and a terminal session easily outlasts that, so a
+	// request the server refuses with 401 is retried once after trading the
+	// refresh token for a new pair. mu guards both: tea runs every command on
+	// its own goroutine, so two requests can be refused at once.
+	mu      sync.Mutex
+	token   string
+	refresh string
+	// refreshing serialises the trade itself, so two refused requests spend
+	// the refresh token once rather than racing to rotate it.
+	refreshing sync.Mutex
 }
 
 func New(baseURL string) *Client {
@@ -32,9 +45,56 @@ func New(baseURL string) *Client {
 	}
 }
 
-func (c *Client) SetAuth(accessToken, userID string) {
-	c.Token = accessToken
+// SetAuth sets the session the client speaks for. refreshToken may be empty,
+// in which case an expired access token stays expired.
+func (c *Client) SetAuth(accessToken, refreshToken, userID string) {
+	c.mu.Lock()
+	c.token, c.refresh = accessToken, refreshToken
+	c.mu.Unlock()
 	c.UserID = userID
+}
+
+// Tokens reports the session's current access and refresh tokens, which a
+// refresh may have replaced since sign-in.
+func (c *Client) Tokens() (access, refresh string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.token, c.refresh
+}
+
+func (c *Client) accessToken() string {
+	a, _ := c.Tokens()
+	return a
+}
+
+// renew trades the refresh token for a new pair, unless the access token has
+// already moved on from stale — another request refreshed while this one was
+// waiting, and its result is the one to use. It reports whether there is a
+// token worth retrying with.
+func (c *Client) renew(stale string) bool {
+	c.refreshing.Lock()
+	defer c.refreshing.Unlock()
+	access, refresh := c.Tokens()
+	if access != stale {
+		return true
+	}
+	if refresh == "" {
+		return false
+	}
+	var resp struct {
+		AccessToken  string `json:"accessToken"`
+		RefreshToken string `json:"refreshToken"`
+	}
+	if err := c.send(http.MethodPost, "/auth/refresh", map[string]string{"refreshToken": refresh}, &resp, ""); err != nil || resp.AccessToken == "" {
+		return false
+	}
+	c.mu.Lock()
+	c.token = resp.AccessToken
+	if resp.RefreshToken != "" {
+		c.refresh = resp.RefreshToken
+	}
+	c.mu.Unlock()
+	return true
 }
 
 // GuestLogin starts a guest session. An empty name asks the server to invent
@@ -43,15 +103,15 @@ func (c *Client) SetAuth(accessToken, userID string) {
 // GuestName.
 func (c *Client) GuestLogin(name string) error {
 	var resp struct {
-		AccessToken string `json:"accessToken"`
-		UserID      string `json:"userId"`
-		GuestName   string `json:"guestName"`
+		AccessToken  string `json:"accessToken"`
+		RefreshToken string `json:"refreshToken"`
+		UserID       string `json:"userId"`
+		GuestName    string `json:"guestName"`
 	}
 	if err := c.postJSON("/auth/guest", map[string]string{"guestName": name}, &resp, false); err != nil {
 		return err
 	}
-	c.Token = resp.AccessToken
-	c.UserID = resp.UserID
+	c.SetAuth(resp.AccessToken, resp.RefreshToken, resp.UserID)
 	c.GuestName = resp.GuestName
 	if c.UserID == "" {
 		c.UserID = resp.AccessToken
@@ -61,7 +121,8 @@ func (c *Client) GuestLogin(name string) error {
 
 func (c *Client) Login(username, password string) error {
 	var resp struct {
-		AccessToken string `json:"accessToken"`
+		AccessToken  string `json:"accessToken"`
+		RefreshToken string `json:"refreshToken"`
 	}
 	if err := c.postJSON("/auth/login", map[string]string{
 		"username": username,
@@ -69,7 +130,7 @@ func (c *Client) Login(username, password string) error {
 	}, &resp, false); err != nil {
 		return err
 	}
-	c.Token = resp.AccessToken
+	c.SetAuth(resp.AccessToken, resp.RefreshToken, "")
 	return c.loadSubjectFromToken()
 }
 
@@ -81,7 +142,7 @@ func (c *Client) loadSubjectFromToken() error {
 		c.UserID = me.ID
 		return nil
 	}
-	c.UserID = c.Token
+	c.UserID = c.accessToken()
 	return nil
 }
 
@@ -175,7 +236,9 @@ func (c *Client) GetMatch(idOrCode string) (MatchState, error) {
 	if c.UserID != "" {
 		q = "?as=" + url.QueryEscape(c.UserID)
 	}
-	if err := c.getJSON("/matches/"+url.PathEscape(idOrCode)+q, &m, false); err != nil {
+	// Authenticated: the server shows a request without a bearer token the
+	// spectator's view, with every hand empty.
+	if err := c.getJSON("/matches/"+url.PathEscape(idOrCode)+q, &m, true); err != nil {
 		return MatchState{}, err
 	}
 	return m, nil
@@ -190,8 +253,15 @@ func (c *Client) DialWS(matchID string) (*websocket.Conn, error) {
 	if u.Scheme == "https" {
 		scheme = "wss"
 	}
-	wsURL := fmt.Sprintf("%s://%s/ws/matches/%s?token=%s", scheme, u.Host, matchID, url.QueryEscape(c.Token))
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	dial := func(token string) (*websocket.Conn, *http.Response, error) {
+		wsURL := fmt.Sprintf("%s://%s/ws/matches/%s?token=%s", scheme, u.Host, url.PathEscape(matchID), url.QueryEscape(token))
+		return websocket.DefaultDialer.Dial(wsURL, nil)
+	}
+	token := c.accessToken()
+	conn, resp, err := dial(token)
+	if err != nil && resp != nil && resp.StatusCode == http.StatusUnauthorized && c.renew(token) {
+		conn, _, err = dial(c.accessToken())
+	}
 	return conn, err
 }
 
@@ -263,57 +333,60 @@ func (c *Client) GetHeadToHead() (map[string]any, error) {
 }
 
 func (c *Client) postJSON(path string, body any, out any, auth bool) error {
+	return c.do(http.MethodPost, path, body, out, auth)
+}
+
+func (c *Client) patchJSON(path string, body any) error {
+	return c.do(http.MethodPatch, path, body, nil, false)
+}
+
+func (c *Client) getJSON(path string, out any, auth bool) error {
+	return c.do(http.MethodGet, path, nil, out, auth)
+}
+
+// do sends one request, and for an authenticated one that the server refuses
+// with 401, refreshes the session and sends it once more.
+func (c *Client) do(method, path string, body, out any, auth bool) error {
+	if !auth {
+		return c.send(method, path, body, out, "")
+	}
+	token := c.accessToken()
+	err := c.send(method, path, body, out, token)
+	if errors.Is(err, errUnauthorized) && c.renew(token) {
+		err = c.send(method, path, body, out, c.accessToken())
+	}
+	return err
+}
+
+var errUnauthorized = errors.New("unauthorized")
+
+type statusError struct {
+	status int
+	body   string
+}
+
+func (e *statusError) Error() string { return e.body }
+
+func (e *statusError) Is(target error) bool {
+	return target == errUnauthorized && e.status == http.StatusUnauthorized
+}
+
+func (c *Client) send(method, path string, body, out any, token string) error {
 	var buf bytes.Buffer
 	if body != nil {
 		if err := json.NewEncoder(&buf).Encode(body); err != nil {
 			return err
 		}
 	}
-	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, &buf)
+	req, err := http.NewRequest(method, c.BaseURL+path, &buf)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	if auth && c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
+	if body != nil || method == http.MethodPost {
+		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return c.decode(resp, out)
-}
-
-func (c *Client) patchJSON(path string, body any) error {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(body); err != nil {
-		return err
-	}
-	req, err := http.NewRequest(http.MethodPatch, c.BaseURL+path, &buf)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("%s", strings.TrimSpace(string(b)))
-	}
-	return nil
-}
-
-func (c *Client) getJSON(path string, out any, auth bool) error {
-	req, err := http.NewRequest(http.MethodGet, c.BaseURL+path, nil)
-	if err != nil {
-		return err
-	}
-	if auth && c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -326,7 +399,7 @@ func (c *Client) getJSON(path string, out any, auth bool) error {
 func (c *Client) decode(resp *http.Response, out any) error {
 	b, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("%s", strings.TrimSpace(string(b)))
+		return &statusError{status: resp.StatusCode, body: strings.TrimSpace(string(b))}
 	}
 	if out == nil || len(b) == 0 {
 		return nil

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -177,4 +178,95 @@ func TestWebAssetRoutesLikeTheServer(t *testing.T) {
 	if ct := WebAsset("/_expo/static/js/app.js").ContentType; !strings.Contains(ct, "javascript") {
 		t.Errorf("script served as %q", ct)
 	}
+}
+
+// A send on a socket whose server has stopped reading returns at once. The
+// Mac calls NetSocketSend and NetSocketClose on its main thread, and both
+// used to wait out a stalled write — up to its 20 s deadline — so a quiet
+// network froze the whole app, menus and all.
+func TestNetSocketSendNeverWaitsOnTheWire(t *testing.T) {
+	up := websocket.Upgrader{}
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := up.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		<-release // never read: the client's writes pile up in the kernel
+	}))
+	defer srv.Close()
+	defer close(release)
+
+	sink := newSink()
+	NetSocketOpen(sink, 9, "ws"+strings.TrimPrefix(srv.URL, "http")+"/ws")
+	wait(t, sink.opened)
+
+	// Several megabytes, which loopback's socket buffers cannot hold.
+	big := strings.Repeat("x", 6<<20)
+	start := time.Now()
+	for i := 0; i < 4; i++ {
+		done := make(chan error, 1)
+		go func() { done <- NetSocketSend(9, big) }()
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("send %d: %v", i, err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatalf("send %d blocked on a server that is not reading", i)
+		}
+	}
+	closed := make(chan struct{})
+	go func() { NetSocketClose(9, 1000, "bye"); close(closed) }()
+	select {
+	case <-closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("close blocked behind the stalled write")
+	}
+	if took := time.Since(start); took > 3*time.Second {
+		t.Errorf("sends and close took %s", took)
+	}
+	// The page still hears the socket end, once.
+	if code := wait(t, sink.closed); code == 0 {
+		t.Fatalf("close code %d", code)
+	}
+}
+
+// A socket's messages reach the server in the order they were sent, now
+// that a goroutine writes them.
+func TestNetSocketKeepsTheOrderOfSends(t *testing.T) {
+	up := websocket.Upgrader{}
+	got := make(chan string, 64)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := up.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		for {
+			_, m, err := c.ReadMessage()
+			if err != nil {
+				return
+			}
+			got <- string(m)
+		}
+	}))
+	defer srv.Close()
+
+	sink := newSink()
+	NetSocketOpen(sink, 10, "ws"+strings.TrimPrefix(srv.URL, "http")+"/ws")
+	wait(t, sink.opened)
+	for i := 0; i < 50; i++ {
+		if err := NetSocketSend(10, strconv.Itoa(i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := 0; i < 50; i++ {
+		if m := wait(t, got); m != strconv.Itoa(i) {
+			t.Fatalf("message %d arrived as %q", i, m)
+		}
+	}
+	NetSocketClose(10, 1000, "")
+	wait(t, sink.closed)
 }
