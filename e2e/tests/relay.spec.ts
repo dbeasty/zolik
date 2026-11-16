@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -27,6 +27,14 @@ const PHONEHOST = process.env.ZOLIK_E2E_PHONEHOST ?? '';
 
 type Phone = { proc: ChildProcess; baseUrl: string; relayCode: string; relayUrl: string };
 
+/**
+ * Every phone this file started and has not seen exit. afterEach kills them
+ * all, so a test that fails anywhere — before its try, inside a restart that
+ * never came up — leaves nothing listening behind it.
+ */
+const running = new Set<ChildProcess>();
+const dirs: string[] = [];
+
 /** Starts the phone and waits for the line it prints once it is up. */
 function startPhone(args: { dir: string; token: string; user: string }): Promise<Phone> {
   const proc = spawn(PHONEHOST, [
@@ -37,9 +45,19 @@ function startPhone(args: { dir: string; token: string; user: string }): Promise
     '-room=false',
     '-relay', "Ada's phone",
   ]);
+  running.add(proc);
+  proc.on('exit', () => running.delete(proc));
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('the phone never came up')), 30_000);
-    proc.on('exit', (code) => reject(new Error(`the phone exited with ${code}`)));
+    const timer = setTimeout(() => {
+      // Given up on, not stopped: without this it went on running, and kept
+      // its relay code, under every test after it.
+      proc.kill('SIGKILL');
+      reject(new Error('the phone never came up'));
+    }, 30_000);
+    proc.on('exit', (code) => {
+      clearTimeout(timer);
+      reject(new Error(`the phone exited with ${code}`));
+    });
     createInterface({ input: proc.stdout! }).on('line', (line) => {
       try {
         const out = JSON.parse(line);
@@ -58,12 +76,29 @@ function startPhone(args: { dir: string; token: string; user: string }): Promise
  * the system put down — whose table waits for it to come back.
  */
 function stopPhone(phone: Phone, signal: NodeJS.Signals = 'SIGTERM'): Promise<void> {
+  return stopProc(phone.proc, signal);
+}
+
+function stopProc(proc: ChildProcess, signal: NodeJS.Signals): Promise<void> {
   return new Promise((resolve) => {
-    if (phone.proc.exitCode !== null || phone.proc.signalCode !== null) return resolve();
-    phone.proc.on('exit', () => resolve());
-    phone.proc.kill(signal);
+    if (proc.exitCode !== null || proc.signalCode !== null) return resolve();
+    proc.on('exit', () => resolve());
+    proc.kill(signal);
   });
 }
+
+test.afterEach(async () => {
+  // SIGTERM first, so a phone that is still up ends its relay table rather
+  // than leaving it waiting; SIGKILL for one that does not stop in time.
+  await Promise.all(
+    [...running].map((proc) =>
+      Promise.race([stopProc(proc, 'SIGTERM'), new Promise((r) => setTimeout(r, 5_000))]).then(() =>
+        stopProc(proc, 'SIGKILL'),
+      ),
+    ),
+  );
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
 
 test.describe('a table on somebody’s phone, from anywhere', () => {
   test.setTimeout(180_000);
@@ -79,6 +114,7 @@ test.describe('a table on somebody’s phone, from anywhere', () => {
     const account = await reg.json();
 
     const dir = mkdtempSync(join(tmpdir(), 'zolik-phone-'));
+    dirs.push(dir);
     let phone = await startPhone({ dir, token: account.accessToken, user: account.userId });
     expect(phone.relayCode).toMatch(/^[A-Z0-9]{6}$/);
 

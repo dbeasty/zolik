@@ -128,6 +128,13 @@ services:
       # code — see scripts/dev-stack.sh.
       BOT_THINK_MIN_MS: "${ZOLIK_BOT_THINK_MIN_MS:-}"
       BOT_THINK_MAX_MS: "${ZOLIK_BOT_THINK_MAX_MS:-}"
+    # The same probe production runs (deploy/compose/zolik.yml).
+    healthcheck:
+      test: ["CMD", "/server", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     volumes:
       # /data is created nonroot-owned in the image, so the engine can write
       # under the distroless nonroot user.

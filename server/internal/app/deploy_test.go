@@ -18,8 +18,9 @@ import (
 // a value that has to be repeated in two places will eventually be changed in
 // one, and the failure will not look like a configuration mistake.
 const (
-	prodCompose = "../../../deploy/compose/zolik.yml"
-	devCompose  = "../../docker-compose.kdb.yml"
+	prodCompose  = "../../../deploy/compose/zolik.yml"
+	devCompose   = "../../docker-compose.kdb.yml"
+	mongoCompose = "../../docker-compose.yml"
 )
 
 type composeFile struct {
@@ -29,6 +30,9 @@ type composeFile struct {
 		Build       any            `yaml:"build"`
 		Environment map[string]any `yaml:"environment"`
 		Ports       []string       `yaml:"ports"`
+		Healthcheck *struct {
+			Test []string `yaml:"test"`
+		} `yaml:"healthcheck"`
 	} `yaml:"services"`
 	Volumes map[string]struct {
 		Name string `yaml:"name"`
@@ -237,5 +241,43 @@ func TestAdminConsoleIsPublishedWhereItListens(t *testing.T) {
 		t.Errorf("ADMIN_BIND = %q binds the *container's* loopback, which the published port %q "+
 			"cannot reach. Use 0.0.0.0 and let the 127.0.0.1: prefix above be the boundary",
 			bind, published)
+	}
+}
+
+// TestEveryPublishedPortIsLoopback pins every port every compose file
+// publishes to the host's loopback, or to ZOLIK_BIND defaulting to it. A bare
+// "6379:6379" binds every interface: the dev stack's Redis and Mongo have no
+// authentication, mongo-express's password is "dev", and the Mongo stack's SSH
+// admits any key — each of them an open door to the LAN, and on a host behind
+// a forwarding NAT, possibly further.
+func TestEveryPublishedPortIsLoopback(t *testing.T) {
+	for _, path := range []string{prodCompose, devCompose, mongoCompose} {
+		for name, svc := range readCompose(t, path).Services {
+			for _, p := range svc.Ports {
+				if strings.HasPrefix(p, "127.0.0.1:") || strings.HasPrefix(p, "${ZOLIK_BIND:-127.0.0.1}:") {
+					continue
+				}
+				t.Errorf("%s: service %s publishes %q on every interface; prefix it with 127.0.0.1: "+
+					"(or ${ZOLIK_BIND:-127.0.0.1}: where another machine may need it)", path, name, p)
+			}
+		}
+	}
+}
+
+// TestProductionHasAHealthcheck: without one, a server that has wedged but not
+// exited shows as "Up" forever. The image is distroless, so the probe must be
+// the binary's own subcommand — a curl or wget here would never run, and the
+// container would read as unhealthy from its first minute.
+func TestProductionHasAHealthcheck(t *testing.T) {
+	for _, path := range []string{prodCompose, devCompose} {
+		hc := readCompose(t, path).Services["app"].Healthcheck
+		if hc == nil || len(hc.Test) == 0 {
+			t.Errorf("%s: app has no healthcheck", path)
+			continue
+		}
+		if got := strings.Join(hc.Test, " "); got != "CMD /server healthcheck" {
+			t.Errorf("%s: healthcheck runs %q; the distroless image has only /server, so use "+
+				"[\"CMD\", \"/server\", \"healthcheck\"]", path, got)
+		}
 	}
 }

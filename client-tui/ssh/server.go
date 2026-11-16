@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -39,39 +40,7 @@ type Server struct {
 }
 
 func Start(ctx context.Context, cfg Config, deps Deps) (*Server, error) {
-	if err := ensureHostKey(cfg.HostKeyPath); err != nil {
-		return nil, err
-	}
-
-	opts := []ssh.Option{
-		wish.WithAddress(cfg.Addr),
-		wish.WithHostKeyPath(cfg.HostKeyPath),
-		wish.WithMiddleware(
-			bubblessh.Middleware(teaProgram(deps)),
-			logging.Middleware(),
-		),
-	}
-
-	if cfg.AllowAllKeys {
-		opts = append(opts, wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-			return true
-		}))
-	}
-
-	opts = append(opts, wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
-		user := ctx.User()
-		if user == "guest" {
-			return true
-		}
-		sess, err := deps.Auth.Login(ctx, user, password)
-		if err != nil {
-			return false
-		}
-		ctx.SetValue("zolik_session", sess)
-		return true
-	}))
-
-	s, err := wish.NewServer(opts...)
+	s, err := newServer(cfg, deps, newGate(nil))
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +59,73 @@ func Start(ctx context.Context, cfg Config, deps Deps) (*Server, error) {
 	}()
 
 	return srv, nil
+}
+
+// sessionKey is where a connection's Session waits in its ssh.Context, from
+// the password check or the guest middleware until the UI reads it.
+const sessionKey = "zolik_session"
+
+func newServer(cfg Config, deps Deps, g *gate) (*ssh.Server, error) {
+	if err := ensureHostKey(cfg.HostKeyPath); err != nil {
+		return nil, err
+	}
+
+	opts := []ssh.Option{
+		wish.WithAddress(cfg.Addr),
+		wish.WithHostKeyPath(cfg.HostKeyPath),
+		// The last middleware runs first: log, then settle who this is, then
+		// hand the terminal to the UI.
+		wish.WithMiddleware(
+			bubblessh.Middleware(teaProgram(deps)),
+			guestMiddleware(g, deps),
+			logging.Middleware(),
+		),
+	}
+
+	if cfg.AllowAllKeys {
+		opts = append(opts, wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
+			return true
+		}))
+	}
+
+	opts = append(opts, wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
+		user := ctx.User()
+		if user == "guest" {
+			return true
+		}
+		sess, ok := g.login(ctx, deps.Auth, user, password, ctx.RemoteAddr())
+		if !ok {
+			return false
+		}
+		ctx.SetValue(sessionKey, sess)
+		return true
+	}))
+
+	return wish.NewServer(opts...)
+}
+
+// guestMiddleware gives a connection that did not sign in its guest session
+// before the UI starts, so that one that may not have one can be turned away
+// with a reason rather than shown a table it cannot sit at.
+func guestMiddleware(g *gate, deps Deps) wish.Middleware {
+	return func(next ssh.Handler) ssh.Handler {
+		return func(s ssh.Session) {
+			ctx := s.Context()
+			if _, ok := ctx.Value(sessionKey).(Session); !ok {
+				sess, err := g.guest(ctx, deps.Auth, s.User(), s.PublicKey(), s.RemoteAddr())
+				switch {
+				case errors.Is(err, errTooManyGuests):
+					wish.Fatalln(s, "Too many new guest sessions from your address. Try again later, or sign in.")
+					return
+				case err == nil:
+					ctx.SetValue(sessionKey, sess)
+				}
+				// Any other error leaves the connection without a session, and
+				// the UI shows a player who is not signed in, as before.
+			}
+			next(s)
+		}
+	}
 }
 
 func teaProgram(deps Deps) bubblessh.Handler {
@@ -116,47 +152,22 @@ func teaProgram(deps Deps) bubblessh.Handler {
 }
 
 func sessionForSSH(s ssh.Session, deps Deps) ui.PlayerSession {
-	if v := s.Context().Value("zolik_session"); v != nil {
-		if sess, ok := v.(Session); ok {
-			return ui.PlayerSession{
-				AccessToken:  sess.AccessToken,
-				RefreshToken: sess.RefreshToken,
-				UserID:       sess.UserID,
-				Username:     sess.Username,
-				IsGuest:      sess.IsGuest,
-			}
+	if sess, ok := s.Context().Value(sessionKey).(Session); ok {
+		return ui.PlayerSession{
+			AccessToken:  sess.AccessToken,
+			RefreshToken: sess.RefreshToken,
+			UserID:       sess.UserID,
+			Username:     sess.Username,
+			IsGuest:      sess.IsGuest,
 		}
 	}
-
-	user := s.User()
-	name := user
-	// An anonymous connection sends no name rather than "Guest", which every
-	// anonymous connection shared — three of them at a table were three seats
-	// reading Guest. The server invents one instead, and it comes back on the
-	// session below; see auth.GuestNameFor.
-	if user == "guest" || user == "" {
-		name = ""
-		if user == "" {
-			user = "guest"
-		}
+	// No session, so no invented name either: this is a placeholder for a
+	// player who is not signed in to anything.
+	name := s.User()
+	if name == "guest" || name == "" {
+		name = "Guest"
 	}
-	ctx := s.Context()
-	tok, err := deps.Auth.Guest(ctx, name)
-	if err != nil {
-		// No session, so no invented name either: this is a placeholder for a
-		// player who is not signed in to anything.
-		if name == "" {
-			name = "Guest"
-		}
-		return ui.PlayerSession{Username: name, IsGuest: true}
-	}
-	return ui.PlayerSession{
-		AccessToken:  tok.AccessToken,
-		RefreshToken: tok.RefreshToken,
-		UserID:       tok.UserID,
-		Username:     tok.Username,
-		IsGuest:      tok.IsGuest,
-	}
+	return ui.PlayerSession{Username: name, IsGuest: true}
 }
 
 func ensureHostKey(path string) error {

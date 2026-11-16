@@ -121,6 +121,16 @@ services:
       ADMIN_BIND: "0.0.0.0"
       # Structured JSON to stdout, which is what `docker logs | jq` wants.
       LOG_LEVEL: info
+    # Docker's view of whether the game is answering, for `docker ps`, for
+    # deploy.sh and for anyone reading the host. The image is distroless, so
+    # the probe is the server binary itself (cmd/server/healthcheck.go); the
+    # start period covers KDB opening a large volume.
+    healthcheck:
+      test: ["CMD", "/server", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     volumes:
       # /data is created nonroot-owned in the image, so the engine can write
       # under the distroless nonroot user.
