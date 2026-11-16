@@ -1499,6 +1499,10 @@ export const lv: Record<string, string> = {
   'match.wonBy': 'Uzvarēja {names}.',
   'match.pausedFor': 'Apturēts — gaidām, kad {name} atkal pieslēgsies.',
   'match.results': 'Rezultāti',
+  'match.resultsAll': 'Visi ({n})',
+  'match.resultsLatest': 'Jaunākie',
+  'match.resultsShowAll': 'Rādīt visus {n} rezultātus',
+  'match.resultsShowLatest': 'Rādīt tikai jaunākos rezultātus',
   'match.players': 'Spēlētāji',
   'match.toPlay': 'gājienā',
 

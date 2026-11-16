@@ -1507,6 +1507,10 @@ export const pl: Record<string, string> = {
   'match.wonBy': 'Wygrywa {names}.',
   'match.pausedFor': 'Wstrzymane — czekamy, aż {name} połączy się ponownie.',
   'match.results': 'Wyniki',
+  'match.resultsAll': 'Wszystkie ({n})',
+  'match.resultsLatest': 'Ostatnie',
+  'match.resultsShowAll': 'Pokaż wszystkie wyniki ({n})',
+  'match.resultsShowLatest': 'Pokaż tylko ostatnie wyniki',
   'match.players': 'Gracze',
   'match.toPlay': 'na ruchu',
 

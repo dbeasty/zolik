@@ -1512,6 +1512,11 @@ export const en: Record<string, string> = {
   'match.wonBy': 'Won by {names}.',
   'match.pausedFor': 'Paused — waiting for {name} to reconnect.',
   'match.results': 'Results',
+  // The results table's own show-all badge, and what a screen reader hears for it.
+  'match.resultsAll': 'All {n}',
+  'match.resultsLatest': 'Latest',
+  'match.resultsShowAll': 'Show all {n} results',
+  'match.resultsShowLatest': 'Show only the latest results',
   'match.players': 'Players',
   'match.toPlay': 'to play',
 

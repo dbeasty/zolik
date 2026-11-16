@@ -1522,6 +1522,10 @@ export const de: Record<string, string> = {
   'match.wonBy': 'Gewonnen von {names}.',
   'match.pausedFor': 'Pausiert — warten, bis {name} sich neu verbindet.',
   'match.results': 'Ergebnisse',
+  'match.resultsAll': 'Alle {n}',
+  'match.resultsLatest': 'Neueste',
+  'match.resultsShowAll': 'Alle {n} Ergebnisse zeigen',
+  'match.resultsShowLatest': 'Nur die neuesten Ergebnisse zeigen',
   'match.players': 'Spieler',
   'match.toPlay': 'am Zug',
 

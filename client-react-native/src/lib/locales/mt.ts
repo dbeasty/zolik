@@ -1523,6 +1523,10 @@ export const mt: Record<string, string> = {
   'match.wonBy': 'Rebħet {names}.',
   'match.pausedFor': "Wieqaf — nistennew lil {name} jerġa' jaqbad.",
   'match.results': 'Riżultati',
+  'match.resultsAll': 'Kollha ({n})',
+  'match.resultsLatest': 'L-aħħar',
+  'match.resultsShowAll': 'Uri r-riżultati kollha ({n})',
+  'match.resultsShowLatest': 'Uri biss l-aħħar riżultati',
   'match.players': 'Plejers',
   'match.toPlay': 'imissu',
 

@@ -1510,6 +1510,10 @@ export const fi: Record<string, string> = {
   'match.wonBy': 'Voittaja: {names}.',
   'match.pausedFor': 'Tauolla — odotetaan, että {name} yhdistää uudelleen.',
   'match.results': 'Tulokset',
+  'match.resultsAll': 'Kaikki {n}',
+  'match.resultsLatest': 'Viimeisimmät',
+  'match.resultsShowAll': 'Näytä kaikki {n} tulosta',
+  'match.resultsShowLatest': 'Näytä vain viimeisimmät tulokset',
   'match.players': 'Pelaajat',
   'match.toPlay': 'vuorossa',
 

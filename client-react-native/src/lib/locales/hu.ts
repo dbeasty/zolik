@@ -1517,6 +1517,10 @@ export const hu: Record<string, string> = {
   'match.wonBy': 'Nyertes: {names}.',
   'match.pausedFor': 'Szünetel — várunk, hogy {name} újracsatlakozzon.',
   'match.results': 'Eredmények',
+  'match.resultsAll': 'Mind ({n})',
+  'match.resultsLatest': 'Legutóbbiak',
+  'match.resultsShowAll': 'Mind a(z) {n} eredmény mutatása',
+  'match.resultsShowLatest': 'Csak a legutóbbi eredmények mutatása',
   'match.players': 'Játékosok',
   'match.toPlay': 'ő következik',
 

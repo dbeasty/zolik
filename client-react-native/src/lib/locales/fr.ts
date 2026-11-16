@@ -1525,6 +1525,10 @@ export const fr: Record<string, string> = {
   'match.wonBy': 'Gagné par {names}.',
   'match.pausedFor': 'En pause — en attente de la reconnexion de {name}.',
   'match.results': 'Résultats',
+  'match.resultsAll': 'Tous ({n})',
+  'match.resultsLatest': 'Derniers',
+  'match.resultsShowAll': 'Afficher les {n} résultats',
+  'match.resultsShowLatest': 'Afficher seulement les derniers résultats',
   'match.players': 'Joueurs',
   'match.toPlay': 'à jouer',
 

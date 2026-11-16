@@ -1540,6 +1540,10 @@ export const el: Record<string, string> = {
   'match.wonBy': 'Κερδισμένο από {names}.',
   'match.pausedFor': 'Σε παύση — αναμονή να επανασυνδεθεί ο {name}.',
   'match.results': 'Αποτελέσματα',
+  'match.resultsAll': 'Όλα {n}',
+  'match.resultsLatest': 'Πρόσφατα',
+  'match.resultsShowAll': 'Εμφάνιση όλων των {n} αποτελεσμάτων',
+  'match.resultsShowLatest': 'Εμφάνιση μόνο των πρόσφατων αποτελεσμάτων',
   'match.players': 'Παίκτες',
   'match.toPlay': 'στη σειρά',
 
