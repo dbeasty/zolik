@@ -11,7 +11,12 @@ import type { LegalDocument } from './types';
  *  - the sign-in code, and the request IP stored beside it, are
  *    `models.LoginCode` (`internal/auth/email.go`), retired by a TTL index on
  *    `expiresAt` (`internal/db/mongo.go`) ten minutes after the code is sent
- *  - the guest identifier is device-local (`src/context/SessionContext.tsx`)
+ *  - the guest identifier is kept on the device (`src/context/SessionContext.tsx`)
+ *    and recorded server-side: guest sessions (`internal/auth/session.go`,
+ *    refresh TTL in `handlers.go`), seats and move logs in matches
+ *    (`internal/match`, windows in `internal/app/config.go`), match results
+ *    with no expiry (`internal/stats`, moved to an account by `claim.go`), and
+ *    the circle, friend code and push devices (`internal/notify`)
  *  - the time zone is `User.TimeZone`, reported on a session refresh
  *  - the game circle and notification devices are `internal/notify`
  *  - training reads finished games through `internal/learnexport`, which
@@ -26,7 +31,7 @@ import type { LegalDocument } from './types';
 export const privacyEn: LegalDocument = {
   id: 'privacy',
   title: 'Privacy Notice',
-  version: '2026-10-31',
+  version: '2026-11-15',
   sections: [
     {
       id: 'controller',
@@ -57,7 +62,7 @@ export const privacyEn: LegalDocument = {
         'The time zone your device reports, so we can see roughly which countries players come from. We do not store your location.',
         'If you turn on notifications: a token from your phone\'s or browser\'s notification service, so we can tell you about table invites. It is removed when you turn notifications off, sign out, or delete your account.',
         'Playing with people nearby, over Wi-Fi or Bluetooth, happens between your devices; the phone hosting the table keeps that game. It reaches us only for the players who agree to save it to their account, and the others\' seats arrive without their names.',
-        'If you play as a guest: a random identifier stored on your own device, so you keep the same face between visits. Nothing about you is kept on our side beyond what a table needs while you are sitting at it.',
+        'If you play as a guest, there is no account, but we do keep some things. A random guest identifier is kept on your device and sent to us, so you are the same player between visits. On our side we store your guest sessions (that identifier and your guest display name, until 30 days after you last play). We also store the games you play with that identifier, your name and your avatar in them. Your results are kept, so the games can be added to an account if you sign in later. If you use them, we also keep your game circle (the players you added or who added you, and your friend code) and a notification token. Recent and finished tables are listed under My games.',
       ],
     },
     {
@@ -75,6 +80,7 @@ export const privacyEn: LegalDocument = {
         'Sign-in codes, and the IP address stored with them, are deleted automatically ten minutes after the code is sent.',
         'Your account and your results are kept until you delete the account. You can do that yourself on the Account screen, or write to {contact} and we will do it for you. It removes the account, the sign-in identities attached to it, your statistics, your game circle, your devices and your score tables.',
         'Games you played are not deleted with your account, because they are in the other players\' history too. Your seat in them is renamed "Player 1", "Player 2" and so on, and no longer leads to you.',
+        'Guest play: guest sessions end 30 days after they were last used. Tables, with their moves, are deleted 24 hours after they were opened if they never started, 30 days after they were abandoned, and 90 days after they finished. Results of finished games, the game circle and notification devices are kept until you sign in, which moves them to your account, or until you ask us to delete them. You can remove people from your circle and turn off notifications yourself. Write to {contact} for the rest, with the part of your guest link before the dot (on the Account screen) so we can find it; never send the whole link, which is what lets someone play as you.',
       ],
     },
     {

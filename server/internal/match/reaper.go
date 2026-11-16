@@ -226,6 +226,7 @@ func (m *Manager) abandon(ctx context.Context, scanned models.Match, now time.Ti
 		return false
 	}
 
+	m.forgetAway(abandoned.ID.Hex())
 	m.metrics.Add(metrics.MatchesAbandoned, 1)
 	m.metrics.Add(metrics.MatchesAbandonedFor(abandoned.ModuleID), 1)
 	slog.Info("match abandoned",

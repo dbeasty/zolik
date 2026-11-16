@@ -22,7 +22,7 @@ func TestScorepadCallsCarryTheSession(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL)
-	c.Token = "tok"
+	c.SetAuth("tok", "", "")
 	id, err := c.CreateScoringSession([]string{"A", "B"})
 	if err != nil || id != "p1" {
 		t.Fatalf("create: %q %v", id, err)

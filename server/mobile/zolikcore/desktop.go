@@ -220,7 +220,25 @@ type netSocket struct {
 	conn   *websocket.Conn
 	closed bool
 	cancel context.CancelFunc
+
+	// out is what the page has sent and the writer has yet to put on the
+	// wire; queued counts its bytes. NetSocketSend is called on the Mac's
+	// main thread, so it only queues, the way a browser's WebSocket.send
+	// does: a write that stalls (a server that stopped reading, a network
+	// that went quiet) used to hold the main thread for up to its 20 s
+	// deadline, and the whole app with it.
+	out    chan []byte
+	queued int
+	done   chan struct{}
 }
+
+// socketQueueBytes is how much a socket may have waiting to be written
+// before a send is refused and the socket given up as stuck.
+const socketQueueBytes = 32 << 20
+
+// socketWriteWait is how long one write may take before the socket is given
+// up; the page hears it close and reconnects.
+const socketWriteWait = 20 * time.Second
 
 var (
 	socketsMu sync.Mutex
@@ -231,7 +249,7 @@ var (
 // any messages, then exactly one SocketClosed — including when the dial fails.
 func NetSocketOpen(sink NetSink, id int64, rawURL string) {
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &netSocket{cancel: cancel}
+	s := &netSocket{cancel: cancel, out: make(chan []byte, 1024), done: make(chan struct{})}
 	socketsMu.Lock()
 	sockets[id] = s
 	socketsMu.Unlock()
@@ -265,6 +283,8 @@ func NetSocketOpen(sink NetSink, id int64, rawURL string) {
 		}
 		s.conn = conn
 		s.mu.Unlock()
+		go s.write(conn)
+		defer close(s.done)
 		sink.SocketOpened(id)
 		for {
 			_, data, err := conn.ReadMessage()
@@ -298,7 +318,31 @@ func lookupSocket(id int64) *netSocket {
 	return sockets[id]
 }
 
-// NetSocketSend sends one text message on an open socket.
+// write puts the page's messages on the wire, one at a time, until the
+// socket ends. A write that fails or overruns its deadline tears the
+// connection down; the reader then reports the close.
+func (s *netSocket) write(conn *websocket.Conn) {
+	for {
+		select {
+		case <-s.done:
+			return
+		case data := <-s.out:
+			s.mu.Lock()
+			s.queued -= len(data)
+			s.mu.Unlock()
+			_ = conn.SetWriteDeadline(time.Now().Add(socketWriteWait))
+			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+				log.Printf("zolikcore: socket write: %v", err)
+				_ = conn.Close()
+				return
+			}
+		}
+	}
+}
+
+// NetSocketSend queues one text message on an open socket and returns at
+// once; see netSocket.out. A socket whose queue is full is stuck, and is
+// closed rather than left to grow.
 func NetSocketSend(id int64, data string) error {
 	s := lookupSocket(id)
 	if s == nil {
@@ -309,33 +353,49 @@ func NetSocketSend(id int64, data string) error {
 	if s.conn == nil || s.closed {
 		return errors.New("the socket is not open")
 	}
-	_ = s.conn.SetWriteDeadline(time.Now().Add(20 * time.Second))
-	return s.conn.WriteMessage(websocket.TextMessage, []byte(data))
+	if s.queued+len(data) > socketQueueBytes {
+		_ = s.conn.Close()
+		return errors.New("the socket is not taking messages")
+	}
+	select {
+	case s.out <- []byte(data):
+		s.queued += len(data)
+		return nil
+	default:
+		_ = s.conn.Close()
+		return errors.New("the socket is not taking messages")
+	}
 }
 
-// NetSocketClose closes a socket from the app's side. SocketClosed still
-// follows, from the reading goroutine.
+// NetSocketClose closes a socket from the app's side and returns at once.
+// SocketClosed still follows, from the reading goroutine.
 func NetSocketClose(id int64, code int, reason string) {
 	s := lookupSocket(id)
 	if s == nil {
 		return
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.closed {
+		s.mu.Unlock()
 		return
 	}
 	s.closed = true
-	if s.conn == nil {
+	conn := s.conn
+	s.mu.Unlock()
+	if conn == nil {
 		s.cancel()
 		return
 	}
 	if code == 0 {
 		code = websocket.CloseNormalClosure
 	}
-	_ = s.conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason),
-		time.Now().Add(2*time.Second))
+	// The close frame waits behind any write in progress, for up to its
+	// deadline, so it is sent off the caller's thread.
+	go func() {
+		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason),
+			time.Now().Add(2*time.Second))
+	}()
 	// The reader returns when the server echoes the close, or when this
 	// deadline passes and the connection is torn down.
-	_ = s.conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 }

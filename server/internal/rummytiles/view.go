@@ -62,7 +62,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			module.HintsOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,
-				Label: "Target score", Help: "First player to pass this score wins the match. Off disables it in favor of a round limit.",
+				Label: "Target score", Help: "The first player to reach this score at the end of a round wins the match. Off plays to a round limit instead — or, with the round limit Off too, to 200.",
 				Choices: []module.OptionChoice{
 					{Value: 0, Label: "Off"}, {Value: 200, Label: "200"},
 					{Value: 300, Label: "300"}, {Value: 500, Label: "500"},

@@ -102,6 +102,8 @@ export const da: Record<string, string> = {
   'zolik.rules.section.end': 'Sådan slutter matchen',
   'zolik.rules.goal':
     'Vær den første til at tømme hånden ved at lægge gyldige grupper og rækker ud, og saml så få strafpoint som muligt i de kort, du stadig har, når en anden går ud.',
+  'zolik.rules.deck.packs':
+    'Spilles med {small} spil à 52 kort plus 2 jokere hver til to til fire spillere, {mid} spil til fem eller seks og {large} til syv eller otte.',
   'zolik.rules.deal': 'Hver spiller får {n} kort.',
   'zolik.rules.meldShapes':
     'En gruppe er {set}+ kort af samme værdi; en række er {run}+ kort i træk i samme farve.',
@@ -129,6 +131,9 @@ export const da: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Et kort, du sidder tilbage med, koster: joker {joker}, 10, knægt, dame eller konge {face}, 2 til 9 sit tal, og et es {ace} — eller kun {aceLow}, hvis du også har en 2'er i samme kulør, eller dame og konge i samme kulør, på hånden, eller hvis det ville forlænge en række på bordet.",
   'zolik.rules.end.atScore': 'Der gives videre, indtil nogen når {n} point — så er det slut.',
+  'zolik.rules.end.lowestWins': 'Når matchen slutter, vinder den laveste samlede score.',
+  'zolik.rules.end.tieBreak':
+    'Deler flere spillere den laveste samlede score, vinder den, der vandt færrest giv; er det også lige, ender matchen uafgjort.',
 
   'prsi.rules.section.goal': 'Mål',
   'prsi.rules.section.setup': 'Opstilling',
@@ -139,14 +144,21 @@ export const da: Record<string, string> = {
   'prsi.rules.deck': 'Spilles med et spil på {value} kort (fra 7 og op).',
   'prsi.rules.deal': 'Hver spiller starter med {n} kort.',
   'prsi.rules.dealLimit': 'Der skal være et kort tilbage at vende og et at trække, så {seats} spillere får højst {n} kort hver.',
+  'prsi.rules.firstCard':
+    "Kortet, der vendes for at starte bunken, tæller, som om det lige var spillet mod den første spiller: en 7'er skal besvares eller betales, et es besvares, eller turen springes over. En svršek vendes aldrig, så længe et andet kort kan — den lægges nederst i bunken.",
   'prsi.rules.turn.match':
     'Spil et kort, der passer med det øverste korts farve eller værdi — eller træk, hvis du ikke kan.',
   'prsi.rules.turn.draw': 'At trække afslutter din tur uden udspil.',
   'prsi.rules.turn.nothingToDraw': 'Er der intet tilbage at trække, og passer ingen af dine kort, afslutter et træk din tur uden kort.',
   'prsi.rules.sevens':
     "Spil en 7'er, og den næste spiller trækker to kort, medmindre vedkommende svarer med sin egen 7'er.",
-  'prsi.rules.aces': 'Spil et es, og den næste spillers tur springes over.',
+  'prsi.rules.sevens.stack':
+    "Syvere lægges sammen: hver 7'er, der spilles som svar, lægger to kort mere til, og den første spiller, der ikke kan svare, trækker dem alle.",
+  'prsi.rules.aces':
+    'Spil et es, og den næste spillers tur springes over, medmindre vedkommende svarer med sit eget es — så går den mistede tur videre.',
   'prsi.rules.queens': 'Spil en svršek (Ober) og nævn den farve, der fortsætter.',
+  'prsi.rules.queens.anything':
+    "En svršek kan lægges på ethvert kort — undtagen en 7'er eller et es, der stadig venter på svar — og det næste kort skal følge den nævnte farve eller være endnu en svršek.",
   'prsi.rules.end': 'Matchen slutter i det øjeblik, en hånd er tom.',
   'prsi.rules.end.blocked': 'Går alle spillere på skift videre sådan, kan ingen spille: færrest kort vinder, og står det lige, deles sejren.',
   'prsi.remedy.matchOrDraw': 'Spil et {suit}-kort eller et, der passer på {card} — ellers træk.',
@@ -170,13 +182,22 @@ export const da: Record<string, string> = {
   'canasta.rules.section.melding': 'At lægge ud',
   'canasta.rules.section.end': 'Sådan slutter matchen',
   'canasta.rules.section.turn': 'Din tur',
-  'canasta.rules.goal': 'Der spilles i makkerpar; den første side, der når {n} point, vinder matchen.',
+  'canasta.rules.goal': 'Den første side, der når {n} point, vinder matchen.',
+  'canasta.rules.partnerships':
+    'Fire spillere spiller i to makkerpar med makkerne over for hinanden; to eller tre spillere spiller hver for sig.',
+  'canasta.rules.partnershipsSix':
+    'Fire eller seks spillere spiller i makkerpar på to med makkerne over for hinanden; to, tre eller fem spillere spiller hver for sig.',
   'canasta.rules.deck': 'Spilles med {value} kort — {decks} spil plus jokere.',
   'canasta.rules.deal': 'Hver spiller får {n} kort.',
   'canasta.rules.drawCount': 'Du trækker {n} kort i begyndelsen af din tur.',
   'canasta.rules.redThrees':
     'En rød treer på hånden vises straks og tæller som bonus — medmindre din side aldrig får en canasta færdig, og så tæller den imod dig.',
+  'canasta.rules.redThreesNeedTwo':
+    'En rød treer på hånden vises straks og tæller som bonus — medmindre din side får færre end to canastaer færdige, og så tæller hver {n} imod dig.',
+  'canasta.rules.redThreeValues': 'Hver rød treer er {n} værd; alle {count} tilsammen er {all} værd.',
   'canasta.rules.canasta': 'En canasta er en kombination af {n} eller flere kort af samme værdi.',
+  'canasta.rules.canastaBonus':
+    'En færdig canasta giver en bonus oven i sine kort: {natural} for en naturlig uden vilde kort, {mixed} for en med vilde kort i.',
   'canasta.rules.sequences': 'En kombination kan også være en sekvens: tre eller flere kort i samme farve i træk, aldrig med et vildt kort iblandt.',
   'canasta.rules.dirtySequences': 'En kombination kan også være en sekvens: tre til syv kort i samme farve i træk. Vilde kort må erstatte manglende kort, højst to og aldrig mere end halvt så mange som de naturlige kort. Syv kort med et vildt kort imellem er en uren samba og giver {n}.',
   'canasta.rules.wildMeld': 'Når din side har lagt sin første udlægning, må den lægge én kombination af toere og jokere i vilkårlig blanding: tre jokere er nok. Syv kort er en canasta: {n} med kun toere, {mixed} med jokere.',
@@ -220,14 +241,14 @@ export const da: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Din side må have flere meldinger af samme værdi.',
   'canasta.rules.canastaCloses': 'En canasta på {n} kort er færdig og tager ikke flere.',
   'canasta.rules.meldsAreShared':
-    'Meldinger tilhører makkerparret: begge makkere må udvide dem, og modstandernes rører man ikke.',
+    'Meldinger tilhører den side, der lagde dem — ved et bord med makkerpar begge makkere: hver af dem må udvide dem, og ingen anden side må røre dem.',
   'canasta.rules.layOffAfterOpening':
     'Indtil din side har lagt sin første melding, må den ikke lægge kort til noget på bordet.',
   'canasta.rules.goOutKeepsACard':
     'Du skal altid kunne afslutte din tur, så du melder aldrig hele hånden ud, medmindre det er netop trækket der går ud.',
   'canasta.rules.oneCanastaToGoOut': 'Én færdig canasta er nok til, at din side kan gå ud.',
   'canasta.rules.twoCanastasToGoOut': 'Din side skal have to færdige canastaer, før den må gå ud.',
-  'canasta.rules.end': 'Der gives videre, indtil en side passerer {n} point — så er matchen slut.',
+  'canasta.rules.end': 'Der gives videre, indtil en side når {n} point — så er matchen slut.',
 
   'holdem.rules.section.goal': 'Mål',
   'holdem.rules.section.setup': 'Opstilling',
@@ -698,10 +719,12 @@ export const da: Record<string, string> = {
     'Efter en bankning, der ikke er gin, må din modstander lægge sit eget deadwood på dine kombinationer, før hænderne sammenlignes.',
   'ginrummy.rules.deadHandDescription':
     'Hvis talonen falder til sine sidste to kort, uden at nogen har banket, er hånden død — ingen får point, og den samme giver giver igen.',
+  'ginrummy.rules.knockScore':
+    'Et bank, der ikke bliver underskåret, giver forskellen mellem de to spilleres deadwood.',
   'ginrummy.rules.undercut':
     'Er din modstanders deadwood ikke højere end dit, underskærer vedkommende dig: modstanderen får forskellen plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin giver hele din modstanders hånd plus {n}.',
-  'ginrummy.rules.target': 'Den første, der passerer {n} point efter en hånd, vinder matchen.',
+  'ginrummy.rules.target': 'Den første, der når {n} point efter en hånd, vinder matchen.',
   'ginrummy.rules.shutout': 'Matchbonussen fordobles til {n}, hvis taberen aldrig fik et eneste point.',
   'ginrummy.rules.box': 'Hver hånd, du vandt, er {n} point værd ved matchens slutning.',
   'ginrummy.rules.gameBonus': 'At vinde matchen giver yderligere {n} point.',
@@ -791,7 +814,7 @@ export const da: Record<string, string> = {
     'Slipper posen op, og ingen kan spille, slutter runden, og den laveste håndværdi vinder den.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Slipper posen op, og ingen kan spille, slutter runden uden vinder — hver hånd tælles blot op.',
-  'rummytiles.rules.target': 'Den første, der passerer {n} point efter en runde, vinder matchen.',
+  'rummytiles.rules.target': 'Den første, der når {n} point efter en runde, vinder matchen.',
   'rummytiles.rules.roundLimit': 'Matchen slutter efter {n} runder — den højeste score vinder.',
   'rummytiles.remedy.emptyTheTray': 'Placer de {n} brikker, der stadig ligger i bakken, eller nulstil turen.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -826,6 +849,7 @@ export const da: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Nulstil turen',
   'rummytiles.offer.commit': 'Færdig',
   'rummytiles.offer.draw': 'Træk',
+  'rummytiles.offer.pass': 'Pas',
   'rummytiles.param.position': 'Del ved',
 
   // --- blackjack -----------------------------------------------------------
@@ -1195,6 +1219,20 @@ export const da: Record<string, string> = {
   'auth.register.password': 'Adgangskode',
   'auth.username.createAccount': 'Opret en konto med brugernavn og adgangskode',
   'auth.callback.signedIn': 'Logget ind.',
+  'auth.error.alreadyLinked': "Den konto er allerede knyttet til en anden spiller.",
+  'auth.error.expired': "Login tog for lang tid. Prøv igen.",
+  'auth.error.alreadyUsed': "Det login er allerede brugt. Prøv igen.",
+  'auth.error.notCompleted': "Login kunne ikke gennemføres. Prøv igen.",
+  'auth.error.unknownProvider': "Den loginmetode er ikke tilgængelig her.",
+  'auth.error.noCode': "Udbyderen gennemførte ikke login.",
+  'auth.error.failed': "Login mislykkedes. Prøv igen.",
+  'auth.provider.guest': "Spil som gæst",
+  'auth.provider.email': "Fortsæt med e-mail",
+  'auth.provider.continueWith': "Fortsæt med {provider}",
+  'auth.claim.prompt': "Du har {n} spil gemt på denne enhed. Log ind for at beholde dem.",
+  'auth.claim.prompt.1': "Du har 1 spil gemt på denne enhed. Log ind for at beholde det.",
+  'auth.claim.added': "Dine {n} tidligere spil er føjet til din konto.",
+  'auth.claim.added.1': "Dit tidligere spil er føjet til din konto.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Log ind for at administrere din konto.',
@@ -2150,6 +2188,7 @@ export const da: Record<string, string> = {
   'rummytiles.move.reset': '{player} satte bordet tilbage',
   'rummytiles.move.committed': '{player} afsluttede sin tur',
   'rummytiles.move.drew': '{player} trak en brik',
+  'rummytiles.move.passed': '{player} meldte pas — posen er tom',
   'moves.last': 'Seneste træk',
   'moves.history': 'Historik',
   'hints.title': 'Tip',
@@ -3140,7 +3179,8 @@ export const da: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Så spardamen kan tælle i en spar-mariage, i damer rundt og i en pinochle på én gang, og en anden trumfkonge og -dame ved siden af en sekvens tæller stadig som trumfmariage.',
   'pinochle.rules.meld.onWin': 'Kun den, der vinder et stik, må melde, og kun så længe der er kort i bunken.',
   'pinochle.rules.meld.onePerTurn': 'Én melding for hvert vundet stik. Meldte kort bliver liggende på bordet og kan stadig spilles.',
-  'pinochle.rules.meld.exchange': 'En nier i trumf kan byttes med det vendte trumfkort. Den giver {n} og tæller som meldingen i den tur.',
+  'pinochle.rules.meld.exchange':
+    'En nier i trumf, der ikke allerede er vist som trumfni, kan byttes med det vendte trumfkort. Den giver {n} og tæller som meldingen i den tur.',
   'pinochle.rules.meld.staysInHand': 'Når bunken er brugt op, går alle meldte kort tilbage på ejerens hånd.',
   'pinochle.rules.meld.shown': 'Når trumf er valgt, tælles alles meldinger og vises på bordet under det første stik.',
   'pinochle.rules.meld.needsTrick': 'En sides melding tæller kun, hvis den tager mindst ét stik.',

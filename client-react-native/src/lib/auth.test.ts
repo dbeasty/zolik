@@ -7,6 +7,7 @@ import {
   providerButtonLabel,
 } from '@/src/lib/auth';
 import type { AuthProvider } from '@/src/api/types';
+import { setLocale } from '@/src/lib/i18n';
 
 describe('parseAuthCallback', () => {
   it('reads a code out of the query string', () => {
@@ -147,7 +148,7 @@ describe('claimPrompt', () => {
   });
 
   it('uses the singular for exactly one game', () => {
-    expect(claimPrompt(1)).toBe('You have 1 game recorded on this device. Sign in to keep them.');
+    expect(claimPrompt(1)).toBe('You have 1 game recorded on this device. Sign in to keep it.');
   });
 
   it('uses the plural otherwise', () => {
@@ -166,5 +167,23 @@ describe('claimedMessage', () => {
 
   it('uses the plural and the count for more than one', () => {
     expect(claimedMessage(3)).toBe('Your 3 previous games have been added to your account.');
+  });
+});
+
+describe('sign-in wording follows the player’s language', () => {
+  // These were hard-coded English on every otherwise translated screen.
+  afterEach(() => setLocale('en'));
+
+  it('speaks Czech on a Czech device', () => {
+    setLocale('cs');
+    expect(providerButtonLabel({ id: 'guest', displayName: 'Guest', kind: 'guest' })).toBe('Hrát jako host');
+    expect(providerButtonLabel({ id: 'email', displayName: 'Email', kind: 'email' })).toBe('Pokračovat e-mailem');
+    expect(providerButtonLabel({ id: 'google', displayName: 'Google', kind: 'oauth' })).toBe('Pokračovat přes Google');
+    expect(authErrorMessage('expired')).toBe('Přihlášení trvalo příliš dlouho. Zkuste to znovu.');
+    expect(authErrorMessage('whatever')).toBe('Přihlášení se nezdařilo. Zkuste to znovu.');
+    expect(claimPrompt(1)).toBe('Na tomto zařízení je zaznamenaná 1 hra. Přihlaste se a zůstane vám.');
+    expect(claimPrompt(7)).toContain('7');
+    expect(claimedMessage(1)).toBe('Vaše předchozí hra byla přidána do vašeho účtu.');
+    expect(claimedMessage(4)).toContain('4');
   });
 });

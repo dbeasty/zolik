@@ -104,6 +104,8 @@ export const de: Record<string, string> = {
   'zolik.rules.section.end': 'Wie die Partie endet',
   'zolik.rules.goal':
     'Leere als Erster deine Hand, indem du gültige Sätze und Folgen auslegst — und sammle dabei möglichst wenige Strafpunkte in den Karten, die du noch hältst, wenn jemand anderes hinausgeht.',
+  'zolik.rules.deck.packs':
+    'Gespielt wird mit {small} Blättern zu je 52 Karten plus je 2 Jokern für zwei bis vier Spieler, mit {mid} Blättern für fünf oder sechs und mit {large} für sieben oder acht.',
   'zolik.rules.deal': 'Jeder Spieler erhält {n} Karten.',
   'zolik.rules.meldShapes':
     'Ein Satz besteht aus {set}+ Karten desselben Werts, eine Folge aus {run}+ aufeinanderfolgenden Karten derselben Farbe.',
@@ -134,6 +136,9 @@ export const de: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Eine Karte, die dir auf der Hand bleibt, kostet: Joker {joker}, 10, Bube, Dame oder König {face}, 2 bis 9 ihren Zahlenwert und ein Ass {ace} — oder nur {aceLow}, wenn auch eine 2 seiner Farbe oder Dame und König seiner Farbe auf deiner Hand sind oder es eine Reihe auf dem Tisch verlängern würde.",
   'zolik.rules.end.atScore': 'Es wird weiter gegeben, bis jemand {n} Punkte erreicht — dann ist Schluss.',
+  'zolik.rules.end.lowestWins': 'Am Ende der Partie gewinnt die niedrigste Gesamtpunktzahl.',
+  'zolik.rules.end.tieBreak':
+    'Teilen sich mehrere Spieler die niedrigste Gesamtpunktzahl, gewinnt, wer weniger Gaben gewonnen hat; ist auch das gleich, endet die Partie unentschieden.',
 
   'prsi.rules.section.goal': 'Ziel',
   'prsi.rules.section.setup': 'Vorbereitung',
@@ -144,14 +149,21 @@ export const de: Record<string, string> = {
   'prsi.rules.deck': 'Gespielt mit einem Blatt aus {value} Karten (ab der 7).',
   'prsi.rules.deal': 'Jeder Spieler beginnt mit {n} Karten.',
   'prsi.rules.dealLimit': 'Es muss eine Karte zum Aufdecken und eine zum Ziehen übrig bleiben, also erhalten {seats} Spieler höchstens {n} Karten.',
+  'prsi.rules.firstCard':
+    'Die zu Beginn aufgedeckte Karte gilt, als wäre sie gerade gegen den ersten Spieler gespielt worden: Eine 7 muss gekontert oder mit Ziehen bezahlt werden, ein Ass gekontert oder der Zug ausgesetzt. Ein Svršek wird nie aufgedeckt, solange es eine andere Karte sein kann — er kommt unter den Stapel.',
   'prsi.rules.turn.match':
     'Spiel eine Karte, die Farbe oder Wert der obersten Karte trifft — oder zieh, wenn du nicht kannst.',
   'prsi.rules.turn.draw': 'Ziehen beendet deinen Zug ohne Ausspielen.',
   'prsi.rules.turn.nothingToDraw': 'Ist nichts mehr zum Ziehen da und passt keine deiner Karten, beendet Ziehen deinen Zug ohne Karte.',
   'prsi.rules.sevens':
     'Spielst du eine 7, zieht der nächste Spieler zwei Karten — außer er kontert mit einer eigenen 7.',
-  'prsi.rules.aces': 'Spielst du ein Ass, wird der nächste Spieler übersprungen.',
+  'prsi.rules.sevens.stack':
+    'Siebenen addieren sich: Jede als Konter gespielte 7 bringt zwei weitere Karten dazu, und der erste Spieler, der nicht kontern kann, zieht sie alle.',
+  'prsi.rules.aces':
+    'Spielst du ein Ass, wird der nächste Spieler übersprungen — außer er kontert mit einem eigenen Ass, das das Aussetzen weitergibt.',
   'prsi.rules.queens': 'Spiel einen Svršek (den Ober) und nenne die Farbe, die weitergeht.',
+  'prsi.rules.queens.anything':
+    'Ein Svršek geht auf jede Karte — außer auf eine 7 oder ein Ass, die noch auf einen Konter warten — und die nächste Karte muss die genannte Farbe haben oder ein weiterer Svršek sein.',
   'prsi.rules.end': 'Die Partie endet in dem Moment, in dem jemandes Hand leer ist.',
   'prsi.rules.end.blocked': 'Passen so alle Spieler der Reihe nach, kann niemand mehr ziehen: Die wenigsten Karten gewinnen, bei Gleichstand wird der Sieg geteilt.',
   'prsi.remedy.matchOrDraw': 'Spiel eine {suit}-Karte oder eine, die zu {card} passt — sonst zieh.',
@@ -175,14 +187,22 @@ export const de: Record<string, string> = {
   'canasta.rules.section.melding': 'Auslegen',
   'canasta.rules.section.end': 'Wie die Partie endet',
   'canasta.rules.section.turn': 'Dein Zug',
-  'canasta.rules.goal':
-    'Gespielt wird in Partnerschaften; die erste Seite mit {n} Punkten gewinnt die Partie.',
+  'canasta.rules.goal': 'Die erste Seite, die {n} Punkte erreicht, gewinnt die Partie.',
+  'canasta.rules.partnerships':
+    'Vier Spieler spielen in zwei Partnerschaften, Partner sitzen sich gegenüber; bei zwei oder drei Spielern spielt jeder für sich.',
+  'canasta.rules.partnershipsSix':
+    'Vier oder sechs Spieler spielen in Partnerschaften zu zweit, Partner sitzen sich gegenüber; bei zwei, drei oder fünf Spielern spielt jeder für sich.',
   'canasta.rules.deck': 'Gespielt mit {value} Karten — {decks} Blätter plus Joker.',
   'canasta.rules.deal': 'Jeder Spieler erhält {n} Karten.',
   'canasta.rules.drawCount': 'Zu Beginn deines Zuges ziehst du {n} Karten.',
   'canasta.rules.redThrees':
     'Eine rote Drei auf deiner Hand wird sofort aufgedeckt und zählt als Bonus — außer deine Seite bringt nie eine Canasta zustande, dann zählt sie gegen dich.',
+  'canasta.rules.redThreesNeedTwo':
+    'Eine rote Drei auf deiner Hand wird sofort aufgedeckt und zählt als Bonus — außer deine Seite bringt weniger als zwei Canastas zustande, dann zählt jede {n} gegen dich.',
+  'canasta.rules.redThreeValues': 'Jede rote Drei ist {n} wert; alle {count} zusammen sind {all} wert.',
   'canasta.rules.canasta': 'Eine Canasta ist eine Auslage aus {n} oder mehr Karten desselben Werts.',
+  'canasta.rules.canastaBonus':
+    'Eine fertige Canasta bringt zusätzlich zu ihren Karten einen Bonus: {natural} für eine natürliche ohne wilde Karten, {mixed} für eine mit wilden Karten.',
   'canasta.rules.sequences': 'Eine Auslage kann auch eine Sequenz sein: drei oder mehr Karten derselben Farbe in Folge, niemals mit einer wilden Karte darin.',
   'canasta.rules.dirtySequences': 'Eine Auslage kann auch eine Sequenz sein: drei bis sieben Karten einer Farbe in Folge. Wilde Karten dürfen fehlende Karten ersetzen, höchstens zwei und nie mehr als halb so viele wie natürliche Karten. Sieben Karten mit einer wilden darin sind eine unreine Samba und zählen {n}.',
   'canasta.rules.wildMeld': 'Sobald deine Partei herausgekommen ist, darf sie eine Auslage aus Zweien und Jokern in beliebiger Mischung legen: auch drei Joker genügen. Sieben Karten sind eine Canasta: {n} nur aus Zweien, {mixed} mit Jokern.',
@@ -227,7 +247,7 @@ export const de: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Deine Seite darf mehrere Auslagen desselben Werts haben.',
   'canasta.rules.canastaCloses': 'Eine Canasta aus {n} Karten ist fertig und nimmt keine weiteren auf.',
   'canasta.rules.meldsAreShared':
-    'Auslagen gehören dem Team: beide Partner dürfen sie erweitern, und die der Gegenseite bleiben unberührt.',
+    'Auslagen gehören der Seite, die sie gelegt hat — an einem Partnertisch beiden Partnern: Jeder von ihnen darf sie erweitern, und keine andere Seite darf sie anrühren.',
   'canasta.rules.layOffAfterOpening':
     'Solange deine Seite ihre erste Auslage nicht gemacht hat, darf sie nichts auf dem Tisch ergänzen.',
   'canasta.rules.goOutKeepsACard':
@@ -236,7 +256,7 @@ export const de: Record<string, string> = {
   'canasta.rules.twoCanastasToGoOut':
     'Deine Seite braucht zwei fertige Canastas, bevor sie hinausgehen darf.',
   'canasta.rules.end':
-    'Es wird weiter gegeben, bis eine Seite {n} Punkte überschreitet — dann ist die Partie vorbei.',
+    'Es wird weiter gegeben, bis eine Seite {n} Punkte erreicht — dann ist die Partie vorbei.',
 
   'holdem.rules.section.goal': 'Ziel',
   'holdem.rules.section.setup': 'Vorbereitung',
@@ -715,11 +735,12 @@ export const de: Record<string, string> = {
     'Nach einem Klopfen, das kein Gin ist, darf dein Gegner sein eigenes Deadwood an deine Auslagen anlegen, bevor die Blätter verglichen werden.',
   'ginrummy.rules.deadHandDescription':
     'Sinkt der Talon auf seine letzten zwei Karten, ohne dass jemand geklopft hat, ist das Blatt tot — niemand punktet, und derselbe Geber gibt erneut.',
+  'ginrummy.rules.knockScore':
+    'Ein Klopfen, das nicht unterboten wird, bringt die Differenz zwischen dem Deadwood beider Spieler.',
   'ginrummy.rules.undercut':
     'Ist das Deadwood deines Gegners nicht höher als deines, unterbietet er dich: er erhält die Differenz plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin bringt das ganze Blatt deines Gegners plus {n}.',
-  'ginrummy.rules.target':
-    'Wer nach Ende eines Blatts als Erster {n} Punkte überschreitet, gewinnt die Partie.',
+  'ginrummy.rules.target': 'Wer nach Ende eines Blatts als Erster {n} Punkte erreicht, gewinnt die Partie.',
   'ginrummy.rules.shutout':
     'Der Partiebonus verdoppelt sich auf {n}, wenn der Verlierer keinen einzigen Punkt erzielt hat.',
   'ginrummy.rules.box': 'Jedes gewonnene Blatt ist am Ende der Partie {n} Punkte wert.',
@@ -812,8 +833,7 @@ export const de: Record<string, string> = {
     'Ist der Vorrat leer und niemand kann spielen, endet die Runde, und der niedrigste Handwert gewinnt sie.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Ist der Vorrat leer und niemand kann spielen, endet die Runde ohne Sieger — jede Hand wird einfach gewertet.',
-  'rummytiles.rules.target':
-    'Wer nach Ende einer Runde als Erster {n} Punkte überschreitet, gewinnt die Partie.',
+  'rummytiles.rules.target': 'Wer nach Ende einer Runde als Erster {n} Punkte erreicht, gewinnt die Partie.',
   'rummytiles.rules.roundLimit': 'Die Partie endet nach {n} Runden — die höchste Punktzahl gewinnt.',
   'rummytiles.remedy.emptyTheTray':
     'Leg die {n} Steine ab, die noch im Fach liegen, oder setz den Zug zurück.',
@@ -850,6 +870,7 @@ export const de: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Zug zurücksetzen',
   'rummytiles.offer.commit': 'Fertig',
   'rummytiles.offer.draw': 'Ziehen',
+  'rummytiles.offer.pass': 'Passen',
   'rummytiles.param.position': 'Teilen bei',
 
   // --- blackjack -----------------------------------------------------------
@@ -1222,6 +1243,20 @@ export const de: Record<string, string> = {
   'auth.register.password': 'Passwort',
   'auth.username.createAccount': 'Konto mit Benutzername und Passwort erstellen',
   'auth.callback.signedIn': 'Angemeldet.',
+  'auth.error.alreadyLinked': "Dieses Konto ist bereits mit einem anderen Spieler verknüpft.",
+  'auth.error.expired': "Die Anmeldung hat zu lange gedauert. Bitte versuche es erneut.",
+  'auth.error.alreadyUsed': "Diese Anmeldung wurde bereits verwendet. Bitte versuche es erneut.",
+  'auth.error.notCompleted': "Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut.",
+  'auth.error.unknownProvider': "Diese Anmeldemethode ist hier nicht verfügbar.",
+  'auth.error.noCode': "Der Anbieter hat die Anmeldung nicht abgeschlossen.",
+  'auth.error.failed': "Anmeldung fehlgeschlagen. Bitte versuche es erneut.",
+  'auth.provider.guest': "Als Gast spielen",
+  'auth.provider.email': "Mit E-Mail fortfahren",
+  'auth.provider.continueWith': "Weiter mit {provider}",
+  'auth.claim.prompt': "Auf diesem Gerät sind {n} Spiele gespeichert. Melde dich an, um sie zu behalten.",
+  'auth.claim.prompt.1': "Auf diesem Gerät ist 1 Spiel gespeichert. Melde dich an, um es zu behalten.",
+  'auth.claim.added': "Deine {n} bisherigen Spiele wurden deinem Konto hinzugefügt.",
+  'auth.claim.added.1': "Dein bisheriges Spiel wurde deinem Konto hinzugefügt.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Melde dich an, um dein Konto zu verwalten.',
@@ -2178,6 +2213,7 @@ export const de: Record<string, string> = {
   'rummytiles.move.reset': '{player} hat den Tisch zurückgesetzt',
   'rummytiles.move.committed': '{player} hat den Zug beendet',
   'rummytiles.move.drew': '{player} hat einen Stein gezogen',
+  'rummytiles.move.passed': '{player} hat gepasst — der Vorrat ist leer',
   'moves.last': 'Letzter Zug',
   'moves.history': 'Verlauf',
   'hints.title': 'Hinweise',
@@ -3168,7 +3204,8 @@ export const de: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'So kann die Pik-Dame zugleich in einem Pik-Paar, in vier Damen und in einem Pinochle zählen, und ein zweiter Trumpfkönig mit Trumpfdame neben einer Familie zählt weiterhin als Trumpfpaar.',
   'pinochle.rules.meld.onWin': 'Nur wer einen Stich gewinnt, darf melden, und nur solange der Talon reicht.',
   'pinochle.rules.meld.onePerTurn': 'Eine Meldung pro gewonnenem Stich. Gemeldete Karten bleiben auf dem Tisch und dürfen weiter gespielt werden.',
-  'pinochle.rules.meld.exchange': 'Eine Trumpfneun darf gegen die aufgedeckte Trumpfkarte getauscht werden. Sie bringt {n} und gilt als Meldung dieses Zugs.',
+  'pinochle.rules.meld.exchange':
+    'Eine Trumpfneun, die nicht schon als Diss gezeigt wurde, darf gegen die aufgedeckte Trumpfkarte getauscht werden. Sie bringt {n} und gilt als Meldung dieses Zugs.',
   'pinochle.rules.meld.staysInHand': 'Wenn der Talon aufgebraucht ist, gehen alle gemeldeten Karten zurück auf die Hand ihres Besitzers.',
   'pinochle.rules.meld.shown': 'Nach der Trumpfansage wird die Meldung aller gezählt und während des ersten Stichs auf dem Tisch gezeigt.',
   'pinochle.rules.meld.needsTrick': 'Die Meldung einer Seite zählt nur, wenn sie mindestens einen Stich macht.',

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusedKeydown } from '@/src/hooks/useFocusedKeydown';
+import { useMatchSocketUrl } from '@/src/hooks/useMatchSocketUrl';
 import { useScreenEdges } from '@/src/hooks/useScreenEdges';
 
 import { announce, announceGame } from '@/src/a11y/announce';
@@ -220,13 +221,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   const [selectionIsAuto, setSelectionIsAuto] = useState(false);
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
-  const url = useMemo(() => {
-    // Not while the session is still being settled: a game window finds the
-    // player's seat at an offline table first, and a socket opened at the
-    // cloud in the meantime would ask it for a table it has never heard of.
-    if (!matchId || !session?.accessToken || own.loading) return null;
-    return client.matchSocketUrl(String(matchId));
-  }, [client, matchId, session?.accessToken, own.loading]);
+  const url = useMatchSocketUrl(client, matchId ? String(matchId) : undefined, session, own.loading);
 
   // A link to a table almost never arrives at a signed-in app: it comes out of
   // a chat, on a device that may never have been used to play. Without this the

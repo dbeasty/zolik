@@ -65,6 +65,7 @@ case "$DEV_DATA" in
   *) printf '\033[31mError:\033[0m ZOLIK_DEV_DATA must be prodcopy or clean (got: %s)\n' "$DEV_DATA" >&2; exit 1 ;;
 esac
 
+VERB="${1:-up}"
 PORT="${ZOLIK_DEV_PORT:-8090}"
 WEB_PORT="${ZOLIK_DEV_WEB_PORT:-8114}"
 
@@ -76,8 +77,11 @@ WEB_PORT="${ZOLIK_DEV_WEB_PORT:-8114}"
 # Overriding client-react-native/.env does not fix that: the EXPO_PUBLIC_* value
 # exported below wins over any .env file, so this is the only knob that works.
 #
-#   ZOLIK_DEV_HOST=192.168.1.7 scripts/dev-stack.sh up
+#   ZOLIK_BIND=0.0.0.0 ZOLIK_DEV_HOST=192.168.1.7 scripts/dev-stack.sh up
 #
+# ZOLIK_BIND is the separate, explicit ask to publish the port beyond this
+# machine; a LAN host without it is refused rather than quietly widened, and
+# ZOLIK_DEV_DATA=prodcopy refuses it outright.
 HOST="${ZOLIK_DEV_HOST:-127.0.0.1}"
 API="http://${HOST}:${PORT}"
 WEB="http://${HOST}:${WEB_PORT}"
@@ -105,19 +109,50 @@ wait_for() { # url, label, seconds
   die "$label did not come up at $url — see: $0 logs"
 }
 
-compose() {
-  local bind="${ZOLIK_BIND:-}"
-  if [[ -z "$bind" && "$HOST" != "127.0.0.1" && "$HOST" != "localhost" ]]; then
-    bind="0.0.0.0"
+is_loopback() { [[ "$1" == "127.0.0.1" || "$1" == "localhost" || "$1" == "::1" ]]; }
+
+# The address the container's port is published on. Loopback unless asked for
+# by name: a ZOLIK_DEV_HOST naming a LAN address used to widen this to every
+# interface by itself, which put the sign-in-code endpoint below — and with
+# ZOLIK_DEV_DATA=prodcopy, every real account's sign-in — on the LAN.
+BIND="${ZOLIK_BIND:-127.0.0.1}"
+
+# The end-to-end suite seeds mid-round positions through /debug-state and
+# reads sign-in codes back through /auth/dev/last-code. Both are shut in the
+# compose file by default, because that file is also the shape the public host
+# runs; this is the local stack, so this is where they are opened — except over
+# a copy of production, where /auth/dev/last-code would hand out the sign-in
+# code of any real player to whoever asked.
+if [[ "$DEV_DATA" == "prodcopy" ]]; then
+  TEST_ENDPOINTS=false
+  DEBUG_ENDPOINTS=false
+else
+  TEST_ENDPOINTS=true
+  DEBUG_ENDPOINTS="${ZOLIK_DEBUG_ENDPOINTS:-true}"
+fi
+
+# Refuses the combinations that publish what should not be published. Called
+# by the verbs that start the container; `down` and `logs` must still work on
+# a stack that was started some other way.
+check_exposure() {
+  if [[ "$DEV_DATA" == "prodcopy" ]]; then
+    if [[ "${ZOLIK_DEBUG_ENDPOINTS:-}" == "true" || "${ZOLIK_TEST_ENDPOINTS:-}" == "true" ]]; then
+      die "ZOLIK_DEV_DATA=prodcopy refuses the test and debug endpoints: /auth/dev/last-code would hand out any real player's sign-in code, and /debug-state rewrites real matches."
+    fi
+    if ! is_loopback "$BIND"; then
+      die "ZOLIK_DEV_DATA=prodcopy is a copy of every real account; it binds to loopback only (got ZOLIK_BIND=${BIND})."
+    fi
   fi
-  # The end-to-end suite seeds mid-round positions through /debug-state and
-  # reads sign-in codes back through /auth/dev/last-code. Both are shut in the
-  # compose file by default, because that file is also the shape the public
-  # host runs; this is the local stack, so this is where they are opened.
-  # APP_ENV is said out loud too: unset means production on the server, and
-  # this is the local stack.
-  (cd "$SERVER_DIR" && APP_ENV="${APP_ENV:-local}" ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
-    ZOLIK_DEBUG_ENDPOINTS="${ZOLIK_DEBUG_ENDPOINTS:-true}" \
+  if ! is_loopback "$HOST" && is_loopback "$BIND"; then
+    die "ZOLIK_DEV_HOST=${HOST} tells the browser to call another address, but the server binds to loopback unless asked. To serve the LAN, say so: ZOLIK_BIND=0.0.0.0 ZOLIK_DEV_HOST=${HOST} $0 ${VERB}"
+  fi
+}
+
+compose() {
+  # APP_ENV is said out loud: unset means production on the server, and this
+  # is the local stack.
+  (cd "$SERVER_DIR" && APP_ENV="${APP_ENV:-local}" ZOLIK_BIND="$BIND" ZOLIK_TEST_ENDPOINTS="$TEST_ENDPOINTS" \
+    ZOLIK_DEBUG_ENDPOINTS="$DEBUG_ENDPOINTS" \
     ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
     ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \
     ZOLIK_KDB_HISTORY_RETENTION="${ZOLIK_KDB_HISTORY_RETENTION:-true}" \
@@ -184,6 +219,7 @@ stop_legacy_binary() {
 }
 
 up() {
+  check_exposure
   ensure_env
   stop_legacy_binary
   stop_web
@@ -240,8 +276,16 @@ down() {
 }
 
 run_tests() {
-  say "Go suites (server)"
-  (cd "${ROOT}/server" && go test ./... "$@")
+  check_exposure
+  # The suite writes matches, accounts and sign-ins through the stack it is
+  # pointed at, and reads codes back through the endpoint prodcopy shuts.
+  [[ "$DEV_DATA" == "prodcopy" ]] && die "the test suite does not run against ZOLIK_DEV_DATA=prodcopy; it writes to the store it tests."
+
+  # Without a store engine named, every store-backed test (match, auth, lobby
+  # repositories) calls t.Skip — and `go test` still prints "ok" for the
+  # package, so a run that tested none of them reads as a pass.
+  say "Go suites (server, store tests on ${ZOLIK_TEST_DB_ENGINE:-kdb})"
+  (cd "${ROOT}/server" && ZOLIK_TEST_DB_ENGINE="${ZOLIK_TEST_DB_ENGINE:-kdb}" go test ./... "$@")
 
   say "Go suites (terminal client)"
   (cd "${ROOT}/client-tui" && go test ./...)
@@ -322,7 +366,7 @@ run_soak() {
     npx playwright test --config longevity/longevity.config.ts "$@")
 }
 
-case "${1:-up}" in
+case "$VERB" in
   up)    up ;;
   down)  down ;;
   test)  shift || true; run_tests "$@" ;;

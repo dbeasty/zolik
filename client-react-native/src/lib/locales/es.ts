@@ -104,6 +104,8 @@ export const es: Record<string, string> = {
   'zolik.rules.section.end': 'Cómo termina la partida',
   'zolik.rules.goal':
     'Sé el primero en vaciar tu mano bajando grupos y escaleras válidos, acumulando los menos puntos de penalización posibles en las cartas que aún tengas cuando otro se vaya.',
+  'zolik.rules.deck.packs':
+    'Se juega con {small} barajas de 52 cartas más 2 comodines cada una de dos a cuatro jugadores, {mid} barajas con cinco o seis y {large} con siete u ocho.',
   'zolik.rules.deal': 'Cada jugador recibe {n} cartas.',
   'zolik.rules.meldShapes':
     'Un grupo son {set}+ cartas del mismo valor; una escalera son {run}+ cartas consecutivas del mismo palo.',
@@ -135,6 +137,9 @@ export const es: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Una carta que te quede en la mano cuesta: comodín {joker}, 10, jota, reina o rey {face}, 2 a 9 su número, y un as {ace}, o solo {aceLow} si también tienes un 2 de su palo, o la reina y el rey de su palo, o si alargaría una escalera de la mesa.",
   'zolik.rules.end.atScore': 'Se sigue repartiendo hasta que alguien llega a {n} puntos — entonces se acaba.',
+  'zolik.rules.end.lowestWins': 'Al terminar la partida, gana el total más bajo.',
+  'zolik.rules.end.tieBreak':
+    'Si varios jugadores comparten el total más bajo, gana el que haya ganado menos repartos; si también empatan en eso, la partida queda en tablas.',
 
   'prsi.rules.section.goal': 'Objetivo',
   'prsi.rules.section.setup': 'Preparación',
@@ -145,14 +150,21 @@ export const es: Record<string, string> = {
   'prsi.rules.deck': 'Se juega con una baraja de {value} cartas (del 7 en adelante).',
   'prsi.rules.deal': 'Cada jugador empieza con {n} cartas.',
   'prsi.rules.dealLimit': 'Debe quedar una carta para descubrir y otra para robar, así que {seats} jugadores reciben como máximo {n} cartas cada uno.',
+  'prsi.rules.firstCard':
+    'La carta que se descubre para empezar el montón cuenta como si se acabara de jugar contra el primer jugador: a un 7 hay que responder o pagar, a un as responder o perder el turno. Nunca se descubre un svršek mientras se pueda descubrir otra carta — va al fondo del mazo.',
   'prsi.rules.turn.match':
     'Juega una carta que coincida en palo o valor con la de encima — o roba si no puedes.',
   'prsi.rules.turn.draw': 'Robar termina tu turno sin jugar carta.',
   'prsi.rules.turn.nothingToDraw': 'Si no queda nada que robar y ninguna de tus cartas encaja, robar termina tu turno sin carta.',
   'prsi.rules.sevens':
     'Juega un 7 y el siguiente jugador roba dos cartas, salvo que responda con un 7 propio.',
-  'prsi.rules.aces': 'Juega un as y el siguiente jugador pierde su turno.',
+  'prsi.rules.sevens.stack':
+    'Los sietes se acumulan: cada 7 jugado como respuesta añade dos cartas más, y el primer jugador que no puede responder las roba todas.',
+  'prsi.rules.aces':
+    'Juega un as y el siguiente jugador pierde su turno, salvo que responda con un as propio — y entonces el turno perdido pasa al siguiente.',
   'prsi.rules.queens': 'Juega un svršek (el Ober) y di el palo que continúa.',
+  'prsi.rules.queens.anything':
+    'Un svršek va sobre cualquier carta — salvo un 7 o un as que aún espera respuesta — y la siguiente carta debe seguir el palo dicho, o ser otro svršek.',
   'prsi.rules.end': 'La partida termina en cuanto una mano se queda vacía.',
   'prsi.rules.end.blocked': 'Si todos los jugadores pasan así por turno, nadie puede jugar: gana quien tenga menos cartas y un empate comparte la victoria.',
   'prsi.remedy.matchOrDraw': 'Juega una carta de {suit} o una que case con {card}; si no, roba.',
@@ -176,13 +188,22 @@ export const es: Record<string, string> = {
   'canasta.rules.section.melding': 'Bajarse',
   'canasta.rules.section.end': 'Cómo termina la partida',
   'canasta.rules.section.turn': 'Tu turno',
-  'canasta.rules.goal': 'Se juega por parejas; el primer bando en llegar a {n} puntos gana la partida.',
+  'canasta.rules.goal': 'El primer bando en llegar a {n} puntos gana la partida.',
+  'canasta.rules.partnerships':
+    'Con cuatro jugadores se juega en dos parejas, con los compañeros sentados frente a frente; con dos o tres, cada uno juega solo.',
+  'canasta.rules.partnershipsSix':
+    'Con cuatro o seis jugadores se juega en parejas, con los compañeros sentados frente a frente; con dos, tres o cinco, cada uno juega solo.',
   'canasta.rules.deck': 'Se juega con {value} cartas — {decks} barajas más comodines.',
   'canasta.rules.deal': 'Cada jugador recibe {n} cartas.',
   'canasta.rules.drawCount': 'Robas {n} cartas al principio de tu turno.',
   'canasta.rules.redThrees':
     'Un tres rojo en tu mano se muestra al momento y puntúa como bonificación — salvo que tu bando no complete ninguna canasta, en cuyo caso cuenta en tu contra.',
+  'canasta.rules.redThreesNeedTwo':
+    'Un tres rojo en tu mano se muestra al momento y puntúa como bonificación — salvo que tu bando complete menos de dos canastas, en cuyo caso cada uno cuenta {n} en tu contra.',
+  'canasta.rules.redThreeValues': 'Cada tres rojo vale {n}; los {count} juntos valen {all}.',
   'canasta.rules.canasta': 'Una canasta es una combinación de {n} o más cartas del mismo valor.',
+  'canasta.rules.canastaBonus':
+    'Una canasta completa suma una bonificación además de sus cartas: {natural} si es natural, sin comodines, y {mixed} si lleva comodines.',
   'canasta.rules.sequences': 'Una combinación también puede ser una escalera: tres o más cartas del mismo palo seguidas, nunca con un comodín entre ellas.',
   'canasta.rules.dirtySequences': 'Una combinación también puede ser una escalera: de tres a siete cartas seguidas del mismo palo. Los comodines pueden ocupar el lugar de cartas que falten, como mucho dos y nunca más de la mitad que cartas naturales. Siete cartas con un comodín forman una samba sucia, que vale {n}.',
   'canasta.rules.wildMeld': 'Cuando tu bando ya ha abierto, puede bajar una combinación de doses y jokers en cualquier proporción: bastan tres jokers. Siete cartas forman una canasta: {n} si son todo doses, {mixed} con jokers.',
@@ -227,7 +248,7 @@ export const es: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Tu bando puede tener varias combinaciones del mismo valor.',
   'canasta.rules.canastaCloses': 'Una canasta de {n} está completa y no admite más cartas.',
   'canasta.rules.meldsAreShared':
-    'Las combinaciones son de la pareja: cualquiera de los dos puede ampliarlas, y nadie toca las del rival.',
+    'Las combinaciones son del bando que las bajó — en una mesa por parejas, de ambos compañeros: cualquiera de los dos puede ampliarlas, y ningún otro bando puede tocarlas.',
   'canasta.rules.layOffAfterOpening':
     'Hasta que tu bando no haga su combinación inicial, no puede añadir cartas a nada de la mesa.',
   'canasta.rules.goOutKeepsACard':
@@ -235,7 +256,7 @@ export const es: Record<string, string> = {
   'canasta.rules.oneCanastaToGoOut': 'Una canasta completa basta para que tu bando se vaya.',
   'canasta.rules.twoCanastasToGoOut': 'Tu bando necesita dos canastas completas antes de poder irse.',
   'canasta.rules.end':
-    'Se sigue repartiendo hasta que un bando pasa de {n} puntos — entonces la partida se acaba.',
+    'Se sigue repartiendo hasta que un bando llega a {n} puntos — entonces la partida se acaba.',
 
   'holdem.rules.section.goal': 'Objetivo',
   'holdem.rules.section.setup': 'Preparación',
@@ -706,10 +727,12 @@ export const es: Record<string, string> = {
     'Tras una llamada que no sea gin, tu rival puede arrimar su propio deadwood a tus combinaciones antes de comparar las manos.',
   'ginrummy.rules.deadHandDescription':
     'Si el mazo baja a sus dos últimas cartas y nadie ha llamado, la mano está muerta — nadie puntúa y reparte de nuevo el mismo repartidor.',
+  'ginrummy.rules.knockScore':
+    'Quien llama sin que le corten anota la diferencia entre el deadwood de los dos jugadores.',
   'ginrummy.rules.undercut':
     'Si el deadwood de tu rival no supera al tuyo, te corta: anota la diferencia, más {n}.',
   'ginrummy.rules.ginBonus': 'El gin anota la mano entera de tu rival, más {n}.',
-  'ginrummy.rules.target': 'El primero en pasar de {n} puntos al terminar una mano gana la partida.',
+  'ginrummy.rules.target': 'El primero en llegar a {n} puntos al terminar una mano gana la partida.',
   'ginrummy.rules.shutout': 'La bonificación de partida se dobla a {n} si el perdedor no anotó ni un punto.',
   'ginrummy.rules.box': 'Cada mano que ganes vale {n} puntos al final de la partida.',
   'ginrummy.rules.gameBonus': 'Ganar la partida vale {n} puntos más.',
@@ -802,7 +825,7 @@ export const es: Record<string, string> = {
     'Si el pozo se agota y nadie puede jugar, la ronda termina y la gana la mano de menor valor.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Si el pozo se agota y nadie puede jugar, la ronda termina sin ganador — simplemente se puntúa cada mano.',
-  'rummytiles.rules.target': 'El primero en pasar de {n} puntos al terminar una ronda gana la partida.',
+  'rummytiles.rules.target': 'El primero en llegar a {n} puntos al terminar una ronda gana la partida.',
   'rummytiles.rules.roundLimit': 'La partida termina tras {n} rondas — gana la puntuación más alta.',
   'rummytiles.remedy.emptyTheTray': 'Coloca las {n} fichas que siguen en tu bandeja, o reinicia el turno.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -838,6 +861,7 @@ export const es: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Reiniciar el turno',
   'rummytiles.offer.commit': 'Hecho',
   'rummytiles.offer.draw': 'Robar',
+  'rummytiles.offer.pass': 'Pasar',
   'rummytiles.param.position': 'Partir en',
 
   // --- blackjack -----------------------------------------------------------
@@ -1216,6 +1240,20 @@ export const es: Record<string, string> = {
   'auth.register.password': 'Contraseña',
   'auth.username.createAccount': 'Crear una cuenta con usuario y contraseña',
   'auth.callback.signedIn': 'Sesión iniciada.',
+  'auth.error.alreadyLinked': "Esa cuenta ya está vinculada a otro jugador.",
+  'auth.error.expired': "El inicio de sesión tardó demasiado. Inténtalo de nuevo.",
+  'auth.error.alreadyUsed': "Ese inicio de sesión ya se usó. Inténtalo de nuevo.",
+  'auth.error.notCompleted': "No se pudo completar el inicio de sesión. Inténtalo de nuevo.",
+  'auth.error.unknownProvider': "Ese método de inicio de sesión no está disponible aquí.",
+  'auth.error.noCode': "El proveedor no completó el inicio de sesión.",
+  'auth.error.failed': "Error al iniciar sesión. Inténtalo de nuevo.",
+  'auth.provider.guest': "Jugar como invitado",
+  'auth.provider.email': "Continuar con correo electrónico",
+  'auth.provider.continueWith': "Continuar con {provider}",
+  'auth.claim.prompt': "Tienes {n} partidas registradas en este dispositivo. Inicia sesión para conservarlas.",
+  'auth.claim.prompt.1': "Tienes 1 partida registrada en este dispositivo. Inicia sesión para conservarla.",
+  'auth.claim.added': "Tus {n} partidas anteriores se han añadido a tu cuenta.",
+  'auth.claim.added.1': "Tu partida anterior se ha añadido a tu cuenta.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Inicia sesión para gestionar tu cuenta.',
@@ -2172,6 +2210,7 @@ export const es: Record<string, string> = {
   'rummytiles.move.reset': '{player} dejó la mesa como estaba',
   'rummytiles.move.committed': '{player} terminó su turno',
   'rummytiles.move.drew': '{player} robó una ficha',
+  'rummytiles.move.passed': '{player} pasó — el pozo está vacío',
   'moves.last': 'Última jugada',
   'moves.history': 'Historial',
   'hints.title': 'Pistas',
@@ -3162,7 +3201,8 @@ export const es: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Así, la reina de picas puede contar a la vez en un matrimonio de picas, en cuatro reinas y en un pinochle, y un segundo rey y reina de triunfo junto a una escalera siguen contando como matrimonio de triunfo.',
   'pinochle.rules.meld.onWin': 'Solo quien gana una baza puede cantar, y solo mientras quede mazo.',
   'pinochle.rules.meld.onePerTurn': 'Un cante por cada baza ganada. Las cartas cantadas quedan en la mesa y aún pueden jugarse.',
-  'pinochle.rules.meld.exchange': 'Un nueve de triunfo puede cambiarse por la carta de triunfo vuelta. Vale {n} y cuenta como el cante de ese turno.',
+  'pinochle.rules.meld.exchange':
+    'Un nueve de triunfo que no se haya cantado ya puede cambiarse por la carta de triunfo vuelta. Vale {n} y cuenta como el cante de ese turno.',
   'pinochle.rules.meld.staysInHand': 'Cuando se acaba el mazo, cada carta cantada vuelve a la mano de su dueño.',
   'pinochle.rules.meld.shown': 'Una vez elegido el triunfo, se cuentan los cantes de todos y se muestran en la mesa durante la primera baza.',
   'pinochle.rules.meld.needsTrick': 'Los cantes de un bando solo cuentan si gana al menos una baza.',

@@ -8,6 +8,7 @@
  */
 
 import type { AuthProvider } from '@/src/api/types';
+import { t } from '@/src/lib/i18n';
 
 /** What came back on the deep link the provider's browser tab returned to. */
 export type CallbackResult =
@@ -77,20 +78,20 @@ function safeDecode(value: string): string {
 export function authErrorMessage(reason: string): string {
   switch (reason) {
     case 'already_linked':
-      return 'That account is already linked to another player.';
+      return t('auth.error.alreadyLinked');
     case 'expired':
-      return 'That sign-in took too long. Please try again.';
+      return t('auth.error.expired');
     case 'already_completed':
-      return 'That sign-in was already used. Please try again.';
+      return t('auth.error.alreadyUsed');
     case 'exchange_failed':
     case 'sign_in_failed':
-      return 'The sign-in could not be completed. Please try again.';
+      return t('auth.error.notCompleted');
     case 'unknown_provider':
-      return 'That sign-in method is not available here.';
+      return t('auth.error.unknownProvider');
     case 'no_code':
-      return 'The provider did not complete the sign-in.';
+      return t('auth.error.noCode');
     default:
-      return 'Sign-in failed. Please try again.';
+      return t('auth.error.failed');
   }
 }
 
@@ -119,11 +120,11 @@ export function orderProviders(providers: AuthProvider[]): AuthProvider[] {
 export function providerButtonLabel(p: AuthProvider): string {
   switch (p.kind) {
     case 'guest':
-      return 'Play as guest';
+      return t('auth.provider.guest');
     case 'email':
-      return 'Continue with email';
+      return t('auth.provider.email');
     default:
-      return `Continue with ${p.displayName}`;
+      return t('auth.provider.continueWith', { provider: p.displayName });
   }
 }
 
@@ -137,14 +138,12 @@ export function providerButtonLabel(p: AuthProvider): string {
  */
 export function claimPrompt(matches: number | undefined): string | null {
   if (!matches || matches < 1) return null;
-  const games = matches === 1 ? '1 game' : `${matches} games`;
-  return `You have ${games} recorded on this device. Sign in to keep them.`;
+  // `.1` carries the one-game wording (see i18n `t`).
+  return t('auth.claim.prompt', { n: matches });
 }
 
 /** How a completed sign-in reports what it rescued. */
 export function claimedMessage(claimed: number): string | null {
   if (!claimed || claimed < 1) return null;
-  return claimed === 1
-    ? 'Your previous game has been added to your account.'
-    : `Your ${claimed} previous games have been added to your account.`;
+  return t('auth.claim.added', { n: claimed });
 }

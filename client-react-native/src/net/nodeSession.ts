@@ -33,6 +33,49 @@ type Storage = {
 type Enroller = (pubkey: string, kind: string) => Promise<Enrolment>;
 
 /**
+ * Who is using the one embedded server.
+ *
+ * The phone has a single server, and two things want it: node mode, which
+ * holds the signed-in account's data, and a table this phone hosts for the
+ * room. Either stopping it for its own reasons used to stop it for the other
+ * too — leaving a hosted table ended node mode, and signing out ended a table
+ * people were still sitting at. Each now says it is done, and the server stops
+ * only when neither is using it.
+ */
+const users = { node: false, table: false };
+
+/** Whether this phone is hosting a table for the room right now. */
+export function hostingTable(): boolean {
+  return users.table;
+}
+
+/** Whether node mode is running on this phone's server. */
+export function runningNode(): boolean {
+  return users.node;
+}
+
+/**
+ * Starts (or joins) the embedded server to host a table. A server already in
+ * node mode is the same server, and the table is served by it as it stands.
+ */
+export async function hostTable(): Promise<nearby.HostInfo> {
+  const host = await nearby.startHost();
+  users.table = true;
+  return host;
+}
+
+/**
+ * The hosted table is over. The server goes with it unless node mode is
+ * still using it.
+ */
+export async function releaseTable(): Promise<void> {
+  // Not only after hostTable: a desktop window can hold a host seat the app
+  // opened (sitFromApp), and leaving it stopped the server before too.
+  users.table = false;
+  if (!users.node) await nearby.stopHost();
+}
+
+/**
  * Makes this device hold the signed-in account's data, enrolling it with the
  * cloud first if it has never been enrolled for this account.
  *
@@ -47,6 +90,10 @@ export async function startNodeFor(
   cloudBaseUrl: string,
 ): Promise<boolean> {
   if (!nearby.nearbyAvailable || !userHex) return false;
+  // Starting node mode restarts a server that was serving nobody, and the
+  // enrolment below stops it outright: either would end the table. The
+  // caller tries again once the table is over.
+  if (users.table && !users.node) return false;
 
   const key = credentialKey(userHex);
   let credential = await storage.getItem(key);
@@ -65,6 +112,7 @@ export async function startNodeFor(
     await nearby.stopHost();
   }
   await nearby.startNode(credential, userHex, cloudBaseUrl);
+  users.node = true;
   return true;
 }
 
@@ -76,6 +124,9 @@ export async function startNodeFor(
  * as theirs.
  */
 export async function stopNodeFor(userHex: string, storage: Storage): Promise<void> {
-  await nearby.stopHost();
+  users.node = false;
+  // A table this phone is hosting keeps its server: the people at it did not
+  // sign out. It stops when the table does (releaseTable).
+  if (!users.table) await nearby.stopHost();
   if (userHex) await storage.deleteItem(credentialKey(userHex));
 }

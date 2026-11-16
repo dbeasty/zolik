@@ -13,6 +13,13 @@ import "zolik/server/internal/module"
 // hand the match ends on — see allmodules_test.go's TestARoundLogIsArithmetic,
 // which is exactly the kind of thing a plan text does not warn you about.
 
+// The hand bonuses the written rules state (rules.go reads the same values).
+const (
+	ginBonus      = 25
+	undercutBonus = 25
+	bigGinBonus   = 25
+)
+
 // scoreHand settles the hand that just ended in a knock or gin. The
 // defender's hand is never re-melded — only the knocker's is, by rule — so
 // the defender's deadwood is simply whatever is left in their hand after any
@@ -27,11 +34,15 @@ func scoreHand(s *GameState) HandResult {
 	var delta int
 	switch {
 	case s.KnockGin:
-		winner, kind, delta = knocker, "gin", defenderDeadwood+25
+		winner, kind, delta = knocker, "gin", defenderDeadwood+ginBonus
+		if s.KnockBigGin {
+			// Big gin is gin and then some: ginrummy.rules.bigGinBonus.
+			delta += bigGinBonus
+		}
 	case knockerDeadwood < defenderDeadwood:
 		winner, kind, delta = knocker, "knock", defenderDeadwood-knockerDeadwood
 	default:
-		winner, kind, delta = defender, "undercut", (knockerDeadwood-defenderDeadwood)+25
+		winner, kind, delta = defender, "undercut", (knockerDeadwood-defenderDeadwood)+undercutBonus
 	}
 
 	s.Scores[winner] += delta

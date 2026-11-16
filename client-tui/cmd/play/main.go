@@ -25,15 +25,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "login: %v\n", err)
 		os.Exit(1)
 	}
+	access, refresh := c.Tokens()
 	sess := ui.PlayerSession{
-		AccessToken: c.Token,
-		UserID:      c.UserID,
-		Username:    c.GuestName,
-		IsGuest:     true,
+		AccessToken:  access,
+		RefreshToken: refresh,
+		UserID:       c.UserID,
+		Username:     c.GuestName,
+		IsGuest:      true,
 	}
 	version, commit := buildinfo.Resolved()
 	m := ui.NewRoot(nil, base, sess, ui.Build{Version: version, Commit: commit})
-	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
+	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	m.Close()
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "run: %v\n", err)
 		os.Exit(1)
 	}

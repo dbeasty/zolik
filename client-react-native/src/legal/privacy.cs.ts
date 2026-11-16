@@ -9,7 +9,7 @@ import type { LegalDocument } from './types';
 export const privacyCs: LegalDocument = {
   id: 'privacy',
   title: 'Zásady ochrany osobních údajů',
-  version: '2026-10-31',
+  version: '2026-11-15',
   sections: [
     {
       id: 'controller',
@@ -40,7 +40,7 @@ export const privacyCs: LegalDocument = {
         'Časové pásmo, které hlásí tvoje zařízení, abychom zhruba věděli, ze kterých zemí hráči jsou. Tvoji polohu neukládáme.',
         'Pokud zapneš oznámení: token od služby oznámení ve tvém telefonu nebo prohlížeči, abychom ti mohli dát vědět o pozvánkách ke stolu. Smaže se, když oznámení vypneš, odhlásíš se nebo smažeš účet.',
         'Hra s lidmi poblíž přes Wi-Fi nebo Bluetooth probíhá mezi vašimi zařízeními; hru si nechává telefon, který stůl hostí. K nám se dostane jen za hráče, kteří souhlasí s jejím uložením do svého účtu, a místa ostatních přijdou bez jmen.',
-        'Pokud hraješ jako host: náhodný identifikátor uložený ve tvém zařízení, aby sis mezi návštěvami udržel stejnou tvář. Na naší straně o tobě neuchováváme nic nad rámec toho, co stůl potřebuje, dokud u něj sedíš.',
+        'Pokud hraješ jako host, nemáš účet, ale něco přesto uchováváme. Náhodný identifikátor hosta je uložený ve tvém zařízení a posílá se nám, abys byl mezi návštěvami stále týž hráč. U nás ukládáme tvoje relace hosta (ten identifikátor a tvoje jméno hosta, do 30 dnů od tvé poslední hry). Ukládáme také hry, které s tímto identifikátorem hraješ, i s tvým jménem a avatarem. Tvoje výsledky uchováváme, aby se hry daly přidat k účtu, pokud se později přihlásíš. Pokud je používáš, uchováváme také tvůj herní okruh (hráče, které sis přidal nebo kteří si přidali tebe, a tvůj kód přítele) a token pro oznámení. Nedávné a dohrané stoly najdeš v části Moje hry.',
       ],
     },
     {
@@ -58,6 +58,7 @@ export const privacyCs: LegalDocument = {
         'Přihlašovací kódy a IP adresa uložená spolu s nimi se automaticky mažou deset minut po odeslání kódu.',
         'Tvůj účet a tvoje výsledky uchováváme, dokud účet nesmažeš. Můžeš to udělat přímo na obrazovce Účet, nebo napiš na {contact} a uděláme to za tebe. Smaže se účet, přihlašovací identity k němu připojené, tvoje statistiky, herní kruh, zařízení a tabulky skóre.',
         'Odehrané hry se s účtem nemažou, protože patří i do historie ostatních hráčů. Tvoje místo v nich se přejmenuje na „Player 1“, „Player 2“ a tak dál a už nevede k tobě.',
+        'Hra jako host: relace hosta končí 30 dní po posledním použití. Stoly i s tahy se mažou 24 hodin po založení, pokud nikdy nezačaly, 30 dní po opuštění a 90 dní po dohrání. Výsledky dohraných her, herní okruh a zařízení pro oznámení uchováváme, dokud se nepřihlásíš (pak přejdou k tvému účtu), nebo dokud nás nepožádáš o jejich smazání. Lidi z okruhu můžeš odebrat a oznámení vypnout sám. O zbytek napiš na {contact} a přilož část svého odkazu hosta před tečkou (najdeš ho na obrazovce Účet), abychom tvá data našli; celý odkaz nikdy neposílej, protože s ním může kdokoli hrát za tebe.',
       ],
     },
     {

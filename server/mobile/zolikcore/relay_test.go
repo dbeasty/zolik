@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -155,5 +157,59 @@ func TestARemoteGuestSitsDownThroughTheRelay(t *testing.T) {
 	}
 	if h.RelayStatus() != RelayOff || h.RelayCode() != "" {
 		t.Errorf("after closing: status %s code %q", h.RelayStatus(), h.RelayCode())
+	}
+}
+
+// A phone that comes back to the foreground with its listener reclaimed is
+// revived, and a table that was open to the room and to the internet is
+// still open to both afterwards, at the same port and the same code. The
+// revive used to put both doors down with the old host and bring the new one
+// up shut, while the phone's screen still showed the table as open.
+func TestARevivedHostKeepsItsDoorsOpen(t *testing.T) {
+	srv := relayCloud(t)
+	h := startHost(t, t.TempDir())
+	h.nodeCredential, h.cloudBaseURL = "node-n1", srv.URL
+	lanPort, err := h.OpenLAN()
+	if err != nil {
+		t.Fatalf("OpenLAN: %v", err)
+	}
+	code, err := h.OpenRelay("Ada's phone")
+	if err != nil {
+		t.Fatalf("OpenRelay: %v", err)
+	}
+
+	reclaim(t, h)
+	if err := Revive(); err != nil {
+		t.Fatalf("Revive: %v", err)
+	}
+	revived := Current()
+	if revived == nil || revived == h {
+		t.Fatalf("Revive left %v", revived)
+	}
+	t.Cleanup(revived.Stop)
+
+	if got := revived.LANPort(); got != lanPort {
+		t.Errorf("after the revive the room is on port %d, want %d", got, lanPort)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for revived.RelayCode() == "" && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if got := revived.RelayCode(); got != code {
+		t.Fatalf("after the revive the relay code is %q (status %s), want %q", got, revived.RelayStatus(), code)
+	}
+
+	// And a guest can reach the revived table both ways.
+	g := joinRemotely(t, srv, code, revived)
+	if res := g.do("POST", "/auth/guest", map[string]string{"guestName": "Remote Rita"}); res.S != 200 {
+		t.Fatalf("guest sign-in through the relay after the revive: %d %s", res.S, res.B)
+	}
+	res, err := http.Get("http://127.0.0.1:" + strconv.Itoa(lanPort) + "/nearby/info")
+	if err != nil {
+		t.Fatalf("the room's port after the revive: %v", err)
+	}
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("/nearby/info on the room's port: %s", res.Status)
 	}
 }

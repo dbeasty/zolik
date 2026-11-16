@@ -102,6 +102,8 @@ export const cs: Record<string, string> = {
   'zolik.rules.section.end': 'Konec zápasu',
   'zolik.rules.goal':
     'Jako první se zbav všech karet vykládáním platných skupin a postupek — a snaž se přitom mít v ruce co nejméně trestných bodů, až někdo jiný skončí kolo.',
+  'zolik.rules.deck.packs':
+    'Hraje se s {small} balíčky po 52 kartách plus 2 žolíky v každém pro dva až čtyři hráče, s {mid} balíčky pro pět nebo šest a s {large} pro sedm nebo osm.',
   'zolik.rules.deal': 'Každý hráč dostane {n} karet.',
   'zolik.rules.meldShapes':
     'Skupina je {set}+ karet stejné hodnoty; postupka je {run}+ karet stejné barvy jdoucích po sobě.',
@@ -133,6 +135,9 @@ export const cs: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Karta, která vám zůstane v ruce, stojí: žolík {joker}, desítka, kluk, dáma či král {face}, dvojka až devítka podle čísla a eso {ace} — nebo jen {aceLow}, pokud máte v ruce i dvojku jeho barvy, nebo dámu i krále jeho barvy, anebo by prodloužilo postupku na stole.",
   'zolik.rules.end.atScore': 'Rozdává se dál, dokud někdo nedosáhne {n} bodů — pak zápas končí.',
+  'zolik.rules.end.lowestWins': 'Na konci zápasu vyhrává nejnižší součet bodů.',
+  'zolik.rules.end.tieBreak':
+    'Pokud má nejnižší součet více hráčů, vyhrává ten, kdo vyhrál méně rozdání; je-li i to stejné, zápas končí remízou.',
 
   'prsi.rules.section.goal': 'Cíl',
   'prsi.rules.section.setup': 'Příprava',
@@ -143,13 +148,20 @@ export const cs: Record<string, string> = {
   'prsi.rules.deck': 'Hraje se s balíčkem {value} karet (od sedmy výš).',
   'prsi.rules.deal': 'Každý hráč začíná s {n} kartami.',
   'prsi.rules.dealLimit': 'Musí zbýt karta k otočení a jedna k líznutí, takže {seats} hráčů dostane nejvýš {n} karet.',
+  'prsi.rules.firstCard':
+    'Karta otočená na začátek odhazovací hromádky platí, jako by byla právě zahrána proti prvnímu hráči: na sedmu musí odpovědět, nebo líznout, na eso odpovědět, nebo vynechat tah. Svršek se nikdy neotáčí, dokud lze otočit jinou kartu — jde na spodek balíčku.',
   'prsi.rules.turn.match':
     'Zahraj kartu, která odpovídá barvou nebo hodnotou vrchní kartě — pokud nemůžeš, lízni si.',
   'prsi.rules.turn.draw': 'Lízání ukončí tah bez zahrání karty.',
   'prsi.rules.turn.nothingToDraw': 'Když není co líznout a žádná tvoje karta nejde zahrát, líznutí ukončí tah bez karty.',
   'prsi.rules.sevens': 'Zahraješ-li sedmu, další hráč líže dvě karty, pokud nemá vlastní sedmu k odpovědi.',
-  'prsi.rules.aces': 'Zahraješ-li eso, další hráč je vynechán.',
+  'prsi.rules.sevens.stack':
+    'Sedmy se sčítají: každá sedma zahraná jako odpověď přidá další dvě karty a první hráč, který nemůže odpovědět, si je lízne všechny.',
+  'prsi.rules.aces':
+    'Zahraješ-li eso, další hráč je vynechán, pokud neodpoví vlastním esem — tím se vynechání posouvá dál.',
   'prsi.rules.queens': 'Zahraješ-li svrška, urči barvu, kterou se hraje dál.',
+  'prsi.rules.queens.anything':
+    'Svrška lze zahrát na jakoukoli kartu — kromě sedmy nebo esa, na které se ještě čeká odpověď — a další karta musí být v ohlášené barvě, nebo další svršek.',
   'prsi.rules.end': 'Hra končí ve chvíli, kdy má někdo prázdnou ruku.',
   'prsi.rules.end.blocked': 'Když takto po řadě projdou všichni hráči, nikdo nemůže hrát: vyhrává nejméně karet a při shodě se výhra dělí.',
   'prsi.remedy.matchOrDraw': 'Zahraj kartu {suit} nebo takovou, která sedí na {card} — jinak si lízni.',
@@ -173,13 +185,23 @@ export const cs: Record<string, string> = {
   'canasta.rules.section.melding': 'Vykládání',
   'canasta.rules.section.end': 'Konec zápasu',
   'canasta.rules.section.turn': 'Tvůj tah',
-  'canasta.rules.goal': 'Hraje se ve dvojicích; zápas vyhrává strana, která první dosáhne {n} bodů.',
+  'canasta.rules.goal': 'Zápas vyhrává strana, která první dosáhne {n} bodů.',
+  'canasta.rules.partnerships':
+    'Čtyři hráči hrají ve dvou dvojicích, partneři sedí naproti sobě; dva nebo tři hráči hrají každý sám za sebe.',
+  'canasta.rules.partnershipsSix':
+    'Čtyři nebo šest hráčů hraje ve dvojicích, partneři sedí naproti sobě; dva, tři nebo pět hráčů hraje každý sám za sebe.',
   'canasta.rules.deck': 'Hraje se s {value} kartami — {decks} balíčky plus žolíci.',
   'canasta.rules.deal': 'Každý hráč dostane {n} karet.',
   'canasta.rules.drawCount': 'Na začátku tahu si líznete {n} karty.',
   'canasta.rules.redThrees':
     'Červenou trojku v ruce hned ukážeš a započítá se jako bonus — pokud ale tvá strana nedokončí ani jednu kanastu, počítá se naopak proti vám.',
+  'canasta.rules.redThreesNeedTwo':
+    'Červenou trojku v ruce hned ukážeš a započítá se jako bonus — pokud ale tvá strana dokončí méně než dvě kanasty, počítá se naopak každá {n} proti vám.',
+  'canasta.rules.redThreeValues':
+    'Každá červená trojka má hodnotu {n}; všech {count} dohromady má hodnotu {all}.',
   'canasta.rules.canasta': 'Kanasta je kombinace {n} a více karet stejné hodnoty.',
+  'canasta.rules.canastaBonus':
+    'Dokončená kanasta získá navíc k hodnotě svých karet bonus: {natural} za čistou bez žolíků, {mixed} za kanastu se žolíky.',
   'canasta.rules.sequences': 'Kombinace může být i postupka: tři a více karet stejné barvy za sebou, nikdy se žolíkem mezi nimi.',
   'canasta.rules.dirtySequences': 'Kombinace může být i postupka: tři až sedm karet jedné barvy za sebou. Žolíky mohou nahradit chybějící karty, nejvýš dva a nikdy víc než polovina počtu přirozených karet. Sedm karet se žolíkem je nečistá samba za {n}.',
   'canasta.rules.wildMeld': 'Jakmile vaše strana vyložila první kombinaci, smí vyložit jednu kombinaci dvojek a žolíků v libovolném poměru: stačí i tři žolíci. Sedm karet je kanasta: {n} ze samých dvojek, {mixed} se žolíky.',
@@ -222,14 +244,14 @@ export const cs: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Tvoje strana může mít několik kombinací stejné hodnoty.',
   'canasta.rules.canastaCloses': 'Canasta o {n} kartách je hotová a víc už nepřijme.',
   'canasta.rules.meldsAreShared':
-    'Kombinace patří dvojici: rozšířit je smí kterýkoli z partnerů, a na soupeřovy se nesahá.',
+    'Kombinace patří straně, která je vyložila — u stolu dvojic oběma partnerům: rozšířit je smí kterýkoli z nich a žádná jiná strana na ně nesahá.',
   'canasta.rules.layOffAfterOpening':
     'Dokud tvoje strana nevyložila svou první kombinaci, nesmí nic na stole doplňovat.',
   'canasta.rules.goOutKeepsACard':
     'Musíš být vždycky schopný svůj tah dokončit, takže celou ruku nevyložíš, ledaže je to právě tah, kterým vycházíš.',
   'canasta.rules.oneCanastaToGoOut': 'Vaší straně stačí k ukončení hry jedna dokončená kanasta.',
   'canasta.rules.twoCanastasToGoOut': 'Vaše strana potřebuje k ukončení hry dvě dokončené kanasty.',
-  'canasta.rules.end': 'Rozdává se dál, dokud jedna strana nepřekročí {n} bodů — pak zápas končí.',
+  'canasta.rules.end': 'Rozdává se dál, dokud jedna strana nedosáhne {n} bodů — pak zápas končí.',
 
   'holdem.rules.section.goal': 'Cíl',
   'holdem.rules.section.setup': 'Příprava',
@@ -695,10 +717,11 @@ export const cs: Record<string, string> = {
     'Po klepnutí, které není gin, může soupeř přiložit své mrtvé karty na tvoje kombinace, než se ruce porovnají.',
   'ginrummy.rules.deadHandDescription':
     'Pokud balíčku zbydou poslední dvě karty a nikdo neklepnul, je kolo mrtvé — nikdo nebodoval a rozdává stejný hráč znovu.',
+  'ginrummy.rules.knockScore': 'Klepnutí, které není podklepnuto, získá rozdíl mezi mrtvými body obou hráčů.',
   'ginrummy.rules.undercut':
     'Pokud soupeř nemá víc mrtvých bodů než ty, podklepne tě: získá rozdíl plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin bodově znamená celou soupeřovu ruku plus {n}.',
-  'ginrummy.rules.target': 'Partii vyhrává první hráč, který po skončení kola překročí {n} bodů.',
+  'ginrummy.rules.target': 'Partii vyhrává první hráč, který po skončení kola dosáhne {n} bodů.',
   'ginrummy.rules.shutout':
     'Bonus za partii se zdvojnásobí na {n}, pokud poražený za celou partii nezískal ani bod.',
   'ginrummy.rules.box': 'Každé vyhrané kolo je na konci partie navíc {n} bodů.',
@@ -789,7 +812,7 @@ export const cs: Record<string, string> = {
     'Když dojde banka a nikdo nemůže hrát, kolo končí a vyhrává ten s nejnižší hodnotou v ruce.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Když dojde banka a nikdo nemůže hrát, kolo končí bez vítěze — každému se prostě spočítá jeho ruka.',
-  'rummytiles.rules.target': 'Partii vyhrává první hráč, který po skončení kola překročí {n} bodů.',
+  'rummytiles.rules.target': 'Partii vyhrává první hráč, který po skončení kola dosáhne {n} bodů.',
   'rummytiles.rules.roundLimit': 'Partie končí po {n} kolech — vyhrává nejvyšší skóre.',
   'rummytiles.remedy.emptyTheTray': 'Umísti {n} kamenů, které máš ještě v přihrádce, nebo tah vrať.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -824,6 +847,7 @@ export const cs: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Vrátit tah',
   'rummytiles.offer.commit': 'Hotovo',
   'rummytiles.offer.draw': 'Líznout',
+  'rummytiles.offer.pass': 'Pas',
   'rummytiles.param.position': 'Rozdělit na',
 
   // --- blackjack -----------------------------------------------------------
@@ -1191,6 +1215,20 @@ export const cs: Record<string, string> = {
   'auth.register.password': 'Heslo',
   'auth.username.createAccount': 'Vytvořit účet se jménem a heslem',
   'auth.callback.signedIn': 'Přihlášeno.',
+  'auth.error.alreadyLinked': "Tento účet je už propojený s jiným hráčem.",
+  'auth.error.expired': "Přihlášení trvalo příliš dlouho. Zkuste to znovu.",
+  'auth.error.alreadyUsed': "Toto přihlášení už bylo použito. Zkuste to znovu.",
+  'auth.error.notCompleted': "Přihlášení se nepodařilo dokončit. Zkuste to znovu.",
+  'auth.error.unknownProvider': "Tento způsob přihlášení tu není k dispozici.",
+  'auth.error.noCode': "Poskytovatel přihlášení nedokončil.",
+  'auth.error.failed': "Přihlášení se nezdařilo. Zkuste to znovu.",
+  'auth.provider.guest': "Hrát jako host",
+  'auth.provider.email': "Pokračovat e-mailem",
+  'auth.provider.continueWith': "Pokračovat přes {provider}",
+  'auth.claim.prompt': "Počet her zaznamenaných na tomto zařízení: {n}. Přihlaste se a zůstanou vám.",
+  'auth.claim.prompt.1': "Na tomto zařízení je zaznamenaná 1 hra. Přihlaste se a zůstane vám.",
+  'auth.claim.added': "Do vašeho účtu byly přidány předchozí hry (celkem {n}).",
+  'auth.claim.added.1': "Vaše předchozí hra byla přidána do vašeho účtu.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Přihlas se, ať můžeš spravovat účet.',
@@ -2144,6 +2182,7 @@ export const cs: Record<string, string> = {
   'rummytiles.move.reset': '{player} vrátil stůl do původního stavu',
   'rummytiles.move.committed': '{player} ukončil tah',
   'rummytiles.move.drew': '{player} si lízl kámen',
+  'rummytiles.move.passed': '{player} pasoval — banka je prázdná',
   'moves.last': 'Poslední tah',
   'moves.history': 'Historie',
   'hints.title': 'Nápovědy',
@@ -3135,7 +3174,8 @@ export const cs: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Piková dáma tak může zároveň platit v pikové hlášce, ve čtyřech dámách i v Pinochle, a druhý trumfový král s dámou vedle postupky se pořád počítá jako trumfová hláška.',
   'pinochle.rules.meld.onWin': 'Hlásit smí jen ten, kdo vyhrál zdvih, a jen dokud je co lízat.',
   'pinochle.rules.meld.onePerTurn': 'Za každý vyhraný zdvih jedna hláška. Ohlášené karty zůstávají na stole a dají se dál hrát.',
-  'pinochle.rules.meld.exchange': 'Trumfovou devítku lze vyměnit za otočený trumf. Získá {n} a počítá se jako hláška toho tahu.',
+  'pinochle.rules.meld.exchange':
+    'Trumfovou devítku, kterou jsi ještě neukázal jako hlášku, lze vyměnit za otočený trumf. Získá {n} a počítá se jako hláška toho tahu.',
   'pinochle.rules.meld.staysInHand': 'Když dojde lízací balíček, vrátí se všechny ohlášené karty majitelům do ruky.',
   'pinochle.rules.meld.shown': 'Po určení trumfů se hlášky všech hráčů sečtou a během prvního zdvihu ukážou na stole.',
   'pinochle.rules.meld.needsTrick': 'Hlášky strany platí, jen když vezme aspoň jeden zdvih.',

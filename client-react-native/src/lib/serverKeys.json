@@ -473,6 +473,7 @@
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
+    "canasta.rules.canastaBonus",
     "canasta.rules.canastaCloses",
     "canasta.rules.cardValues",
     "canasta.rules.deal",
@@ -492,6 +493,8 @@
     "canasta.rules.meldsPerRankUnlimited",
     "canasta.rules.oneCanastaToGoOut",
     "canasta.rules.oneMeldPerRank",
+    "canasta.rules.partnerships",
+    "canasta.rules.partnershipsSix",
     "canasta.rules.pileAlwaysFrozen",
     "canasta.rules.pileBlocked",
     "canasta.rules.pileFrozenByWild",
@@ -500,7 +503,9 @@
     "canasta.rules.pileTopCard",
     "canasta.rules.poach",
     "canasta.rules.rearrange",
+    "canasta.rules.redThreeValues",
     "canasta.rules.redThrees",
+    "canasta.rules.redThreesNeedTwo",
     "canasta.rules.samba",
     "canasta.rules.section.end",
     "canasta.rules.section.goal",
@@ -624,6 +629,7 @@
     "ginrummy.rules.ginBonus",
     "ginrummy.rules.knockLimit",
     "ginrummy.rules.knockOnDiscard",
+    "ginrummy.rules.knockScore",
     "ginrummy.rules.knocking",
     "ginrummy.rules.layoff",
     "ginrummy.rules.layoffDescription",
@@ -1371,14 +1377,17 @@
     "prsi.rules.deck",
     "prsi.rules.end",
     "prsi.rules.end.blocked",
+    "prsi.rules.firstCard",
     "prsi.rules.goal",
     "prsi.rules.queens",
+    "prsi.rules.queens.anything",
     "prsi.rules.section.end",
     "prsi.rules.section.goal",
     "prsi.rules.section.setup",
     "prsi.rules.section.special",
     "prsi.rules.section.turn",
     "prsi.rules.sevens",
+    "prsi.rules.sevens.stack",
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
     "prsi.rules.turn.nothingToDraw",
@@ -1397,6 +1406,7 @@
     "rummytiles.move.added",
     "rummytiles.move.committed",
     "rummytiles.move.drew",
+    "rummytiles.move.passed",
     "rummytiles.move.placed",
     "rummytiles.move.reset",
     "rummytiles.move.split",
@@ -1406,6 +1416,7 @@
     "rummytiles.offer.addFromTray",
     "rummytiles.offer.commit",
     "rummytiles.offer.draw",
+    "rummytiles.offer.pass",
     "rummytiles.offer.place",
     "rummytiles.offer.resetTurn",
     "rummytiles.offer.split",
@@ -1724,9 +1735,12 @@
     "zolik.rules.contracts.rotating",
     "zolik.rules.contracts.static",
     "zolik.rules.deal",
+    "zolik.rules.deck.packs",
     "zolik.rules.deck.reshuffle",
     "zolik.rules.end.afterDeals",
     "zolik.rules.end.atScore",
+    "zolik.rules.end.lowestWins",
+    "zolik.rules.end.tieBreak",
     "zolik.rules.goal",
     "zolik.rules.jokers.reclaim.off",
     "zolik.rules.jokers.reclaim.on",
@@ -1863,6 +1877,7 @@
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
+    "canasta.rules.canastaBonus",
     "canasta.rules.canastaCloses",
     "canasta.rules.cardValues",
     "canasta.rules.deal",
@@ -1882,6 +1897,8 @@
     "canasta.rules.meldsPerRankUnlimited",
     "canasta.rules.oneCanastaToGoOut",
     "canasta.rules.oneMeldPerRank",
+    "canasta.rules.partnerships",
+    "canasta.rules.partnershipsSix",
     "canasta.rules.pileAlwaysFrozen",
     "canasta.rules.pileBlocked",
     "canasta.rules.pileFrozenByWild",
@@ -1890,7 +1907,9 @@
     "canasta.rules.pileTopCard",
     "canasta.rules.poach",
     "canasta.rules.rearrange",
+    "canasta.rules.redThreeValues",
     "canasta.rules.redThrees",
+    "canasta.rules.redThreesNeedTwo",
     "canasta.rules.samba",
     "canasta.rules.section.end",
     "canasta.rules.section.goal",
@@ -1952,6 +1971,7 @@
     "ginrummy.rules.ginBonus",
     "ginrummy.rules.knockLimit",
     "ginrummy.rules.knockOnDiscard",
+    "ginrummy.rules.knockScore",
     "ginrummy.rules.knocking",
     "ginrummy.rules.layoff",
     "ginrummy.rules.layoffDescription",
@@ -2306,14 +2326,17 @@
     "prsi.rules.deck",
     "prsi.rules.end",
     "prsi.rules.end.blocked",
+    "prsi.rules.firstCard",
     "prsi.rules.goal",
     "prsi.rules.queens",
+    "prsi.rules.queens.anything",
     "prsi.rules.section.end",
     "prsi.rules.section.goal",
     "prsi.rules.section.setup",
     "prsi.rules.section.special",
     "prsi.rules.section.turn",
     "prsi.rules.sevens",
+    "prsi.rules.sevens.stack",
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
     "prsi.rules.turn.nothingToDraw",
@@ -2458,9 +2481,12 @@
     "zolik.rules.contracts.contribution",
     "zolik.rules.contracts.rotating",
     "zolik.rules.deal",
+    "zolik.rules.deck.packs",
     "zolik.rules.deck.reshuffle",
     "zolik.rules.end.afterDeals",
     "zolik.rules.end.atScore",
+    "zolik.rules.end.lowestWins",
+    "zolik.rules.end.tieBreak",
     "zolik.rules.goal",
     "zolik.rules.jokers.reclaim.off",
     "zolik.rules.jokers.reclaim.on",
@@ -2822,6 +2848,10 @@
     "canasta.rules.canasta": [
       "n"
     ],
+    "canasta.rules.canastaBonus": [
+      "mixed",
+      "natural"
+    ],
     "canasta.rules.canastaCloses": [
       "n"
     ],
@@ -2881,6 +2911,14 @@
       "n"
     ],
     "canasta.rules.pileBlocked": [
+      "n"
+    ],
+    "canasta.rules.redThreeValues": [
+      "all",
+      "count",
+      "n"
+    ],
+    "canasta.rules.redThreesNeedTwo": [
       "n"
     ],
     "canasta.rules.samba": [
@@ -4001,6 +4039,9 @@
     "rummytiles.move.drew": [
       "player"
     ],
+    "rummytiles.move.passed": [
+      "player"
+    ],
     "rummytiles.move.placed": [
       "cards",
       "player"
@@ -4391,6 +4432,11 @@
     "zolik.rules.deal": [
       "n"
     ],
+    "zolik.rules.deck.packs": [
+      "large",
+      "mid",
+      "small"
+    ],
     "zolik.rules.end.afterDeals": [
       "n"
     ],
@@ -4519,6 +4565,7 @@
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
+    "canasta.rules.canastaBonus",
     "canasta.rules.canastaCloses",
     "canasta.rules.cardValues",
     "canasta.rules.deal",
@@ -4533,6 +4580,8 @@
     "canasta.rules.meldFloorBandsFive",
     "canasta.rules.meldShape",
     "canasta.rules.pileBlocked",
+    "canasta.rules.redThreeValues",
+    "canasta.rules.redThreesNeedTwo",
     "canasta.rules.samba",
     "canasta.rules.wildLimit",
     "canasta.rules.wildMeld",
@@ -4844,6 +4893,7 @@
     "rummytiles.move.added",
     "rummytiles.move.committed",
     "rummytiles.move.drew",
+    "rummytiles.move.passed",
     "rummytiles.move.placed",
     "rummytiles.move.reset",
     "rummytiles.move.split",
@@ -4956,6 +5006,7 @@
     "zolik.rules.contracts.rotating",
     "zolik.rules.contracts.static",
     "zolik.rules.deal",
+    "zolik.rules.deck.packs",
     "zolik.rules.end.afterDeals",
     "zolik.rules.end.atScore",
     "zolik.rules.meldFloor.on",

@@ -211,11 +211,31 @@ func (h *Hub) attachHost(nodeID, instanceID, name string, protocol int, want str
 	t.host = &conn{ws: ws}
 	t.away = time.Time{}
 	t.instanceID, t.name, t.protocol = instanceID, name, protocol
+	// Every tunnel ran to the old connection, and the phone on this one has
+	// never heard of them: it starts with no guests, so their frames would
+	// be dropped and theirs would never come. Let them go as if the host
+	// had gone — which, for them, it has — so they reconnect and the phone
+	// hears an open for each. hostGone cannot do it: by the time the old
+	// connection's handler ends, it is no longer the host and returns early.
+	var guests map[uint32]*guest
+	if old != nil {
+		guests = t.guests
+		t.guests = map[uint32]*guest{}
+	}
 	t.mu.Unlock()
 	if old != nil {
 		// The same phone again, on a fresh connection: the old one is a
 		// socket the network has not noticed is dead yet.
 		_ = old.ws.Close()
+	}
+	if len(guests) > 0 {
+		// Off h.mu, which is held to the end of this call: each close may
+		// wait on a dead guest's write deadline.
+		go func() {
+			for _, g := range guests {
+				g.closeWith(CloseHostGone, "host reconnected")
+			}
+		}()
 	}
 	return t, nil
 }

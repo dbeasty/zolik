@@ -2,12 +2,14 @@ package match
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
 	"zolik/server/internal/botgov"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/rules"
 )
 
 // Which engine plays a bot seat, and keeping that choice still for a turn.
@@ -124,10 +126,45 @@ func (m *Manager) noteMove(matchID, playerID string) {
 	m.governor.Moved(matchID, playerID)
 }
 
-// matchStopped lets go of everything held for a match's bot seats.
-func (m *Manager) matchStopped(matchID string) {
+// matchStopped lets go of everything held for a match's bot seats, and — once
+// the match is over for good — of every seat's away clock.
+//
+// status is the match's as the caller found it. Not every stop is an end: the
+// bot loop stops at a suspended table too, which is exactly where the away
+// clocks are still counting towards a stand-in.
+func (m *Manager) matchStopped(matchID, status string) {
 	m.turns.forget(matchID)
 	m.governor.ReleaseMatch(matchID)
+	if over(status) {
+		m.forgetAway(matchID)
+	}
+}
+
+// over reports whether a status is one no seat's absence matters in any more.
+// An abandoned table can be resumed, but then everybody is back (see
+// resumableBy), and an absence after that starts its own clock.
+func over(status string) bool {
+	return status == string(rules.StatusCompleted) || status == string(rules.StatusAbandoned)
+}
+
+// forgetAway drops what is kept per seat about a match's absences. Keyed by
+// "matchID|playerID" and otherwise only cleared by a seat coming back, so a
+// table nobody returned to after it finished kept its entries for as long as
+// the process lived.
+func (m *Manager) forgetAway(matchID string) {
+	prefix := matchID + "|"
+	m.awayMu.Lock()
+	defer m.awayMu.Unlock()
+	for k := range m.awaySince {
+		if strings.HasPrefix(k, prefix) {
+			delete(m.awaySince, k)
+		}
+	}
+	for k := range m.standInHeld {
+		if strings.HasPrefix(k, prefix) {
+			delete(m.standInHeld, k)
+		}
+	}
 }
 
 // seatBot is the bot, seat and engine that play this seat's next move.

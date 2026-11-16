@@ -39,7 +39,7 @@ func refusalRules(code string) []string {
 	// a refusal: a seven you have to answer, an ace you have to take, a queen
 	// that will not go down until you say what follows it.
 	case ErrMustAnswerDraw:
-		return []string{"prsi.rules.sevens"}
+		return []string{"prsi.rules.sevens", "prsi.rules.sevens.stack"}
 	case ErrNothingToSkip:
 		return []string{"prsi.rules.aces"}
 	case ErrSuitRequired, ErrUnknownSuit:

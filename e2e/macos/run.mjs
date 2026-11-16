@@ -67,6 +67,8 @@ async function startServer() {
     env: {
       ...process.env,
       PORT: String(port),
+      // Unset APP_ENV means production on the server; this is a local run.
+      APP_ENV: 'local',
       SSH_ENABLED: 'false',
       FEATURE_FLAG_DB_ENGINE: 'kdb',
       KDB_PATH: path.join(WORK, 'kdb'),
@@ -77,12 +79,19 @@ async function startServer() {
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+  // Stopped by the cleanups from the moment it exists: a server that never
+  // answers below used to be left running when the throw skipped main's
+  // registration of it.
+  cleanups.push(() => stopProcess(proc));
   const chunks = [];
   proc.stdout.on('data', (d) => chunks.push(d));
   proc.stderr.on('data', (d) => chunks.push(d));
   proc.on('exit', () => writeFileSync(out, Buffer.concat(chunks)));
   const base = `http://127.0.0.1:${port}`;
   for (let i = 0; i < 120; i++) {
+    if (proc.exitCode !== null || proc.signalCode !== null) {
+      throw new Error(`the server exited (${proc.exitCode ?? proc.signalCode}) before answering; see ${out}`);
+    }
     try {
       const r = await fetch(`${base}/version`);
       if (r.ok) return { proc, base, port, version: (await r.json()).version, flush: () => writeFileSync(out, Buffer.concat(chunks)) };
@@ -90,6 +99,29 @@ async function startServer() {
     await sleep(250);
   }
   throw new Error('the server did not come up');
+}
+
+// SIGTERM, and SIGKILL if that has not worked in ten seconds.
+async function stopProcess(proc) {
+  if (proc.exitCode !== null || proc.signalCode !== null) return;
+  const exited = new Promise((r) => proc.once('exit', r));
+  proc.kill('SIGTERM');
+  if ((await Promise.race([exited.then(() => 'exited'), sleep(10_000)])) !== 'exited') {
+    proc.kill('SIGKILL');
+    await Promise.race([exited, sleep(2_000)]);
+  }
+}
+
+// Everything this run started was started from inside WORK — the server, the
+// phone, every copy of the app — so a last sweep for WORK on a command line
+// catches what a cleanup missed: an app launched through `open`, whose pid is
+// open's and not the app's, or one whose quit was never answered.
+function killLeftovers() {
+  try {
+    execFileSync('pkill', ['-9', '-f', WORK], { stdio: 'ignore' });
+  } catch {
+    /* exit 1: nothing left, which is the point */
+  }
 }
 
 // ---- the app under test ------------------------------------------------------
@@ -187,8 +219,12 @@ class MacApp {
 
   async quit() {
     if (this.proc.exitCode !== null) return;
-    await this.native('quit').catch(() => {});
-    const code = await Promise.race([this.exited, sleep(10_000).then(() => 'timeout')]);
+    // Briefly: an app that never started will never answer, and the default
+    // wait for an answer is over two minutes.
+    const answered = await this.send('native', 'quit', 5_000).then(() => true, () => false);
+    // An app that took the command gets time to close its windows; one that
+    // never answered is not going to.
+    const code = await Promise.race([this.exited, sleep(answered ? 10_000 : 1_000).then(() => 'timeout')]);
     if (code === 'timeout') this.proc.kill('SIGKILL');
   }
 }
@@ -335,10 +371,6 @@ async function main() {
   log(`work folder: ${WORK}`);
   const binary = prepareApp();
   const server = await startServer();
-  cleanups.push(async () => {
-    server.proc.kill('SIGTERM');
-    await Promise.race([new Promise((r) => server.proc.on('exit', r)), sleep(10_000)]);
-  });
   log(`server ${server.base} (version ${server.version})\n`);
 
   const { chromium } = await import(path.join(ROOT, 'e2e/node_modules/@playwright/test/index.mjs'));
@@ -1625,6 +1657,31 @@ async function main() {
 
 let lastOffline = '';
 
+async function runCleanups() {
+  for (const c of cleanups.splice(0).reverse()) {
+    try {
+      await c();
+    } catch {}
+  }
+  killLeftovers();
+}
+
+// And once more on the way out, whatever the way out is. Synchronous, so
+// nothing can be spawned between it and the exit: a signal that lands while
+// main() is between steps runs the cleanups, but main() goes on to its next
+// launch while they are awaited.
+process.on('exit', killLeftovers);
+
+// Ctrl-C, or a harness timing the run out, gets the same cleanups a failure
+// does; without this every process above outlived the run.
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.once(sig, async () => {
+    log(`\n${sig}: stopping what this run started…`);
+    await runCleanups();
+    process.exit(130);
+  });
+}
+
 let crashed = null;
 try {
   await main();
@@ -1633,11 +1690,7 @@ try {
   failed = true;
   log(`\nrun aborted: ${e && e.stack ? e.stack : e}`);
 }
-for (const c of cleanups.reverse()) {
-  try {
-    await c();
-  } catch {}
-}
+await runCleanups();
 writeFileSync(path.join(WORK, 'results.json'), JSON.stringify({ results, crashed: crashed && String(crashed) }, null, 2));
 const passed = results.filter((r) => r.status === 'passed').length;
 log(`\n${passed}/${results.length} passed${failed ? ' — FAILED' : ''}`);

@@ -269,3 +269,24 @@ describe('the strings around the documents', () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe('the privacy notice on guests', () => {
+  // It used to say nothing about a guest was kept beyond the table, while
+  // the server keeps guest sessions, match results, the circle and push
+  // devices. Pinned to what the server actually stores.
+  const text = (locale: 'en' | 'cs') =>
+    LEGAL_DOCUMENTS[locale].privacy.sections.flatMap((s) => s.body).join('\n');
+
+  it('no longer claims nothing is kept for a guest', () => {
+    expect(text('en')).not.toMatch(/Nothing about you is kept/);
+    expect(text('cs')).not.toMatch(/neuchováváme nic/);
+  });
+
+  it('names what is kept for a guest, and for how long', () => {
+    const en = text('en');
+    for (const fact of ['guest sessions', 'game circle', 'notification token', 'My games', '30 days', '90 days']) {
+      expect(en).toContain(fact);
+    }
+    expect(text('cs')).toContain('Moje hry');
+  });
+});

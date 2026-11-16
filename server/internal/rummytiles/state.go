@@ -100,6 +100,11 @@ type GameState struct {
 
 	NextSetID int `json:"nextSetId"`
 
+	// EmptyPoolPasses counts the turns passed in a row since the pool ran
+	// dry. The round ends when it reaches the number of players: nobody can
+	// play. A committed turn resets it.
+	EmptyPoolPasses int `json:"emptyPoolPasses,omitempty"`
+
 	RoundNumber int            `json:"roundNumber"`
 	Scores      map[string]int `json:"scores"`
 

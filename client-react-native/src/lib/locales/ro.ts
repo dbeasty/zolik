@@ -102,6 +102,8 @@ export const ro: Record<string, string> = {
   'zolik.rules.section.end': 'Cum se încheie meciul',
   'zolik.rules.goal':
     'Fii primul care își golește mâna coborând grupuri și scări valide, strângând cât mai puține puncte de penalizare în cărțile pe care le mai ții când altcineva iese.',
+  'zolik.rules.deck.packs':
+    'Se joacă cu {small} pachete de 52 de cărți plus câte 2 jokeri fiecare pentru doi până la patru jucători, {mid} pachete pentru cinci sau șase și {large} pentru șapte sau opt.',
   'zolik.rules.deal': 'Fiecare jucător primește {n} cărți.',
   'zolik.rules.meldShapes':
     'Un grup are {set}+ cărți de aceeași valoare; o scară are {run}+ cărți consecutive de aceeași culoare.',
@@ -134,6 +136,9 @@ export const ro: Record<string, string> = {
     "O carte rămasă în mână costă: joker {joker}, 10, valet, damă sau rege {face}, de la 2 la 9 numărul ei, iar un as {ace} — sau doar {aceLow} dacă ai în mână și un 2 de aceeași culoare, ori dama și regele de aceeași culoare, sau dacă ar prelungi o secvență de pe masă.",
   'zolik.rules.end.atScore':
     'Se împarte mai departe până când cineva ajunge la {n} puncte — atunci s-a terminat.',
+  'zolik.rules.end.lowestWins': 'La sfârșitul meciului câștigă totalul cel mai mic.',
+  'zolik.rules.end.tieBreak':
+    'Dacă mai mulți jucători au cel mai mic total, câștigă cel care a câștigat mai puține împărțiri; dacă și aici e egalitate, meciul se încheie la egalitate.',
 
   'prsi.rules.section.goal': 'Scop',
   'prsi.rules.section.setup': 'Pregătire',
@@ -144,13 +149,20 @@ export const ro: Record<string, string> = {
   'prsi.rules.deck': 'Se joacă cu un pachet de {value} cărți (de la 7 în sus).',
   'prsi.rules.deal': 'Fiecare jucător începe cu {n} cărți.',
   'prsi.rules.dealLimit': 'Trebuie să rămână o carte de întors și una de tras, deci {seats} jucători primesc cel mult {n} cărți fiecare.',
+  'prsi.rules.firstCard':
+    'Cartea întoarsă pentru a începe teancul contează ca și cum tocmai ar fi fost jucată spre primul jucător: la un 7 trebuie să răspunzi sau să plătești, la un as să răspunzi sau să pierzi rândul. Un svršek nu se întoarce niciodată cât timp se poate întoarce altă carte — merge la fundul pachetului.',
   'prsi.rules.turn.match':
     'Joacă o carte care se potrivește la culoare sau la valoare cu cea de deasupra — sau trage, dacă nu poți.',
   'prsi.rules.turn.draw': 'Tragerea îți încheie rândul fără să joci.',
   'prsi.rules.turn.nothingToDraw': 'Dacă nu mai e nimic de tras și nicio carte de-a ta nu se potrivește, tragerea îți încheie tura fără carte.',
   'prsi.rules.sevens': 'Joacă un 7 și următorul jucător trage două cărți, dacă nu răspunde cu un 7 al lui.',
-  'prsi.rules.aces': 'Joacă un as și rândul următorului jucător este sărit.',
+  'prsi.rules.sevens.stack':
+    'Șeptarii se adună: fiecare 7 jucat ca răspuns mai adaugă două cărți, iar primul jucător care nu poate răspunde le trage pe toate.',
+  'prsi.rules.aces':
+    'Joacă un as și următorul jucător pierde rândul, dacă nu răspunde cu un as al lui — care trece rândul pierdut mai departe.',
   'prsi.rules.queens': 'Joacă un svršek (Ober) și spune culoarea care continuă.',
+  'prsi.rules.queens.anything':
+    'Un svršek se pune pe orice carte — cu excepția unui 7 sau a unui as care încă așteaptă răspuns — iar cartea următoare trebuie să urmeze culoarea spusă sau să fie un alt svršek.',
   'prsi.rules.end': 'Meciul se încheie în clipa în care mâna cuiva este goală.',
   'prsi.rules.end.blocked': 'Dacă toți jucătorii trec așa pe rând, nimeni nu mai poate juca: câștigă cele mai puține cărți, iar la egalitate victoria se împarte.',
   'prsi.remedy.matchOrDraw':
@@ -175,13 +187,23 @@ export const ro: Record<string, string> = {
   'canasta.rules.section.melding': 'Coborârea',
   'canasta.rules.section.end': 'Cum se încheie meciul',
   'canasta.rules.section.turn': 'Rândul tău',
-  'canasta.rules.goal': 'Se joacă în echipe; prima tabără care ajunge la {n} puncte câștigă meciul.',
+  'canasta.rules.goal': 'Prima tabără care ajunge la {n} puncte câștigă meciul.',
+  'canasta.rules.partnerships':
+    'Patru jucători joacă în două echipe, partenerii stând față în față; doi sau trei jucători joacă fiecare pe cont propriu.',
+  'canasta.rules.partnershipsSix':
+    'Patru sau șase jucători joacă în echipe de câte doi, partenerii stând față în față; doi, trei sau cinci jucători joacă fiecare pe cont propriu.',
   'canasta.rules.deck': 'Se joacă cu {value} cărți — {decks} pachete plus jokeri.',
   'canasta.rules.deal': 'Fiecare jucător primește {n} cărți.',
   'canasta.rules.drawCount': 'La începutul turei tragi {n} cărți.',
   'canasta.rules.redThrees':
     'Un trei roșu din mâna ta se arată imediat și aduce bonus — dacă tabăra ta nu termină nicio canastă, se socotește însă împotriva ta.',
+  'canasta.rules.redThreesNeedTwo':
+    'Un trei roșu din mâna ta se arată imediat și aduce bonus — dar dacă tabăra ta termină mai puțin de două canaste, fiecare se socotește {n} împotriva ta.',
+  'canasta.rules.redThreeValues':
+    'Fiecare trei roșu valorează {n}; toți cei {count} împreună valorează {all}.',
   'canasta.rules.canasta': 'O canastă este o combinație de {n} sau mai multe cărți de aceeași valoare.',
+  'canasta.rules.canastaBonus':
+    'O canastă completă aduce un bonus pe lângă cărțile ei: {natural} pentru una naturală, fără cărți wild, {mixed} pentru una cu cărți wild.',
   'canasta.rules.sequences': 'O combinație poate fi și o secvență: trei sau mai multe cărți de aceeași culoare la rând, niciodată cu un joker între ele.',
   'canasta.rules.dirtySequences': 'O combinație poate fi și o secvență: de la trei la șapte cărți de aceeași culoare la rând. Cărțile wild pot ține locul cărților lipsă, cel mult două și niciodată mai mult de jumătate din numărul cărților naturale. Șapte cărți cu un wild printre ele formează o samba murdară, care valorează {n}.',
   'canasta.rules.wildMeld': 'După ce partea ta a deschis, poate pune jos o combinație de doiari și jokeri în orice proporție: ajung și trei jokeri. Șapte cărți formează o canastă: {n} dacă sunt numai doiari, {mixed} cu jokeri.',
@@ -225,7 +247,7 @@ export const ro: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Echipa ta poate avea mai multe combinații de aceeași valoare.',
   'canasta.rules.canastaCloses': 'O canastă de {n} cărți este completă și nu mai primește altele.',
   'canasta.rules.meldsAreShared':
-    'Combinațiile aparțin echipei: oricare dintre parteneri le poate extinde, iar pe cele adverse nu le atinge nimeni.',
+    'Combinațiile aparțin taberei care le-a pus jos — la o masă cu echipe, ambilor parteneri: oricare dintre ei le poate extinde, iar nicio altă tabără nu le poate atinge.',
   'canasta.rules.layOffAfterOpening':
     'Până când echipa ta nu își face combinația inițială, nu poate adăuga cărți la nimic de pe masă.',
   'canasta.rules.goOutKeepsACard':
@@ -233,7 +255,7 @@ export const ro: Record<string, string> = {
   'canasta.rules.oneCanastaToGoOut': 'O canastă terminată e de ajuns ca tabăra ta să iasă.',
   'canasta.rules.twoCanastasToGoOut': 'Tabăra ta are nevoie de două canaste terminate înainte să poată ieși.',
   'canasta.rules.end':
-    'Se împarte mai departe până când o tabără depășește {n} puncte — atunci meciul s-a încheiat.',
+    'Se împarte mai departe până când o tabără ajunge la {n} puncte — atunci meciul s-a încheiat.',
 
   'holdem.rules.section.goal': 'Scop',
   'holdem.rules.section.setup': 'Pregătire',
@@ -705,10 +727,12 @@ export const ro: Record<string, string> = {
     'După o bătaie care nu este gin, adversarul tău își poate alipi propriul deadwood la combinațiile tale înainte ca mâinile să fie comparate.',
   'ginrummy.rules.deadHandDescription':
     'Dacă talonul coboară la ultimele două cărți și nimeni nu a bătut, mâna este moartă — nimeni nu punctează, iar același împărțitor împarte din nou.',
+  'ginrummy.rules.knockScore':
+    'O bătaie care nu este tăiată aduce diferența dintre deadwood-ul celor doi jucători.',
   'ginrummy.rules.undercut':
     'Dacă deadwood-ul adversarului nu e mai mare decât al tău, te taie: primește diferența, plus {n}.',
   'ginrummy.rules.ginBonus': 'Ginul aduce toată mâna adversarului tău, plus {n}.',
-  'ginrummy.rules.target': 'Primul care depășește {n} puncte la sfârșitul unei mâini câștigă meciul.',
+  'ginrummy.rules.target': 'Primul care ajunge la {n} puncte la sfârșitul unei mâini câștigă meciul.',
   'ginrummy.rules.shutout': 'Bonusul de meci se dublează la {n} dacă cel învins nu a marcat niciun punct.',
   'ginrummy.rules.box': 'Fiecare mână câștigată valorează {n} puncte la sfârșitul meciului.',
   'ginrummy.rules.gameBonus': 'Câștigarea meciului aduce încă {n} puncte.',
@@ -799,7 +823,7 @@ export const ro: Record<string, string> = {
     'Dacă rezerva se termină și nimeni nu mai poate juca, runda se încheie și o câștigă mâna cu valoarea cea mai mică.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Dacă rezerva se termină și nimeni nu mai poate juca, runda se încheie fără câștigător — fiecare mână este pur și simplu punctată.',
-  'rummytiles.rules.target': 'Primul care depășește {n} puncte la sfârșitul unei runde câștigă meciul.',
+  'rummytiles.rules.target': 'Primul care ajunge la {n} puncte la sfârșitul unei runde câștigă meciul.',
   'rummytiles.rules.roundLimit': 'Meciul se încheie după {n} runde — câștigă scorul cel mai mare.',
   'rummytiles.remedy.emptyTheTray': 'Așază cele {n} piese rămase pe suport sau resetează rândul.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -835,6 +859,7 @@ export const ro: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Resetează tura',
   'rummytiles.offer.commit': 'Gata',
   'rummytiles.offer.draw': 'Trage',
+  'rummytiles.offer.pass': 'Pas',
   'rummytiles.param.position': 'Taie la',
 
   // --- blackjack -----------------------------------------------------------
@@ -1214,6 +1239,20 @@ export const ro: Record<string, string> = {
   'auth.register.password': 'Parolă',
   'auth.username.createAccount': 'Creează un cont cu nume de utilizator și parolă',
   'auth.callback.signedIn': 'Autentificat.',
+  'auth.error.alreadyLinked': "Acest cont este deja asociat cu alt jucător.",
+  'auth.error.expired': "Autentificarea a durat prea mult. Încearcă din nou.",
+  'auth.error.alreadyUsed': "Această autentificare a fost deja folosită. Încearcă din nou.",
+  'auth.error.notCompleted': "Autentificarea nu a putut fi finalizată. Încearcă din nou.",
+  'auth.error.unknownProvider': "Această metodă de autentificare nu este disponibilă aici.",
+  'auth.error.noCode': "Furnizorul nu a finalizat autentificarea.",
+  'auth.error.failed': "Autentificarea a eșuat. Încearcă din nou.",
+  'auth.provider.guest': "Joacă ca invitat",
+  'auth.provider.email': "Continuă cu e-mail",
+  'auth.provider.continueWith': "Continuă cu {provider}",
+  'auth.claim.prompt': "Jocuri înregistrate pe acest dispozitiv: {n}. Autentifică-te pentru a le păstra.",
+  'auth.claim.prompt.1': "Pe acest dispozitiv este înregistrat 1 joc. Autentifică-te pentru a-l păstra.",
+  'auth.claim.added': "Jocurile tale anterioare (în total {n}) au fost adăugate în contul tău.",
+  'auth.claim.added.1': "Jocul tău anterior a fost adăugat în contul tău.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Autentifică-te ca să îți administrezi contul.',
@@ -2171,6 +2210,7 @@ export const ro: Record<string, string> = {
   'rummytiles.move.reset': '{player} a readus masa cum era',
   'rummytiles.move.committed': '{player} și-a încheiat tura',
   'rummytiles.move.drew': '{player} a tras o piesă',
+  'rummytiles.move.passed': '{player} a dat pas — rezerva este goală',
   'moves.last': 'Ultima mutare',
   'moves.history': 'Istoric',
   'hints.title': 'Indicii',
@@ -3161,7 +3201,8 @@ export const ro: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Astfel dama de pică poate conta în același timp într-o căsătorie de pică, într-un careu de dame și într-un pinochle, iar un al doilea rege și o a doua damă de atu lângă o suită se numără tot drept căsătorie de atu.',
   'pinochle.rules.meld.onWin': 'Doar cel care ia o levată poate anunța, și doar cât mai există talon.',
   'pinochle.rules.meld.onePerTurn': 'Un anunț pentru fiecare levată luată. Cărțile anunțate rămân pe masă și pot fi jucate în continuare.',
-  'pinochle.rules.meld.exchange': 'Un nouă de atu poate fi schimbat cu cartea de atu întoarsă. Aduce {n} și contează ca anunțul acelei ture.',
+  'pinochle.rules.meld.exchange':
+    'Un nouă de atu care nu a fost deja anunțat poate fi schimbat cu cartea de atu întoarsă. Aduce {n} și contează ca anunțul acelei ture.',
   'pinochle.rules.meld.staysInHand': 'Când se termină talonul, fiecare carte anunțată se întoarce în mâna proprietarului.',
   'pinochle.rules.meld.shown': 'După ce se alege atuul, anunțurile tuturor sunt numărate și arătate pe masă în timpul primei levate.',
   'pinochle.rules.meld.needsTrick': 'Anunțurile unei echipe contează doar dacă ia cel puțin o levată.',

@@ -426,3 +426,62 @@ func zoneByID(vm module.ViewModel, id string) *module.Zone {
 	}
 	return nil
 }
+
+// A nine of trumps already shown as the dix cannot be exchanged for the
+// turned-up card: the exchange scores the dix, so it would count twice.
+func TestTwoHandedShownDixCannotBeExchanged(t *testing.T) {
+	setup := func(hand []string) *GameState {
+		s := newState(t, VarTwoHanded, nil)
+		s.FirstDealer, s.Deal = 1, 0
+		s.Trump, s.TurnUp = "H", "AH"
+		s.Stock = []string{"JC", "9D", "KD", "QC", "TS", "JS"}
+		s.Hands = map[string][]string{
+			"p1": hand,
+			"p2": {"9C", "QD", "TD", "AC", "JD"},
+		}
+		s.Leader, s.Current, s.Phase = "p1", "p1", phasePlay
+		s.Used = map[string]Used{"p1": {}, "p2": {}}
+		s.MeldScore = map[string]int{}
+		return s
+	}
+	winTrick := func(s *GameState) *GameState {
+		s = must(t, s, "p1", card("TC"))
+		return must(t, s, "p2", card("9C"))
+	}
+
+	s := winTrick(setup([]string{"KS", "QS", "KC", "9H", "TC"}))
+	s = must(t, s, "p1", module.Action{OfferID: OfferDix, Verb: VerbMeld})
+	if s.MeldScore["0"] != pointsDix {
+		t.Fatalf("showing the dix: meld %v", s.MeldScore)
+	}
+	// p1 leads and wins again, and may meld again.
+	s.Current, s.Leader = "p1", "p1"
+	s.Hands["p1"] = append(s.Hands["p1"], "TC")
+	s.Hands["p2"] = append(s.Hands["p2"], "9C")
+	s = winTrick(s)
+	if s.Phase != phaseMeld || s.Current != "p1" {
+		t.Fatalf("after the second trick: %s, %s on", s.Phase, s.Current)
+	}
+	offers, _ := New().LegalActions(mustEncode(t, s), "p1")
+	for _, o := range offers {
+		if o.ID == OfferExchange && o.Enabled {
+			t.Fatalf("exchange offered for a dix already shown")
+		}
+	}
+	refused(t, s, "p1", module.Action{OfferID: OfferExchange, Verb: VerbMeld}, ErrNoExchange)
+	if s.MeldScore["0"] != pointsDix {
+		t.Fatalf("the dix scored twice: %v", s.MeldScore)
+	}
+
+	// With both nines of trumps, the second may still be exchanged.
+	s = winTrick(setup([]string{"KS", "9H", "KC", "9H", "TC"}))
+	s = must(t, s, "p1", module.Action{OfferID: OfferDix, Verb: VerbMeld})
+	s.Current, s.Leader = "p1", "p1"
+	s.Hands["p1"] = append(s.Hands["p1"], "TC")
+	s.Hands["p2"] = append(s.Hands["p2"], "9C")
+	s = winTrick(s)
+	s = must(t, s, "p1", module.Action{OfferID: OfferExchange, Verb: VerbMeld})
+	if s.MeldScore["0"] != 2*pointsDix || s.TurnUp != "9H" {
+		t.Fatalf("exchanging the second nine: meld %v, turn-up %s", s.MeldScore, s.TurnUp)
+	}
+}

@@ -104,6 +104,8 @@ export const ga: Record<string, string> = {
   'zolik.rules.section.end': 'Conas a chríochnaíonn an cluiche',
   'zolik.rules.goal':
     'Bí ar an gcéad duine a fholmhaíonn a lámh trí thacair agus sraitheanna bailí a leagan síos, agus tú ag bailiú a laghad pointí pionóis agus is féidir sna cártaí atá fós agat nuair a théann duine eile amach.',
+  'zolik.rules.deck.packs':
+    'Imrítear le {small} phaca de 52 cárta móide 2 áilteoir an ceann do bheirt go ceathrar imreoirí, {mid} phaca do chúigear nó seisear, agus {large} do sheachtar nó ochtar.',
   'zolik.rules.deal': 'Faigheann gach imreoir {n} chárta.',
   'zolik.rules.meldShapes':
     'Is é atá i dtacar ná {set}+ chárta den luach céanna; is é atá i sraith ná {run}+ chárta as a chéile den dath céanna.',
@@ -136,6 +138,9 @@ export const ga: Record<string, string> = {
     "Cosnaíonn cárta a fhanann i do lámh: fear grinn {joker}, 10, cuireata, banríon nó rí {face}, 2 go 9 a uimhir féin, agus aon {ace} — nó {aceLow} amháin má tá 2 dá chulaith, nó banríon agus rí dá chulaith, i do lámh freisin, nó dá gcuirfeadh sé le sraith ar an mbord.",
   'zolik.rules.end.atScore':
     'Leantar ag dáileadh go dtí go sroicheann duine éigin {n} bpointe — ansin tá deireadh leis.',
+  'zolik.rules.end.lowestWins': 'Nuair a chríochnaíonn an cluiche, buann an t-iomlán is ísle.',
+  'zolik.rules.end.tieBreak':
+    'Má tá an t-iomlán is ísle ag níos mó ná imreoir amháin, buann an té a bhuaigh an líon is lú dáileadh; má tá siad cothrom air sin freisin, is cluiche cothrom é.',
 
   'prsi.rules.section.goal': 'Aidhm',
   'prsi.rules.section.setup': 'Socrú',
@@ -146,14 +151,21 @@ export const ga: Record<string, string> = {
   'prsi.rules.deck': 'Imrítear le paca {value} cárta (ón seacht aníos).',
   'prsi.rules.deal': 'Tosaíonn gach imreoir le {n} chárta.',
   'prsi.rules.dealLimit': 'Caithfidh cárta a bheith fágtha le hiompú agus ceann le tarraingt, mar sin faigheann {seats} imreoir {n} chárta ar a mhéad.',
+  'prsi.rules.firstCard':
+    'Comhairtear an cárta a iompaítear chun an carn a thosú amhail is dá mbeadh sé díreach imeartha ar an gcéad imreoir: caithfear 7 a fhreagairt nó íoc as, agus aonach a fhreagairt nó an seal a chailleadh. Ní iompaítear svršek riamh fad is féidir cárta eile a iompú — téann sé go bun an phaca.',
   'prsi.rules.turn.match':
     'Imir cárta a mheaitseálann dath nó luach an chárta uachtaraigh — nó tarraing, mura féidir leat.',
   'prsi.rules.turn.draw': 'Cuireann tarraingt deireadh le do sheal gan imirt.',
   'prsi.rules.turn.nothingToDraw': 'Mura bhfuil faic fágtha le tarraingt agus nach n-oireann aon chárta leat, críochnaíonn tarraingt do sheal gan chárta.',
   'prsi.rules.sevens':
     'Imir 7 agus tarraingíonn an chéad imreoir eile dhá chárta, mura bhfreagraíonn sé le seacht dá chuid féin.',
-  'prsi.rules.aces': 'Imir aonach agus scipeáiltear seal an chéad imreora eile.',
+  'prsi.rules.sevens.stack':
+    'Carnann na seachtanna: cuireann gach 7 a imrítear mar fhreagra dhá chárta eile leis, agus tarraingíonn an chéad imreoir nach féidir leis freagairt iad go léir.',
+  'prsi.rules.aces':
+    'Imir aonach agus cailleann an chéad imreoir eile a sheal, mura bhfreagraíonn sé le haonach dá chuid féin — rud a sheolann an seal caillte ar aghaidh.',
   'prsi.rules.queens': 'Imir svršek (Ober) agus ainmnigh an dath a leanann.',
+  'prsi.rules.queens.anything':
+    'Téann svršek ar aon chárta — seachas 7 nó aonach atá fós ag fanacht le freagra — agus caithfidh an chéad chárta eile an dath a ainmníodh a leanúint, nó a bheith ina svršek eile.',
   'prsi.rules.end': 'Críochnaíonn an cluiche an nóiméad a bhíonn lámh duine éigin folamh.',
   'prsi.rules.end.blocked': 'Má théann gach imreoir thart mar sin ina seal, ní féidir le duine ar bith imirt: buann an líon is lú cártaí, agus roinntear an bua ar chomhscór.',
   'prsi.remedy.matchOrDraw': 'Imir cárta {suit} nó ceann a fheileann do {card} — nó tarraing.',
@@ -177,13 +189,22 @@ export const ga: Record<string, string> = {
   'canasta.rules.section.melding': 'Leagan síos',
   'canasta.rules.section.end': 'Conas a chríochnaíonn an cluiche',
   'canasta.rules.section.turn': 'Do sheal',
-  'canasta.rules.goal': 'Imrítear i mbeirteanna; buann an chéad taobh a shroicheann {n} bpointe an cluiche.',
+  'canasta.rules.goal': 'Buann an chéad taobh a shroicheann {n} bpointe an cluiche.',
+  'canasta.rules.partnerships':
+    'Imríonn ceathrar imreoirí mar dhá pháirtnéireacht, na páirtithe ina suí os comhair a chéile; nuair atá beirt nó triúr ann, imríonn gach duine ina aonar.',
+  'canasta.rules.partnershipsSix':
+    'Imríonn ceathrar nó seisear imreoirí i bpáirtnéireachtaí de bheirt, na páirtithe ina suí os comhair a chéile; nuair atá beirt, triúr nó cúigear ann, imríonn gach duine ina aonar.',
   'canasta.rules.deck': 'Imrítear le {value} cárta — {decks} phaca agus áilteoirí.',
   'canasta.rules.deal': 'Faigheann gach imreoir {n} chárta.',
   'canasta.rules.drawCount': 'Tarraingíonn tú {n} chárta ag tús do sheala.',
   'canasta.rules.redThrees':
     'Taispeántar trí dhearg i do láimh láithreach agus faigheann tú bónas air — ach amháin mura gcríochnaíonn do thaobh canasta riamh, agus ansin comhairtear i do choinne é.',
+  'canasta.rules.redThreesNeedTwo':
+    'Taispeántar trí dhearg i do láimh láithreach agus faigheann tú bónas air — ach amháin má chríochnaíonn do thaobh níos lú ná dhá chanasta, agus ansin comhairtear gach ceann acu {n} i do choinne.',
+  'canasta.rules.redThreeValues': 'Is fiú {n} gach trí dhearg; is fiú {all} na {count} cinn le chéile.',
   'canasta.rules.canasta': 'Is é atá i gcanasta ná cumasc de {n} chárta nó níos mó den luach céanna.',
+  'canasta.rules.canastaBonus':
+    'Scórálann canasta chríochnaithe bónas sa bhreis ar a cártaí: {natural} do cheann nádúrtha gan aon chárta fiáin, {mixed} do cheann a bhfuil cártaí fiáine ann.',
   'canasta.rules.sequences': 'Is féidir le cumasc a bheith ina sheicheamh freisin: trí chárta nó níos mó den chineál céanna as a chéile, gan áilteoir eatarthu riamh.',
   'canasta.rules.dirtySequences': 'Is féidir le cumasc a bheith ina sheicheamh freisin: idir trí agus seacht gcárta den chineál céanna as a chéile. Is féidir le cártaí fiáine seasamh in áit cártaí atá in easnamh, dhá cheann ar a mhéad agus gan a bheith riamh níos mó ná leath líon na gcártaí nádúrtha. Is samba measctha é seacht gcárta ina bhfuil cárta fiáin, agus is fiú {n} é.',
   'canasta.rules.wildMeld': 'Nuair atá do thaobh oscailte, féadfaidh sé cumasc amháin de chártaí a dó agus áilteoirí a leagan, measctha ar aon chuma: is leor trí áilteoir. Is canasta é seacht gcárta: {n} más cártaí a dó ar fad iad, {mixed} le háilteoirí.',
@@ -229,7 +250,7 @@ export const ga: Record<string, string> = {
     'Féadfaidh roinnt cumasc den chéimíocht chéanna a bheith ag do thaobh.',
   'canasta.rules.canastaCloses': 'Tá canasta de {n} chárta críochnaithe agus ní ghlacann sé le cárta eile.',
   'canasta.rules.meldsAreShared':
-    'Is leis an bpáirtnéireacht na cumaisc: féadfaidh ceachtar páirtí cur leo, agus ní bhaineann ceachtar taobh le cinn an taoibh eile.',
+    'Is leis an taobh a leag iad na cumaisc — ag bord páirtnéireachta, leis an mbeirt pháirtithe: féadfaidh ceachtar acu cur leo, agus ní féidir le haon taobh eile baint leo.',
   'canasta.rules.layOffAfterOpening':
     'Go dtí go mbíonn a chéad chumasc déanta ag do thaobh, ní féidir leis cur le haon rud ar an mbord.',
   'canasta.rules.goOutKeepsACard':
@@ -238,7 +259,7 @@ export const ga: Record<string, string> = {
   'canasta.rules.twoCanastasToGoOut':
     'Teastaíonn dhá chanasta chríochnaithe ó do thaobh sula bhféadfaidh sé dul amach.',
   'canasta.rules.end':
-    'Leantar ag dáileadh go dtí go dtéann taobh amháin thar {n} bpointe — ansin tá an cluiche thart.',
+    'Leantar ag dáileadh go dtí go sroicheann taobh amháin {n} bpointe — ansin tá an cluiche thart.',
 
   'holdem.rules.section.goal': 'Aidhm',
   'holdem.rules.section.setup': 'Socrú',
@@ -718,11 +739,13 @@ export const ga: Record<string, string> = {
     'Tar éis cnagtha nach gin é, is féidir le do chéile comhraic a deadwood féin a chur le do chumaisc sula gcuirtear na lámha i gcomparáid.',
   'ginrummy.rules.deadHandDescription':
     'Má thiteann an stoc go dtí a dhá chárta dheireanacha gan aon duine a bheith tar éis cnagadh, tá an lámh marbh — ní scórálann aon duine, agus dáileann an dáileoir céanna arís.',
+  'ginrummy.rules.knockScore':
+    'Cnagadh nach ngearrtar faoi, scórálann sé an difríocht idir deadwood an dá imreoir.',
   'ginrummy.rules.undercut':
     'Mura bhfuil deadwood do chéile comhraic níos airde ná do cheannsa, gearrann sé fút: faigheann sé an difríocht, móide {n}.',
   'ginrummy.rules.ginBonus': 'Faigheann gin lámh iomlán do chéile comhraic, móide {n}.',
   'ginrummy.rules.target':
-    'An chéad duine a théann thar {n} bpointe tar éis do lámh críochnú, buann sé an cluiche.',
+    'An chéad duine a shroicheann {n} bpointe tar éis do lámh críochnú, buann sé an cluiche.',
   'ginrummy.rules.shutout':
     'Déantar bónas an chluiche a dhúbailt go {n} mura bhfuair an cailliúnaí pointe ar bith.',
   'ginrummy.rules.box': 'Is fiú {n} bpointe gach lámh a bhuaigh tú ag deireadh an chluiche.',
@@ -817,7 +840,7 @@ export const ga: Record<string, string> = {
   'rummytiles.rules.poolExhaustionNoWinner':
     'Má thránn an linn agus mura féidir le haon duine imirt, críochnaíonn an babhta gan bhuaiteoir — scóráiltear gach lámh gan a thuilleadh.',
   'rummytiles.rules.target':
-    'An chéad duine a théann thar {n} bpointe tar éis do bhabhta críochnú, buann sé an cluiche.',
+    'An chéad duine a shroicheann {n} bpointe tar éis do bhabhta críochnú, buann sé an cluiche.',
   'rummytiles.rules.roundLimit': 'Críochnaíonn an cluiche tar éis {n} bhabhta — buann an scór is airde.',
   'rummytiles.remedy.emptyTheTray': 'Cuir na {n} tíl atá fós i do thráidire, nó athshocraigh an seal.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -853,6 +876,7 @@ export const ga: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Athshocraigh an seal',
   'rummytiles.offer.commit': 'Déanta',
   'rummytiles.offer.draw': 'Tarraing',
+  'rummytiles.offer.pass': 'Lig thart',
   'rummytiles.param.position': 'Roinn ag',
 
   // --- blackjack -----------------------------------------------------------
@@ -1229,6 +1253,20 @@ export const ga: Record<string, string> = {
   'auth.register.password': 'Pasfhocal',
   'auth.username.createAccount': 'Cruthaigh cuntas le hainm úsáideora agus pasfhocal',
   'auth.callback.signedIn': 'Sínithe isteach.',
+  'auth.error.alreadyLinked': "Tá an cuntas sin nasctha le himreoir eile cheana.",
+  'auth.error.expired': "Thóg an síniú isteach rófhada. Bain triail eile as.",
+  'auth.error.alreadyUsed': "Úsáideadh an síniú isteach sin cheana. Bain triail eile as.",
+  'auth.error.notCompleted': "Níorbh fhéidir an síniú isteach a chríochnú. Bain triail eile as.",
+  'auth.error.unknownProvider': "Níl an modh sínithe isteach sin ar fáil anseo.",
+  'auth.error.noCode': "Níor chríochnaigh an soláthraí an síniú isteach.",
+  'auth.error.failed': "Theip ar an síniú isteach. Bain triail eile as.",
+  'auth.provider.guest': "Imir mar aoi",
+  'auth.provider.email': "Lean ar aghaidh le ríomhphost",
+  'auth.provider.continueWith': "Lean ar aghaidh le {provider}",
+  'auth.claim.prompt': "Cluichí taifeadta ar an ngléas seo: {n}. Sínigh isteach chun iad a choinneáil.",
+  'auth.claim.prompt.1': "Tá 1 chluiche taifeadta ar an ngléas seo. Sínigh isteach chun é a choinneáil.",
+  'auth.claim.added': "Cuireadh do chluichí roimhe seo ({n}) le do chuntas.",
+  'auth.claim.added.1': "Cuireadh do chluiche roimhe seo le do chuntas.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Sínigh isteach chun do chuntas a bhainistiú.',
@@ -2187,6 +2225,7 @@ export const ga: Record<string, string> = {
   'rummytiles.move.reset': 'Chuir {player} an bord ar ais',
   'rummytiles.move.committed': 'Chríochnaigh {player} a sheal',
   'rummytiles.move.drew': 'Tharraing {player} tíl',
+  'rummytiles.move.passed': 'Lig {player} thart — tá an linn folamh',
   'moves.last': 'An beart deireanach',
   'moves.history': 'Stair',
   'hints.title': 'Leideanna',
@@ -3173,7 +3212,8 @@ export const ga: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Mar sin is féidir le banríon na spéireata cur le pósadh spéireata, le ceithre bhanríon agus le pinochle ag an am céanna, agus áirítear an dara rí agus banríon mhámh in aice le sraith mar phósadh ríoga fós.',
   'pinochle.rules.meld.onWin': 'Ní féidir ach le buaiteoir an chlis cumasc a leagan, agus fad a mhaireann an stoc amháin.',
   'pinochle.rules.meld.onePerTurn': 'Cumasc amháin do gach cleas a bhuaitear. Fanann cártaí leagtha ar an mbord agus is féidir iad a imirt fós.',
-  'pinochle.rules.meld.exchange': 'Is féidir naoi mámh a mhalartú ar an gcárta mámh iompaithe. Scórálann sé {n} agus comhairtear é mar chumasc an tseala sin.',
+  'pinochle.rules.meld.exchange':
+    'Is féidir naoi mámh nár taispeánadh cheana mar dix a mhalartú ar an gcárta mámh iompaithe. Scórálann sé {n} agus comhairtear é mar chumasc an tseala sin.',
   'pinochle.rules.meld.staysInHand': 'Nuair a ritheann an stoc amach, téann gach cárta leagtha ar ais i lámh a úinéara.',
   'pinochle.rules.meld.shown': 'Nuair a fhógraítear mámh, comhairtear cumasc gach duine agus taispeántar ar an mbord é le linn an chéad chlis.',
   'pinochle.rules.meld.needsTrick': 'Ní chomhairtear cumasc taoibh ach má thógann sé cleas amháin ar a laghad.',

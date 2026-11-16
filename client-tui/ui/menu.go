@@ -31,6 +31,7 @@ func (m menuModel) update(msg tea.Msg) (menuModel, tea.Cmd) {
 		m.root.screen = ScreenLobby
 		m.root.lobby = newLobbyModel(m.root)
 		m.root.lobby.mode = lobbyPick
+		return m, m.root.lobby.Init()
 	case "2":
 		m.root.screen = ScreenLobby
 		m.root.lobby = newLobbyModel(m.root)

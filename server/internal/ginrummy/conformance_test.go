@@ -103,3 +103,36 @@ func TestKnock_BigGinRefusedWhenTheOptionIsOff(t *testing.T) {
 		t.Fatal("expected big gin to be refused when the option is off")
 	}
 }
+
+// Big gin pays the gin bonus and then the big gin bonus on top: the written
+// rule says "a further 25". It used to score exactly as a plain gin.
+func TestKnock_BigGinPaysAFurtherBonusOverGin(t *testing.T) {
+	defender := []string{"KC", "QD", "3S", "4D", "8C", "9S", "AC", "6D", "TC", "JD"}
+	want := handValue(defender) + ginBonus
+
+	ginRaw := withState(t, func(s *GameState) {
+		s.BigGin = true
+		s.Hands["p1"] = []string{"2H", "2D", "2C", "2S", "5H", "6H", "7H", "8H", "9H", "TH", "KS"}
+		s.Hands["p2"] = append([]string(nil), defender...)
+	})
+	next, err := apply(t, ginRaw, "p1", module.Action{Verb: VerbKnock, Cards: []string{"KS"}})
+	if err != nil {
+		t.Fatalf("gin: %v", err)
+	}
+	if r := stateOf(t, next).Rounds; len(r) != 1 || r[0].Kind != "gin" || r[0].HandDelta != want {
+		t.Fatalf("plain gin: got %+v, want a gin worth %d", r, want)
+	}
+
+	bigRaw := withState(t, func(s *GameState) {
+		s.BigGin = true
+		s.Hands["p1"] = []string{"2H", "2D", "2C", "2S", "5H", "6H", "7H", "8H", "9H", "TH", "JH"}
+		s.Hands["p2"] = append([]string(nil), defender...)
+	})
+	next, err = apply(t, bigRaw, "p1", module.Action{Verb: VerbKnock})
+	if err != nil {
+		t.Fatalf("big gin: %v", err)
+	}
+	if r := stateOf(t, next).Rounds; len(r) != 1 || r[0].Kind != "gin" || r[0].HandDelta != want+bigGinBonus {
+		t.Fatalf("big gin: got %+v, want a gin worth %d", r, want+bigGinBonus)
+	}
+}

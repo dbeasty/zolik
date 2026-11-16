@@ -4,7 +4,7 @@ import { currentDeck } from '@/src/lib/deck';
 import { t } from '@/src/lib/i18n';
 
 /**
- * A card as a screen reader should say it: "King of Hearts", "Over of
+ * A card as a screen reader should say it: "King of Hearts", "Ober of
  * Leaves", "Teal Skip", "Red 7".
  *
  * `cardText` is for a card inside a sentence a sighted player reads — "K♥" —

@@ -22,6 +22,7 @@ import { ListedCard } from '@/src/notify/ListedCard';
 import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
 import { useBotStrength } from '@/src/components/BotStrengthSheet';
 import { useLocale } from '@/src/hooks/useLocale';
+import { useFocusedPoll } from '@/src/hooks/useFocusedPoll';
 
 /**
  * The host's table before it starts: who is seated, who can be pulled in, and
@@ -67,6 +68,9 @@ export default function TableScreen() {
   const [invitingId, setInvitingId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // A failed poll's own message, cleared by the next poll that succeeds; a
+  // failed action's stays in `error` until the next action.
+  const [pollError, setPollError] = useState('');
 
   const id = String(matchId ?? '');
   const isHost = !!state?.hostId && state.hostId === session?.userId;
@@ -86,9 +90,12 @@ export default function TableScreen() {
       const m = await client.getMatch(id);
       moduleId = m.moduleId;
       setState(m);
-      if (m.status !== 'lobby') router.replace(`/match/${id}`);
+      setPollError('');
+      // Only from this screen: one pushed on top (Rules, Settings) is what
+      // the host is looking at, and a replace would take it away.
+      if (m.status !== 'lobby' && focused.current) router.replace(`/match/${id}`);
     } catch (e) {
-      setError(formatApiError(e, t('a11y.error.readTable')));
+      setPollError(formatApiError(e, t('a11y.error.readTable')));
     }
     // Best-effort: a host who cannot currently see the waiting room should
     // still be able to run their table. Its absence is not an error worth
@@ -100,16 +107,13 @@ export default function TableScreen() {
     } catch {
       /* the waiting room is optional infrastructure */
     }
+    // `focused` is a ref, read when the answer arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, id, session?.userId, offline]);
 
   const botStrength = useBotStrength(client, id, state?.moduleId, isHost, poll);
 
-  useEffect(() => {
-    if (!id) return;
-    poll();
-    const t = setInterval(poll, 2000);
-    return () => clearInterval(t);
-  }, [id, poll]);
+  const focused = useFocusedPoll(poll, 2000, !!id);
 
   // Whether the server is short enough of room that a bot seated now might
   // play simpler moves than its skill (server/internal/botgov). Asked once
@@ -431,7 +435,7 @@ export default function TableScreen() {
           </Pressable>
         ) : null}
 
-        {error ? <FormError message={error} /> : null}
+        {error || pollError ? <FormError testID="lobby-error" message={error || pollError} /> : null}
         {botStrength.sheet}
 
         {isHost ? (

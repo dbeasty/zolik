@@ -102,6 +102,8 @@ export const lv: Record<string, string> = {
   'zolik.rules.section.end': 'Kā beidzas mačs',
   'zolik.rules.goal':
     'Esi pirmais, kas iztukšo roku, izliekot derīgas grupas un secības, savācot pēc iespējas mazāk soda punktu kārtīs, kuras vēl turi, kad kāds cits iziet.',
+  'zolik.rules.deck.packs':
+    'Spēlē ar {small} 52 kāršu kavām, katrā vēl 2 džokeri, ja spēlētāju ir no diviem līdz četriem, ar {mid} kavām pieciem vai sešiem un ar {large} septiņiem vai astoņiem.',
   'zolik.rules.deal': 'Katrs spēlētājs saņem {n} kārtis.',
   'zolik.rules.meldShapes':
     'Grupa ir {set}+ vienādas vērtības kārtis; secība ir {run}+ pēc kārtas ejošas vienas krāsas kārtis.',
@@ -133,6 +135,9 @@ export const lv: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Rokā palikusi kārts maksā: džokers {joker}, 10, kalps, dāma vai karalis {face}, no 2 līdz 9 – savu skaitli, bet dūzis {ace} — vai tikai {aceLow}, ja rokā ir arī tā masta divnieks vai tā masta dāma un karalis, vai ja tas pagarinātu rindu uz galda.",
   'zolik.rules.end.atScore': 'Dala tālāk, līdz kāds sasniedz {n} punktus — tad ir beigas.',
+  'zolik.rules.end.lowestWins': 'Kad mačs beidzas, uzvar zemākā kopsumma.',
+  'zolik.rules.end.tieBreak':
+    'Ja zemākā kopsumma ir vairākiem, uzvar tas, kurš uzvarējis mazāk dalījumos; ja arī tas ir vienāds, mačs beidzas neizšķirti.',
 
   'prsi.rules.section.goal': 'Mērķis',
   'prsi.rules.section.setup': 'Sagatavošana',
@@ -143,14 +148,21 @@ export const lv: Record<string, string> = {
   'prsi.rules.deck': 'Spēlē ar {value} kāršu kavām (no septītnieka uz augšu).',
   'prsi.rules.deal': 'Katrs spēlētājs sāk ar {n} kārtīm.',
   'prsi.rules.dealLimit': 'Jāpaliek kārtij atvēršanai un vienai vilkšanai, tāpēc {seats} spēlētāji saņem ne vairāk kā {n} kārtis.',
+  'prsi.rules.firstCard':
+    'Kaudzes sākšanai apgrieztā kārts skaitās tā, it kā tā tikko būtu izspēlēta pret pirmo spēlētāju: uz 7 jāatbild vai jāsamaksā, uz dūzi jāatbild vai gājiens jāizlaiž. Svršeku nekad neapgriež, kamēr var apgriezt citu kārti — tas aiziet kavas apakšā.',
   'prsi.rules.turn.match':
     'Izspēlē kārti, kas atbilst augšējās kārts krāsai vai vērtībai — vai velc, ja nevari.',
   'prsi.rules.turn.draw': 'Vilkšana beidz tavu gājienu bez izspēles.',
   'prsi.rules.turn.nothingToDraw': 'Ja vairs nav ko vilkt un neviena tava kārts neder, vilkšana beidz gājienu bez kārts.',
   'prsi.rules.sevens':
     'Izspēlē 7, un nākamais spēlētājs velk divas kārtis, ja vien viņš neatbild ar savu septītnieku.',
-  'prsi.rules.aces': 'Izspēlē dūzi, un nākamā spēlētāja gājiens tiek izlaists.',
+  'prsi.rules.sevens.stack':
+    'Septītnieki krājas: katrs atbildē izspēlētais 7 pieliek vēl divas kārtis, un pirmais spēlētājs, kurš nevar atbildēt, velk tās visas.',
+  'prsi.rules.aces':
+    'Izspēlē dūzi, un nākamā spēlētāja gājiens tiek izlaists, ja vien viņš neatbild ar savu dūzi — tad izlaistais gājiens pāriet tālāk.',
   'prsi.rules.queens': 'Izspēlē svršeku (oberi) un nosauc krāsu, kas turpinās.',
+  'prsi.rules.queens.anything':
+    'Svršeku drīkst likt uz jebkuras kārts — izņemot 7 vai dūzi, uz ko vēl jāatbild — un nākamajai kārtij jābūt nosauktajā krāsā vai citam svršekam.',
   'prsi.rules.end': 'Mačs beidzas brīdī, kad kāda roka ir tukša.',
   'prsi.rules.end.blocked': 'Ja visi spēlētāji pēc kārtas tā izlaiž, neviens nevar spēlēt: uzvar vismazāk kāršu, un neizšķirts uzvaru dala.',
   'prsi.remedy.matchOrDraw': 'Izspēlē {suit} kārti vai tādu, kas der uz {card} — citādi velc.',
@@ -174,13 +186,22 @@ export const lv: Record<string, string> = {
   'canasta.rules.section.melding': 'Izlikšana',
   'canasta.rules.section.end': 'Kā beidzas mačs',
   'canasta.rules.section.turn': 'Tavs gājiens',
-  'canasta.rules.goal': 'Spēlē pāros; pirmā puse, kas sasniedz {n} punktus, uzvar mačā.',
+  'canasta.rules.goal': 'Pirmā puse, kas sasniedz {n} punktus, uzvar mačā.',
+  'canasta.rules.partnerships':
+    'Četri spēlētāji spēlē divos pāros, partneri sēž viens otram pretī; divi vai trīs spēlētāji katrs spēlē viens.',
+  'canasta.rules.partnershipsSix':
+    'Četri vai seši spēlētāji spēlē pāros pa diviem, partneri sēž viens otram pretī; divi, trīs vai pieci spēlētāji katrs spēlē viens.',
   'canasta.rules.deck': 'Spēlē ar {value} kārtīm — {decks} kavas plus džokeri.',
   'canasta.rules.deal': 'Katrs spēlētājs saņem {n} kārtis.',
   'canasta.rules.drawCount': 'Gājiena sākumā tu paņem {n} kārtis.',
   'canasta.rules.redThrees':
     'Sarkano trijnieku rokā uzreiz parāda, un tas dod bonusu — ja vien tava puse nekad nepabeidz kanastu, tad tas skaitās pret tevi.',
+  'canasta.rules.redThreesNeedTwo':
+    'Sarkano trijnieku rokā uzreiz parāda, un tas dod bonusu — ja vien tava puse nepabeidz mazāk nekā divas kanastas, tad katrs skaitās {n} pret tevi.',
+  'canasta.rules.redThreeValues': 'Katrs sarkanais trijnieks ir vērts {n}; visi {count} kopā ir vērti {all}.',
   'canasta.rules.canasta': 'Kanasta ir kombinācija no {n} vai vairāk vienādas vērtības kārtīm.',
+  'canasta.rules.canastaBonus':
+    'Pabeigta kanasta papildus savām kārtīm dod bonusu: {natural} par tīru bez džokeriem, {mixed} par tādu, kurā ir džokeri.',
   'canasta.rules.sequences': 'Kombinācija var būt arī secība: trīs vai vairāk vienas masts kārtis pēc kārtas, nekad ar džokeru starp tām.',
   'canasta.rules.dirtySequences': 'Kombinācija var būt arī secība: no trim līdz septiņām vienas masts kārtīm pēc kārtas. Džokeri var aizstāt trūkstošās kārtis, ne vairāk kā divas un nekad vairāk par pusi no dabisko kāršu skaita. Septiņas kārtis ar džokeru starp tām ir netīra samba, kas ir {n} vērta.',
   'canasta.rules.wildMeld': 'Kad tava puse ir izlikusi pirmo kombināciju, tā drīkst izlikt vienu divnieku un džokeru kombināciju jebkādā attiecībā: der arī trīs džokeri. Septiņas kārtis ir kanasta: {n}, ja tie ir tikai divnieki, {mixed} ar džokeriem.',
@@ -224,7 +245,7 @@ export const lv: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Tavai pusei var būt vairākas vienas vērtības kombinācijas.',
   'canasta.rules.canastaCloses': '{n} kāršu kanasta ir pabeigta un vairs kārtis neuzņem.',
   'canasta.rules.meldsAreShared':
-    'Kombinācijas pieder pārim: tās drīkst papildināt jebkurš partneris, bet pretinieku kombinācijas neaiztiek.',
+    'Kombinācijas pieder pusei, kas tās izlika — pāru spēlē abiem partneriem: tās drīkst papildināt jebkurš no viņiem, un neviena cita puse tās nedrīkst aiztikt.',
   'canasta.rules.layOffAfterOpening':
     'Kamēr tava puse nav izlikusi savu pirmo kombināciju, tā nedrīkst neko uz galda papildināt.',
   'canasta.rules.goOutKeepsACard':
@@ -232,7 +253,7 @@ export const lv: Record<string, string> = {
   'canasta.rules.oneCanastaToGoOut': 'Viena pabeigta kanasta ir pietiekama, lai tava puse izietu.',
   'canasta.rules.twoCanastasToGoOut':
     'Tavai pusei vajadzīgas divas pabeigtas kanastas, pirms tā drīkst iziet.',
-  'canasta.rules.end': 'Dala tālāk, līdz viena puse pārsniedz {n} punktus — tad mačs ir galā.',
+  'canasta.rules.end': 'Dala tālāk, līdz viena puse sasniedz {n} punktus — tad mačs ir galā.',
 
   'holdem.rules.section.goal': 'Mērķis',
   'holdem.rules.section.setup': 'Sagatavošana',
@@ -698,10 +719,11 @@ export const lv: Record<string, string> = {
     'Pēc klauvēšanas, kas nav džins, pretinieks drīkst savu deadwood pievienot tavām kombinācijām, pirms rokas tiek salīdzinātas.',
   'ginrummy.rules.deadHandDescription':
     'Ja kavās paliek pēdējās divas kārtis un neviens nav klauvējis, dalījums ir beigts — neviens nesaņem punktus, un tas pats dalītājs dala vēlreiz.',
+  'ginrummy.rules.knockScore': 'Klauvējiens, kuru nenogriež, dod abu spēlētāju deadwood starpību.',
   'ginrummy.rules.undercut':
     'Ja pretinieka deadwood nav lielāks par tavējo, viņš tevi nogriež: saņem starpību plus {n}.',
   'ginrummy.rules.ginBonus': 'Džins dod visu pretinieka roku plus {n}.',
-  'ginrummy.rules.target': 'Kurš pēc dalījuma beigām pirmais pārsniedz {n} punktus, uzvar mačā.',
+  'ginrummy.rules.target': 'Kurš pēc dalījuma beigām pirmais sasniedz {n} punktus, uzvar mačā.',
   'ginrummy.rules.shutout': 'Mača bonuss dubultojas līdz {n}, ja zaudētājs nav guvis nevienu punktu.',
   'ginrummy.rules.box': 'Katrs uzvarētais dalījums mača beigās ir {n} punktu vērts.',
   'ginrummy.rules.gameBonus': 'Uzvara mačā dod vēl {n} punktus.',
@@ -793,7 +815,7 @@ export const lv: Record<string, string> = {
     'Ja krājums izsīkst un neviens nevar spēlēt, raunds beidzas un to uzvar zemākā rokas vērtība.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Ja krājums izsīkst un neviens nevar spēlēt, raunds beidzas bez uzvarētāja — katru roku vienkārši saskaita.',
-  'rummytiles.rules.target': 'Kurš pēc raunda beigām pirmais pārsniedz {n} punktus, uzvar mačā.',
+  'rummytiles.rules.target': 'Kurš pēc raunda beigām pirmais sasniedz {n} punktus, uzvar mačā.',
   'rummytiles.rules.roundLimit': 'Mačs beidzas pēc {n} raundiem — uzvar augstākais rezultāts.',
   'rummytiles.remedy.emptyTheTray': 'Novieto {n} kauliņus, kas vēl ir paliktnī, vai atiestati gājienu.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -828,6 +850,7 @@ export const lv: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Atiestatīt gājienu',
   'rummytiles.offer.commit': 'Gatavs',
   'rummytiles.offer.draw': 'Velc',
+  'rummytiles.offer.pass': 'Garām',
   'rummytiles.param.position': 'Sadali pie',
 
   // --- blackjack -----------------------------------------------------------
@@ -1197,6 +1220,20 @@ export const lv: Record<string, string> = {
   'auth.register.password': 'Parole',
   'auth.username.createAccount': 'Izveidot kontu ar lietotājvārdu un paroli',
   'auth.callback.signedIn': 'Pierakstījies.',
+  'auth.error.alreadyLinked': "Šis konts jau ir piesaistīts citam spēlētājam.",
+  'auth.error.expired': "Pierakstīšanās ilga pārāk ilgi. Mēģiniet vēlreiz.",
+  'auth.error.alreadyUsed': "Šī pierakstīšanās jau ir izmantota. Mēģiniet vēlreiz.",
+  'auth.error.notCompleted': "Pierakstīšanos neizdevās pabeigt. Mēģiniet vēlreiz.",
+  'auth.error.unknownProvider': "Šis pierakstīšanās veids šeit nav pieejams.",
+  'auth.error.noCode': "Pakalpojuma sniedzējs nepabeidza pierakstīšanos.",
+  'auth.error.failed': "Pierakstīšanās neizdevās. Mēģiniet vēlreiz.",
+  'auth.provider.guest': "Spēlēt kā viesim",
+  'auth.provider.email': "Turpināt ar e-pastu",
+  'auth.provider.continueWith': "Turpināt ar {provider}",
+  'auth.claim.prompt': "Šajā ierīcē saglabāto spēļu skaits: {n}. Pierakstieties, lai tās paturētu.",
+  'auth.claim.prompt.1': "Šajā ierīcē ir saglabāta 1 spēle. Pierakstieties, lai to paturētu.",
+  'auth.claim.added': "Jūsu iepriekšējās spēles (kopā {n}) ir pievienotas jūsu kontam.",
+  'auth.claim.added.1': "Jūsu iepriekšējā spēle ir pievienota jūsu kontam.",
 
   // --- the account screen ---------------------------------------------------
   'account.signInPrompt': 'Pieraksties, lai pārvaldītu savu kontu.',
@@ -2152,6 +2189,7 @@ export const lv: Record<string, string> = {
   'rummytiles.move.reset': '{player}: atjaunoja galdu',
   'rummytiles.move.committed': '{player}: pabeidza gājienu',
   'rummytiles.move.drew': '{player}: vilka kauliņu',
+  'rummytiles.move.passed': '{player}: izlaida gājienu — krājums ir tukšs',
   'moves.last': 'Pēdējais gājiens',
   'moves.history': 'Vēsture',
   'hints.title': 'Padomi',
@@ -3138,7 +3176,8 @@ export const lv: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Tātad pīķa dāma var vienlaikus skaitīties pīķa laulībā, dāmu aplī un pinochle, un otrs trumpju kungs ar dāmu blakus sekvencei joprojām skaitās kā trumpju laulība.',
   'pinochle.rules.meld.onWin': 'Izlikt kombināciju drīkst tikai stiķa uzvarētājs un tikai tik ilgi, kamēr kavā vēl ir kārtis.',
   'pinochle.rules.meld.onePerTurn': 'Viena kombinācija par katru uzvarētu stiķi. Izliktās kārtis paliek uz galda, un tās joprojām var izspēlēt.',
-  'pinochle.rules.meld.exchange': 'Trumpja devītnieku var apmainīt pret apgriezto trumpja kārti. Tas dod {n} un skaitās kā šī gājiena kombinācija.',
+  'pinochle.rules.meld.exchange':
+    'Trumpja devītnieku, kas vēl nav parādīts kā trumpja devītnieks, var apmainīt pret apgriezto trumpja kārti. Tas dod {n} un skaitās kā šī gājiena kombinācija.',
   'pinochle.rules.meld.staysInHand': 'Kad kava beidzas, visas izliktās kārtis atgriežas īpašnieka rokā.',
   'pinochle.rules.meld.shown': 'Kad trumpji nosaukti, visu kombinācijas tiek saskaitītas un parādītas uz galda pirmā stiķa laikā.',
   'pinochle.rules.meld.needsTrick': 'Puses kombinācijas skaitās tikai tad, ja tā paņem vismaz vienu stiķi.',

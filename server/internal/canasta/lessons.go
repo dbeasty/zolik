@@ -22,8 +22,10 @@ func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 	}
 
 	redText := "guide.canasta.redThrees"
+	redRule := "canasta.rules.redThrees"
 	if v.RedThreesNeed > 1 {
 		redText = "guide.canasta.redThreesMany"
+		redRule = "canasta.rules.redThreesNeedTwo" // as Rules() states it
 	}
 
 	floorRule := "canasta.rules.meldFloorBands"
@@ -116,7 +118,7 @@ func (m *Module) Lessons(cfg module.MatchConfig) ([]module.Lesson, error) {
 
 	steps = append(steps,
 		module.Say("redThrees", redText, map[string]any{"n": v.RedThreesNeed}, module.AnchorStatus).
-			About("canasta.rules.redThrees"))
+			About(redRule, "canasta.rules.redThreeValues"))
 
 	// Black threes: Modern American never melds them, the others do on the way out.
 	if v.BlackThreeMeld {

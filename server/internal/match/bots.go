@@ -156,7 +156,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		match, decoded, err := m.currentProjected(ctx, matchID)
 		if err != nil || match.Status != "active" {
 			if err == nil {
-				m.matchStopped(matchID)
+				m.matchStopped(matchID, match.Status)
 			}
 			return
 		}
