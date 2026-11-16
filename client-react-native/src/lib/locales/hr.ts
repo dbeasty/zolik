@@ -102,6 +102,8 @@ export const hr: Record<string, string> = {
   'zolik.rules.section.end': 'Kako meč završava',
   'zolik.rules.goal':
     'Budi prvi koji isprazni ruku spuštajući valjane grupe i nizove, skupljajući pritom što manje kaznenih bodova u kartama koje još držiš kad netko drugi izađe.',
+  'zolik.rules.deck.packs':
+    'Za dva do četiri igrača igra se s {small} špila od 52 karte plus po 2 džokera u svakom, za pet ili šest igrača s {mid} špila, a za sedam ili osam s {large}.',
   'zolik.rules.deal': 'Svaki igrač dobiva {n} karata.',
   'zolik.rules.meldShapes':
     'Grupa je {set}+ karata iste vrijednosti; niz je {run}+ uzastopnih karata iste boje.',
@@ -133,6 +135,9 @@ export const hr: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Karta koja vam ostane u ruci stoji: džoker {joker}, 10, dečko, dama ili kralj {face}, od 2 do 9 svoj broj, a as {ace} — ili samo {aceLow} ako u ruci imate i dvojku njegove boje, ili damu i kralja njegove boje, ili bi produljio niz na stolu.",
   'zolik.rules.end.atScore': 'Dijeli se dalje dok netko ne dosegne {n} bodova — tada je gotovo.',
+  'zolik.rules.end.lowestWins': 'Kad meč završi, pobjeđuje najmanji zbroj.',
+  'zolik.rules.end.tieBreak':
+    'Ako više igrača dijeli najmanji zbroj, pobjeđuje onaj koji je dobio manje dijeljenja; ako je i to izjednačeno, meč je neriješen.',
 
   'prsi.rules.section.goal': 'Cilj',
   'prsi.rules.section.setup': 'Priprema',
@@ -143,13 +148,20 @@ export const hr: Record<string, string> = {
   'prsi.rules.deck': 'Igra se špilom od {value} karata (od sedmice naviše).',
   'prsi.rules.deal': 'Svaki igrač počinje s {n} karata.',
   'prsi.rules.dealLimit': 'Mora ostati karta za okretanje i jedna za vučenje, pa {seats} igrača dobiva najviše {n} karata.',
+  'prsi.rules.firstCard':
+    'Karta okrenuta za početak hrpe računa se kao da je upravo odigrana na prvog igrača: na 7 se mora odgovoriti ili platiti, na asa odgovoriti ili se potez preskače. Svršek se nikad ne okreće dok se može okrenuti neka druga karta — ide na dno špila.',
   'prsi.rules.turn.match':
     'Odigraj kartu koja odgovara boji ili vrijednosti gornje karte — ili vuci ako ne možeš.',
   'prsi.rules.turn.draw': 'Vučenje završava tvoj potez bez odigravanja.',
   'prsi.rules.turn.nothingToDraw': 'Ako nema što vući i nijedna tvoja karta ne odgovara, vučenje završava tvoj potez bez karte.',
   'prsi.rules.sevens': 'Odigraj 7 i sljedeći igrač vuče dvije karte, osim ako odgovori vlastitom sedmicom.',
-  'prsi.rules.aces': 'Odigraj asa i potez sljedećeg igrača se preskače.',
+  'prsi.rules.sevens.stack':
+    'Sedmice se zbrajaju: svaka 7 odigrana kao odgovor dodaje još dvije karte, a prvi igrač koji ne može odgovoriti vuče ih sve.',
+  'prsi.rules.aces':
+    'Odigraj asa i sljedeći igrač preskače potez, osim ako odgovori vlastitim asom — time preskakanje prelazi dalje.',
   'prsi.rules.queens': 'Odigraj svrška (gornjaka) i reci boju koja se nastavlja.',
+  'prsi.rules.queens.anything':
+    'Svršek ide na bilo koju kartu — osim na 7 ili asa na koje se još čeka odgovor — a sljedeća karta mora pratiti izrečenu boju ili biti drugi svršek.',
   'prsi.rules.end': 'Meč završava u trenutku kad je nečija ruka prazna.',
   'prsi.rules.end.blocked': 'Ako svi igrači redom tako prođu, nitko ne može igrati: pobjeđuje najmanje karata, a izjednačeni dijele pobjedu.',
   'prsi.remedy.matchOrDraw': 'Odigraj kartu u boji {suit} ili onu koja pristaje na {card} — inače vuci.',
@@ -173,13 +185,22 @@ export const hr: Record<string, string> = {
   'canasta.rules.section.melding': 'Spuštanje',
   'canasta.rules.section.end': 'Kako meč završava',
   'canasta.rules.section.turn': 'Tvoj potez',
-  'canasta.rules.goal': 'Igra se u parovima; prva strana koja dosegne {n} bodova pobjeđuje u meču.',
+  'canasta.rules.goal': 'Prva strana koja dosegne {n} bodova pobjeđuje u meču.',
+  'canasta.rules.partnerships':
+    'Četiri igrača igraju u dva para, partneri sjede jedan nasuprot drugome; dva ili tri igrača igraju svatko za sebe.',
+  'canasta.rules.partnershipsSix':
+    'Četiri ili šest igrača igraju u parovima po dvoje, partneri sjede jedan nasuprot drugome; dva, tri ili pet igrača igraju svatko za sebe.',
   'canasta.rules.deck': 'Igra se s {value} karata — {decks} špila plus džokeri.',
   'canasta.rules.deal': 'Svaki igrač dobiva {n} karata.',
   'canasta.rules.drawCount': 'Na početku poteza vučeš {n} karte.',
   'canasta.rules.redThrees':
     'Crvena trojka u ruci odmah se pokazuje i broji se kao bonus — osim ako tvoja strana nikad ne dovrši canastu, tada se broji protiv tebe.',
+  'canasta.rules.redThreesNeedTwo':
+    'Crvena trojka u ruci odmah se pokazuje i broji se kao bonus — osim ako tvoja strana dovrši manje od dvije canaste, tada se svaka broji {n} protiv tebe.',
+  'canasta.rules.redThreeValues': 'Svaka crvena trojka vrijedi {n}; sve {count} zajedno vrijede {all}.',
   'canasta.rules.canasta': 'Canasta je kombinacija od {n} ili više karata iste vrijednosti.',
+  'canasta.rules.canastaBonus':
+    'Dovršena canasta donosi bonus povrh svojih karata: {natural} za prirodnu bez džoker karata, {mixed} za onu s džoker kartama.',
   'canasta.rules.sequences': 'Kombinacija može biti i niz: tri ili više karata iste boje u nizu, nikad s džokerom među njima.',
   'canasta.rules.dirtySequences': 'Kombinacija može biti i niz: tri do sedam karata iste boje u nizu. Džoker karte smiju zamijeniti karte koje nedostaju, najviše dvije i nikad više od polovice broja prirodnih karata. Sedam karata s džokerom među njima je nečista samba, vrijedna {n}.',
   'canasta.rules.wildMeld': 'Kad tvoja strana otvori, smije položiti jednu kombinaciju dvojki i džokera u bilo kojem omjeru: dovoljna su i tri džokera. Sedam karata je kanasta: {n} ako su sve dvojke, {mixed} s džokerima.',
@@ -224,7 +245,7 @@ export const hr: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Tvoja strana može imati više kombinacija iste vrijednosti.',
   'canasta.rules.canastaCloses': 'Canasta od {n} karata je gotova i više ne prima karte.',
   'canasta.rules.meldsAreShared':
-    'Kombinacije pripadaju paru: svaki partner ih smije proširivati, a protivničke se ne diraju.',
+    'Kombinacije pripadaju strani koja ih je izložila — za stolom s parovima, oba partnera: svaki ih smije proširivati, a nijedna druga strana ih ne smije dirati.',
   'canasta.rules.layOffAfterOpening':
     'Dok tvoja strana ne položi svoju prvu kombinaciju, ne smije ništa na stolu dopunjavati.',
   'canasta.rules.goOutKeepsACard':
@@ -232,7 +253,7 @@ export const hr: Record<string, string> = {
   'canasta.rules.oneCanastaToGoOut': 'Jedna dovršena canasta dovoljna je da tvoja strana izađe.',
   'canasta.rules.twoCanastasToGoOut':
     'Tvojoj strani trebaju dvije dovršene canaste prije nego što smije izaći.',
-  'canasta.rules.end': 'Dijeli se dalje dok jedna strana ne prijeđe {n} bodova — tada je meč gotov.',
+  'canasta.rules.end': 'Dijeli se dalje dok jedna strana ne dosegne {n} bodova — tada je meč gotov.',
 
   'holdem.rules.section.goal': 'Cilj',
   'holdem.rules.section.setup': 'Priprema',
@@ -701,10 +722,11 @@ export const hr: Record<string, string> = {
     'Nakon kucanja koje nije gin, protivnik smije prisloniti vlastiti deadwood uz tvoje kombinacije prije nego što se ruke usporede.',
   'ginrummy.rules.deadHandDescription':
     'Ako špil padne na posljednje dvije karte, a nitko nije kucnuo, dijeljenje je mrtvo — nitko ne bodovi, a isti djelitelj dijeli ponovno.',
+  'ginrummy.rules.knockScore': 'Kucanje koje nije podrezano donosi razliku između deadwooda dvaju igrača.',
   'ginrummy.rules.undercut':
     'Ako protivnikov deadwood nije viši od tvojeg, podrezuje te: upisuje razliku plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin donosi cijelu protivnikovu ruku plus {n}.',
-  'ginrummy.rules.target': 'Tko prvi prijeđe {n} bodova nakon završetka dijeljenja, pobjeđuje u meču.',
+  'ginrummy.rules.target': 'Tko prvi dosegne {n} bodova nakon završetka dijeljenja, pobjeđuje u meču.',
   'ginrummy.rules.shutout': 'Bonus za meč udvostručuje se na {n} ako poraženi nije osvojio nijedan bod.',
   'ginrummy.rules.box': 'Svako dobiveno dijeljenje vrijedi {n} bodova na kraju meča.',
   'ginrummy.rules.gameBonus': 'Pobjeda u meču vrijedi dodatnih {n} bodova.',
@@ -795,7 +817,7 @@ export const hr: Record<string, string> = {
     'Ako se zaliha potroši i nitko ne može igrati, runda završava i dobiva je najniža vrijednost ruke.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Ako se zaliha potroši i nitko ne može igrati, runda završava bez pobjednika — svaka se ruka jednostavno boduje.',
-  'rummytiles.rules.target': 'Tko prvi prijeđe {n} bodova nakon završetka runde, pobjeđuje u meču.',
+  'rummytiles.rules.target': 'Tko prvi dosegne {n} bodova nakon završetka runde, pobjeđuje u meču.',
   'rummytiles.rules.roundLimit': 'Meč završava nakon {n} rundi — pobjeđuje najviši rezultat.',
   'rummytiles.remedy.emptyTheTray': 'Postavi {n} pločica koje su još u tvojoj ladici ili poništi potez.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -830,6 +852,7 @@ export const hr: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Poništi potez',
   'rummytiles.offer.commit': 'Gotovo',
   'rummytiles.offer.draw': 'Vuci',
+  'rummytiles.offer.pass': 'Propusti',
   'rummytiles.param.position': 'Razdvoji na',
 
   // --- blackjack -----------------------------------------------------------
@@ -2165,6 +2188,7 @@ export const hr: Record<string, string> = {
   'rummytiles.move.reset': '{player}: vratio stol kakav je bio',
   'rummytiles.move.committed': '{player}: završio potez',
   'rummytiles.move.drew': '{player}: vukao pločicu',
+  'rummytiles.move.passed': '{player}: propustio — zaliha je prazna',
   'moves.last': 'Zadnji potez',
   'moves.history': 'Povijest',
   'hints.title': 'Savjeti',
@@ -3155,7 +3179,8 @@ export const hr: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Tako pik dama može istodobno vrijediti u pik ženidbi, u četiri dame i u pinochleu, a drugi adutski kralj i dama pokraj niza i dalje se broje kao adutska ženidba.',
   'pinochle.rules.meld.onWin': 'Samo dobitnik štiha smije zvati, i to samo dok ima špila.',
   'pinochle.rules.meld.onePerTurn': 'Jedno zvanje za svaki osvojeni štih. Zvane karte ostaju na stolu i još se mogu odigrati.',
-  'pinochle.rules.meld.exchange': 'Devetka u adutu može se zamijeniti za okrenutu adutsku kartu. Vrijedi {n} i računa se kao zvanje tog poteza.',
+  'pinochle.rules.meld.exchange':
+    'Devetka u adutu koja još nije pokazana kao dix može se zamijeniti za okrenutu adutsku kartu. Vrijedi {n} i računa se kao zvanje tog poteza.',
   'pinochle.rules.meld.staysInHand': 'Kad se špil potroši, svaka zvana karta vraća se u ruku svog vlasnika.',
   'pinochle.rules.meld.shown': 'Nakon što je adut određen, svačija zvanja se zbrajaju i pokazuju na stolu tijekom prvog štiha.',
   'pinochle.rules.meld.needsTrick': 'Zvanja jedne strane vrijede samo ako uzme barem jedan štih.',

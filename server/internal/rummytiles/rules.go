@@ -8,8 +8,7 @@ var _ module.RulesProvider = (*Module)(nil)
 // can actually change.
 func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	v := resolveVariation(cfg)
-	target := cfg.Opt(OptTargetScore, v.targetScore)
-	roundLimit := cfg.Opt(OptRoundLimit, v.roundLimit)
+	target, roundLimit := endConditions(cfg)
 	poolLowestWins := cfg.Opt(OptPoolExhaustion, module.BoolOpt(v.poolExhaustionLowestWins)) == module.OptOn
 
 	sections := []module.RuleSection{
@@ -54,15 +53,16 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		))
 	}
 
+	// Both can be on at once, and matchWinner checks both: whichever comes
+	// first ends the match. endConditions guarantees at least one.
+	var match []module.Fact
 	if target > 0 {
-		sections = append(sections, module.Section("rummytiles.rules.match",
-			module.Fact{LabelKey: "rummytiles.rules.target", Params: map[string]any{"n": target}},
-		))
-	} else {
-		sections = append(sections, module.Section("rummytiles.rules.match",
-			module.Fact{LabelKey: "rummytiles.rules.roundLimit", Params: map[string]any{"n": roundLimit}},
-		))
+		match = append(match, module.Fact{LabelKey: "rummytiles.rules.target", Params: map[string]any{"n": target}})
 	}
+	if roundLimit > 0 {
+		match = append(match, module.Fact{LabelKey: "rummytiles.rules.roundLimit", Params: map[string]any{"n": roundLimit}})
+	}
+	sections = append(sections, module.Section("rummytiles.rules.match", match...))
 
 	return sections, nil
 }

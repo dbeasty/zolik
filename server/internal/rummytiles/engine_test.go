@@ -352,24 +352,132 @@ func TestDraw_DiscardsTheWorkspaceAndPassesTheTurn(t *testing.T) {
 	}
 }
 
-func TestDraw_EmptyPoolEndsTheRound(t *testing.T) {
+// The written rule is "the pool runs dry and nobody can play": one player
+// with nothing to draw only passes, and the round ends once every player has
+// passed in a row. It used to end on the first empty-pool draw.
+func TestDraw_EmptyPoolEndsTheRoundOnceNobodyCanPlay(t *testing.T) {
 	raw := withState(t, func(s *GameState) {
 		s.Pool = nil
 		s.PoolExhaustionLowestWins = true
 		s.Hands["p1"] = []string{"1-R"}
 		s.Hands["p2"] = []string{"2-R", "3-B"}
 	})
-	next, err := apply(t, raw, "p1", moduleAction(VerbDraw, "", nil, nil))
+	offers, _ := New().LegalActions(raw, "p1")
+	for _, o := range offers {
+		if o.ID == OfferDraw && (o.LabelKey != "rummytiles.offer.pass" || !o.Enabled || o.Source != nil) {
+			t.Errorf("an empty pool offers a pass, got %+v", o)
+		}
+	}
+	next, events, err := New().Apply(raw, "p1", moduleAction(VerbDraw, "", nil, nil))
 	if err != nil {
-		t.Fatalf("draw: %v", err)
+		t.Fatalf("pass: %v", err)
 	}
 	s := stateOf(t, next)
+	if len(s.Rounds) != 0 || s.Current != "p2" || len(s.Hands["p1"]) != 1 {
+		t.Fatalf("one pass must not end the round: rounds %+v, %s on, p1 holds %v", s.Rounds, s.Current, s.Hands["p1"])
+	}
+	if len(events) != 1 || events[0].Type != "turn_passed" {
+		t.Errorf("events = %+v, want turn_passed", events)
+	}
+
+	next, err = apply(t, next, "p2", moduleAction(VerbDraw, "", nil, nil))
+	if err != nil {
+		t.Fatalf("second pass: %v", err)
+	}
+	s = stateOf(t, next)
 	if len(s.Rounds) != 1 || s.Rounds[0].Kind != "pool_exhausted" {
 		t.Fatalf("expected a pool-exhausted round ending, got %+v", s.Rounds)
 	}
 	if s.Rounds[0].Winner != "p1" { // p1 holds the lowest hand value (1 vs 5)
 		t.Errorf("expected p1 (lowest hand) recorded as the round winner, got %q", s.Rounds[0].Winner)
 	}
+}
+
+// A play between the passes starts the count again: the table it changed may
+// give the players who passed a play.
+func TestDraw_APlayAfterThePoolRunsDryRestartsTheCount(t *testing.T) {
+	raw := withState(t, func(s *GameState) {
+		s.Pool = nil
+		s.Players = []string{"p1", "p2", "p3"}
+		s.Hands["p1"] = []string{"1-R"}
+		s.Hands["p2"] = []string{"7-R", "8-R", "9-R", "2-B"}
+		s.Hands["p3"] = []string{"5-K"}
+		s.Scores["p3"] = 0
+		s.InitialMeld = map[string]bool{"p2": true}
+	})
+	next, err := apply(t, raw, "p1", moduleAction(VerbDraw, "", nil, nil))
+	if err != nil {
+		t.Fatalf("p1 pass: %v", err)
+	}
+	next, err = apply(t, next, "p2", moduleAction(VerbPlace, "", []string{"7-R", "8-R", "9-R"}, nil))
+	if err != nil {
+		t.Fatalf("p2 place: %v", err)
+	}
+	next, err = apply(t, next, "p2", moduleAction(VerbCommit, "", nil, nil))
+	if err != nil {
+		t.Fatalf("p2 commit: %v", err)
+	}
+	for _, p := range []string{"p3", "p1"} {
+		if next, err = apply(t, next, p, moduleAction(VerbDraw, "", nil, nil)); err != nil {
+			t.Fatalf("%s pass: %v", p, err)
+		}
+	}
+	if s := stateOf(t, next); len(s.Rounds) != 0 || s.Current != "p2" {
+		t.Fatalf("two passes since p2 played must not end a three-player round: %+v, %s on", s.Rounds, s.Current)
+	}
+	next, err = apply(t, next, "p2", moduleAction(VerbDraw, "", nil, nil))
+	if err != nil {
+		t.Fatalf("p2 pass: %v", err)
+	}
+	if s := stateOf(t, next); len(s.Rounds) != 1 || s.Rounds[0].Kind != "pool_exhausted" {
+		t.Fatalf("three passes in a row end it, got %+v", s.Rounds)
+	}
+}
+
+// Target score Off with the round limit Off left a match no end condition.
+// It now plays to the variation's target, and the written rules say so.
+func TestEndConditions_BothOffPlaysToTheDefaultTarget(t *testing.T) {
+	cfg := module.MatchConfig{Variation: "standard", Options: module.Options{OptTargetScore: 0, OptRoundLimit: 0}}
+	raw, err := New().NewMatch(cfg, []module.PlayerRef{{ID: "p1"}, {ID: "p2"}}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := stateOf(t, raw)
+	if s.TargetScore != 200 || s.RoundLimit != 0 {
+		t.Fatalf("target %d, round limit %d; want 200 and 0", s.TargetScore, s.RoundLimit)
+	}
+	s.Scores["p1"] = 200
+	if w, ok := matchWinner(s); !ok || w != "p1" {
+		t.Fatalf("reaching 200 ends the match, got %q %v", w, ok)
+	}
+	// A match stored before the fix, with both still zero, ends too.
+	s.TargetScore = 0
+	if w, ok := matchWinner(s); !ok || w != "p1" {
+		t.Fatalf("an old Off/Off state: got %q %v", w, ok)
+	}
+
+	sections, _ := New().Rules(cfg)
+	if !hasRule(sections, "rummytiles.rules.target", 200) {
+		t.Errorf("the rules must state the target the match plays to: %+v", sections)
+	}
+
+	// Both on: both are written, since either ends the match.
+	both := module.MatchConfig{Variation: "standard", Options: module.Options{OptTargetScore: 300, OptRoundLimit: 5}}
+	sections, _ = New().Rules(both)
+	if !hasRule(sections, "rummytiles.rules.target", 300) || !hasRule(sections, "rummytiles.rules.roundLimit", 5) {
+		t.Errorf("both end conditions must be written: %+v", sections)
+	}
+}
+
+func hasRule(sections []module.RuleSection, key string, n int) bool {
+	for _, sec := range sections {
+		for _, it := range sec.Items {
+			if it.LabelKey == key && it.Params["n"] == n {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // --- Apply does not mutate the caller's bytes -------------------------------

@@ -115,8 +115,11 @@ type GameState struct {
 
 	HandNumber int `json:"handNumber"` // 0-based
 
-	Knocker         string `json:"knocker,omitempty"`
-	KnockGin        bool   `json:"knockGin,omitempty"`
+	Knocker  string `json:"knocker,omitempty"`
+	KnockGin bool   `json:"knockGin,omitempty"`
+	// KnockBigGin is a gin declared with all eleven cards and no discard,
+	// which the big gin option pays a further bonus for.
+	KnockBigGin     bool   `json:"knockBigGin,omitempty"`
 	KnockerDeadwood int    `json:"knockerDeadwood,omitempty"`
 	KnockerMelds    []Meld `json:"knockerMelds,omitempty"`
 

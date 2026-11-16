@@ -490,12 +490,15 @@ func (s *GameState) meld(p, offerID string) ([]module.Event, error) {
 }
 
 // canExchange: the nine of trumps for the turned-up card, while it is still
-// there and is not itself a nine.
+// there and is not itself a nine — and only a nine not yet shown as the dix.
+// The exchange scores the dix, so a nine that already has would score twice:
+// shown for 10, then exchanged for 10 more (release forgets it was shown
+// once it leaves the hand).
 func (s *GameState) canExchange(p string) bool {
 	if s.TurnUp == "" || tricks.Rank(s.TurnUp) == '9' {
 		return false
 	}
-	return countOf(s.Hands[p])["9"+s.Trump] > 0
+	return s.canDeclareDix(p)
 }
 
 // canDeclareDix: a nine of trumps not yet shown.

@@ -111,6 +111,8 @@ export const en: Record<string, string> = {
   'zolik.rules.section.end': 'How the match ends',
   'zolik.rules.goal':
     "Be the first to empty your hand by laying down valid sets and runs, while scoring as few penalty points as possible in the cards you're still holding when someone else goes out.",
+  'zolik.rules.deck.packs':
+    'Played with {small} packs of 52 cards plus 2 jokers each for two to four players, {mid} packs for five or six, and {large} for seven or eight.',
   'zolik.rules.deal': 'Each player is dealt {n} cards.',
   'zolik.rules.meldShapes':
     'A set is {set}+ cards of the same rank; a run is {run}+ consecutive cards of the same suit.',
@@ -140,6 +142,9 @@ export const en: Record<string, string> = {
   'zolik.rules.penalty.values':
     "A card left in your hand costs: a joker {joker}, a 10, jack, queen or king {face}, a 2 to 9 its number, and an ace {ace} — or only {aceLow} if a 2 of its suit, or both the queen and king of its suit, are also in your hand, or it would extend a run on the table.",
   'zolik.rules.end.atScore': "The match keeps redealing until someone reaches {n} points — then it's over.",
+  'zolik.rules.end.lowestWins': 'When the match ends, the lowest total wins.',
+  'zolik.rules.end.tieBreak':
+    'If players share the lowest total, the one who won fewer deals wins; if that is level too, the match is drawn.',
 
   'prsi.rules.section.goal': 'Goal',
   'prsi.rules.section.setup': 'Setup',
@@ -150,14 +155,21 @@ export const en: Record<string, string> = {
   'prsi.rules.deck': 'Played with a {value}-card deck (7 and up).',
   'prsi.rules.deal': 'Each player starts with {n} cards.',
   'prsi.rules.dealLimit': 'There must be a card left to turn up and one to draw, so {seats} players are dealt at most {n} cards each.',
+  'prsi.rules.firstCard':
+    'The card turned up to start the pile counts as if it had just been played at the first player: a 7 must be answered or paid, an ace answered or the turn missed. A svršek is never turned up while another card can be — it goes to the bottom of the pack.',
   'prsi.rules.turn.match':
     "Play a card that matches the top card's suit or rank — or draw if you can't.",
   'prsi.rules.turn.draw': 'Drawing ends your turn without a play.',
   'prsi.rules.turn.nothingToDraw': 'If nothing is left to draw and none of your cards fits, drawing passes your turn without a card.',
   'prsi.rules.sevens':
     'Play a 7 and the next player draws two cards, unless they can answer with a 7 of their own.',
-  'prsi.rules.aces': "Play an ace and the next player's turn is skipped.",
+  'prsi.rules.sevens.stack':
+    'Sevens stack: each 7 played in answer adds two more cards, and the first player who cannot answer draws them all.',
+  'prsi.rules.aces':
+    'Play an ace and the next player misses a turn, unless they answer with an ace of their own — which passes the missed turn on.',
   'prsi.rules.queens': 'Play a svršek (the Ober) and name the suit that continues.',
+  'prsi.rules.queens.anything':
+    'A svršek goes on any card — except a 7 or an ace still waiting to be answered — and the next card must follow the suit named, or be another svršek.',
   'prsi.rules.end': "The match ends the moment someone's hand is empty.",
   'prsi.rules.end.blocked': 'If every player in turn passes like that, nobody can move: the fewest cards wins, and a tie shares the win.',
   'prsi.remedy.matchOrDraw': 'Play a {suit} card, or one that matches {card} — otherwise draw.',
@@ -181,14 +193,23 @@ export const en: Record<string, string> = {
   'canasta.rules.section.melding': 'Melding',
   'canasta.rules.section.end': 'How the match ends',
   'canasta.rules.section.turn': 'Your turn',
-  'canasta.rules.goal':
-    'Play in partnerships; the first side to reach {n} points wins the match.',
+  'canasta.rules.goal': 'The first side to reach {n} points wins the match.',
+  'canasta.rules.partnerships':
+    'Four players play as two partnerships, partners sitting opposite; two or three players each play alone.',
+  'canasta.rules.partnershipsSix':
+    'Four or six players play in partnerships of two, partners sitting opposite; two, three or five players each play alone.',
   'canasta.rules.deck': 'Played with {value} cards — {decks} decks plus jokers.',
   'canasta.rules.deal': 'Each player is dealt {n} cards.',
   'canasta.rules.drawCount': 'You draw {n} cards at the start of your turn.',
   'canasta.rules.redThrees':
     "A red three in your hand is shown immediately and scores as a bonus — unless your side never completes a canasta, when it counts against you instead.",
+  'canasta.rules.redThreesNeedTwo':
+    'A red three in your hand is shown immediately and scores as a bonus — unless your side completes fewer than two canastas, when each counts {n} against you instead.',
+  'canasta.rules.redThreeValues':
+    'Each red three is worth {n}; all {count} of them together are worth {all}.',
   'canasta.rules.canasta': 'A canasta is a meld of {n} or more cards of the same rank.',
+  'canasta.rules.canastaBonus':
+    'A completed canasta scores a bonus on top of its cards: {natural} for a natural one with no wild cards, {mixed} for one with wild cards in it.',
   'canasta.rules.sequences': 'A meld can also be a sequence: three or more cards of the same suit in a row, never with a wild card among them.',
   'canasta.rules.dirtySequences': 'A meld can also be a sequence: three to seven cards of one suit in a row. Wild cards may stand in for missing cards, at most two and never more than half as many as the natural cards. Seven with a wild in them is a dirty samba, worth {n}.',
   'canasta.rules.wildMeld': 'Once your side has opened it may lay one meld of 2s and jokers, in any mix: three jokers will do. Seven cards is a canasta: {n} if all 2s, {mixed} with jokers.',
@@ -232,7 +253,7 @@ export const en: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Your side may have several melds of the same rank.',
   'canasta.rules.canastaCloses': 'A canasta of {n} is complete and takes no more cards.',
   'canasta.rules.meldsAreShared':
-    "Melds belong to the partnership: either partner may extend them, and neither side may touch the other's.",
+    'Melds belong to the side that laid them — at a partnership table, to both partners: either may extend them, and no other side may touch them.',
   'canasta.rules.layOffAfterOpening':
     'Until your side has made its initial meld it may add only natural cards to melds, and only to melds it laid this turn. Those count toward the minimum.',
   'canasta.rules.goOutKeepsACard':
@@ -241,7 +262,7 @@ export const en: Record<string, string> = {
   'canasta.rules.twoCanastasToGoOut':
     'Your side needs two completed canastas before it may go out.',
   'canasta.rules.end':
-    'The deal keeps being redealt until one side passes {n} points — then the match is over.',
+    'The deal keeps being redealt until one side reaches {n} points — then the match is over.',
 
   'holdem.rules.section.goal': 'Goal',
   'holdem.rules.section.setup': 'Setup',
@@ -696,9 +717,11 @@ export const en: Record<string, string> = {
     'After a knock that is not gin, your opponent may lay their own deadwood onto your melds before the hands are compared.',
   'ginrummy.rules.deadHandDescription':
     'If the stock runs down to its last two cards and nobody has knocked, the hand is dead — nobody scores, and the same dealer deals again.',
+  'ginrummy.rules.knockScore':
+    "A knock that is not undercut scores the difference between the two players' deadwood.",
   'ginrummy.rules.undercut': "If your opponent's deadwood is no higher than yours, they undercut you: they score the difference, plus {n}.",
   'ginrummy.rules.ginBonus': "Gin scores your opponent's whole hand, plus {n}.",
-  'ginrummy.rules.target': 'First to pass {n} points after a hand ends wins the match.',
+  'ginrummy.rules.target': 'First to reach {n} points after a hand ends wins the match.',
   'ginrummy.rules.shutout': "The game bonus doubles to {n} if the loser never scored a single point.",
   'ginrummy.rules.box': 'Each hand you won is worth {n} points at the end of the match.',
   'ginrummy.rules.gameBonus': 'Winning the match is worth a further {n} points.',
@@ -788,7 +811,7 @@ export const en: Record<string, string> = {
     'If the pool runs dry and nobody can play, the round ends and the lowest hand value wins it.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'If the pool runs dry and nobody can play, the round ends with no winner — every hand is simply scored.',
-  'rummytiles.rules.target': 'First to pass {n} points after a round ends wins the match.',
+  'rummytiles.rules.target': 'First to reach {n} points after a round ends wins the match.',
   'rummytiles.rules.roundLimit': 'The match ends after {n} rounds — highest score wins.',
   'rummytiles.remedy.emptyTheTray': 'Place the {n} tiles still in your tray, or reset the turn.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -823,6 +846,7 @@ export const en: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Reset turn',
   'rummytiles.offer.commit': 'Done',
   'rummytiles.offer.draw': 'Draw',
+  'rummytiles.offer.pass': 'Pass',
   'rummytiles.param.position': 'Split at',
 
   // --- blackjack -----------------------------------------------------------
@@ -2201,6 +2225,7 @@ export const en: Record<string, string> = {
   'rummytiles.move.reset': '{player} put the table back',
   'rummytiles.move.committed': '{player} ended their turn',
   'rummytiles.move.drew': '{player} drew a tile',
+  'rummytiles.move.passed': '{player} passed — the pool is empty',
   'moves.last': 'Last move',
   'moves.history': 'History',
   'hints.title': 'Hints',
@@ -2451,7 +2476,7 @@ export const en: Record<string, string> = {
   'marias.rules.section.auction': 'The auction',
   'marias.rules.licit.deal': 'Everyone gets 10 cards; the other 2 lie face down as the talon until the auction is won.',
   'marias.rules.licit.auction': "The dealer bids first against the player on the dealer's left (the forehand), naming a rung of the ladder or passing; the forehand holds it by saying hold, or passes. At equal rungs the forehand wins.",
-  'marias.rules.licit.middle': 'When one of them passes, the third player takes their place: bidding against the forhont, or holding against the dealer.',
+  'marias.rules.licit.middle': 'When one of them passes, the third player takes their place: bidding against the forehand, or holding against the dealer.',
   'marias.rules.licit.nobody': 'If nobody bids, the forehand plays Seven.',
   'marias.rules.licit.ladder': 'The ladder, low to high: Seven, Seven in hearts, Hundred, Hundred and Seven, Hundred in hearts, Hundred and Seven in hearts, Betl, Durch, Two Sevens, Two Sevens and Hundred, and both Two Sevens with hearts as trumps. In hearts means hearts are trumps.',
   'marias.rules.licit.contract': 'The winner takes the talon and announces any contract at or above the rung won, with its trumps.',
@@ -3213,7 +3238,8 @@ export const en: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'So the queen of spades can count in a spade marriage, in queens around and in a pinochle at once, and a second king and queen of trumps beside a run still score as a royal marriage.',
   'pinochle.rules.meld.onWin': 'Only the winner of a trick may meld, and only while the stock lasts.',
   'pinochle.rules.meld.onePerTurn': 'One meld for each trick won. Melded cards stay on the table and may still be played.',
-  'pinochle.rules.meld.exchange': 'A nine of trumps may be exchanged for the turned-up trump card. It scores {n} and counts as that turn’s meld.',
+  'pinochle.rules.meld.exchange':
+    'A nine of trumps not already shown as the dix may be exchanged for the turned-up trump card. It scores {n} and counts as that turn’s meld.',
   'pinochle.rules.meld.staysInHand': "When the stock runs out, every melded card goes back into its owner's hand.",
   'pinochle.rules.meld.shown': "Once trumps are named, everyone's meld is counted and shown on the table during the first trick.",
   'pinochle.rules.meld.needsTrick': "A side's meld counts only if it takes at least one trick.",
@@ -3509,8 +3535,8 @@ export const en: Record<string, string> = {
   'a11y.rank.J': 'Jack',
   'a11y.rank.Q': 'Queen',
   'a11y.rank.K': 'King',
-  'a11y.rank.german.J': 'Under',
-  'a11y.rank.german.Q': 'Over',
+  'a11y.rank.german.J': 'Unter',
+  'a11y.rank.german.Q': 'Ober',
   'a11y.lastcard.spoken': '{colour} {face}',
   'a11y.tile.spoken': '{colour} {n}',
   'a11y.tile.colour.R': 'Red',

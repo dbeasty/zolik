@@ -21,8 +21,8 @@ describe('cardSpokenName', () => {
 
   it('names the German pack the way its faces are drawn', () => {
     setActiveDeck('german');
-    expect(cardSpokenName('QS')).toBe('Over of Leaves');
-    expect(cardSpokenName('JD')).toBe('Under of Bells');
+    expect(cardSpokenName('QS')).toBe('Ober of Leaves');
+    expect(cardSpokenName('JD')).toBe('Unter of Bells');
     expect(cardSpokenName('KH')).toBe('King of Hearts');
   });
 

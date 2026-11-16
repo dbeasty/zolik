@@ -102,6 +102,8 @@ export const lt: Record<string, string> = {
   'zolik.rules.section.end': 'Kaip baigiasi rungtynės',
   'zolik.rules.goal':
     'Būk pirmas, kuris ištuština ranką išdėdamas galiojančias grupes ir sekas, surinkdamas kuo mažiau baudos taškų kortose, kurias vis dar laikai, kai kas nors kitas išeina.',
+  'zolik.rules.deck.packs':
+    'Žaidžiama {small} kaladėmis po 52 kortas ir 2 džokerius kiekvienoje, kai žaidžia nuo dviejų iki keturių žaidėjų, {mid} kaladėmis penkiems ar šešiems ir {large} septyniems ar aštuoniems.',
   'zolik.rules.deal': 'Kiekvienas žaidėjas gauna {n} kortų.',
   'zolik.rules.meldShapes':
     'Grupė — tai {set}+ tos pačios vertės kortos; seka — tai {run}+ iš eilės einančios tos pačios rūšies kortos.',
@@ -132,6 +134,9 @@ export const lt: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Rankoje likusi korta kainuoja: džokeris {joker}, 10, valetas, dama ar karalius {face}, nuo 2 iki 9 – savo skaičių, o tūzas {ace} — arba tik {aceLow}, jei rankoje turite ir tos pačios rūšies dvejetą, arba tos pačios rūšies damą ir karalių, arba jei jis pratęstų eilę ant stalo.",
   'zolik.rules.end.atScore': 'Dalijama toliau, kol kas nors pasiekia {n} taškų — tada baigta.',
+  'zolik.rules.end.lowestWins': 'Kai rungtynės baigiasi, laimi mažiausia bendra suma.',
+  'zolik.rules.end.tieBreak':
+    'Jei mažiausią bendrą sumą turi keli žaidėjai, laimi tas, kuris laimėjo mažiau dalijimų; jei ir tai lygu, rungtynės baigiasi lygiosiomis.',
 
   'prsi.rules.section.goal': 'Tikslas',
   'prsi.rules.section.setup': 'Pasiruošimas',
@@ -142,13 +147,20 @@ export const lt: Record<string, string> = {
   'prsi.rules.deck': 'Žaidžiama {value} kortų kalade (nuo septyneto ir aukščiau).',
   'prsi.rules.deal': 'Kiekvienas žaidėjas pradeda su {n} kortomis.',
   'prsi.rules.dealLimit': 'Turi likti korta atversti ir viena traukti, todėl {seats} žaidėjai gauna ne daugiau kaip {n} kortas.',
+  'prsi.rules.firstCard':
+    'Krūvai pradėti atversta korta laikoma lyg ką tik sužaista prieš pirmąjį žaidėją: į 7 reikia atsakyti arba sumokėti, į tūzą atsakyti arba praleisti ėjimą. Svršekas niekada neatverčiamas, kol galima atversti kitą kortą — jis dedamas į kaladės apačią.',
   'prsi.rules.turn.match':
     'Sužaisk kortą, atitinkančią viršutinės kortos rūšį arba vertę — arba traukk, jei negali.',
   'prsi.rules.turn.draw': 'Traukimas užbaigia tavo ėjimą nesužaidus.',
   'prsi.rules.turn.nothingToDraw': 'Jei nebėra ko traukti ir netinka nė viena tavo korta, traukimas baigia ėjimą be kortos.',
   'prsi.rules.sevens': 'Sužaisk 7 ir kitas žaidėjas traukia dvi kortas, nebent atsakys savo septynetu.',
-  'prsi.rules.aces': 'Sužaisk tūzą ir kito žaidėjo ėjimas praleidžiamas.',
+  'prsi.rules.sevens.stack':
+    'Septynetai kaupiasi: kiekvienas atsakant sužaistas 7 prideda dar dvi kortas, o pirmasis žaidėjas, negalintis atsakyti, traukia jas visas.',
+  'prsi.rules.aces':
+    'Sužaisk tūzą ir kito žaidėjo ėjimas praleidžiamas, nebent jis atsakys savo tūzu — tada praleistas ėjimas pereina toliau.',
   'prsi.rules.queens': 'Sužaisk svršeką (oberį) ir pasakyk rūšį, kuri tęsiasi.',
+  'prsi.rules.queens.anything':
+    'Svršeką galima dėti ant bet kurios kortos — išskyrus 7 ar tūzą, į kurį dar laukiama atsakymo — o kita korta turi būti nurodytos rūšies arba kitas svršekas.',
   'prsi.rules.end': 'Rungtynės baigiasi tą akimirką, kai kieno nors ranka tuščia.',
   'prsi.rules.end.blocked': 'Jei visi žaidėjai paeiliui taip praleidžia, niekas negali žaisti: laimi mažiausiai kortų, o lygiosios pergalę padalija.',
   'prsi.remedy.matchOrDraw': 'Išeik {suit} korta arba tokia, kuri tinka prie {card} — kitaip imk kortą.',
@@ -172,13 +184,22 @@ export const lt: Record<string, string> = {
   'canasta.rules.section.melding': 'Išdėjimas',
   'canasta.rules.section.end': 'Kaip baigiasi rungtynės',
   'canasta.rules.section.turn': 'Tavo ėjimas',
-  'canasta.rules.goal': 'Žaidžiama poromis; pirmoji pusė, pasiekusi {n} taškų, laimi rungtynes.',
+  'canasta.rules.goal': 'Pirmoji pusė, pasiekusi {n} taškų, laimi rungtynes.',
+  'canasta.rules.partnerships':
+    'Keturi žaidėjai žaidžia dviem poromis, partneriai sėdi vienas priešais kitą; du ar trys žaidėjai žaidžia kiekvienas atskirai.',
+  'canasta.rules.partnershipsSix':
+    'Keturi ar šeši žaidėjai žaidžia poromis po du, partneriai sėdi vienas priešais kitą; du, trys ar penki žaidėjai žaidžia kiekvienas atskirai.',
   'canasta.rules.deck': 'Žaidžiama {value} kortomis — {decks} kaladės ir džokeriai.',
   'canasta.rules.deal': 'Kiekvienas žaidėjas gauna {n} kortų.',
   'canasta.rules.drawCount': 'Ėjimo pradžioje imi {n} kortas.',
   'canasta.rules.redThrees':
     'Raudonas trejetas tavo rankoje parodomas iškart ir duoda premiją — nebent tavo pusė niekada nesudaro kanastos, tada jis skaičiuojamas prieš tave.',
+  'canasta.rules.redThreesNeedTwo':
+    'Raudonas trejetas tavo rankoje parodomas iškart ir duoda premiją — nebent tavo pusė sudaro mažiau nei dvi kanastas, tada kiekvienas skaičiuojamas {n} prieš tave.',
+  'canasta.rules.redThreeValues': 'Kiekvienas raudonas trejetas vertas {n}; visi {count} kartu verti {all}.',
   'canasta.rules.canasta': 'Kanasta — tai {n} ar daugiau tos pačios vertės kortų derinys.',
+  'canasta.rules.canastaBonus':
+    'Užbaigta kanasta be savo kortų dar duoda premiją: {natural} už natūralią be laukinių kortų, {mixed} už tokią, kurioje yra laukinių kortų.',
   'canasta.rules.sequences': 'Derinys gali būti ir seka: trys ar daugiau tos pačios rūšies kortų iš eilės, niekada su džokeriu tarp jų.',
   'canasta.rules.dirtySequences': 'Derinys gali būti ir seka: nuo trijų iki septynių tos pačios rūšies kortų iš eilės. Laukinės kortos gali pakeisti trūkstamas kortas, ne daugiau kaip dvi ir niekada daugiau nei pusė natūralių kortų skaičiaus. Septynios kortos su laukine korta tarp jų yra nešvari samba, verta {n}.',
   'canasta.rules.wildMeld': 'Kai tavo pusė jau išdėjo pirmąjį derinį, ji gali išdėti vieną dvejetų ir džokerių derinį bet kokiu santykiu: tinka ir trys džokeriai. Septynios kortos yra kanasta: {n}, jei vien dvejetai, {mixed} su džokeriais.',
@@ -222,14 +243,14 @@ export const lt: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Tavo pusė gali turėti kelias tos pačios vertės kombinacijas.',
   'canasta.rules.canastaCloses': '{n} kortų kanasta baigta ir daugiau kortų nepriima.',
   'canasta.rules.meldsAreShared':
-    'Kombinacijos priklauso porai: jas gali plėsti bet kuris partneris, o varžovų kombinacijų neliečia niekas.',
+    'Kombinacijos priklauso pusei, kuri jas išdėjo — žaidžiant poromis abiem partneriams: jas gali plėsti bet kuris iš jų, o jokia kita pusė jų liesti negali.',
   'canasta.rules.layOffAfterOpening':
     'Kol tavo pusė nepadėjo savo pirmosios kombinacijos, ji negali nieko ant stalo papildyti.',
   'canasta.rules.goOutKeepsACard':
     'Visada turi galėti užbaigti savo ėjimą, tad niekada neišdėliok visos rankos, nebent tai kaip tik išėjimo ėjimas.',
   'canasta.rules.oneCanastaToGoOut': 'Vienos užbaigtos kanastos pakanka, kad tavo pusė išeitų.',
   'canasta.rules.twoCanastasToGoOut': 'Tavo pusei reikia dviejų užbaigtų kanastų, kad galėtų išeiti.',
-  'canasta.rules.end': 'Dalijama toliau, kol viena pusė peržengia {n} taškų — tada rungtynės baigtos.',
+  'canasta.rules.end': 'Dalijama toliau, kol viena pusė pasiekia {n} taškų — tada rungtynės baigtos.',
 
   'holdem.rules.section.goal': 'Tikslas',
   'holdem.rules.section.setup': 'Pasiruošimas',
@@ -698,10 +719,11 @@ export const lt: Record<string, string> = {
     'Po beldimo, kuris nėra ginas, priešininkas gali pridėti savo deadwood prie tavo derinių, prieš lyginant rankas.',
   'ginrummy.rules.deadHandDescription':
     'Jei kalade lieka paskutinės dvi kortos ir niekas nepabeldė, dalijimas negyvas — niekas nerenka taškų ir tas pats dalytojas dalija iš naujo.',
+  'ginrummy.rules.knockScore': 'Nepakirstas beldimas duoda abiejų žaidėjų deadwood skirtumą.',
   'ginrummy.rules.undercut':
     'Jei priešininko deadwood ne didesnis už tavąjį, jis tave pakerta: gauna skirtumą plius {n}.',
   'ginrummy.rules.ginBonus': 'Ginas duoda visą priešininko ranką plius {n}.',
-  'ginrummy.rules.target': 'Kas dalijimui pasibaigus pirmas peržengia {n} taškų, laimi rungtynes.',
+  'ginrummy.rules.target': 'Kas dalijimui pasibaigus pirmas pasiekia {n} taškų, laimi rungtynes.',
   'ginrummy.rules.shutout':
     'Rungtynių premija padvigubėja iki {n}, jei pralaimėjęs nesurinko nė vieno taško.',
   'ginrummy.rules.box': 'Kiekvienas laimėtas dalijimas rungtynių pabaigoje vertas {n} taškų.',
@@ -794,7 +816,7 @@ export const lt: Record<string, string> = {
     'Jei atsargos baigiasi ir niekas negali žaisti, raundas baigiasi ir jį laimi mažiausia rankos vertė.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Jei atsargos baigiasi ir niekas negali žaisti, raundas baigiasi be laimėtojo — kiekviena ranka tiesiog suskaičiuojama.',
-  'rummytiles.rules.target': 'Kas raundui pasibaigus pirmas peržengia {n} taškų, laimi rungtynes.',
+  'rummytiles.rules.target': 'Kas raundui pasibaigus pirmas pasiekia {n} taškų, laimi rungtynes.',
   'rummytiles.rules.roundLimit': 'Rungtynės baigiasi po {n} raundų — laimi aukščiausias rezultatas.',
   'rummytiles.remedy.emptyTheTray': 'Padėk {n} plokšteles, likusias dėkle, arba atstatyk ėjimą.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -829,6 +851,7 @@ export const lt: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Atstatyti ėjimą',
   'rummytiles.offer.commit': 'Baigta',
   'rummytiles.offer.draw': 'Traukti',
+  'rummytiles.offer.pass': 'Praleisti',
   'rummytiles.param.position': 'Perskirti ties',
 
   // --- blackjack -----------------------------------------------------------
@@ -2167,6 +2190,7 @@ export const lt: Record<string, string> = {
   'rummytiles.move.reset': '{player}: grąžino stalą',
   'rummytiles.move.committed': '{player}: baigė ėjimą',
   'rummytiles.move.drew': '{player}: traukė plytelę',
+  'rummytiles.move.passed': '{player}: praleido — atsargos tuščios',
   'moves.last': 'Paskutinis ėjimas',
   'moves.history': 'Istorija',
   'hints.title': 'Patarimai',
@@ -3153,7 +3177,8 @@ export const lt: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Taigi pikų dama gali kartu skaičiuotis pikų santuokoje, damų rate ir pinochle, o antras kozirių karalius su dama šalia sekos vis tiek skaičiuojami kaip kozirių santuoka.',
   'pinochle.rules.meld.onWin': 'Išdėti derinį gali tik kirtį laimėjęs žaidėjas ir tik kol kaladėje dar yra kortų.',
   'pinochle.rules.meld.onePerTurn': 'Vienas derinys už kiekvieną laimėtą kirtį. Išdėtos kortos lieka ant stalo ir jomis vis dar galima žaisti.',
-  'pinochle.rules.meld.exchange': 'Kozirių devynakę galima pakeisti į atverstą kozirio kortą. Tai duoda {n} ir laikoma to ėjimo deriniu.',
+  'pinochle.rules.meld.exchange':
+    'Kozirių devynakę, kuri dar nebuvo parodyta kaip kozirių devynakė, galima pakeisti į atverstą kozirio kortą. Tai duoda {n} ir laikoma to ėjimo deriniu.',
   'pinochle.rules.meld.staysInHand': 'Kai kaladė baigiasi, visos išdėtos kortos grįžta į savininko ranką.',
   'pinochle.rules.meld.shown': 'Paskelbus kozirį, visų deriniai suskaičiuojami ir rodomi ant stalo per pirmąjį kirtį.',
   'pinochle.rules.meld.needsTrick': 'Pusės deriniai skaičiuojami tik tada, jei ji paima bent vieną kirtį.',

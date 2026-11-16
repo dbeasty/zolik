@@ -104,6 +104,8 @@ export const mt: Record<string, string> = {
   'zolik.rules.section.end': 'Kif tispiċċa l-partita',
   'zolik.rules.goal':
     "Kun l-ewwel wieħed li jbattal idu billi tniżżel gruppi u sekwenzi validi, filwaqt li tiġbor l-inqas punti ta' penali possibbli fil-karti li jkun għad għandek f'idek meta ħaddieħor joħroġ.",
+  'zolik.rules.deck.packs':
+    "Jintlagħab b'{small} mazzi ta' 52 karta flimkien ma' 2 jokers kull wieħed għal bejn żewġ u erba' plejers, {mid} mazzi għal ħamsa jew sitta, u {large} għal sebgħa jew tmienja.",
   'zolik.rules.deal': 'Kull plejer jieħu {n} karti.',
   'zolik.rules.meldShapes':
     'Grupp huwa {set}+ karti tal-istess valur; sekwenza hija {run}+ karti wara xulxin tal-istess kulur.',
@@ -134,6 +136,9 @@ export const mt: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Karta li tibqa' f'idejk tiswa: joker {joker}, 10, fanti, reġina jew sultan {face}, minn 2 sa 9 in-numru tagħha, u as {ace} — jew {aceLow} biss jekk f'idejk għandek ukoll 2 tal-istess libsa, jew ir-reġina u s-sultan tal-istess libsa, jew jekk itawwal sekwenza fuq il-mejda.",
   'zolik.rules.end.atScore': "Jibqa' jitqassam sakemm xi ħadd jilħaq {n} punti — imbagħad tispiċċa.",
+  'zolik.rules.end.lowestWins': 'Meta tispiċċa l-partita, jirbaħ l-inqas total.',
+  'zolik.rules.end.tieBreak':
+    'Jekk aktar minn plejer wieħed ikollhom l-inqas total, jirbaħ dak li rebaħ inqas tqassimiet; jekk anke dan ikun ugwali, il-partita tispiċċa draw.',
 
   'prsi.rules.section.goal': 'Għan',
   'prsi.rules.section.setup': 'Tħejjija',
@@ -144,13 +149,20 @@ export const mt: Record<string, string> = {
   'prsi.rules.deck': "Jintlagħab b'mazz ta' {value} karti (mis-7 'il fuq).",
   'prsi.rules.deal': "Kull plejer jibda b'{n} karti.",
   'prsi.rules.dealLimit': 'Irid tibqa\' karta biex taqlibha u oħra biex tiġbed, għalhekk {seats} plejers jieħdu l-aktar {n} karti kull wieħed.',
+  'prsi.rules.firstCard':
+    "Il-karta li tinqaleb biex tibda l-munzell tgħodd daqs li kieku għadha kemm intlagħbet fuq l-ewwel plejer: 7 trid titwieġeb jew titħallas, ass irid jitwieġeb jew titlef id-dawra. Svršek qatt ma jinqaleb sakemm tista' tinqaleb karta oħra — imur fil-qiegħ tal-mazz.",
   'prsi.rules.turn.match':
     "Ilgħab karta li taqbel mal-kulur jew mal-valur tal-karta ta' fuq — jew iġbed, jekk ma tistax.",
   'prsi.rules.turn.draw': 'Il-ġbid itemm id-dawra tiegħek mingħajr ma tilgħab.',
   'prsi.rules.turn.nothingToDraw': 'Jekk ma fadal xejn x\'tiġbed u l-ebda karta tiegħek ma taqbel, il-ġbid itemm id-dawra mingħajr karta.',
   'prsi.rules.sevens': "Ilgħab 7 u l-plejer li jmiss jiġbed żewġ karti, ħlief jekk iwieġeb b'7 tiegħu.",
-  'prsi.rules.aces': 'Ilgħab ass u d-dawra tal-plejer li jmiss taqbeż.',
+  'prsi.rules.sevens.stack':
+    'Is-sebgħat jinġemgħu: kull 7 li tintlagħab bi tweġiba żżid żewġ karti oħra, u l-ewwel plejer li ma jistax iwieġeb jiġbidhom kollha.',
+  'prsi.rules.aces':
+    "Ilgħab ass u l-plejer li jmiss jaqbeż dawra, ħlief jekk iwieġeb b'ass tiegħu — li jgħaddi d-dawra maqbuża lil ta' warajh.",
   'prsi.rules.queens': 'Ilgħab svršek (Ober) u semmi l-kulur li jkompli.',
+  'prsi.rules.queens.anything':
+    'Svršek imur fuq kull karta — ħlief 7 jew ass li għadhom jistennew tweġiba — u l-karta li jmiss trid issegwi l-kulur imsemmi, jew tkun svršek ieħor.',
   'prsi.rules.end': 'Il-partita tispiċċa fil-mument li id xi ħadd tkun vojta.',
   'prsi.rules.end.blocked': 'Jekk il-plejers kollha jgħaddu hekk wieħed wara l-ieħor, ħadd ma jista\' jilgħab: jirbaħ l-inqas karti, u d-draw jaqsam ir-rebħa.',
   'prsi.remedy.matchOrDraw': "Illiegħeb karta ta' {suit} jew waħda li taqbel ma' {card} — inkella iġbed.",
@@ -174,13 +186,22 @@ export const mt: Record<string, string> = {
   'canasta.rules.section.melding': 'It-tniżżil',
   'canasta.rules.section.end': 'Kif tispiċċa l-partita',
   'canasta.rules.section.turn': 'Id-dawra tiegħek',
-  'canasta.rules.goal': "Jintlagħab f'pari; l-ewwel naħa li tilħaq {n} punti tirbaħ il-partita.",
+  'canasta.rules.goal': 'L-ewwel naħa li tilħaq {n} punti tirbaħ il-partita.',
+  'canasta.rules.partnerships':
+    "Erba' plejers jilagħbu f'żewġ koppji, bis-sħab bilqiegħda wieħed quddiem l-ieħor; żewġ jew tliet plejers jilagħbu kull wieħed waħdu.",
+  'canasta.rules.partnershipsSix':
+    "Erba' jew sitt plejers jilagħbu f'koppji ta' tnejn, bis-sħab bilqiegħda wieħed quddiem l-ieħor; żewġ, tliet jew ħames plejers jilagħbu kull wieħed waħdu.",
   'canasta.rules.deck': "Jintlagħab b'{value} karti — {decks} mazzi flimkien mal-jokers.",
   'canasta.rules.deal': 'Kull plejer jieħu {n} karti.',
   'canasta.rules.drawCount': 'Fil-bidu tad-dawra tiegħek tiġbed {n} karti.',
   'canasta.rules.redThrees':
     "Tlieta ħamra f'idek tintwera mill-ewwel u tgħodd bħala bonus — ħlief jekk in-naħa tiegħek qatt ma tlesti canasta, u mbagħad tgħodd kontrik.",
+  'canasta.rules.redThreesNeedTwo':
+    "Tlieta ħamra f'idek tintwera mill-ewwel u tgħodd bħala bonus — ħlief jekk in-naħa tiegħek tlesti inqas minn żewġ canastas, u mbagħad kull waħda tgħodd {n} kontrik.",
+  'canasta.rules.redThreeValues': 'Kull tlieta ħamra tiswa {n}; l-{count} kollha flimkien jiswew {all}.',
   'canasta.rules.canasta': "Canasta hija kombinazzjoni ta' {n} karti jew aktar tal-istess valur.",
+  'canasta.rules.canastaBonus':
+    "Canasta lesta tiskorja bonus fuq il-karti tagħha: {natural} għal waħda naturali mingħajr karti salvaġġi, {mixed} għal waħda b'karti salvaġġi fiha.",
   'canasta.rules.sequences': "Kombinazzjoni tista' tkun ukoll sekwenza: tliet karti jew aktar tal-istess kulur wara xulxin, qatt b'joker fosthom.",
   'canasta.rules.dirtySequences': "Kombinazzjoni tista' tkun ukoll sekwenza: minn tliet sa seba' karti tal-istess kulur wara xulxin. Il-karti salvaġġi jistgħu jieħdu post karti neqsin, l-aktar tnejn u qatt aktar minn nofs l-għadd tal-karti naturali. Seba' karti b'karta salvaġġa fosthom huma samba mħallta, li tiswa {n}.",
   'canasta.rules.wildMeld': "Ladarba n-naħa tiegħek tkun fetħet, tista' tniżżel kombinazzjoni waħda ta' tnejnijiet u jokers imħallta kif trid: tlett jokers ukoll jgħoddu. Seba' karti huma canasta: {n} jekk huma kollha tnejnijiet, {mixed} b'jokers.",
@@ -225,7 +246,7 @@ export const mt: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': "In-naħa tiegħek tista' jkollha diversi melds tal-istess grad.",
   'canasta.rules.canastaCloses': "Canasta ta' {n} karti hija kompluta u ma tiħux aktar.",
   'canasta.rules.meldsAreShared':
-    "Il-melds huma tal-koppja: kull sieħeb jista' jkabbarhom, u ħadd ma jmiss dawk tan-naħa l-oħra.",
+    "Il-melds huma tan-naħa li niżżlithom — f'mejda ta' koppji, taż-żewġ sħab: kull wieħed minnhom jista' jkabbarhom, u l-ebda naħa oħra ma tista' tmisshom.",
   'canasta.rules.layOffAfterOpening':
     "Sakemm in-naħa tiegħek ma tkunx għamlet l-ewwel meld tagħha, ma tistax iżżid karti ma' xejn fuq il-mejda.",
   'canasta.rules.goOutKeepsACard':
@@ -234,7 +255,7 @@ export const mt: Record<string, string> = {
   'canasta.rules.twoCanastasToGoOut':
     "In-naħa tiegħek għandha bżonn żewġ canastas mlestija qabel ma tkun tista' toħroġ.",
   'canasta.rules.end':
-    "Jibqa' jitqassam sakemm naħa waħda taqbeż {n} punti — imbagħad il-partita tkun spiċċat.",
+    "Jibqa' jitqassam sakemm naħa waħda tilħaq {n} punti — imbagħad il-partita tkun spiċċat.",
 
   'holdem.rules.section.goal': 'Għan',
   'holdem.rules.section.setup': 'Tħejjija',
@@ -710,10 +731,12 @@ export const mt: Record<string, string> = {
     "Wara tħabbita li mhijiex gin, l-avversarju tiegħek jista' jżid id-deadwood tiegħu mal-kombinazzjonijiet tiegħek qabel ma jitqabblu l-idejn.",
   'ginrummy.rules.deadHandDescription':
     "Jekk il-mazz jinżel sal-aħħar żewġ karti u ħadd ma jkun ħabbat, l-id tkun mejta — ħadd ma jieħu punti, u l-istess dealer jerġa' jqassam.",
+  'ginrummy.rules.knockScore':
+    'Taħbita li ma tiġix maqtugħa taħt tiskorja d-differenza bejn id-deadwood taż-żewġ plejers.',
   'ginrummy.rules.undercut':
     "Jekk id-deadwood tal-avversarju ma jkunx ogħla minn tiegħek, jaqtagħlek taħt: jieħu d-differenza, flimkien ma' {n}.",
   'ginrummy.rules.ginBonus': "Gin iġib l-id sħiħa tal-avversarju tiegħek, flimkien ma' {n}.",
-  'ginrummy.rules.target': 'L-ewwel wieħed li jaqbeż {n} punti wara li tispiċċa id jirbaħ il-partita.',
+  'ginrummy.rules.target': 'L-ewwel wieħed li jilħaq {n} punti wara li tispiċċa id jirbaħ il-partita.',
   'ginrummy.rules.shutout':
     'Il-bonus tal-partita jirdoppja għal {n} jekk it-telliefa qatt ma jkun ġab punt wieħed.',
   'ginrummy.rules.box': 'Kull id li rbaħt tiswa {n} punti fi tmiem il-partita.',
@@ -807,7 +830,7 @@ export const mt: Record<string, string> = {
     "Jekk il-borża tispiċċa u ħadd ma jkun jista' jilgħab, ir-rawnd jintemm u jirbħu l-inqas valur f'idejh.",
   'rummytiles.rules.poolExhaustionNoWinner':
     "Jekk il-borża tispiċċa u ħadd ma jkun jista' jilgħab, ir-rawnd jintemm mingħajr rebbieħ — kull id sempliċement tingħadd.",
-  'rummytiles.rules.target': 'L-ewwel wieħed li jaqbeż {n} punti wara li jispiċċa rawnd jirbaħ il-partita.',
+  'rummytiles.rules.target': 'L-ewwel wieħed li jilħaq {n} punti wara li jispiċċa rawnd jirbaħ il-partita.',
   'rummytiles.rules.roundLimit': 'Il-partita tispiċċa wara {n} rawnds — jirbaħ l-ogħla skor.',
   'rummytiles.remedy.emptyTheTray': "Poġġi l-{n} madum li għadhom fit-trej tiegħek, jew erġa' ibda d-dawra.",
   'rummytiles.remedy.playFromHandOrDraw':
@@ -843,6 +866,7 @@ export const mt: Record<string, string> = {
   'rummytiles.offer.resetTurn': "Erġa' ibda d-dawra",
   'rummytiles.offer.commit': 'Lest',
   'rummytiles.offer.draw': 'Iġbed',
+  'rummytiles.offer.pass': 'Għaddi',
   'rummytiles.param.position': "Aqsam f'",
 
   // --- blackjack -----------------------------------------------------------
@@ -2189,6 +2213,7 @@ export const mt: Record<string, string> = {
   'rummytiles.move.reset': "{player} reġġa' l-mejda lura",
   'rummytiles.move.committed': '{player} temm id-dawra tiegħu',
   'rummytiles.move.drew': '{player} ġibed biċċa',
+  'rummytiles.move.passed': '{player} għadda — il-borża vojta',
   'moves.last': 'L-aħħar mossa',
   'moves.history': 'Storja',
   'hints.title': 'Suġġerimenti',
@@ -3175,7 +3200,8 @@ export const mt: Record<string, string> = {
   'pinochle.rules.meld.classesExample': "Għalhekk ir-reġina tal-ispejjad tista' tgħodd fl-istess ħin f'żwieġ tal-ispejjad, f'erba' rġejjen u f'pinochle, u t-tieni sultan u reġina tat-trijonf ħdejn sekwenza xorta jgħoddu bħala żwieġ irjali.",
   'pinochle.rules.meld.onWin': "Min jirbaħ trikk biss jista' jniżżel kombinazzjoni, u biss sakemm jibqa' l-mazz.",
   'pinochle.rules.meld.onePerTurn': 'Kombinazzjoni waħda għal kull trikk rebbieħ. Il-karti mniżżla jibqgħu fuq il-mejda u xorta jistgħu jintlagħbu.',
-  'pinochle.rules.meld.exchange': "Disgħa tal-briskla tista' tinbidel mal-karta tal-briskla maqluba. Tiswa {n} u tgħodd bħala l-kombinazzjoni ta' dik id-dawra.",
+  'pinochle.rules.meld.exchange':
+    "Disgħa tal-briskla li ma ntwerietx diġà bħala d-dix tista' tinbidel mal-karta tal-briskla maqluba. Tiswa {n} u tgħodd bħala l-kombinazzjoni ta' dik id-dawra.",
   'pinochle.rules.meld.staysInHand': "Meta jispiċċa l-mazz, kull karta mniżżla terġa' lura f'idejn sidha.",
   'pinochle.rules.meld.shown': "Wara li tingħażel il-briskla, il-kombinazzjonijiet ta' kulħadd jingħaddu u jintwerew fuq il-mejda matul l-ewwel trikk.",
   'pinochle.rules.meld.needsTrick': "Il-kombinazzjonijiet ta' naħa jgħoddu biss jekk tieħu mill-inqas trikk wieħed.",

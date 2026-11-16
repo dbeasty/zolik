@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zolik/server/internal/module"
+	"zolik/server/internal/rules"
 )
 
 // findFact reports the params of the first item across all sections whose
@@ -127,5 +128,38 @@ func TestResolveConfigMatchesNewMatch(t *testing.T) {
 	if gs.Rules.InitialMeldMinimum != cfg.InitialMeldMinimum {
 		t.Errorf("dealt match InitialMeldMinimum = %d, want %d matching resolveConfig",
 			gs.Rules.InitialMeldMinimum, cfg.InitialMeldMinimum)
+	}
+}
+
+// Who wins and what the deck is were never written: the lowest total wins,
+// a tie goes to fewer deals won (rules.DetermineMatchWinner), and the pack
+// count follows the table size (rules.DeckCountForPlayers).
+func TestRulesStateTheWinnerAndThePacks(t *testing.T) {
+	for _, variation := range []string{"zolik_classic", "continental"} {
+		t.Run(variation, func(t *testing.T) {
+			sections, err := New().Rules(module.MatchConfig{Variation: variation})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, key := range []string{"zolik.rules.end.lowestWins", "zolik.rules.end.tieBreak"} {
+				if _, ok := findFact(t, sections, key); !ok {
+					t.Errorf("expected %s", key)
+				}
+			}
+			params, ok := findFact(t, sections, "zolik.rules.deck.packs")
+			if !ok {
+				t.Fatal("expected zolik.rules.deck.packs")
+			}
+			if params["small"] != 2 || params["mid"] != 3 || params["large"] != 4 {
+				t.Errorf("packs = %v, want 2/3/4", params)
+			}
+		})
+	}
+	// The tie-break the rule states is the one the engine applies.
+	w, draw := rules.DetermineMatchWinner([]string{"a", "b"},
+		map[string]int{"a": 40, "b": 40},
+		map[string][]int{"a": {0, 0, 40}, "b": {20, 10, 10}}) // a won two deals, b one
+	if draw || w != "b" {
+		t.Errorf("a tie on total goes to fewer deals won: got %q draw=%v, want b", w, draw)
 	}
 }

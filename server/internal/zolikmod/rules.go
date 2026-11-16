@@ -44,6 +44,13 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 	contract := cfg.ContractFor(1)
 
 	setup := []module.RuleItem{
+		// How many packs go into the deck, read off the rule that builds it.
+		// Rules are written before anyone is seated, so every table size is
+		// stated.
+		module.Rule("zolik.rules.deck.packs", map[string]any{
+			"small": rules.DeckCountForPlayers(2), "mid": rules.DeckCountForPlayers(5),
+			"large": rules.DeckCountForPlayers(rules.MaxPlayers),
+		}),
 		module.Rule("zolik.rules.deal", map[string]any{"n": cfg.DealSize}),
 		module.Rule("zolik.rules.meldShapes", map[string]any{
 			"set": cfg.MinSetSize, "run": cfg.MinRunSize,
@@ -148,6 +155,13 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 		end = append(end, module.Rule("zolik.rules.end.atScore",
 			map[string]any{"n": cfg.TargetScore}))
 	}
+	// Who wins once it is over, for every variation: rules.DetermineMatchWinner.
+	// The tie-break is the engine's deliberate choice — fewer deals won — and
+	// was written down nowhere until the user guide asked.
+	end = append(end,
+		module.Rule("zolik.rules.end.lowestWins", nil),
+		module.Rule("zolik.rules.end.tieBreak", nil),
+	)
 
 	return []module.RuleSection{
 		module.SectionOf(secGoal, []module.RuleItem{module.Rule("zolik.rules.goal", nil)}),

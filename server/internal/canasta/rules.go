@@ -27,10 +27,29 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 
 	deck := strconv.Itoa(v.Decks*52 + v.Decks*v.JokersPerDeck)
 
+	// Who plays with whom is seatsToTeams: partnerships only at an even table
+	// of four or more. The rules are written before anyone sits down, so both
+	// shapes this variation can seat are stated.
+	partners := "canasta.rules.partnerships"
+	if v.MaxSeats >= 6 {
+		partners = "canasta.rules.partnershipsSix"
+	}
+	// A red three counts against a side short of RedThreesNeed canastas.
+	// Samba's two-canasta line is also the only one that charges a flat
+	// redThreeValue each (TestRedThreeRulesMatchTheScoring pins the pairing).
+	redThrees := module.Fact{LabelKey: "canasta.rules.redThrees"}
+	if v.RedThreesNeed > 1 {
+		redThrees = module.Fact{LabelKey: "canasta.rules.redThreesNeedTwo", Params: map[string]any{"n": redThreeValue}}
+	}
 	setup := []module.Fact{
+		{LabelKey: partners},
 		{LabelKey: "canasta.rules.deck", Value: deck, Params: map[string]any{"decks": v.Decks}},
 		{LabelKey: "canasta.rules.deal", Params: map[string]any{"n": handSize}},
-		{LabelKey: "canasta.rules.redThrees"},
+		redThrees,
+		// What a red three is worth, read off redThreeScore's own numbers.
+		{LabelKey: "canasta.rules.redThreeValues", Params: map[string]any{
+			"n": redThreeValue, "count": v.redThrees(), "all": v.redThreeAllBonus(),
+		}},
 	}
 	// Drawing two is Samba's, and it is the first thing a player notices, so it
 	// belongs in the setup rather than buried in the melding rules.
@@ -70,6 +89,10 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	melding := []module.Fact{
 		{LabelKey: "canasta.rules.meldShape", Params: map[string]any{"n": minMeldSize}},
 		{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
+		// The bonus a canasta earns on top of its cards (meldBonus).
+		{LabelKey: "canasta.rules.canastaBonus", Params: map[string]any{
+			"natural": v.NaturalCanastaBonus, "mixed": v.MixedCanastaBonus,
+		}},
 	}
 	// The wild limits, in whichever of the two shapes this variation states
 	// them. Samba's is a ratio — twice as many naturals as wilds — and reading

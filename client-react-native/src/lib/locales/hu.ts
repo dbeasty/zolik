@@ -103,6 +103,8 @@ export const hu: Record<string, string> = {
   'zolik.rules.section.end': 'Hogyan ér véget a mérkőzés',
   'zolik.rules.goal':
     'Ürítsd ki elsőként a kezed érvényes csoportok és sorok lerakásával, és gyűjts közben minél kevesebb büntetőpontot azokban a lapokban, amelyeket még tartasz, amikor valaki más kiszáll.',
+  'zolik.rules.deck.packs':
+    'Két–négy játékosnál {small} darab 52 lapos paklival játsszák, paklinként 2 jokerrel; öt vagy hat játékosnál {mid} paklival, hét vagy nyolc játékosnál pedig {large} paklival.',
   'zolik.rules.deal': 'Minden játékos {n} lapot kap.',
   'zolik.rules.meldShapes':
     'A csoport {set}+ azonos értékű lap; a sor {run}+ egymást követő, azonos színű lap.',
@@ -135,6 +137,9 @@ export const hu: Record<string, string> = {
   'zolik.rules.penalty.values':
     "A kezedben maradt lap ára: joker {joker}, 10, bubi, dáma vagy király {face}, 2–9 a számértéke, az ász pedig {ace} — vagy csak {aceLow}, ha a kezedben van az ő színéből egy 2-es is, vagy az ő színének dámája és királya, vagy ha meghosszabbítana egy sort az asztalon.",
   'zolik.rules.end.atScore': 'Addig osztanak újra, amíg valaki el nem éri a(z) {n} pontot — akkor vége.',
+  'zolik.rules.end.lowestWins': 'A mérkőzés végén a legalacsonyabb összpontszám nyer.',
+  'zolik.rules.end.tieBreak':
+    'Ha többen osztoznak a legalacsonyabb összpontszámon, közülük az nyer, aki kevesebb leosztást nyert; ha ez is egyenlő, a mérkőzés döntetlen.',
 
   'prsi.rules.section.goal': 'Cél',
   'prsi.rules.section.setup': 'Előkészítés',
@@ -145,14 +150,21 @@ export const hu: Record<string, string> = {
   'prsi.rules.deck': '{value} lapos paklival játsszák (héttől felfelé).',
   'prsi.rules.deal': 'Minden játékos {n} lappal kezd.',
   'prsi.rules.dealLimit': 'Maradnia kell egy lapnak a felfordításhoz és egynek a húzáshoz, így {seats} játékos legfeljebb {n} lapot kap.',
+  'prsi.rules.firstCard':
+    'A dobópakli indításához felfordított lap úgy számít, mintha épp most játszották volna ki az első játékosra: a 7-esre válaszolni kell vagy fizetni, az ászra válaszolni kell, különben kimarad a kör. Svršeket sosem fordítanak fel, amíg más lap is felfordítható — az a pakli aljára kerül.',
   'prsi.rules.turn.match':
     'Játssz ki egy lapot, amely illik a felső lap színéhez vagy értékéhez — vagy húzz, ha nem tudsz.',
   'prsi.rules.turn.draw': 'A húzás kijátszás nélkül zárja le a köröd.',
   'prsi.rules.turn.nothingToDraw': 'Ha nincs mit húzni, és egyik lapod sem illik, a húzás lap nélkül zárja a köröd.',
   'prsi.rules.sevens':
     'Ha 7-est játszol ki, a következő játékos két lapot húz, hacsak nem válaszol saját 7-essel.',
-  'prsi.rules.aces': 'Ha ászt játszol ki, a következő játékos köre kimarad.',
+  'prsi.rules.sevens.stack':
+    'A 7-esek halmozódnak: minden válaszként kijátszott 7-es további két lapot ad hozzá, és az első játékos, aki nem tud válaszolni, mindet felhúzza.',
+  'prsi.rules.aces':
+    'Ha ászt játszol ki, a következő játékos köre kimarad, hacsak nem válaszol saját ásszal — ezzel a kimaradó kört továbbadja.',
   'prsi.rules.queens': 'Játssz ki egy svršeket (felsőt), és mondd meg, melyik szín folytatódik.',
+  'prsi.rules.queens.anything':
+    'A svršek bármely lapra rátehető — kivéve egy még megválaszolatlan 7-est vagy ászt —, és a következő lapnak a bemondott színt kell követnie, vagy egy másik svršeknek kell lennie.',
   'prsi.rules.end': 'A mérkőzés abban a pillanatban véget ér, amikor valakinek üres a keze.',
   'prsi.rules.end.blocked': 'Ha sorban minden játékos így passzol, senki sem léphet: a legkevesebb lap nyer, döntetlennél a győzelem megosztott.',
   'prsi.remedy.matchOrDraw':
@@ -177,14 +189,23 @@ export const hu: Record<string, string> = {
   'canasta.rules.section.melding': 'Lerakás',
   'canasta.rules.section.end': 'Hogyan ér véget a mérkőzés',
   'canasta.rules.section.turn': 'A köröd',
-  'canasta.rules.goal':
-    'Párokban játsszák; az az oldal nyeri a mérkőzést, amelyik elsőként éri el a(z) {n} pontot.',
+  'canasta.rules.goal': 'Az az oldal nyeri a mérkőzést, amelyik elsőként éri el a(z) {n} pontot.',
+  'canasta.rules.partnerships':
+    'Négy játékos két párban játszik, a társak egymással szemben ülnek; két vagy három játékos esetén mindenki egyedül játszik.',
+  'canasta.rules.partnershipsSix':
+    'Négy vagy hat játékos kétfős párokban játszik, a társak egymással szemben ülnek; két, három vagy öt játékos esetén mindenki egyedül játszik.',
   'canasta.rules.deck': '{value} lappal játsszák — {decks} pakli plusz jokerek.',
   'canasta.rules.deal': 'Minden játékos {n} lapot kap.',
   'canasta.rules.drawCount': 'A köröd elején {n} lapot húzol.',
   'canasta.rules.redThrees':
     'A kezedben lévő piros hármast azonnal fel kell mutatni, és bónuszként számít — kivéve ha az oldalad soha nem fejez be canastát, mert akkor ellened számít.',
+  'canasta.rules.redThreesNeedTwo':
+    'A kezedben lévő piros hármast azonnal fel kell mutatni, és bónuszként számít — kivéve, ha az oldalad kettőnél kevesebb canastát fejez be, mert akkor mindegyik {n} pontot ér ellened.',
+  'canasta.rules.redThreeValues':
+    'Minden piros hármas {n} pontot ér; mind a(z) {count} együtt {all} pontot ér.',
   'canasta.rules.canasta': 'A canasta {n} vagy több azonos értékű lapból álló kombináció.',
+  'canasta.rules.canastaBonus':
+    'A befejezett canasta a lapjain felül bónuszt ér: {natural} pontot a zsoker nélküli természetes, {mixed} pontot a zsokert tartalmazó.',
   'canasta.rules.sequences': 'Egy kombináció sor is lehet: három vagy több azonos színű lap egymás után, soha nem jokerrel közte.',
   'canasta.rules.dirtySequences': 'Egy kombináció sor is lehet: három–hét azonos színű lap egymás után. A zsokerek pótolhatják a hiányzó lapokat, legfeljebb kettő, és sosem több, mint a természetes lapok fele. A hét lapból álló sor, amelyben zsoker van, vegyes samba, és {n} pontot ér.',
   'canasta.rules.wildMeld': 'Ha az oldalad már nyitott, kiteríthet egy kettesekből és jokerekből álló kombinációt, tetszőleges arányban: három joker is elég. Hét lap kanasztát alkot: csupa kettesből {n}, jokerekkel {mixed}.',
@@ -228,7 +249,7 @@ export const hu: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'A csapatodnak több azonos értékű kombinációja is lehet.',
   'canasta.rules.canastaCloses': 'A {n} lapos kanaszta kész, és nem fogad több lapot.',
   'canasta.rules.meldsAreShared':
-    'A kombinációk a párosé: bármelyik társ bővítheti őket, és az ellenfélét senki nem érinti.',
+    'A kombinációk azé az oldalé, amelyik lerakta őket — páros asztalnál mindkét társé: bármelyikük bővítheti őket, más oldal pedig nem nyúlhat hozzájuk.',
   'canasta.rules.layOffAfterOpening':
     'Amíg a csapatod nem tette le az első kombinációját, semmihez sem tehet hozzá lapot az asztalon.',
   'canasta.rules.goOutKeepsACard':
@@ -237,7 +258,7 @@ export const hu: Record<string, string> = {
   'canasta.rules.twoCanastasToGoOut':
     'Az oldaladnak két befejezett canastára van szüksége, mielőtt kiszállhatna.',
   'canasta.rules.end':
-    'Addig osztanak újra, amíg az egyik oldal át nem lépi a(z) {n} pontot — akkor a mérkőzésnek vége.',
+    'Addig osztanak újra, amíg az egyik oldal el nem éri a(z) {n} pontot — akkor a mérkőzésnek vége.',
 
   'holdem.rules.section.goal': 'Cél',
   'holdem.rules.section.setup': 'Előkészítés',
@@ -713,10 +734,12 @@ export const hu: Record<string, string> = {
     'Olyan kopogás után, amely nem gin, az ellenfeled a saját deadwoodját hozzárakhatja a te kombinációidhoz, mielőtt a kezeket összehasonlítják.',
   'ginrummy.rules.deadHandDescription':
     'Ha a húzópakli az utolsó két lapjára fogy, és senki nem kopogott, a leosztás holt — senki nem kap pontot, és ugyanaz az osztó oszt újra.',
+  'ginrummy.rules.knockScore':
+    'Az alá nem vágott kopogás a két játékos deadwoodja közötti különbséget hozza.',
   'ginrummy.rules.undercut':
     'Ha az ellenfeled deadwoodja nem magasabb a tiédnél, alávág: ő kapja a különbséget, plusz {n}.',
   'ginrummy.rules.ginBonus': 'A gin az ellenfeled teljes kezét hozza, plusz {n}.',
-  'ginrummy.rules.target': 'Aki egy leosztás végén elsőként lépi át a(z) {n} pontot, megnyeri a mérkőzést.',
+  'ginrummy.rules.target': 'Aki egy leosztás végén elsőként éri el a(z) {n} pontot, megnyeri a mérkőzést.',
   'ginrummy.rules.shutout':
     'A mérkőzésbónusz {n} pontra duplázódik, ha a vesztes egyetlen pontot sem szerzett.',
   'ginrummy.rules.box': 'Minden megnyert leosztás {n} pontot ér a mérkőzés végén.',
@@ -807,7 +830,7 @@ export const hu: Record<string, string> = {
     'Ha a készlet kifogy, és senki nem tud játszani, a kör véget ér, és a legalacsonyabb kézérték nyeri.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Ha a készlet kifogy, és senki nem tud játszani, a kör győztes nélkül ér véget — minden kezet egyszerűen kiértékelnek.',
-  'rummytiles.rules.target': 'Aki egy kör végén elsőként lépi át a(z) {n} pontot, megnyeri a mérkőzést.',
+  'rummytiles.rules.target': 'Aki egy kör végén elsőként éri el a(z) {n} pontot, megnyeri a mérkőzést.',
   'rummytiles.rules.roundLimit': 'A mérkőzés {n} kör után ér véget — a legmagasabb pontszám nyer.',
   'rummytiles.remedy.emptyTheTray': 'Tedd le a tálcádon maradt {n} lapkát, vagy állítsd vissza a kört.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -843,6 +866,7 @@ export const hu: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Kör visszaállítása',
   'rummytiles.offer.commit': 'Kész',
   'rummytiles.offer.draw': 'Húzás',
+  'rummytiles.offer.pass': 'Passz',
   'rummytiles.param.position': 'Vágás itt',
 
   // --- blackjack -----------------------------------------------------------
@@ -2183,6 +2207,7 @@ export const hu: Record<string, string> = {
   'rummytiles.move.reset': '{player} visszaállította az asztalt',
   'rummytiles.move.committed': '{player} befejezte a körét',
   'rummytiles.move.drew': '{player} húzott egy követ',
+  'rummytiles.move.passed': '{player} passzolt — a készlet üres',
   'moves.last': 'Utolsó lépés',
   'moves.history': 'Előzmények',
   'hints.title': 'Tippek',
@@ -3175,7 +3200,8 @@ export const hu: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'A pikk dáma így egyszerre számíthat egy pikk házasságban, a négy dámában és egy pinochle-ban, és egy adusor melletti második adukirály és adudáma továbbra is aduházasságnak számít.',
   'pinochle.rules.meld.onWin': 'Csak az ütés nyertese mondhat be, és csak amíg van húzópakli.',
   'pinochle.rules.meld.onePerTurn': 'Minden megnyert ütés után egy bemondás. A bemondott lapok az asztalon maradnak, és továbbra is kijátszhatók.',
-  'pinochle.rules.meld.exchange': 'Az adukilences becserélhető a felfordított adulapra. {n} pontot ér, és annak a körnek a bemondásaként számít.',
+  'pinochle.rules.meld.exchange':
+    'Az adukilences, ha még nem mondták be dixként, becserélhető a felfordított adulapra. {n} pontot ér, és annak a körnek a bemondásaként számít.',
   'pinochle.rules.meld.staysInHand': 'Amikor a húzópakli elfogy, minden bemondott lap visszakerül a gazdája kezébe.',
   'pinochle.rules.meld.shown': 'Az adu kihirdetése után mindenki bemondását összeszámolják, és az első ütés alatt az asztalon mutatják.',
   'pinochle.rules.meld.needsTrick': 'Egy oldal bemondása csak akkor ér, ha legalább egy ütést elvisz.',

@@ -103,6 +103,8 @@ export const pl: Record<string, string> = {
   'zolik.rules.section.end': 'Jak kończy się mecz',
   'zolik.rules.goal':
     'Bądź pierwszym, który opróżni rękę, wykładając poprawne grupy i sekwensy — i zbierz przy tym jak najmniej punktów karnych w kartach, które trzymasz, gdy ktoś inny wychodzi.',
+  'zolik.rules.deck.packs':
+    'Gra się {small} taliami po 52 karty plus 2 jokery w każdej przy dwóch do czterech graczach, {mid} taliami przy pięciu lub sześciu i {large} przy siedmiu lub ośmiu.',
   'zolik.rules.deal': 'Każdy gracz dostaje {n} kart.',
   'zolik.rules.meldShapes':
     'Grupa to {set}+ kart tej samej wartości; sekwens to {run}+ kolejnych kart w tym samym kolorze.',
@@ -135,6 +137,9 @@ export const pl: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Karta, która zostanie ci w ręce, kosztuje: joker {joker}, 10, walet, dama lub król {face}, od 2 do 9 swoją liczbę, a as {ace} — lub tylko {aceLow}, jeśli masz też w ręce dwójkę w jego kolorze albo damę i króla w jego kolorze, lub gdyby przedłużył sekwens na stole.",
   'zolik.rules.end.atScore': 'Rozdaje się dalej, aż ktoś osiągnie {n} punktów — wtedy koniec.',
+  'zolik.rules.end.lowestWins': 'Gdy mecz się kończy, wygrywa najniższa suma punktów.',
+  'zolik.rules.end.tieBreak':
+    'Jeśli kilku graczy ma tę samą najniższą sumę, wygrywa ten, kto wygrał mniej rozdań; jeśli i to jest równe, mecz kończy się remisem.',
 
   'prsi.rules.section.goal': 'Cel',
   'prsi.rules.section.setup': 'Przygotowanie',
@@ -145,13 +150,20 @@ export const pl: Record<string, string> = {
   'prsi.rules.deck': 'Gra się talią {value} kart (od siódemki wzwyż).',
   'prsi.rules.deal': 'Każdy gracz zaczyna z {n} kartami.',
   'prsi.rules.dealLimit': 'Musi zostać karta do odkrycia i jedna do dobrania, więc {seats} graczy dostaje najwyżej {n} kart.',
+  'prsi.rules.firstCard':
+    'Karta odkryta na początek stosu liczy się tak, jakby właśnie została zagrana przeciw pierwszemu graczowi: na 7 trzeba odpowiedzieć albo dobrać, na asa odpowiedzieć albo stracić kolejkę. Svršek nigdy nie jest odkrywany, dopóki można odkryć inną kartę — idzie na spód talii.',
   'prsi.rules.turn.match':
     'Zagraj kartę zgodną z kolorem albo wartością wierzchniej karty — albo dobierz, jeśli nie możesz.',
   'prsi.rules.turn.draw': 'Dobranie kończy twoją kolejkę bez zagrania.',
   'prsi.rules.turn.nothingToDraw': 'Jeśli nie ma czego dobrać i żadna twoja karta nie pasuje, dobranie kończy ruch bez karty.',
   'prsi.rules.sevens': 'Zagraj 7, a następny gracz dobiera dwie karty — chyba że odpowie własną siódemką.',
-  'prsi.rules.aces': 'Zagraj asa, a następny gracz traci kolejkę.',
+  'prsi.rules.sevens.stack':
+    'Siódemki się kumulują: każda 7 zagrana w odpowiedzi dodaje dwie kolejne karty, a pierwszy gracz, który nie może odpowiedzieć, dobiera je wszystkie.',
+  'prsi.rules.aces':
+    'Zagraj asa, a następny gracz traci kolejkę — chyba że odpowie własnym asem, co przekazuje utratę kolejki dalej.',
   'prsi.rules.queens': 'Zagraj svrška (wyżnika) i podaj kolor, który obowiązuje dalej.',
+  'prsi.rules.queens.anything':
+    'Svrška można położyć na dowolną kartę — oprócz 7 lub asa, które wciąż czeka na odpowiedź — a następna karta musi być w podanym kolorze albo być kolejnym svrškiem.',
   'prsi.rules.end': 'Mecz kończy się w chwili, gdy czyjaś ręka jest pusta.',
   'prsi.rules.end.blocked': 'Jeśli wszyscy gracze po kolei tak spasują, nikt nie może grać: wygrywa najmniej kart, a remis dzieli zwycięstwo.',
   'prsi.remedy.matchOrDraw':
@@ -176,13 +188,23 @@ export const pl: Record<string, string> = {
   'canasta.rules.section.melding': 'Wykładanie',
   'canasta.rules.section.end': 'Jak kończy się mecz',
   'canasta.rules.section.turn': 'Twoja kolej',
-  'canasta.rules.goal': 'Gra się w parach; pierwsza strona, która osiągnie {n} punktów, wygrywa mecz.',
+  'canasta.rules.goal': 'Pierwsza strona, która osiągnie {n} punktów, wygrywa mecz.',
+  'canasta.rules.partnerships':
+    'Czterech graczy gra w dwóch parach, partnerzy siedzą naprzeciwko siebie; przy dwóch lub trzech graczach każdy gra na własny rachunek.',
+  'canasta.rules.partnershipsSix':
+    'Czterech lub sześciu graczy gra w parach, partnerzy siedzą naprzeciwko siebie; przy dwóch, trzech lub pięciu graczach każdy gra na własny rachunek.',
   'canasta.rules.deck': 'Gra się {value} kartami — {decks} talie plus jokery.',
   'canasta.rules.deal': 'Każdy gracz dostaje {n} kart.',
   'canasta.rules.drawCount': 'Na początku tury dobierasz {n} karty.',
   'canasta.rules.redThrees':
     'Czerwoną trójkę z ręki pokazuje się od razu i liczy jako premia — chyba że twoja strona nigdy nie skompletuje canasty, wtedy liczy się przeciwko tobie.',
+  'canasta.rules.redThreesNeedTwo':
+    'Czerwoną trójkę z ręki pokazuje się od razu i liczy jako premia — chyba że twoja strona skompletuje mniej niż dwie canasty, wtedy każda liczy się {n} przeciwko tobie.',
+  'canasta.rules.redThreeValues':
+    'Każda czerwona trójka jest warta {n}; wszystkie {count} razem są warte {all}.',
   'canasta.rules.canasta': 'Canasta to układ {n} lub więcej kart tej samej wartości.',
+  'canasta.rules.canastaBonus':
+    'Skompletowana canasta daje premię oprócz wartości swoich kart: {natural} za naturalną, bez jokerów, {mixed} za taką, w której są jokery.',
   'canasta.rules.sequences': 'Układ może być też sekwensem: trzy lub więcej kart tego samego koloru po kolei, nigdy z jokerem w środku.',
   'canasta.rules.dirtySequences': 'Układ może być też sekwensem: od trzech do siedmiu kart tego samego koloru po kolei. Jokery mogą zastępować brakujące karty, najwyżej dwa i nigdy więcej niż połowa liczby kart naturalnych. Siedem kart z jokerem w środku to brudna samba warta {n}.',
   'canasta.rules.wildMeld': 'Gdy twoja strona już się wyłożyła, może wyłożyć jeden układ z dwójek i jokerów w dowolnej proporcji: wystarczą trzy jokery. Siedem kart to canasta: {n}, jeśli same dwójki, {mixed} z jokerami.',
@@ -226,7 +248,7 @@ export const pl: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Twoja strona może mieć kilka układów tej samej wysokości.',
   'canasta.rules.canastaCloses': 'Kanasta z {n} kart jest zamknięta i nie przyjmuje już kart.',
   'canasta.rules.meldsAreShared':
-    'Układy należą do pary: każdy z partnerów może je rozbudowywać, a cudzych się nie rusza.',
+    'Układy należą do strony, która je wyłożyła — przy stole par do obu partnerów: każdy z nich może je rozbudowywać, a żadna inna strona nie może ich ruszać.',
   'canasta.rules.layOffAfterOpening':
     'Dopóki twoja strona nie wyłoży swojego pierwszego układu, nie może niczego na stole dokładać.',
   'canasta.rules.goOutKeepsACard':
@@ -234,7 +256,7 @@ export const pl: Record<string, string> = {
   'canasta.rules.oneCanastaToGoOut': 'Jedna skompletowana canasta wystarczy, by twoja strona mogła wyjść.',
   'canasta.rules.twoCanastasToGoOut':
     'Twoja strona potrzebuje dwóch skompletowanych canast, zanim będzie mogła wyjść.',
-  'canasta.rules.end': 'Rozdaje się dalej, aż jedna strona przekroczy {n} punktów — wtedy mecz się kończy.',
+  'canasta.rules.end': 'Rozdaje się dalej, aż jedna strona osiągnie {n} punktów — wtedy mecz się kończy.',
 
   'holdem.rules.section.goal': 'Cel',
   'holdem.rules.section.setup': 'Przygotowanie',
@@ -704,10 +726,12 @@ export const pl: Record<string, string> = {
     'Po zapukaniu, które nie jest ginem, przeciwnik może dołożyć własny deadwood do twoich układów, zanim ręce zostaną porównane.',
   'ginrummy.rules.deadHandDescription':
     'Jeśli w talii zostaną ostatnie dwie karty, a nikt nie zapukał, rozdanie jest martwe — nikt nie punktuje, a ten sam rozdający rozdaje ponownie.',
+  'ginrummy.rules.knockScore':
+    'Pukanie, które nie zostanie podcięte, daje różnicę między deadwoodem obu graczy.',
   'ginrummy.rules.undercut':
     'Jeśli deadwood przeciwnika nie jest wyższy od twojego, podcina cię: zapisuje różnicę plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin daje całą rękę przeciwnika plus {n}.',
-  'ginrummy.rules.target': 'Kto pierwszy przekroczy {n} punktów po zakończeniu rozdania, wygrywa mecz.',
+  'ginrummy.rules.target': 'Kto pierwszy osiągnie {n} punktów po zakończeniu rozdania, wygrywa mecz.',
   'ginrummy.rules.shutout':
     'Premia meczowa podwaja się do {n}, jeśli przegrany nie zdobył ani jednego punktu.',
   'ginrummy.rules.box': 'Każde wygrane rozdanie jest warte {n} punktów na koniec meczu.',
@@ -798,7 +822,7 @@ export const pl: Record<string, string> = {
     'Jeśli pula się wyczerpie i nikt nie może zagrać, runda się kończy, a wygrywa ją najniższa wartość ręki.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Jeśli pula się wyczerpie i nikt nie może zagrać, runda kończy się bez zwycięzcy — każda ręka zostaje po prostu podliczona.',
-  'rummytiles.rules.target': 'Kto pierwszy przekroczy {n} punktów po zakończeniu rundy, wygrywa mecz.',
+  'rummytiles.rules.target': 'Kto pierwszy osiągnie {n} punktów po zakończeniu rundy, wygrywa mecz.',
   'rummytiles.rules.roundLimit': 'Mecz kończy się po {n} rundach — wygrywa najwyższy wynik.',
   'rummytiles.remedy.emptyTheTray': 'Umieść {n} kostek, które wciąż masz na stojaku, albo cofnij kolejkę.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -834,6 +858,7 @@ export const pl: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Cofnij kolejkę',
   'rummytiles.offer.commit': 'Gotowe',
   'rummytiles.offer.draw': 'Dobierz',
+  'rummytiles.offer.pass': 'Pas',
   'rummytiles.param.position': 'Podziel przy',
 
   // --- blackjack -----------------------------------------------------------
@@ -2172,6 +2197,7 @@ export const pl: Record<string, string> = {
   'rummytiles.move.reset': '{player}: przywraca stół',
   'rummytiles.move.committed': '{player}: kończy turę',
   'rummytiles.move.drew': '{player}: dobiera kamień',
+  'rummytiles.move.passed': '{player}: pasuje — pula jest pusta',
   'moves.last': 'Ostatni ruch',
   'moves.history': 'Historia',
   'hints.title': 'Wskazówki',
@@ -3163,7 +3189,8 @@ export const pl: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Dama pik może więc liczyć się jednocześnie w meldunku pikowym, w czterech damach i w pinochle, a drugi atutowy król z damą obok sekwensu nadal liczą się jako meldunek atutowy.',
   'pinochle.rules.meld.onWin': 'Meldować może tylko zwycięzca lewy i tylko dopóki jest talia.',
   'pinochle.rules.meld.onePerTurn': 'Jeden meldunek za każdą wygraną lewę. Zameldowane karty zostają na stole i nadal można nimi grać.',
-  'pinochle.rules.meld.exchange': 'Dziewiątkę atu można wymienić na odkrytą kartę atu. Daje {n} i liczy się jako meldunek w tej turze.',
+  'pinochle.rules.meld.exchange':
+    'Dziewiątkę atu, której nie pokazano jeszcze jako meldunku, można wymienić na odkrytą kartę atu. Daje {n} i liczy się jako meldunek w tej turze.',
   'pinochle.rules.meld.staysInHand': 'Gdy talia się skończy, wszystkie zameldowane karty wracają do rąk właścicieli.',
   'pinochle.rules.meld.shown': 'Po wybraniu atu meldunki wszystkich graczy są liczone i pokazywane na stole podczas pierwszej lewy.',
   'pinochle.rules.meld.needsTrick': 'Meldunki strony liczą się tylko wtedy, gdy weźmie ona co najmniej jedną lewę.',

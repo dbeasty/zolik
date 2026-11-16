@@ -225,7 +225,7 @@ func publicLog(entries []LogEntry) []string {
 // ObserveIn asks what a seat sees.
 type ObserveIn struct {
 	Table string `json:"table" jsonschema:"table id from new_table"`
-	Seat  int    `json:"seat" jsonschema:"0-based seat to observe as"`
+	Seat  int    `json:"seat" jsonschema:"0-based claude seat to observe as (a bot's seat only once the match is over)"`
 }
 
 func (svc *Service) Observe(in ObserveIn) (Observation, error) {
@@ -233,7 +233,29 @@ func (svc *Service) Observe(in ObserveIn) (Observation, error) {
 	if err != nil {
 		return Observation{}, err
 	}
+	if err := t.mayLookAs(in.Seat); err != nil {
+		return Observation{}, err
+	}
 	return t.observe(in.Seat)
+}
+
+// mayLookAs refuses a bot's seat while the match is on. Observing or coaching
+// a seat shows its hand, so looking as a bot would show the caller the very
+// cards the bot plays against them; Play has refused bot seats from the
+// start, and this is the same line for the tools that only look. Once the
+// match is over nothing is hidden any more (replay_log reveals all hands then).
+func (t *Table) mayLookAs(seatIdx int) error {
+	s, err := t.seat(seatIdx)
+	if err != nil {
+		return err
+	}
+	if s.Claude {
+		return nil
+	}
+	if done, _ := t.finished(); done {
+		return nil
+	}
+	return fmt.Errorf("seat %d is played by a bot (%s): its hand stays hidden until the match is over", s.Index, s.Spec)
 }
 
 // --- play ------------------------------------------------------------------------------

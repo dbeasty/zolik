@@ -58,3 +58,66 @@ func TestEachVariationStatesItsOwnBlackThreeRule(t *testing.T) {
 		})
 	}
 }
+
+// The written rules used to say "play in partnerships" at every table, though
+// two, three and five players play alone (seatsToTeams), and never stated what
+// a canasta or a red three pays. Each is now read off the engine's numbers.
+func TestRulesStatePartnershipsAndBonuses(t *testing.T) {
+	find := func(sections []module.RuleSection, key string) (map[string]any, bool) {
+		for _, sec := range sections {
+			for _, it := range sec.Items {
+				if it.LabelKey == key {
+					return it.Params, true
+				}
+			}
+		}
+		return nil, false
+	}
+	for name, v := range variations {
+		t.Run(name, func(t *testing.T) {
+			sections, err := New().Rules(module.MatchConfig{Variation: name})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := resolveRules(module.MatchConfig{Variation: name}, 0)
+			partners := "canasta.rules.partnerships"
+			if v.MaxSeats >= 6 {
+				partners = "canasta.rules.partnershipsSix"
+			}
+			if _, ok := find(sections, partners); !ok {
+				t.Errorf("expected %s", partners)
+			}
+			// What the sentences claim about who partners whom.
+			for seats, teams := range map[int]int{2: 2, 3: 3, 4: 2, 5: 5, 6: 3} {
+				if got := seatsToTeams(seats); got != teams {
+					t.Errorf("%d seats: %d sides, the rule says %d", seats, got, teams)
+				}
+			}
+			p, ok := find(sections, "canasta.rules.canastaBonus")
+			if !ok || p["natural"] != r.NaturalCanastaBonus || p["mixed"] != r.MixedCanastaBonus {
+				t.Errorf("canastaBonus = %v, want %d/%d", p, r.NaturalCanastaBonus, r.MixedCanastaBonus)
+			}
+			p, ok = find(sections, "canasta.rules.redThreeValues")
+			if !ok || p["n"] != redThreeValue || p["count"] != r.redThrees() || p["all"] != r.redThreeAllBonus() {
+				t.Errorf("redThreeValues = %v", p)
+			}
+
+			// The red-three sentence matches redThreeScore: one canasta short
+			// of RedThreesNeed costs what the sentence says.
+			key := "canasta.rules.redThrees"
+			if r.RedThreesNeed > 1 {
+				key = "canasta.rules.redThreesNeedTwo"
+				if !r.RedThreePenaltyFlat {
+					t.Fatalf("%s says each three counts %d against you, but the penalty is not flat", key, redThreeValue)
+				}
+				team := &Team{RedThrees: []string{"3H", "3D"}}
+				if got := redThreeScore(r, team); got != -2*redThreeValue {
+					t.Errorf("two red threes, no canastas: %d, want %d", got, -2*redThreeValue)
+				}
+			}
+			if _, ok := find(sections, key); !ok {
+				t.Errorf("expected %s", key)
+			}
+		})
+	}
+}

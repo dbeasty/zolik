@@ -34,8 +34,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	}
 
 	v := resolveVariation(cfg)
-	s.TargetScore = cfg.Opt(OptTargetScore, v.targetScore)
-	s.RoundLimit = cfg.Opt(OptRoundLimit, v.roundLimit)
+	s.TargetScore, s.RoundLimit = endConditions(cfg)
 	s.PoolExhaustionLowestWins = cfg.Opt(OptPoolExhaustion, module.BoolOpt(v.poolExhaustionLowestWins)) == module.OptOn
 	s.Pause = cfg.PauseBetweenRounds(true)
 
@@ -62,6 +61,7 @@ func dealRound(s *GameState) {
 	s.Sets = nil
 	s.NextSetID = 0
 	s.InitialMeld = map[string]bool{}
+	s.EmptyPoolPasses = 0
 
 	s.Current = s.Players[module.StartingSeat(s.Seed+int64(s.RoundNumber)*7919+2, len(s.Players))]
 	beginTurn(s)
@@ -368,13 +368,21 @@ func applyResetTurn(s *GameState, playerID string) ([]module.Event, error) {
 
 // applyDraw is the fallback: whatever was rearranged this turn is put back —
 // matching a real player returning the table to how they found it — one tile
-// is taken from the pool, and the turn passes. If the pool is empty, nobody
-// can be dealt a fallback tile, so the round ends instead (a simplification
-// of the physical rule, which cycles every seat first; see rounds.go).
+// is taken from the pool, and the turn passes. Once the pool is empty there
+// is nothing to take and the turn simply passes; the round ends when every
+// player has passed in a row, which is the written rule's "the pool runs dry
+// and nobody can play". A play in between starts the count again, since the
+// table it changed may now give the others a play.
 func applyDraw(s *GameState, playerID string) ([]module.Event, error) {
 	s.Hands[playerID] = append(s.Hands[playerID], s.Workspace.PlayedFromHand...)
 	if len(s.Pool) == 0 {
-		return endRoundPoolExhausted(s), nil
+		s.EmptyPoolPasses++
+		if s.EmptyPoolPasses >= len(s.Players) {
+			return endRoundPoolExhausted(s), nil
+		}
+		s.Current = nextPlayer(s.Players, playerID)
+		beginTurn(s)
+		return []module.Event{{Type: "turn_passed", Data: map[string]any{"playerId": playerID}}}, nil
 	}
 	drawn := s.Pool[len(s.Pool)-1]
 	s.Pool = s.Pool[:len(s.Pool)-1]
@@ -419,6 +427,7 @@ func applyCommit(s *GameState, playerID string) ([]module.Event, error) {
 
 	s.Sets = canonicalSets
 	s.Workspace = nil
+	s.EmptyPoolPasses = 0
 	events := []module.Event{{Type: "turn_committed", Data: map[string]any{"playerId": playerID}}}
 
 	if len(s.Hands[playerID]) == 0 {

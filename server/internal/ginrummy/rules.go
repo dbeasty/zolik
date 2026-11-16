@@ -55,7 +55,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	}
 	if bigGin {
 		sections = append(sections, module.Section("ginrummy.rules.bigGin",
-			module.Fact{LabelKey: "ginrummy.rules.bigGinBonus", Params: map[string]any{"n": 25}},
+			module.Fact{LabelKey: "ginrummy.rules.bigGinBonus", Params: map[string]any{"n": bigGinBonus}},
 		))
 	}
 
@@ -67,8 +67,11 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "ginrummy.rules.deadHandDescription"},
 		),
 		module.Section("ginrummy.rules.scoring",
-			module.Fact{LabelKey: "ginrummy.rules.undercut", Params: map[string]any{"n": 25}},
-			module.Fact{LabelKey: "ginrummy.rules.ginBonus", Params: map[string]any{"n": 25}},
+			// The ordinary knock, which every other line here is an
+			// exception to (scoreHand's "knock" case).
+			module.Fact{LabelKey: "ginrummy.rules.knockScore"},
+			module.Fact{LabelKey: "ginrummy.rules.undercut", Params: map[string]any{"n": undercutBonus}},
+			module.Fact{LabelKey: "ginrummy.rules.ginBonus", Params: map[string]any{"n": ginBonus}},
 		),
 		module.Section("ginrummy.rules.match",
 			module.Fact{LabelKey: "ginrummy.rules.target", Params: map[string]any{"n": target}},

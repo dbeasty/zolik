@@ -102,6 +102,8 @@ export const et: Record<string, string> = {
   'zolik.rules.section.end': 'Kuidas matš lõpeb',
   'zolik.rules.goal':
     'Ole esimene, kes tühjendab oma käe, pannes välja kehtivaid gruppe ja jadu, ning kogu seejuures võimalikult vähe trahvipunkte kaartidest, mis sul veel käes on, kui keegi teine välja läheb.',
+  'zolik.rules.deck.packs':
+    'Mängitakse {small} 52-kaardilise pakiga, igas lisaks 2 jokkerit, kui mängijaid on kaks kuni neli, {mid} pakiga viie või kuue ja {large} pakiga seitsme või kaheksa mängijaga.',
   'zolik.rules.deal': 'Iga mängija saab {n} kaarti.',
   'zolik.rules.meldShapes':
     'Grupp on {set}+ sama väärtusega kaarti; jada on {run}+ järjestikust sama masti kaarti.',
@@ -132,6 +134,9 @@ export const et: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Kätte jäänud kaart maksab: jokker {joker}, 10, poiss, emand või kuningas {face}, 2–9 oma numbri, ja äss {ace} — või ainult {aceLow}, kui sul on käes ka sama masti kaks või sama masti emand ja kuningas, või kui see pikendaks laual olevat rida.",
   'zolik.rules.end.atScore': 'Jagatakse edasi, kuni keegi jõuab {n} punktini — siis on läbi.',
+  'zolik.rules.end.lowestWins': 'Kui matš lõpeb, võidab madalaim kogusumma.',
+  'zolik.rules.end.tieBreak':
+    'Kui madalaim kogusumma on mitmel, võidab see, kes võitis vähem jagamisi; kui ka see on võrdne, jääb matš viiki.',
 
   'prsi.rules.section.goal': 'Eesmärk',
   'prsi.rules.section.setup': 'Ettevalmistus',
@@ -142,13 +147,20 @@ export const et: Record<string, string> = {
   'prsi.rules.deck': 'Mängitakse {value} kaardiga pakiga (seitsmest ülespoole).',
   'prsi.rules.deal': 'Iga mängija alustab {n} kaardiga.',
   'prsi.rules.dealLimit': 'Alles peab jääma kaart avamiseks ja üks võtmiseks, seega saab {seats} mängijat kuni {n} kaarti.',
+  'prsi.rules.firstCard':
+    'Hunniku alustamiseks avatud kaart loeb nii, nagu oleks see just esimese mängija vastu mängitud: 7-le tuleb vastata või maksta, ässale vastata või käik vahele jätta. Svršekit ei avata kunagi, kui saab avada mõne muu kaardi — see läheb paki põhja.',
   'prsi.rules.turn.match':
     'Mängi kaart, mis sobib pealmise kaardi masti või väärtusega — või tõmba, kui ei saa.',
   'prsi.rules.turn.draw': 'Tõmbamine lõpetab su käigu ilma mängimata.',
   'prsi.rules.turn.nothingToDraw': 'Kui võtta pole midagi ja ükski su kaart ei sobi, lõpetab võtmine su käigu ilma kaardita.',
   'prsi.rules.sevens': 'Mängi 7 ja järgmine mängija tõmbab kaks kaarti, kui ta ei vasta oma seitsmega.',
-  'prsi.rules.aces': 'Mängi äss ja järgmise mängija käik jäetakse vahele.',
+  'prsi.rules.sevens.stack':
+    'Seitsmed kuhjuvad: iga vastuseks mängitud 7 lisab kaks kaarti juurde ja esimene mängija, kes vastata ei saa, tõmbab need kõik.',
+  'prsi.rules.aces':
+    'Mängi äss ja järgmise mängija käik jäetakse vahele, kui ta ei vasta oma ässaga — siis läheb vahelejätmine edasi.',
   'prsi.rules.queens': 'Mängi svršek (Ober) ja nimeta mast, mis jätkub.',
+  'prsi.rules.queens.anything':
+    'Svršeki võib panna mis tahes kaardile — välja arvatud 7 või äss, mis ootab veel vastust — ja järgmine kaart peab olema nimetatud mastist või teine svršek.',
   'prsi.rules.end': 'Matš lõpeb hetkel, mil kellegi käsi on tühi.',
   'prsi.rules.end.blocked': 'Kui kõik mängijad järjest nii mööduvad, ei saa keegi käia: võidab vähim kaartidega ja viigi korral jagatakse võit.',
   'prsi.remedy.matchOrDraw':
@@ -173,13 +185,22 @@ export const et: Record<string, string> = {
   'canasta.rules.section.melding': 'Väljapanek',
   'canasta.rules.section.end': 'Kuidas matš lõpeb',
   'canasta.rules.section.turn': 'Sinu käik',
-  'canasta.rules.goal': 'Mängitakse paarides; esimene pool, kes jõuab {n} punktini, võidab matši.',
+  'canasta.rules.goal': 'Esimene pool, kes jõuab {n} punktini, võidab matši.',
+  'canasta.rules.partnerships':
+    'Neli mängijat mängivad kahe paarina, partnerid istuvad vastamisi; kaks või kolm mängijat mängivad igaüks üksi.',
+  'canasta.rules.partnershipsSix':
+    'Neli või kuus mängijat mängivad kahekaupa paarides, partnerid istuvad vastamisi; kaks, kolm või viis mängijat mängivad igaüks üksi.',
   'canasta.rules.deck': 'Mängitakse {value} kaardiga — {decks} pakki pluss jokkerid.',
   'canasta.rules.deal': 'Iga mängija saab {n} kaarti.',
   'canasta.rules.drawCount': 'Käigu alguses tõmbad {n} kaarti.',
   'canasta.rules.redThrees':
     'Punane kolm sinu käes näidatakse kohe ette ja see annab boonuse — kui sinu pool aga kunagi canastat valmis ei saa, läheb see sinu kahjuks.',
+  'canasta.rules.redThreesNeedTwo':
+    'Punane kolm sinu käes näidatakse kohe ette ja see annab boonuse — kui sinu pool aga saab valmis vähem kui kaks canastat, läheb igaüks {n} sinu kahjuks.',
+  'canasta.rules.redThreeValues': 'Iga punane kolm on väärt {n}; kõik {count} koos on väärt {all}.',
   'canasta.rules.canasta': 'Canasta on {n} või enama sama väärtusega kaardi kombinatsioon.',
+  'canasta.rules.canastaBonus':
+    'Valmis canasta annab lisaks oma kaartidele boonuse: {natural} puhta eest ilma jokkeriteta, {mixed} sellise eest, milles on jokkereid.',
   'canasta.rules.sequences': 'Kombinatsioon võib olla ka jada: kolm või rohkem sama masti kaarti järjest, mitte kunagi jokkeriga vahel.',
   'canasta.rules.dirtySequences': 'Kombinatsioon võib olla ka jada: kolm kuni seitse sama masti kaarti järjest. Jokkerid võivad asendada puuduvaid kaarte, kõige rohkem kaks ja mitte kunagi üle poole naturaalsete kaartide arvust. Seitse kaarti, mille seas on jokker, on segasamba ja annab {n}.',
   'canasta.rules.wildMeld': 'Kui sinu pool on avanud, võib ta panna lauale ühe kahtede ja jokkerite kombinatsiooni mis tahes vahekorras: ka kolm jokkerit sobib. Seitse kaarti on kanasta: {n}, kui kõik on kahed, {mixed} jokkeritega.',
@@ -223,14 +244,14 @@ export const et: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Sinu poolel võib olla mitu sama väärtusega kombinatsiooni.',
   'canasta.rules.canastaCloses': '{n}-kaardiline kanasta on valmis ja rohkem kaarte ei võta.',
   'canasta.rules.meldsAreShared':
-    'Kombinatsioonid kuuluvad paarile: kumbki partner võib neid täiendada ja vastase omi ei puutu keegi.',
+    'Kombinatsioonid kuuluvad poolele, kes need lauale pani — paarismängus mõlemale partnerile: kumbki võib neid täiendada ja ükski teine pool neid puutuda ei tohi.',
   'canasta.rules.layOffAfterOpening':
     'Kuni sinu pool pole oma avakombinatsiooni teinud, ei tohi ta lauale midagi juurde panna.',
   'canasta.rules.goOutKeepsACard':
     'Sa pead alati suutma oma käigu lõpetada, nii et ära pane kunagi kogu kätt lauale, kui see pole just väljaminev käik.',
   'canasta.rules.oneCanastaToGoOut': 'Üks valmis canasta piisab, et sinu pool välja läheks.',
   'canasta.rules.twoCanastasToGoOut': 'Sinu pool vajab kaht valmis canastat, enne kui tohib välja minna.',
-  'canasta.rules.end': 'Jagatakse edasi, kuni üks pool ületab {n} punkti — siis on matš läbi.',
+  'canasta.rules.end': 'Jagatakse edasi, kuni üks pool jõuab {n} punktini — siis on matš läbi.',
 
   'holdem.rules.section.goal': 'Eesmärk',
   'holdem.rules.section.setup': 'Ettevalmistus',
@@ -703,10 +724,11 @@ export const et: Record<string, string> = {
     'Pärast koputust, mis pole gin, tohib vastane oma deadwoodi sinu kombinatsioonide külge panna, enne kui käsi võrreldakse.',
   'ginrummy.rules.deadHandDescription':
     'Kui tõmbepakki jääb viimased kaks kaarti ja keegi pole koputanud, on jagamine surnud — keegi ei saa punkte ja sama jagaja jagab uuesti.',
+  'ginrummy.rules.knockScore': 'Koputus, mida alt ei lõigata, annab kahe mängija deadwoodi vahe.',
   'ginrummy.rules.undercut':
     'Kui vastase deadwood ei ole sinu omast kõrgem, lõikab ta sind alt: ta saab vahe pluss {n}.',
   'ginrummy.rules.ginBonus': 'Gin annab vastase kogu käe pluss {n}.',
-  'ginrummy.rules.target': 'Kes jagamise lõppedes esimesena ületab {n} punkti, võidab matši.',
+  'ginrummy.rules.target': 'Kes jagamise lõppedes esimesena jõuab {n} punktini, võidab matši.',
   'ginrummy.rules.shutout': 'Matšiboonus kahekordistub {n} punktini, kui kaotaja ei saanud ühtegi punkti.',
   'ginrummy.rules.box': 'Iga võidetud jagamine on matši lõpus väärt {n} punkti.',
   'ginrummy.rules.gameBonus': 'Matši võitmine annab veel {n} punkti.',
@@ -797,7 +819,7 @@ export const et: Record<string, string> = {
     'Kui varu saab otsa ja keegi ei saa mängida, voor lõpeb ja selle võidab madalaim käeväärtus.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Kui varu saab otsa ja keegi ei saa mängida, lõpeb voor võitjata — iga käsi lihtsalt arvestatakse.',
-  'rummytiles.rules.target': 'Kes vooru lõppedes esimesena ületab {n} punkti, võidab matši.',
+  'rummytiles.rules.target': 'Kes vooru lõppedes esimesena jõuab {n} punktini, võidab matši.',
   'rummytiles.rules.roundLimit': 'Matš lõpeb {n} vooru järel — võidab kõrgeim tulemus.',
   'rummytiles.remedy.emptyTheTray': 'Pane kohale {n} klotsi, mis on veel alusel, või lähtesta käik.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -832,6 +854,7 @@ export const et: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Lähtesta käik',
   'rummytiles.offer.commit': 'Valmis',
   'rummytiles.offer.draw': 'Tõmba',
+  'rummytiles.offer.pass': 'Passi',
   'rummytiles.param.position': 'Jaga kohalt',
 
   // --- blackjack -----------------------------------------------------------
@@ -2170,6 +2193,7 @@ export const et: Record<string, string> = {
   'rummytiles.move.reset': '{player} taastas laua',
   'rummytiles.move.committed': '{player} lõpetas käigu',
   'rummytiles.move.drew': '{player} võttis kivi',
+  'rummytiles.move.passed': '{player} passis — varu on tühi',
   'moves.last': 'Viimane käik',
   'moves.history': 'Ajalugu',
   'hints.title': 'Vihjed',
@@ -3156,7 +3180,8 @@ export const et: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Nii võib potiemand lugeda korraga poti-abielus, emandaringis ja pinochle’is, ning teine trumbikuningas ja -emand rea kõrval loeb ikka trumbiabieluna.',
   'pinochle.rules.meld.onWin': 'Välja panna võib ainult tõstiku võitja ja ainult seni, kuni tõmbepakis on kaarte.',
   'pinochle.rules.meld.onePerTurn': 'Iga võidetud tõstiku kohta üks väljapanek. Väljapandud kaardid jäävad lauale ja neid võib ikka käia.',
-  'pinochle.rules.meld.exchange': 'Trumbiüheksa võib vahetada pööratud trumbikaardi vastu. See annab {n} ja loeb selle käigu väljapanekuks.',
+  'pinochle.rules.meld.exchange':
+    'Trumbiüheksa, mida pole juba trumbiüheksana näidatud, võib vahetada pööratud trumbikaardi vastu. See annab {n} ja loeb selle käigu väljapanekuks.',
   'pinochle.rules.meld.staysInHand': 'Kui tõmbepakk saab otsa, lähevad kõik väljapandud kaardid tagasi omaniku kätte.',
   'pinochle.rules.meld.shown': 'Kui trumbid on valitud, loetakse kõigi väljapanekud kokku ja näidatakse esimese tõstiku ajal laual.',
   'pinochle.rules.meld.needsTrick': 'Poole väljapanek loeb ainult siis, kui ta võtab vähemalt ühe tõstiku.',

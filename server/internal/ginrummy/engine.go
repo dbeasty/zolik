@@ -78,6 +78,7 @@ func dealHand(s *GameState) {
 	s.Interest = map[string][]string{}
 	s.Knocker = ""
 	s.KnockGin = false
+	s.KnockBigGin = false
 	s.KnockerDeadwood = 0
 	s.KnockerMelds = nil
 }
@@ -237,7 +238,9 @@ func applyDiscard(s *GameState, playerID string, a module.Action) ([]module.Even
 	s.DiscardPile = append(s.DiscardPile, card)
 	events := []module.Event{{Type: "card_discarded", Data: map[string]any{"playerId": playerID, "card": card}}}
 
-	if len(s.Stock) <= 1 {
+	// The last two cards of the stock are never drawn: a discard that leaves
+	// two, with no knock, ends the hand (ginrummy.rules.deadHandDescription).
+	if len(s.Stock) <= 2 {
 		return append(events, deadHand(s)...), nil
 	}
 	s.Current = other(s.Players, playerID)
@@ -262,6 +265,7 @@ func applyKnock(s *GameState, playerID string, a module.Action) ([]module.Event,
 		if deadwood != 0 {
 			return nil, errCode(ErrDeadwoodTooHigh)
 		}
+		s.KnockBigGin = true
 		return knockOut(s, playerID, melds, 0, true), nil
 	}
 

@@ -103,6 +103,8 @@ export const nl: Record<string, string> = {
   'zolik.rules.section.end': 'Hoe de partij eindigt',
   'zolik.rules.goal':
     'Wees de eerste die zijn hand leegt door geldige groepen en reeksen te leggen, met zo min mogelijk strafpunten in de kaarten die je nog vasthoudt wanneer iemand anders uitgaat.',
+  'zolik.rules.deck.packs':
+    'Gespeeld met {small} spellen van 52 kaarten plus elk 2 jokers voor twee tot vier spelers, {mid} spellen voor vijf of zes en {large} voor zeven of acht.',
   'zolik.rules.deal': 'Elke speler krijgt {n} kaarten.',
   'zolik.rules.meldShapes':
     'Een groep bestaat uit {set}+ kaarten van dezelfde waarde; een reeks uit {run}+ opeenvolgende kaarten van dezelfde kleur.',
@@ -132,6 +134,9 @@ export const nl: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Een kaart die je overhoudt kost: joker {joker}, 10, boer, vrouw of heer {face}, 2 tot en met 9 zijn getal, en een aas {ace} — of maar {aceLow} als je ook een 2 van die kleur, of vrouw en heer van die kleur, in de hand hebt, of als hij een reeks op tafel zou verlengen.",
   'zolik.rules.end.atScore': 'Er wordt doorgedeeld tot iemand {n} punten haalt — dan is het voorbij.',
+  'zolik.rules.end.lowestWins': 'Aan het eind van de partij wint het laagste totaal.',
+  'zolik.rules.end.tieBreak':
+    'Delen spelers het laagste totaal, dan wint wie minder rondes won; is dat ook gelijk, dan eindigt de partij onbeslist.',
 
   'prsi.rules.section.goal': 'Doel',
   'prsi.rules.section.setup': 'Opzet',
@@ -142,14 +147,21 @@ export const nl: Record<string, string> = {
   'prsi.rules.deck': 'Gespeeld met een spel van {value} kaarten (vanaf de 7).',
   'prsi.rules.deal': 'Elke speler begint met {n} kaarten.',
   'prsi.rules.dealLimit': 'Er moet een kaart over zijn om om te draaien en een om te pakken, dus {seats} spelers krijgen hoogstens {n} kaarten.',
+  'prsi.rules.firstCard':
+    'De kaart die aan het begin wordt omgedraaid, telt alsof hij net tegen de eerste speler is gespeeld: op een 7 moet die antwoorden of betalen, op een aas antwoorden of een beurt overslaan. Een svršek wordt nooit omgedraaid zolang een andere kaart dat kan — hij gaat onder op de stapel.',
   'prsi.rules.turn.match':
     'Speel een kaart die past bij de kleur of de waarde van de bovenste kaart — of pak er een als dat niet lukt.',
   'prsi.rules.turn.draw': 'Pakken beëindigt je beurt zonder te spelen.',
   'prsi.rules.turn.nothingToDraw': 'Is er niets meer te pakken en past geen van je kaarten, dan eindigt pakken je beurt zonder kaart.',
   'prsi.rules.sevens':
     'Speel een 7 en de volgende speler pakt twee kaarten, tenzij die met een eigen 7 antwoordt.',
-  'prsi.rules.aces': 'Speel een aas en de beurt van de volgende speler wordt overgeslagen.',
+  'prsi.rules.sevens.stack':
+    'Zevens stapelen: elke 7 die als antwoord wordt gespeeld, voegt twee kaarten toe, en de eerste speler die niet kan antwoorden, pakt ze allemaal.',
+  'prsi.rules.aces':
+    'Speel een aas en de beurt van de volgende speler wordt overgeslagen, tenzij die met een eigen aas antwoordt — dan schuift de overgeslagen beurt door.',
   'prsi.rules.queens': 'Speel een svršek (Ober) en noem de kleur die verdergaat.',
+  'prsi.rules.queens.anything':
+    'Een svršek mag op elke kaart — behalve op een 7 of aas waarop nog geantwoord moet worden — en de volgende kaart moet de genoemde kleur hebben of zelf een svršek zijn.',
   'prsi.rules.end': 'De partij eindigt op het moment dat iemands hand leeg is.',
   'prsi.rules.end.blocked': 'Als alle spelers om de beurt zo passen, kan niemand meer spelen: de minste kaarten wint, en bij gelijkspel wordt de winst gedeeld.',
   'prsi.remedy.matchOrDraw': 'Speel een {suit}-kaart of een die op {card} past — anders pak je een kaart.',
@@ -173,14 +185,22 @@ export const nl: Record<string, string> = {
   'canasta.rules.section.melding': 'Uitleggen',
   'canasta.rules.section.end': 'Hoe de partij eindigt',
   'canasta.rules.section.turn': 'Jouw beurt',
-  'canasta.rules.goal':
-    'Er wordt in koppels gespeeld; de eerste partij die {n} punten haalt, wint de wedstrijd.',
+  'canasta.rules.goal': 'De eerste partij die {n} punten haalt, wint de wedstrijd.',
+  'canasta.rules.partnerships':
+    'Vier spelers spelen in twee koppels, partners zitten tegenover elkaar; bij twee of drie spelers speelt ieder voor zich.',
+  'canasta.rules.partnershipsSix':
+    'Vier of zes spelers spelen in koppels van twee, partners zitten tegenover elkaar; bij twee, drie of vijf spelers speelt ieder voor zich.',
   'canasta.rules.deck': 'Gespeeld met {value} kaarten — {decks} spellen plus jokers.',
   'canasta.rules.deal': 'Elke speler krijgt {n} kaarten.',
   'canasta.rules.drawCount': 'Je pakt {n} kaarten aan het begin van je beurt.',
   'canasta.rules.redThrees':
     'Een rode drie in je hand wordt meteen getoond en telt als bonus — tenzij jouw partij nooit een canasta afmaakt, dan telt hij tegen je.',
+  'canasta.rules.redThreesNeedTwo':
+    'Een rode drie in je hand wordt meteen getoond en telt als bonus — tenzij jouw partij minder dan twee canasta’s afmaakt, dan telt elke {n} tegen je.',
+  'canasta.rules.redThreeValues': 'Elke rode drie is {n} waard; alle {count} samen zijn {all} waard.',
   'canasta.rules.canasta': 'Een canasta is een combinatie van {n} of meer kaarten van dezelfde waarde.',
+  'canasta.rules.canastaBonus':
+    'Een complete canasta levert bovenop zijn kaarten een bonus op: {natural} voor een natuurlijke zonder wilde kaarten, {mixed} voor een met wilde kaarten erin.',
   'canasta.rules.sequences': 'Een combinatie kan ook een reeks zijn: drie of meer kaarten van dezelfde kleur op volgorde, nooit met een wilde kaart ertussen.',
   'canasta.rules.dirtySequences': 'Een combinatie kan ook een reeks zijn: drie tot zeven kaarten van dezelfde kleur op volgorde. Wilde kaarten mogen ontbrekende kaarten vervangen, hooguit twee en nooit meer dan half zoveel als de natuurlijke kaarten. Zeven kaarten met een wilde kaart erin zijn een vuile samba, goed voor {n}.',
   'canasta.rules.wildMeld': 'Zodra jouw partij is uitgekomen, mag ze één combinatie van tweeën en jokers leggen, in elke verhouding: drie jokers volstaan. Zeven kaarten zijn een canasta: {n} met alleen tweeën, {mixed} met jokers.',
@@ -225,7 +245,7 @@ export const nl: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'Jouw kant mag meerdere series van dezelfde waarde hebben.',
   'canasta.rules.canastaCloses': 'Een canasta van {n} kaarten is compleet en neemt er geen meer op.',
   'canasta.rules.meldsAreShared':
-    'Series horen bij het koppel: beide partners mogen ze uitbreiden, en die van de tegenpartij blijven onaangeroerd.',
+    'Series horen bij de partij die ze legde — aan een tafel met koppels bij beide partners: elk van hen mag ze uitbreiden, en geen andere partij mag eraan komen.',
   'canasta.rules.layOffAfterOpening':
     'Zolang jouw kant zijn eerste serie niet heeft gelegd, mag hij niets op tafel aanvullen.',
   'canasta.rules.goOutKeepsACard':
@@ -233,8 +253,7 @@ export const nl: Record<string, string> = {
   'canasta.rules.oneCanastaToGoOut': 'Eén afgemaakte canasta is genoeg om jouw partij te laten uitgaan.',
   'canasta.rules.twoCanastasToGoOut':
     "Jouw partij heeft twee afgemaakte canasta's nodig voordat ze mag uitgaan.",
-  'canasta.rules.end':
-    'Er wordt doorgedeeld tot één partij {n} punten passeert — dan is de wedstrijd voorbij.',
+  'canasta.rules.end': 'Er wordt doorgedeeld tot één partij {n} punten haalt — dan is de wedstrijd voorbij.',
 
   'holdem.rules.section.goal': 'Doel',
   'holdem.rules.section.setup': 'Opzet',
@@ -711,10 +730,12 @@ export const nl: Record<string, string> = {
     'Na een klop die geen gin is, mag je tegenstander zijn eigen deadwood bij jouw combinaties aanleggen voordat de handen vergeleken worden.',
   'ginrummy.rules.deadHandDescription':
     'Zakt de trekstapel tot zijn laatste twee kaarten zonder dat iemand geklopt heeft, dan is de hand dood — niemand scoort, en dezelfde deler deelt opnieuw.',
+  'ginrummy.rules.knockScore':
+    'Een klop die niet wordt afgesneden, scoort het verschil tussen het deadwood van beide spelers.',
   'ginrummy.rules.undercut':
     'Is het deadwood van je tegenstander niet hoger dan het jouwe, dan snijdt hij je af: hij scoort het verschil, plus {n}.',
   'ginrummy.rules.ginBonus': 'Gin levert de hele hand van je tegenstander op, plus {n}.',
-  'ginrummy.rules.target': 'Wie na afloop van een hand als eerste {n} punten passeert, wint de partij.',
+  'ginrummy.rules.target': 'Wie na afloop van een hand als eerste {n} punten haalt, wint de partij.',
   'ginrummy.rules.shutout': 'De partijbonus verdubbelt naar {n} als de verliezer geen enkel punt scoorde.',
   'ginrummy.rules.box': 'Elke gewonnen hand is aan het eind van de partij {n} punten waard.',
   'ginrummy.rules.gameBonus': 'De partij winnen levert nog eens {n} punten op.',
@@ -806,7 +827,7 @@ export const nl: Record<string, string> = {
     'Raakt de voorraad op en kan niemand meer spelen, dan eindigt de ronde en wint de laagste handwaarde.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Raakt de voorraad op en kan niemand meer spelen, dan eindigt de ronde zonder winnaar — elke hand wordt gewoon geteld.',
-  'rummytiles.rules.target': 'Wie na afloop van een ronde als eerste {n} punten passeert, wint de partij.',
+  'rummytiles.rules.target': 'Wie na afloop van een ronde als eerste {n} punten haalt, wint de partij.',
   'rummytiles.rules.roundLimit': 'De partij eindigt na {n} rondes — de hoogste score wint.',
   'rummytiles.remedy.emptyTheTray':
     'Plaats de {n} stenen die nog op je plankje liggen, of zet de beurt terug.',
@@ -842,6 +863,7 @@ export const nl: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Beurt herstellen',
   'rummytiles.offer.commit': 'Klaar',
   'rummytiles.offer.draw': 'Pakken',
+  'rummytiles.offer.pass': 'Passen',
   'rummytiles.param.position': 'Splitsen bij',
 
   // --- blackjack -----------------------------------------------------------
@@ -2192,6 +2214,7 @@ export const nl: Record<string, string> = {
   'rummytiles.move.reset': '{player} zette de tafel terug',
   'rummytiles.move.committed': '{player} beëindigde de beurt',
   'rummytiles.move.drew': '{player} pakte een steen',
+  'rummytiles.move.passed': '{player} paste — de voorraad is op',
   'moves.last': 'Laatste zet',
   'moves.history': 'Geschiedenis',
   'hints.title': 'Tips',
@@ -3182,7 +3205,8 @@ export const nl: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Zo kan schoppenvrouw tegelijk tellen in een schoppenhuwelijk, in vier vrouwen en in een pinochle, en een tweede troefheer en troefvrouw naast een reeks tellen nog steeds als troefhuwelijk.',
   'pinochle.rules.meld.onWin': 'Alleen wie een slag wint mag roemen, en alleen zolang er een trekstapel is.',
   'pinochle.rules.meld.onePerTurn': 'Eén roem per gewonnen slag. Geroemde kaarten blijven op tafel liggen en mogen nog gespeeld worden.',
-  'pinochle.rules.meld.exchange': 'Een troefnegen mag geruild worden tegen de opengelegde troefkaart. Dat levert {n} op en telt als de roem van die beurt.',
+  'pinochle.rules.meld.exchange':
+    'Een troefnegen die nog niet als roem getoond is, mag geruild worden tegen de opengelegde troefkaart. Dat levert {n} op en telt als de roem van die beurt.',
   'pinochle.rules.meld.staysInHand': 'Als de trekstapel op is, gaat elke geroemde kaart terug naar de hand van zijn eigenaar.',
   'pinochle.rules.meld.shown': 'Zodra troef is gekozen, wordt ieders roem geteld en tijdens de eerste slag op tafel getoond.',
   'pinochle.rules.meld.needsTrick': 'De roem van een partij telt alleen als ze minstens één slag haalt.',

@@ -104,6 +104,8 @@ export const pt: Record<string, string> = {
   'zolik.rules.section.end': 'Como acaba a partida',
   'zolik.rules.goal':
     'Sê o primeiro a esvaziar a mão baixando grupos e sequências válidos, juntando o menor número possível de pontos de penalização nas cartas que ainda tiveres quando outra pessoa sair.',
+  'zolik.rules.deck.packs':
+    'Joga-se com {small} baralhos de 52 cartas mais 2 jokers cada para dois a quatro jogadores, {mid} baralhos para cinco ou seis e {large} para sete ou oito.',
   'zolik.rules.deal': 'Cada jogador recebe {n} cartas.',
   'zolik.rules.meldShapes':
     'Um grupo são {set}+ cartas do mesmo valor; uma sequência são {run}+ cartas seguidas do mesmo naipe.',
@@ -134,6 +136,9 @@ export const pt: Record<string, string> = {
   'zolik.rules.penalty.values':
     "Uma carta que fique na mão custa: curinga {joker}, 10, valete, dama ou rei {face}, 2 a 9 o seu número, e um ás {ace} — ou só {aceLow} se também tiver na mão um 2 do seu naipe, ou a dama e o rei do seu naipe, ou se prolongasse uma sequência na mesa.",
   'zolik.rules.end.atScore': 'Continua a dar-se cartas até alguém chegar a {n} pontos — aí acaba.',
+  'zolik.rules.end.lowestWins': 'Quando a partida acaba, ganha o total mais baixo.',
+  'zolik.rules.end.tieBreak':
+    'Se vários jogadores partilharem o total mais baixo, ganha quem venceu menos rondas; se também aí houver empate, a partida fica empatada.',
 
   'prsi.rules.section.goal': 'Objetivo',
   'prsi.rules.section.setup': 'Preparação',
@@ -144,14 +149,21 @@ export const pt: Record<string, string> = {
   'prsi.rules.deck': 'Joga-se com um baralho de {value} cartas (do 7 para cima).',
   'prsi.rules.deal': 'Cada jogador começa com {n} cartas.',
   'prsi.rules.dealLimit': 'Tem de sobrar uma carta para virar e uma para comprar, por isso {seats} jogadores recebem no máximo {n} cartas cada.',
+  'prsi.rules.firstCard':
+    'A carta virada para começar o monte conta como se tivesse acabado de ser jogada contra o primeiro jogador: a um 7 tem de se responder ou pagar, a um ás responder ou perder a vez. Um svršek nunca é virado enquanto outra carta o puder ser — vai para o fundo do baralho.',
   'prsi.rules.turn.match':
     'Joga uma carta que coincida no naipe ou no valor com a do topo — ou compra, se não puderes.',
   'prsi.rules.turn.draw': 'Comprar termina a tua vez sem jogares.',
   'prsi.rules.turn.nothingToDraw': 'Se não houver nada para comprar e nenhuma carta tua servir, comprar termina a tua vez sem carta.',
   'prsi.rules.sevens':
     'Joga um 7 e o jogador seguinte compra duas cartas, a menos que responda com um 7 dele.',
-  'prsi.rules.aces': 'Joga um ás e o jogador seguinte perde a vez.',
+  'prsi.rules.sevens.stack':
+    'Os setes acumulam: cada 7 jogado em resposta junta mais duas cartas, e o primeiro jogador que não conseguir responder compra-as todas.',
+  'prsi.rules.aces':
+    'Joga um ás e o jogador seguinte perde a vez, a menos que responda com um ás dele — o que passa a vez perdida ao seguinte.',
   'prsi.rules.queens': 'Joga um svršek (o Ober) e diz o naipe que continua.',
+  'prsi.rules.queens.anything':
+    'Um svršek vai para cima de qualquer carta — exceto um 7 ou um ás que ainda espera resposta — e a carta seguinte tem de seguir o naipe dito, ou ser outro svršek.',
   'prsi.rules.end': 'A partida acaba no momento em que a mão de alguém fica vazia.',
   'prsi.rules.end.blocked': 'Se todos os jogadores passarem assim à vez, ninguém pode jogar: ganha quem tiver menos cartas, e um empate partilha a vitória.',
   'prsi.remedy.matchOrDraw': 'Joga uma carta de {suit} ou uma que sirva em {card} — caso contrário, compra.',
@@ -175,13 +187,22 @@ export const pt: Record<string, string> = {
   'canasta.rules.section.melding': 'Baixar',
   'canasta.rules.section.end': 'Como acaba a partida',
   'canasta.rules.section.turn': 'A tua vez',
-  'canasta.rules.goal': 'Joga-se a pares; o primeiro lado a chegar a {n} pontos ganha a partida.',
+  'canasta.rules.goal': 'O primeiro lado a chegar a {n} pontos ganha a partida.',
+  'canasta.rules.partnerships':
+    'Com quatro jogadores joga-se em duas duplas, com os parceiros sentados frente a frente; com dois ou três, cada um joga sozinho.',
+  'canasta.rules.partnershipsSix':
+    'Com quatro ou seis jogadores joga-se em duplas, com os parceiros sentados frente a frente; com dois, três ou cinco, cada um joga sozinho.',
   'canasta.rules.deck': 'Joga-se com {value} cartas — {decks} baralhos mais jokers.',
   'canasta.rules.deal': 'Cada jogador recebe {n} cartas.',
   'canasta.rules.drawCount': 'Compras {n} cartas no início do teu turno.',
   'canasta.rules.redThrees':
     'Um três vermelho na tua mão é mostrado logo e conta como bónus — a não ser que o teu lado nunca complete uma canastra, e então conta contra ti.',
+  'canasta.rules.redThreesNeedTwo':
+    'Um três vermelho na tua mão é mostrado logo e conta como bónus — a não ser que o teu lado complete menos de duas canastras, e então cada um conta {n} contra ti.',
+  'canasta.rules.redThreeValues': 'Cada três vermelho vale {n}; os {count} juntos valem {all}.',
   'canasta.rules.canasta': 'Uma canastra é uma combinação de {n} ou mais cartas do mesmo valor.',
+  'canasta.rules.canastaBonus':
+    'Uma canastra completa dá um bónus além das suas cartas: {natural} se for natural, sem curingas, {mixed} se tiver curingas.',
   'canasta.rules.sequences': 'Uma combinação também pode ser uma sequência: três ou mais cartas do mesmo naipe seguidas, nunca com um joker no meio.',
   'canasta.rules.dirtySequences': 'Uma combinação também pode ser uma sequência: de três a sete cartas seguidas do mesmo naipe. Os curingas podem ocupar o lugar de cartas em falta, no máximo dois e nunca mais de metade das cartas naturais. Sete cartas com um curinga são uma samba suja, que vale {n}.',
   'canasta.rules.wildMeld': 'Depois de o teu lado abrir, pode baixar uma combinação de duques e jokers em qualquer proporção: bastam três jokers. Sete cartas são uma canastra: {n} se forem só duques, {mixed} com jokers.',
@@ -226,14 +247,14 @@ export const pt: Record<string, string> = {
   'canasta.rules.meldsPerRankUnlimited': 'O teu lado pode ter várias combinações do mesmo valor.',
   'canasta.rules.canastaCloses': 'Uma canastra de {n} cartas está completa e não aceita mais.',
   'canasta.rules.meldsAreShared':
-    'As combinações são da dupla: qualquer um dos parceiros pode alargá-las, e ninguém toca nas do adversário.',
+    'As combinações pertencem ao lado que as baixou — numa mesa de duplas, aos dois parceiros: qualquer um pode alargá-las, e nenhum outro lado lhes pode tocar.',
   'canasta.rules.layOffAfterOpening':
     'Enquanto o teu lado não fizer a sua combinação inicial, não pode juntar cartas a nada na mesa.',
   'canasta.rules.goOutKeepsACard':
     'Tens de conseguir sempre terminar a tua vez, por isso nunca baixes a mão inteira a não ser que seja a jogada com que sais.',
   'canasta.rules.oneCanastaToGoOut': 'Uma canastra completa chega para o teu lado sair.',
   'canasta.rules.twoCanastasToGoOut': 'O teu lado precisa de duas canastras completas antes de poder sair.',
-  'canasta.rules.end': 'Continua a dar-se cartas até um lado passar os {n} pontos — aí a partida acaba.',
+  'canasta.rules.end': 'Continua a dar-se cartas até um lado chegar a {n} pontos — aí a partida acaba.',
 
   'holdem.rules.section.goal': 'Objetivo',
   'holdem.rules.section.setup': 'Preparação',
@@ -704,10 +725,12 @@ export const pt: Record<string, string> = {
     'Depois de uma batida que não seja gin, o teu adversário pode encostar o próprio deadwood às tuas combinações antes de as mãos serem comparadas.',
   'ginrummy.rules.deadHandDescription':
     'Se o baralho descer às duas últimas cartas e ninguém tiver batido, a mão está morta — ninguém pontua e o mesmo dador dá outra vez.',
+  'ginrummy.rules.knockScore':
+    'Uma batida que não seja cortada marca a diferença entre o deadwood dos dois jogadores.',
   'ginrummy.rules.undercut':
     'Se o deadwood do teu adversário não for maior do que o teu, ele corta-te: marca a diferença, mais {n}.',
   'ginrummy.rules.ginBonus': 'O gin marca a mão inteira do teu adversário, mais {n}.',
-  'ginrummy.rules.target': 'O primeiro a passar {n} pontos no fim de uma mão ganha a partida.',
+  'ginrummy.rules.target': 'O primeiro a chegar a {n} pontos no fim de uma mão ganha a partida.',
   'ginrummy.rules.shutout':
     'O bónus de partida duplica para {n} se o perdedor não tiver marcado um único ponto.',
   'ginrummy.rules.box': 'Cada mão que ganhaste vale {n} pontos no fim da partida.',
@@ -799,7 +822,7 @@ export const pt: Record<string, string> = {
     'Se o monte se esgotar e ninguém puder jogar, a ronda acaba e ganha-a a mão de menor valor.',
   'rummytiles.rules.poolExhaustionNoWinner':
     'Se o monte se esgotar e ninguém puder jogar, a ronda acaba sem vencedor — cada mão é simplesmente contada.',
-  'rummytiles.rules.target': 'O primeiro a passar {n} pontos no fim de uma ronda ganha a partida.',
+  'rummytiles.rules.target': 'O primeiro a chegar a {n} pontos no fim de uma ronda ganha a partida.',
   'rummytiles.rules.roundLimit': 'A partida acaba ao fim de {n} rondas — ganha a pontuação mais alta.',
   'rummytiles.remedy.emptyTheTray': 'Coloca as {n} peças que ainda estão no teu suporte, ou reinicia a vez.',
   'rummytiles.remedy.playFromHandOrDraw':
@@ -835,6 +858,7 @@ export const pt: Record<string, string> = {
   'rummytiles.offer.resetTurn': 'Reiniciar a jogada',
   'rummytiles.offer.commit': 'Pronto',
   'rummytiles.offer.draw': 'Comprar',
+  'rummytiles.offer.pass': 'Passar',
   'rummytiles.param.position': 'Dividir em',
 
   // --- blackjack -----------------------------------------------------------
@@ -2185,6 +2209,7 @@ export const pt: Record<string, string> = {
   'rummytiles.move.reset': '{player} repôs a mesa',
   'rummytiles.move.committed': '{player} terminou a vez',
   'rummytiles.move.drew': '{player} comprou uma peça',
+  'rummytiles.move.passed': '{player} passou — o monte está vazio',
   'moves.last': 'Última jogada',
   'moves.history': 'Histórico',
   'hints.title': 'Dicas',
@@ -3175,7 +3200,8 @@ export const pt: Record<string, string> = {
   'pinochle.rules.meld.classesExample': 'Assim, a dama de espadas pode contar ao mesmo tempo num casamento de espadas, em quatro damas e num pinochle, e um segundo rei e dama de trunfo ao lado de uma sequência continuam a contar como casamento de trunfo.',
   'pinochle.rules.meld.onWin': 'Só quem ganha uma vaza pode anunciar, e só enquanto houver monte.',
   'pinochle.rules.meld.onePerTurn': 'Um anúncio por cada vaza ganha. As cartas anunciadas ficam na mesa e ainda podem ser jogadas.',
-  'pinochle.rules.meld.exchange': 'Um nove de trunfo pode ser trocado pela carta de trunfo virada. Vale {n} e conta como o anúncio dessa vez.',
+  'pinochle.rules.meld.exchange':
+    'Um nove de trunfo que ainda não tenha sido anunciado pode ser trocado pela carta de trunfo virada. Vale {n} e conta como o anúncio dessa vez.',
   'pinochle.rules.meld.staysInHand': 'Quando o monte acaba, cada carta anunciada volta à mão do seu dono.',
   'pinochle.rules.meld.shown': 'Escolhido o trunfo, os anúncios de todos são contados e mostrados na mesa durante a primeira vaza.',
   'pinochle.rules.meld.needsTrick': 'Os anúncios de um lado só contam se ganhar pelo menos uma vaza.',

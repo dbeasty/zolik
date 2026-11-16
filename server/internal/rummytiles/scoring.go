@@ -42,10 +42,37 @@ func endRoundPoolExhausted(s *GameState) []module.Event {
 	return endRound(s, RoundResult{Number: s.RoundNumber, Kind: "pool_exhausted", Winner: winner, Deltas: deltas})
 }
 
+// endConditions is how a match ends, resolved once for NewMatch, Rules and
+// Lessons alike. Target score Off is "in favour of a round limit"; with the
+// round limit Off as well there would be no end at all, so the match plays to
+// the variation's own target instead — which the written rules then state.
+func endConditions(cfg module.MatchConfig) (target, roundLimit int) {
+	v := resolveVariation(cfg)
+	target = cfg.Opt(OptTargetScore, v.targetScore)
+	roundLimit = cfg.Opt(OptRoundLimit, v.roundLimit)
+	if target <= 0 && roundLimit <= 0 {
+		target = defaultTarget(v)
+	}
+	return target, roundLimit
+}
+
+// defaultTarget is the target a match with neither end condition plays to.
+func defaultTarget(v variationDefaults) int {
+	if v.targetScore > 0 {
+		return v.targetScore
+	}
+	return variations["standard"].targetScore
+}
+
 func matchWinner(s *GameState) (string, bool) {
-	if s.TargetScore > 0 {
+	target := s.TargetScore
+	if target <= 0 && s.RoundLimit <= 0 {
+		// A match dealt before endConditions existed, with both Off.
+		target = defaultTarget(variations["standard"])
+	}
+	if target > 0 {
 		for _, p := range s.Players {
-			if s.Scores[p] >= s.TargetScore {
+			if s.Scores[p] >= target {
 				return p, true
 			}
 		}
