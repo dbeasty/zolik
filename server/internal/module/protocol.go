@@ -296,6 +296,16 @@ type Zone struct {
 	// Presentational, like Fan: a client that ignores it draws the zone open
 	// and loses nothing. It says how the cards are used, not which game it is.
 	Folded bool `json:"folded,omitempty"`
+	// Open asks for the zone to start open even where a client puts panels
+	// away by default to save room — a phone, which starts the table folded
+	// so a meld game's hand and melds fit. For cards every decision is made
+	// against, rather than glanced at: poker's board, half of everybody's
+	// hand. The player can still fold it, and a client keeps that choice.
+	//
+	// Presentational, like Folded, and its opposite: a client that ignores
+	// it folds the zone only where it would have anyway. It says how the
+	// cards are used, not which game it is.
+	Open bool `json:"open,omitempty"`
 }
 
 // ArrangeBySeat lays a zone's cards out around the table, each toward the

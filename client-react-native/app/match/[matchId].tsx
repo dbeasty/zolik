@@ -69,7 +69,7 @@ import { usePanelState } from '@/src/hooks/usePanelState';
 import { useBoardArrangement } from '@/src/hooks/useBoardArrangement';
 import { LayoutEditBar } from '@/src/components/match/LayoutEditor';
 import { bandOf, TWO_COLUMN_MAX_WIDTH, TWO_COLUMN_MIN_WIDTH, type RegionId } from '@/src/lib/boardArrangement';
-import { isPhoneScreen, PHONE_FOLDED_PANELS } from '@/src/lib/layout';
+import { isPhoneScreen, panelStartsFolded } from '@/src/lib/layout';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
@@ -1992,8 +1992,7 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
     // A zone that starts folded — because the module asks, or because this
     // is a phone — is stored the other way round, as the results are:
     // present means the player opened it out.
-    const folded =
-      (phoneScreen && PHONE_FOLDED_PANELS.has(zoneId)) || zones.some((z) => z.id === zoneId && z.folded);
+    const folded = panelStartsFolded(zoneId, zones, phoneScreen);
     const stored = folded ? `${panelIdFor(zoneId)}:open` : panelIdFor(zoneId);
     return {
       panelId: panelIdFor(zoneId),

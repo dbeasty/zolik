@@ -170,6 +170,13 @@ export type Zone = {
    */
   folded?: boolean;
   /**
+   * Start open even where this client folds panels by default to save room
+   * (a phone's table): cards every decision is made against, like poker's
+   * board. The player can still fold it. Presentational; ignoring it folds
+   * the zone only where it would have been anyway.
+   */
+  open?: boolean;
+  /**
    * The partnership this zone belongs to, in the same opaque id as
    * `Seat.side` — a Canasta side's melds and its red threes. Lets the board
    * draw a side's zones as one area, the viewer's nearest their hand. Absent

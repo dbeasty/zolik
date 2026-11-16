@@ -17,6 +17,9 @@
  * sheet.
  */
 
+import type { Zone } from '@/src/api/matchTypes';
+import { isTableZone } from '@/src/lib/board';
+
 export type CardMetrics = {
   width: number;
   height: number;
@@ -437,6 +440,24 @@ export const PHONE_FOLDED_PANELS: ReadonlySet<string> = new Set([
   'section:opponents',
   'controls',
 ]);
+
+/**
+ * Whether a zone's panel starts put away, before the player has said: when
+ * the module asks (`folded` — Canasta's red threes), or on a phone for the
+ * panels in `PHONE_FOLDED_PANELS` — unless a zone in it asks to stay open
+ * (`open` — poker's board, which no hand can be read without). `zoneId` as
+ * `zonePanelProps` takes it, `section:table` for the whole table.
+ */
+export function panelStartsFolded(
+  zoneId: string,
+  zones: readonly Zone[],
+  phone: boolean,
+): boolean {
+  if (zones.some((z) => z.id === zoneId && z.folded)) return true;
+  if (!phone || !PHONE_FOLDED_PANELS.has(zoneId)) return false;
+  const inPanel = (z: Zone) => (zoneId === 'section:table' ? isTableZone(z) : z.id === zoneId);
+  return !zones.some((z) => z.open && inPanel(z));
+}
 
 /**
  * How much smaller an iPhone's cards are drawn than the width table gives.
