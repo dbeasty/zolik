@@ -214,6 +214,10 @@ type SessionContextValue = {
   refreshAccount: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email?: string) => Promise<void>;
+  /** Mails a reset code for the password account holding an address. */
+  startPasswordReset: (email: string) => Promise<void>;
+  /** Sets a new password from a reset code and signs this device in. */
+  resetPassword: (email: string, code: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   /**
    * Deletes the signed-in account on the server, everywhere, and signs this
@@ -689,6 +693,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(
     async (username: string, password: string, email?: string) => {
       const s = await apiClient.register(username, password, email);
+      await applySession(s);
+    },
+    [applySession],
+  );
+
+  const startPasswordReset = useCallback(async (email: string) => {
+    await apiClient.startPasswordReset(email);
+  }, []);
+
+  const resetPassword = useCallback(
+    async (email: string, code: string, password: string) => {
+      const s = await apiClient.resetPassword(email, code, password);
       await applySession(s);
     },
     [applySession],
@@ -1175,6 +1191,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       refreshAccount,
       login,
       register,
+      startPasswordReset,
+      resetPassword,
       logout,
       deleteAccount,
       offline:
@@ -1224,6 +1242,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       refreshAccount,
       login,
       register,
+      startPasswordReset,
+      resetPassword,
       logout,
       deleteAccount,
     ],

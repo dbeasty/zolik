@@ -26,6 +26,7 @@ export const el: Record<string, string> = {
   'err.INVALID_EMAIL': 'Αυτό δεν μοιάζει με διεύθυνση email.',
   'err.CODE_INVALID': 'Αυτός ο κωδικός δεν είναι έγκυρος. Ζητήστε νέο.',
   'err.TOO_MANY_CODES': 'Ζητήθηκαν πάρα πολλοί κωδικοί για αυτή τη διεύθυνση. Δοκιμάστε ξανά σε λίγο.',
+  'err.PASSWORD_REQUIRED': 'Εισαγάγετε νέο κωδικό πρόσβασης.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1180,6 +1181,7 @@ export const el: Record<string, string> = {
   'nav.emailSignIn': 'Σύνδεση με email',
   'nav.signingIn': 'Σύνδεση σε εξέλιξη',
   'nav.usernameSignIn': 'Σύνδεση με όνομα χρήστη',
+  'nav.resetPassword': 'Επαναφορά κωδικού πρόσβασης',
   'nav.legacyAccount': 'Παλιός λογαριασμός',
   'nav.guest': 'Επισκέπτης',
   'nav.account': 'Λογαριασμός',
@@ -1226,6 +1228,7 @@ export const el: Record<string, string> = {
   'error.register': 'Η εγγραφή απέτυχε',
   'error.sendCode': 'Δεν ήταν δυνατή η αποστολή κωδικού',
   'error.badCode': 'Αυτός ο κωδικός δεν λειτούργησε',
+  'error.resetPassword': 'Δεν ήταν δυνατή η επαναφορά του κωδικού πρόσβασης',
   'error.rulesLoad': 'Δεν ήταν δυνατή η φόρτωση των κανόνων',
   'error.createFailed': 'Η δημιουργία απέτυχε',
   'error.saveFailed': 'Η αποθήκευση απέτυχε',
@@ -1257,6 +1260,11 @@ export const el: Record<string, string> = {
   'auth.register.email': 'Email (προαιρετικό)',
   'auth.register.password': 'Κωδικός πρόσβασης',
   'auth.username.createAccount': 'Δημιούργησε λογαριασμό με όνομα χρήστη και κωδικό',
+  'auth.reset.subtitle': 'Εισαγάγετε τη διεύθυνση email του λογαριασμού σας. Θα σας στείλουμε έναν κωδικό για να ορίσετε νέο κωδικό πρόσβασης.',
+  'auth.reset.sentTo': 'Αν λογαριασμός με κωδικό πρόσβασης χρησιμοποιεί το {email}, ένας κωδικός είναι καθ’ οδόν.',
+  'auth.reset.newPassword': 'Νέος κωδικός πρόσβασης',
+  'auth.reset.submit': 'Ορισμός κωδικού και σύνδεση',
+  'auth.username.forgot': 'Ξεχάσατε τον κωδικό σας;',
   'auth.callback.signedIn': 'Συνδέθηκες.',
   'auth.error.alreadyLinked': "Αυτός ο λογαριασμός είναι ήδη συνδεδεμένος με άλλον παίκτη.",
   'auth.error.expired': "Η σύνδεση άργησε πολύ. Δοκιμάστε ξανά.",

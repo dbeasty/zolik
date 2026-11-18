@@ -26,6 +26,7 @@ export const et: Record<string, string> = {
   'err.INVALID_EMAIL': 'See ei tundu e-posti aadressina.',
   'err.CODE_INVALID': 'See kood ei kehti. Küsi uus.',
   'err.TOO_MANY_CODES': 'Selle aadressi jaoks on küsitud liiga palju koode. Proovi varsti uuesti.',
+  'err.PASSWORD_REQUIRED': 'Sisesta uus parool.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1147,6 +1148,7 @@ export const et: Record<string, string> = {
   'nav.emailSignIn': 'Sisselogimine e-postiga',
   'nav.signingIn': 'Sisselogimine',
   'nav.usernameSignIn': 'Sisselogimine kasutajanimega',
+  'nav.resetPassword': 'Lähtesta parool',
   'nav.legacyAccount': 'Vana konto',
   'nav.guest': 'Külaline',
   'nav.account': 'Konto',
@@ -1193,6 +1195,7 @@ export const et: Record<string, string> = {
   'error.register': 'Registreerimine ebaõnnestus',
   'error.sendCode': 'Koodi ei õnnestunud saata',
   'error.badCode': 'See kood ei töötanud',
+  'error.resetPassword': 'Parooli ei õnnestunud lähtestada',
   'error.rulesLoad': 'Reegleid ei õnnestunud laadida',
   'error.createFailed': 'Loomine ebaõnnestus',
   'error.saveFailed': 'Salvestamine ebaõnnestus',
@@ -1224,6 +1227,11 @@ export const et: Record<string, string> = {
   'auth.register.email': 'E-post (valikuline)',
   'auth.register.password': 'Parool',
   'auth.username.createAccount': 'Loo konto kasutajanime ja parooliga',
+  'auth.reset.subtitle': 'Sisesta oma konto e-posti aadress. Saadame koodi uue parooli määramiseks.',
+  'auth.reset.sentTo': 'Kui aadressi {email} kasutab parooliga konto, on kood teel.',
+  'auth.reset.newPassword': 'Uus parool',
+  'auth.reset.submit': 'Määra parool ja logi sisse',
+  'auth.username.forgot': 'Unustasid parooli?',
   'auth.callback.signedIn': 'Sisse logitud.',
   'auth.error.alreadyLinked': "See konto on juba seotud teise mängijaga.",
   'auth.error.expired': "Sisselogimine võttis liiga kaua aega. Proovi uuesti.",

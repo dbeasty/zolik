@@ -26,6 +26,7 @@ export const lt: Record<string, string> = {
   'err.INVALID_EMAIL': 'Tai neatrodo kaip el. pašto adresas.',
   'err.CODE_INVALID': 'Šis kodas negalioja. Paprašykite naujo.',
   'err.TOO_MANY_CODES': 'Šiam adresui paprašyta per daug kodų. Pabandykite po akimirkos.',
+  'err.PASSWORD_REQUIRED': 'Įveskite naują slaptažodį.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1144,6 +1145,7 @@ export const lt: Record<string, string> = {
   'nav.emailSignIn': 'Prisijungimas el. paštu',
   'nav.signingIn': 'Jungiamasi',
   'nav.usernameSignIn': 'Prisijungimas naudotojo vardu',
+  'nav.resetPassword': 'Atkurti slaptažodį',
   'nav.legacyAccount': 'Sena paskyra',
   'nav.guest': 'Svečias',
   'nav.account': 'Paskyra',
@@ -1190,6 +1192,7 @@ export const lt: Record<string, string> = {
   'error.register': 'Registruotis nepavyko',
   'error.sendCode': 'Nepavyko išsiųsti kodo',
   'error.badCode': 'Tas kodas neveikė',
+  'error.resetPassword': 'Nepavyko atkurti slaptažodžio',
   'error.rulesLoad': 'Nepavyko įkelti taisyklių',
   'error.createFailed': 'Sukurti nepavyko',
   'error.saveFailed': 'Įrašyti nepavyko',
@@ -1221,6 +1224,11 @@ export const lt: Record<string, string> = {
   'auth.register.email': 'El. paštas (nebūtina)',
   'auth.register.password': 'Slaptažodis',
   'auth.username.createAccount': 'Sukurti paskyrą su naudotojo vardu ir slaptažodžiu',
+  'auth.reset.subtitle': 'Įveskite savo paskyros el. pašto adresą. Atsiųsime kodą naujam slaptažodžiui nustatyti.',
+  'auth.reset.sentTo': 'Jei adresą {email} naudoja paskyra su slaptažodžiu, kodas jau keliauja.',
+  'auth.reset.newPassword': 'Naujas slaptažodis',
+  'auth.reset.submit': 'Nustatyti slaptažodį ir prisijungti',
+  'auth.username.forgot': 'Pamiršote slaptažodį?',
   'auth.callback.signedIn': 'Prisijungta.',
   'auth.error.alreadyLinked': "Ši paskyra jau susieta su kitu žaidėju.",
   'auth.error.expired': "Prisijungimas užtruko per ilgai. Bandykite dar kartą.",

@@ -26,6 +26,7 @@ export const sv: Record<string, string> = {
   'err.INVALID_EMAIL': 'Det ser inte ut som en e-postadress.',
   'err.CODE_INVALID': 'Koden är inte giltig. Begär en ny.',
   'err.TOO_MANY_CODES': 'För många koder har begärts för den adressen. Försök igen om en stund.',
+  'err.PASSWORD_REQUIRED': 'Ange ett nytt lösenord.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1139,6 +1140,7 @@ export const sv: Record<string, string> = {
   'nav.emailSignIn': 'Inloggning med e-post',
   'nav.signingIn': 'Loggar in',
   'nav.usernameSignIn': 'Inloggning med användarnamn',
+  'nav.resetPassword': 'Återställ lösenord',
   'nav.legacyAccount': 'Gammalt konto',
   'nav.guest': 'Gäst',
   'nav.account': 'Konto',
@@ -1185,6 +1187,7 @@ export const sv: Record<string, string> = {
   'error.register': 'Registreringen misslyckades',
   'error.sendCode': 'Kunde inte skicka någon kod',
   'error.badCode': 'Den koden fungerade inte',
+  'error.resetPassword': 'Det gick inte att återställa lösenordet',
   'error.rulesLoad': 'Kunde inte läsa in reglerna',
   'error.createFailed': 'Kunde inte skapa',
   'error.saveFailed': 'Kunde inte spara',
@@ -1216,6 +1219,11 @@ export const sv: Record<string, string> = {
   'auth.register.email': 'E-post (valfritt)',
   'auth.register.password': 'Lösenord',
   'auth.username.createAccount': 'Skapa ett konto med användarnamn och lösenord',
+  'auth.reset.subtitle': 'Ange e-postadressen för ditt konto. Vi skickar en kod så att du kan välja ett nytt lösenord.',
+  'auth.reset.sentTo': 'Om ett konto med lösenord använder {email} är en kod på väg.',
+  'auth.reset.newPassword': 'Nytt lösenord',
+  'auth.reset.submit': 'Spara lösenord och logga in',
+  'auth.username.forgot': 'Glömt lösenordet?',
   'auth.callback.signedIn': 'Inloggad.',
   'auth.error.alreadyLinked': "Det kontot är redan kopplat till en annan spelare.",
   'auth.error.expired': "Inloggningen tog för lång tid. Försök igen.",

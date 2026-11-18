@@ -26,6 +26,7 @@ export const sk: Record<string, string> = {
   'err.INVALID_EMAIL': 'Toto nevyzerá ako e-mailová adresa.',
   'err.CODE_INVALID': 'Tento kód nie je platný. Vyžiadajte si nový.',
   'err.TOO_MANY_CODES': 'Pre túto adresu bolo vyžiadaných príliš veľa kódov. Skúste to o chvíľu.',
+  'err.PASSWORD_REQUIRED': 'Zadajte nové heslo.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1144,6 +1145,7 @@ export const sk: Record<string, string> = {
   'nav.emailSignIn': 'Prihlásenie e-mailom',
   'nav.signingIn': 'Prihlasovanie',
   'nav.usernameSignIn': 'Prihlásenie menom',
+  'nav.resetPassword': 'Obnoviť heslo',
   'nav.legacyAccount': 'Starý účet',
   'nav.guest': 'Hosť',
   'nav.account': 'Účet',
@@ -1190,6 +1192,7 @@ export const sk: Record<string, string> = {
   'error.register': 'Registrácia zlyhala',
   'error.sendCode': 'Kód sa nepodarilo odoslať',
   'error.badCode': 'Tento kód nefungoval',
+  'error.resetPassword': 'Heslo sa nepodarilo obnoviť',
   'error.rulesLoad': 'Pravidlá sa nepodarilo načítať',
   'error.createFailed': 'Vytvorenie zlyhalo',
   'error.saveFailed': 'Uloženie zlyhalo',
@@ -1221,6 +1224,11 @@ export const sk: Record<string, string> = {
   'auth.register.email': 'E-mail (nepovinný)',
   'auth.register.password': 'Heslo',
   'auth.username.createAccount': 'Vytvoriť účet s menom a heslom',
+  'auth.reset.subtitle': 'Zadajte e-mailovú adresu svojho účtu. Pošleme vám kód na nastavenie nového hesla.',
+  'auth.reset.sentTo': 'Ak adresu {email} používa účet s heslom, kód je na ceste.',
+  'auth.reset.newPassword': 'Nové heslo',
+  'auth.reset.submit': 'Nastaviť heslo a prihlásiť sa',
+  'auth.username.forgot': 'Zabudli ste heslo?',
   'auth.callback.signedIn': 'Prihlásené.',
   'auth.error.alreadyLinked': "Tento účet je už prepojený s iným hráčom.",
   'auth.error.expired': "Prihlásenie trvalo príliš dlho. Skúste to znova.",

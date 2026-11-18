@@ -26,6 +26,7 @@ export const sl: Record<string, string> = {
   'err.INVALID_EMAIL': 'To ne izgleda kot e-poštni naslov.',
   'err.CODE_INVALID': 'Ta koda ni veljavna. Zahtevajte novo.',
   'err.TOO_MANY_CODES': 'Za ta naslov je bilo zahtevanih preveč kod. Poskusite znova čez trenutek.',
+  'err.PASSWORD_REQUIRED': 'Vnesite novo geslo.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1138,6 +1139,7 @@ export const sl: Record<string, string> = {
   'nav.emailSignIn': 'Prijava z e-pošto',
   'nav.signingIn': 'Prijavljanje',
   'nav.usernameSignIn': 'Prijava z uporabniškim imenom',
+  'nav.resetPassword': 'Ponastavi geslo',
   'nav.legacyAccount': 'Star račun',
   'nav.guest': 'Gost',
   'nav.account': 'Račun',
@@ -1184,6 +1186,7 @@ export const sl: Record<string, string> = {
   'error.register': 'Registracija ni uspela',
   'error.sendCode': 'Kode ni bilo mogoče poslati',
   'error.badCode': 'Ta koda ni delovala',
+  'error.resetPassword': 'Gesla ni bilo mogoče ponastaviti',
   'error.rulesLoad': 'Pravil ni bilo mogoče naložiti',
   'error.createFailed': 'Ustvarjanje ni uspelo',
   'error.saveFailed': 'Shranjevanje ni uspelo',
@@ -1215,6 +1218,11 @@ export const sl: Record<string, string> = {
   'auth.register.email': 'E-pošta (neobvezno)',
   'auth.register.password': 'Geslo',
   'auth.username.createAccount': 'Ustvari račun z uporabniškim imenom in geslom',
+  'auth.reset.subtitle': 'Vnesite e-poštni naslov svojega računa. Poslali vam bomo kodo za nastavitev novega gesla.',
+  'auth.reset.sentTo': 'Če naslov {email} uporablja račun z geslom, je koda na poti.',
+  'auth.reset.newPassword': 'Novo geslo',
+  'auth.reset.submit': 'Nastavi geslo in se prijavi',
+  'auth.username.forgot': 'Ste pozabili geslo?',
   'auth.callback.signedIn': 'Prijavljen.',
   'auth.error.alreadyLinked': "Ta račun je že povezan z drugim igralcem.",
   'auth.error.expired': "Prijava je trajala predolgo. Poskusite znova.",

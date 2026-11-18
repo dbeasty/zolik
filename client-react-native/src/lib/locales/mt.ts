@@ -26,6 +26,7 @@ export const mt: Record<string, string> = {
   'err.INVALID_EMAIL': 'Dan ma jidhirx bħala indirizz tal-email.',
   'err.CODE_INVALID': 'Dak il-kodiċi mhux validu. Itlob wieħed ġdid.',
   'err.TOO_MANY_CODES': 'Intalbu wisq kodiċijiet għal dak l-indirizz. Erġa’ pprova mhux dalwaqt.',
+  'err.PASSWORD_REQUIRED': 'Daħħal password ġdida.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1165,6 +1166,7 @@ export const mt: Record<string, string> = {
   'nav.emailSignIn': 'Dħul bl-email',
   'nav.signingIn': 'Qed tidħol',
   'nav.usernameSignIn': "Dħul b'isem tal-utent",
+  'nav.resetPassword': 'Irrisettja l-password',
   'nav.legacyAccount': 'Kont antik',
   'nav.guest': 'Mistieden',
   'nav.account': 'Kont',
@@ -1211,6 +1213,7 @@ export const mt: Record<string, string> = {
   'error.register': 'Ir-reġistrazzjoni ma rnexxietx',
   'error.sendCode': 'Ma setax jintbagħat kodiċi',
   'error.badCode': 'Dak il-kodiċi ma ħadimx',
+  'error.resetPassword': 'Ma setgħetx tiġi rrisettjata l-password',
   'error.rulesLoad': 'Ir-regoli ma setgħux jitniżżlu',
   'error.createFailed': 'Il-ħolqien ma rnexxiex',
   'error.saveFailed': 'L-issejvjar ma rnexxiex',
@@ -1242,6 +1245,11 @@ export const mt: Record<string, string> = {
   'auth.register.email': 'Email (mhux obbligatorju)',
   'auth.register.password': 'Password',
   'auth.username.createAccount': "Oħloq kont b'isem tal-utent u password",
+  'auth.reset.subtitle': 'Daħħal l-indirizz tal-email tal-kont tiegħek. Nibagħtulek kodiċi biex tissettja password ġdida.',
+  'auth.reset.sentTo': 'Jekk kont b’password juża {email}, il-kodiċi fit-triq.',
+  'auth.reset.newPassword': 'Password ġdida',
+  'auth.reset.submit': 'Issettja l-password u idħol',
+  'auth.username.forgot': 'Insejt il-password?',
   'auth.callback.signedIn': 'Daħalt.',
   'auth.error.alreadyLinked': "Dak il-kont diġà marbut ma' plejer ieħor.",
   'auth.error.expired': "Id-dħul dam wisq. Erġa' pprova.",

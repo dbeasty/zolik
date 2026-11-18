@@ -26,6 +26,7 @@ export const ga: Record<string, string> = {
   'err.INVALID_EMAIL': 'Ní chosúil le seoladh ríomhphoist é sin.',
   'err.CODE_INVALID': 'Níl an cód sin bailí. Iarr ceann nua.',
   'err.TOO_MANY_CODES': 'Iarradh an iomarca cód don seoladh sin. Bain triail eile as i gceann tamaill.',
+  'err.PASSWORD_REQUIRED': 'Cuir isteach pasfhocal nua.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1175,6 +1176,7 @@ export const ga: Record<string, string> = {
   'nav.emailSignIn': 'Sínigh isteach le ríomhphost',
   'nav.signingIn': 'Ag síniú isteach',
   'nav.usernameSignIn': 'Sínigh isteach le hainm úsáideora',
+  'nav.resetPassword': 'Athshocraigh an pasfhocal',
   'nav.legacyAccount': 'Cuntas oidhreachta',
   'nav.guest': 'Aoi',
   'nav.account': 'Cuntas',
@@ -1221,6 +1223,7 @@ export const ga: Record<string, string> = {
   'error.register': 'Theip ar an gclárú',
   'error.sendCode': 'Níorbh fhéidir cód a sheoladh',
   'error.badCode': 'Níor oibrigh an cód sin',
+  'error.resetPassword': 'Níorbh fhéidir an pasfhocal a athshocrú',
   'error.rulesLoad': 'Níorbh fhéidir na rialacha a lódáil',
   'error.createFailed': 'Theip ar an gcruthú',
   'error.saveFailed': 'Theip ar an sábháil',
@@ -1252,6 +1255,11 @@ export const ga: Record<string, string> = {
   'auth.register.email': 'Ríomhphost (roghnach)',
   'auth.register.password': 'Pasfhocal',
   'auth.username.createAccount': 'Cruthaigh cuntas le hainm úsáideora agus pasfhocal',
+  'auth.reset.subtitle': 'Cuir isteach seoladh ríomhphoist do chuntais. Seolfaimid cód chun pasfhocal nua a shocrú.',
+  'auth.reset.sentTo': 'Má úsáideann cuntas le pasfhocal {email}, tá cód ar an mbealach.',
+  'auth.reset.newPassword': 'Pasfhocal nua',
+  'auth.reset.submit': 'Socraigh an pasfhocal agus sínigh isteach',
+  'auth.username.forgot': 'Ar dhearmad tú do phasfhocal?',
   'auth.callback.signedIn': 'Sínithe isteach.',
   'auth.error.alreadyLinked': "Tá an cuntas sin nasctha le himreoir eile cheana.",
   'auth.error.expired': "Thóg an síniú isteach rófhada. Bain triail eile as.",

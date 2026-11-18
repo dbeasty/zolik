@@ -26,6 +26,7 @@ export const pl: Record<string, string> = {
   'err.INVALID_EMAIL': 'To nie wygląda na adres e-mail.',
   'err.CODE_INVALID': 'Ten kod jest nieprawidłowy. Poproś o nowy.',
   'err.TOO_MANY_CODES': 'Zażądano zbyt wielu kodów dla tego adresu. Spróbuj za chwilę.',
+  'err.PASSWORD_REQUIRED': 'Wpisz nowe hasło.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1151,6 +1152,7 @@ export const pl: Record<string, string> = {
   'nav.emailSignIn': 'Logowanie e-mailem',
   'nav.signingIn': 'Logowanie',
   'nav.usernameSignIn': 'Logowanie nazwą użytkownika',
+  'nav.resetPassword': 'Zresetuj hasło',
   'nav.legacyAccount': 'Stare konto',
   'nav.guest': 'Gość',
   'nav.account': 'Konto',
@@ -1197,6 +1199,7 @@ export const pl: Record<string, string> = {
   'error.register': 'Rejestracja nie powiodła się',
   'error.sendCode': 'Nie udało się wysłać kodu',
   'error.badCode': 'Ten kod nie zadziałał',
+  'error.resetPassword': 'Nie udało się zresetować hasła',
   'error.rulesLoad': 'Nie udało się wczytać zasad',
   'error.createFailed': 'Tworzenie nie powiodło się',
   'error.saveFailed': 'Zapis nie powiódł się',
@@ -1228,6 +1231,11 @@ export const pl: Record<string, string> = {
   'auth.register.email': 'E-mail (opcjonalnie)',
   'auth.register.password': 'Hasło',
   'auth.username.createAccount': 'Utwórz konto z nazwą użytkownika i hasłem',
+  'auth.reset.subtitle': 'Wpisz adres e-mail swojego konta. Wyślemy kod do ustawienia nowego hasła.',
+  'auth.reset.sentTo': 'Jeśli konto z hasłem używa adresu {email}, kod jest w drodze.',
+  'auth.reset.newPassword': 'Nowe hasło',
+  'auth.reset.submit': 'Ustaw hasło i zaloguj się',
+  'auth.username.forgot': 'Nie pamiętasz hasła?',
   'auth.callback.signedIn': 'Zalogowano.',
   'auth.error.alreadyLinked': "To konto jest już połączone z innym graczem.",
   'auth.error.expired': "Logowanie trwało zbyt długo. Spróbuj ponownie.",

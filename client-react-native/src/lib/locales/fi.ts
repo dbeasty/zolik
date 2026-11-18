@@ -26,6 +26,7 @@ export const fi: Record<string, string> = {
   'err.INVALID_EMAIL': 'Tämä ei näytä sähköpostiosoitteelta.',
   'err.CODE_INVALID': 'Koodi ei kelpaa. Pyydä uusi.',
   'err.TOO_MANY_CODES': 'Tälle osoitteelle on pyydetty liian monta koodia. Yritä hetken kuluttua uudelleen.',
+  'err.PASSWORD_REQUIRED': 'Anna uusi salasana.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1151,6 +1152,7 @@ export const fi: Record<string, string> = {
   'nav.emailSignIn': 'Kirjautuminen sähköpostilla',
   'nav.signingIn': 'Kirjaudutaan',
   'nav.usernameSignIn': 'Kirjautuminen käyttäjänimellä',
+  'nav.resetPassword': 'Palauta salasana',
   'nav.legacyAccount': 'Vanha tili',
   'nav.guest': 'Vieras',
   'nav.account': 'Tili',
@@ -1197,6 +1199,7 @@ export const fi: Record<string, string> = {
   'error.register': 'Rekisteröityminen epäonnistui',
   'error.sendCode': 'Koodia ei voitu lähettää',
   'error.badCode': 'Tuo koodi ei toiminut',
+  'error.resetPassword': 'Salasanan palauttaminen epäonnistui',
   'error.rulesLoad': 'Sääntöjä ei voitu ladata',
   'error.createFailed': 'Luonti epäonnistui',
   'error.saveFailed': 'Tallennus epäonnistui',
@@ -1228,6 +1231,11 @@ export const fi: Record<string, string> = {
   'auth.register.email': 'Sähköposti (valinnainen)',
   'auth.register.password': 'Salasana',
   'auth.username.createAccount': 'Luo tili käyttäjänimellä ja salasanalla',
+  'auth.reset.subtitle': 'Anna tilisi sähköpostiosoite. Lähetämme koodin uuden salasanan asettamista varten.',
+  'auth.reset.sentTo': 'Jos osoitetta {email} käyttää salasanallinen tili, koodi on tulossa.',
+  'auth.reset.newPassword': 'Uusi salasana',
+  'auth.reset.submit': 'Aseta salasana ja kirjaudu',
+  'auth.username.forgot': 'Unohditko salasanasi?',
   'auth.callback.signedIn': 'Kirjauduttu sisään.',
   'auth.error.alreadyLinked': "Tili on jo liitetty toiseen pelaajaan.",
   'auth.error.expired': "Kirjautuminen kesti liian kauan. Yritä uudelleen.",

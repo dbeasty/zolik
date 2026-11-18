@@ -19,9 +19,8 @@ import (
 // Passwordless email sign-in.
 //
 // The person types an address, we mail a six-digit code, they type it back.
-// There is no password, so there is nothing to forget, reset, reuse across
-// sites, or leak — which removes the entire password-reset flow along with the
-// class of bugs that lives in it. The code is the credential, and it is
+// There is no password, so there is nothing to forget, reuse across sites, or
+// leak. The code is the credential, and it is
 // deliberately short-lived, single-use, rate-limited and rate-capped on
 // guesses, because a six-digit secret is only safe when all four hold.
 const (
@@ -81,35 +80,10 @@ func (e *EmailAuth) StartSignIn(ctx context.Context, email, requestIP string) er
 	if !ValidEmail(email) {
 		return ErrInvalidEmail
 	}
-
-	recent, err := e.store.CountRecentLoginCodes(ctx, email, time.Now().UTC().Add(-codeRateWindow))
+	code, err := e.issueCode(ctx, email, requestIP, "")
 	if err != nil {
 		return err
 	}
-	if recent >= maxCodesPerWindow {
-		return ErrTooManyCodes
-	}
-
-	code, err := generateCode()
-	if err != nil {
-		return err
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now().UTC()
-	if err := e.store.InsertLoginCode(ctx, models.LoginCode{
-		Email:     email,
-		CodeHash:  string(hash),
-		CreatedAt: now,
-		ExpiresAt: now.Add(codeTTL),
-		RequestIP: requestIP,
-	}); err != nil {
-		return err
-	}
-
 	return e.mailer.Send(ctx, Mail{
 		To:      email,
 		Subject: fmt.Sprintf("%s sign-in code: %s", e.appName, code),
@@ -122,6 +96,44 @@ func (e *EmailAuth) StartSignIn(ctx context.Context, email, requestIP string) er
 	})
 }
 
+// issueCode records a fresh code for an already-normalised address and
+// returns it in the clear, for the caller to mail.
+//
+// Sign-in and reset codes share one per-address budget: the throttle is what
+// stops the endpoints being used to mail-bomb an inbox, and two budgets would
+// be twice the mail.
+func (e *EmailAuth) issueCode(ctx context.Context, email, requestIP, purpose string) (string, error) {
+	recent, err := e.store.CountRecentLoginCodes(ctx, email, time.Now().UTC().Add(-codeRateWindow))
+	if err != nil {
+		return "", err
+	}
+	if recent >= maxCodesPerWindow {
+		return "", ErrTooManyCodes
+	}
+
+	code, err := generateCode()
+	if err != nil {
+		return "", err
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	now := time.Now().UTC()
+	if err := e.store.InsertLoginCode(ctx, models.LoginCode{
+		Email:     email,
+		CodeHash:  string(hash),
+		CreatedAt: now,
+		ExpiresAt: now.Add(codeTTL),
+		RequestIP: requestIP,
+		Purpose:   purpose,
+	}); err != nil {
+		return "", err
+	}
+	return code, nil
+}
+
 // VerifyCode redeems a code and returns the identity claims it proves.
 //
 // A successful redemption proves exactly one thing — that whoever typed the
@@ -131,18 +143,38 @@ func (e *EmailAuth) StartSignIn(ctx context.Context, email, requestIP string) er
 // case anywhere past this function.
 func (e *EmailAuth) VerifyCode(ctx context.Context, email, code string) (identity.Claims, error) {
 	email = NormalizeEmail(email)
+	if err := e.redeemCode(ctx, email, code, ""); err != nil {
+		return identity.Claims{}, err
+	}
+	return identity.Claims{
+		Provider: models.IdentityProviderEmail,
+		// The address is the subject: for this provider it *is* the stable id,
+		// and it is the only thing the code proved.
+		Subject:       email,
+		Email:         email,
+		EmailVerified: true,
+	}, nil
+}
+
+// redeemCode spends the latest code mailed to an already-normalised address,
+// if it matches and was issued for purpose. Every failure is ErrInvalidCode.
+//
+// Only the latest code counts, whatever it was for: asking for a sign-in code
+// after a reset code retires the reset code, which is what "the newest mail is
+// the one that works" means to the person reading them.
+func (e *EmailAuth) redeemCode(ctx context.Context, email, code, purpose string) error {
 	code = strings.TrimSpace(code)
 	if email == "" || code == "" {
-		return identity.Claims{}, ErrInvalidCode
+		return ErrInvalidCode
 	}
 
 	rec, err := e.store.LatestLoginCode(ctx, email)
 	if err != nil {
 		// Includes "no code was ever requested for this address".
-		return identity.Claims{}, ErrInvalidCode
+		return ErrInvalidCode
 	}
-	if rec.ConsumedAt != nil || rec.Attempts >= maxCodeAttempts {
-		return identity.Claims{}, ErrInvalidCode
+	if rec.ConsumedAt != nil || rec.Attempts >= maxCodeAttempts || rec.Purpose != purpose {
+		return ErrInvalidCode
 	}
 
 	// The guess is paid for before it is compared, atomically. Checking the
@@ -152,26 +184,17 @@ func (e *EmailAuth) VerifyCode(ctx context.Context, email, code string) (identit
 	// only takes the attempt while guesses remain, so at most maxCodeAttempts
 	// comparisons ever happen per code, however the requests interleave.
 	if err := e.store.TakeCodeAttempt(ctx, rec.ID, maxCodeAttempts); err != nil {
-		return identity.Claims{}, ErrInvalidCode
+		return ErrInvalidCode
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(rec.CodeHash), []byte(code)); err != nil {
-		return identity.Claims{}, ErrInvalidCode
+		return ErrInvalidCode
 	}
 	// Consuming is conditional on the code still being unspent and not
-	// burned, so two simultaneous correct submissions produce one sign-in,
-	// not two.
+	// burned, so two simultaneous correct submissions redeem once, not twice.
 	if err := e.store.ConsumeLoginCode(ctx, rec.ID, maxCodeAttempts); err != nil {
-		return identity.Claims{}, ErrInvalidCode
+		return ErrInvalidCode
 	}
-
-	return identity.Claims{
-		Provider: models.IdentityProviderEmail,
-		// The address is the subject: for this provider it *is* the stable id,
-		// and it is the only thing the code proved.
-		Subject:       email,
-		Email:         email,
-		EmailVerified: true,
-	}, nil
+	return nil
 }
 
 // generateCode returns a uniformly random six-digit code, zero-padded.

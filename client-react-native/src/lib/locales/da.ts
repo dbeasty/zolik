@@ -26,6 +26,7 @@ export const da: Record<string, string> = {
   'err.INVALID_EMAIL': 'Det ligner ikke en e-mailadresse.',
   'err.CODE_INVALID': 'Koden er ikke gyldig. Bed om en ny.',
   'err.TOO_MANY_CODES': 'Der er bedt om for mange koder til den adresse. Prøv igen om lidt.',
+  'err.PASSWORD_REQUIRED': 'Indtast en ny adgangskode.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1141,6 +1142,7 @@ export const da: Record<string, string> = {
   'nav.emailSignIn': 'Log ind med e-mail',
   'nav.signingIn': 'Logger ind',
   'nav.usernameSignIn': 'Log ind med brugernavn',
+  'nav.resetPassword': 'Nulstil adgangskode',
   'nav.legacyAccount': 'Gammel konto',
   'nav.guest': 'Gæst',
   'nav.account': 'Konto',
@@ -1187,6 +1189,7 @@ export const da: Record<string, string> = {
   'error.register': 'Oprettelsen mislykkedes',
   'error.sendCode': 'Kunne ikke sende en kode',
   'error.badCode': 'Den kode virkede ikke',
+  'error.resetPassword': 'Adgangskoden kunne ikke nulstilles',
   'error.rulesLoad': 'Kunne ikke hente reglerne',
   'error.createFailed': 'Kunne ikke oprette',
   'error.saveFailed': 'Kunne ikke gemme',
@@ -1218,6 +1221,11 @@ export const da: Record<string, string> = {
   'auth.register.email': 'E-mail (valgfrit)',
   'auth.register.password': 'Adgangskode',
   'auth.username.createAccount': 'Opret en konto med brugernavn og adgangskode',
+  'auth.reset.subtitle': 'Indtast e-mailadressen på din konto. Vi sender en kode, så du kan vælge en ny adgangskode.',
+  'auth.reset.sentTo': 'Hvis en konto med adgangskode bruger {email}, er en kode på vej.',
+  'auth.reset.newPassword': 'Ny adgangskode',
+  'auth.reset.submit': 'Vælg adgangskode og log ind',
+  'auth.username.forgot': 'Glemt din adgangskode?',
   'auth.callback.signedIn': 'Logget ind.',
   'auth.error.alreadyLinked': "Den konto er allerede knyttet til en anden spiller.",
   'auth.error.expired': "Login tog for lang tid. Prøv igen.",

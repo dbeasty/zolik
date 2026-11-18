@@ -26,6 +26,7 @@ export const nl: Record<string, string> = {
   'err.INVALID_EMAIL': 'Dat lijkt niet op een e-mailadres.',
   'err.CODE_INVALID': 'Die code is niet geldig. Vraag een nieuwe aan.',
   'err.TOO_MANY_CODES': 'Er zijn te veel codes aangevraagd voor dat adres. Probeer het zo meteen opnieuw.',
+  'err.PASSWORD_REQUIRED': 'Voer een nieuw wachtwoord in.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1167,6 +1168,7 @@ export const nl: Record<string, string> = {
   'nav.emailSignIn': 'Aanmelden met e-mail',
   'nav.signingIn': 'Bezig met aanmelden',
   'nav.usernameSignIn': 'Aanmelden met gebruikersnaam',
+  'nav.resetPassword': 'Wachtwoord herstellen',
   'nav.legacyAccount': 'Oud account',
   'nav.guest': 'Gast',
   'nav.account': 'Account',
@@ -1213,6 +1215,7 @@ export const nl: Record<string, string> = {
   'error.register': 'Registreren mislukt',
   'error.sendCode': 'Kon geen code versturen',
   'error.badCode': 'Die code werkte niet',
+  'error.resetPassword': 'Het wachtwoord kon niet worden hersteld',
   'error.rulesLoad': 'Kon de regels niet laden',
   'error.createFailed': 'Aanmaken mislukt',
   'error.saveFailed': 'Opslaan mislukt',
@@ -1244,6 +1247,11 @@ export const nl: Record<string, string> = {
   'auth.register.email': 'E-mail (optioneel)',
   'auth.register.password': 'Wachtwoord',
   'auth.username.createAccount': 'Een account met gebruikersnaam en wachtwoord aanmaken',
+  'auth.reset.subtitle': 'Voer het e-mailadres van je account in. We sturen je een code om een nieuw wachtwoord in te stellen.',
+  'auth.reset.sentTo': 'Als een account met wachtwoord {email} gebruikt, is er een code onderweg.',
+  'auth.reset.newPassword': 'Nieuw wachtwoord',
+  'auth.reset.submit': 'Wachtwoord instellen en inloggen',
+  'auth.username.forgot': 'Wachtwoord vergeten?',
   'auth.callback.signedIn': 'Aangemeld.',
   'auth.error.alreadyLinked': "Dat account is al gekoppeld aan een andere speler.",
   'auth.error.expired': "Het inloggen duurde te lang. Probeer het opnieuw.",
