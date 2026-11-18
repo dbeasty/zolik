@@ -2094,6 +2094,17 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
   const awayNames = (state.awayPlayers ?? [])
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
+  // Before anybody asks to play again: who from this table is still looking at
+  // the result, and who has gone. "Again" holds a seat for the ones who left
+  // and invites them wherever they are, so the line says so rather than
+  // leaving the player to guess who they would be waiting for.
+  const othersHere =
+    state.status === 'completed' && seatedHere && !state.rematch
+      ? state.players
+          .filter((p) => !p.isAI && p.id !== viewerId && !(state.awayPlayers ?? []).includes(p.id))
+          .map((p) => p.name)
+      : [];
+  const othersGone = state.status === 'completed' && seatedHere && !state.rematch ? awayNames : [];
   // Nobody is missing any more: said outright, so the people at the table can
   // tell the wait is over, and — when the press is the host's — whose it is.
   const everyoneBack = wasAbandoned && seatedHere && !awayNames.length;
@@ -2898,6 +2909,16 @@ function MatchScreen({ onModule }: { onModule?: (game: { id: string; label: stri
             {state.repeatDeal && !wasAbandoned ? (
               <Text testID="match-over-repeat" style={styles.overOutcome}>
                 {t('match.repeatDeal')}
+              </Text>
+            ) : null}
+            {othersHere.length ? (
+              <Text testID="match-over-still-here" style={styles.overOutcome}>
+                {t('match.stillHere', { names: othersHere.join(', ') })}
+              </Text>
+            ) : null}
+            {othersGone.length ? (
+              <Text testID="match-over-left" style={styles.overOutcome}>
+                {t('match.leftTable', { names: othersGone.join(', ') })}
               </Text>
             ) : null}
             {rematchOffer ? (

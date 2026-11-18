@@ -205,6 +205,20 @@ type rematchLog struct {
 	mu       sync.Mutex
 	opened   []string // held player ids, per rematch
 	released []string // released player ids
+	declined []string // player ids who said no
+	online   map[string]bool
+}
+
+func (r *rematchLog) RematchDeclined(_ models.Match, holder models.Player) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.declined = append(r.declined, holder.ID)
+}
+
+func (r *rematchLog) Online(holder models.Player) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.online[holder.ID]
 }
 
 func (r *rematchLog) RematchOpened(_ models.Match, _ models.Player, held []models.Player) {
@@ -328,5 +342,77 @@ func TestRematchCarriesARetiredOptionValueToTheNearestChoice(t *testing.T) {
 	}
 	if _, ok := next.Options["noLongerAnOption"]; ok {
 		t.Errorf("an option the game no longer declares was carried over: %v", next.Options)
+	}
+}
+
+// The host waiting in a rematch lobby is told where each person it holds a
+// seat for is: still looking at the last result, online somewhere else in the
+// app, or not online at all. "Seat held, not here yet" for all three left the
+// host guessing who was worth waiting for.
+func TestAHeldSeatSaysWhereItsHolderIs(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	log := &rematchLog{online: map[string]bool{"cy": true}}
+	m.SetRematchObserver(log)
+	old := finishedMatch(t, repo, human("ann"), human("bob"), human("cy"), human("di"))
+	// Bob is still on the result screen; Cy has the app open elsewhere; Di
+	// has gone.
+	m.Hub().Registry().Add(old.ID.Hex(), "bob", seatedConn{})
+
+	next, err := m.Rematch(ctx, old.ID.Hex(), "ann")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, r := range m.BuildStateMsg(next, "ann").Reserved {
+		got[r.PlayerID] = r.Presence
+	}
+	want := map[string]string{"bob": match.HeldAtTable, "cy": match.HeldOnline, "di": match.HeldAway}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("presence %v, want %v", got, want)
+	}
+}
+
+// Saying no thanks is news for the host, not only a row going missing.
+func TestDecliningTellsTheHost(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	log := &rematchLog{}
+	m.SetRematchObserver(log)
+	old := finishedMatch(t, repo, human("ann"), human("bob"))
+	next, err := m.Rematch(ctx, old.ID.Hex(), "ann")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.ReleaseHeldSeat(ctx, next.ID.Hex(), "ann", "bob", nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(log.declined) != 0 {
+		t.Errorf("declined %v after the host let the seat go themselves, want nothing", log.declined)
+	}
+
+	old2 := finishedMatch(t, repo, human("ann"), human("bob"))
+	next2, err := m.Rematch(ctx, old2.ID.Hex(), "ann")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if _, err := m.DeclineRematch(ctx, next2.ID.Hex(), "bob"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if fmt.Sprint(log.declined) != "[bob]" {
+		t.Errorf("declined %v, want bob once", log.declined)
+	}
+}
+
+// Before anybody presses Play again, a finished table says who has left it.
+func TestAFinishedTableSaysWhoHasLeft(t *testing.T) {
+	m, repo, _ := newReaperHarness(t)
+	old := finishedMatch(t, repo, human("ann"), human("bob"), human("cy"), persona("bot:x", "Miroslav", "hard:miroslav"))
+	m.Hub().Registry().Add(old.ID.Hex(), "ann", seatedConn{})
+	m.Hub().Registry().Add(old.ID.Hex(), "bob", seatedConn{})
+	if got := m.BuildStateMsg(old, "ann").AwayPlayers; fmt.Sprint(got) != "[cy]" {
+		t.Errorf("away %v, want [cy]", got)
 	}
 }

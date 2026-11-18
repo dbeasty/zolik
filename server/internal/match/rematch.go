@@ -15,6 +15,12 @@ import (
 type RematchObserver interface {
 	RematchOpened(next models.Match, host models.Player, held []models.Player)
 	HeldSeatReleased(matchID string, holder models.Player)
+	// RematchDeclined tells the host that somebody they were holding a seat
+	// for said no, so the row does not just vanish from the lobby unexplained.
+	RematchDeclined(next models.Match, holder models.Player)
+	// Online reports whether the holder of a held seat has the app open
+	// anywhere, which is what tells a waiting host who is actually around.
+	Online(holder models.Player) bool
 }
 
 // SetRematchObserver attaches the observer. Optional.
@@ -167,6 +173,9 @@ func (m *Manager) DeclineRematch(ctx context.Context, idOrCode, playerID string)
 		return models.Match{}, err
 	}
 	m.heldSeatReleased(match, holder)
+	if m.rematchObserver != nil {
+		m.rematchObserver.RematchDeclined(match, holder)
+	}
 	return match, nil
 }
 
@@ -225,6 +234,44 @@ func (m *Manager) heldSeatReleased(match models.Match, holder models.Player) {
 	if m.rematchObserver != nil {
 		m.rematchObserver.HeldSeatReleased(match.ID.Hex(), holder)
 	}
+}
+
+// Where a held seat's holder is, for the host waiting on them. The three
+// answers are the three things a host would do differently: somebody still
+// looking at the last result has the offer in front of them; somebody online
+// elsewhere has had a banner; somebody not online will only hear when they
+// next open the app (or on their phone, if it takes pushes).
+const (
+	HeldAtTable = "table"
+	HeldOnline  = "online"
+	HeldAway    = "away"
+)
+
+// ReservedSeat is a held seat as a client sees it: who, and where they are.
+type ReservedSeat struct {
+	models.Reservation
+	Presence string `json:"presence,omitempty"`
+}
+
+// reservedSeats answers where each person a rematch lobby is holding a seat
+// for is right now. Asked only of a lobby, so it costs nothing on the move
+// path.
+func (m *Manager) reservedSeats(match models.Match) []ReservedSeat {
+	if len(match.Reserved) == 0 {
+		return nil
+	}
+	out := make([]ReservedSeat, len(match.Reserved))
+	for i, r := range match.Reserved {
+		presence := HeldAway
+		switch {
+		case match.RematchOf != "" && m.hub != nil && m.hub.Registry().Has(match.RematchOf, r.PlayerID):
+			presence = HeldAtTable
+		case m.rematchObserver != nil && m.rematchObserver.Online(r.Player()):
+			presence = HeldOnline
+		}
+		out[i] = ReservedSeat{Reservation: r, Presence: presence}
+	}
+	return out
 }
 
 func reservationIndex(held []models.Reservation, playerID string) int {

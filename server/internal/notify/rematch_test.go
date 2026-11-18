@@ -122,3 +122,48 @@ func TestARematchIsNotACircleAnnouncement(t *testing.T) {
 		t.Fatal("bob was told twice")
 	}
 }
+
+// Somebody whose app was closed when the rematch opened hears about it the
+// moment they open it — unless they have sat down or said no since.
+func TestAHeldSeatIsOfferedAgainOnReconnect(t *testing.T) {
+	f := newFixture(t)
+	next := rematchTable()
+	next.Players = []models.Player{seat(anna)}
+	f.svc.RematchOpened(next, seat(anna), []models.Player{seat(bob), seat(guest)})
+
+	f.svc.Reconnected(KeyFor(bob))
+	if got := f.hub.to(KeyFor(bob), "table_invite"); got != 2 {
+		t.Fatalf("bob was sent %d invites, want the first and one more on reconnecting", got)
+	}
+	f.svc.Reconnected(KeyFor(anna))
+	if got := f.hub.to(KeyFor(anna), "table_invite"); got != 0 {
+		t.Fatalf("the host was offered her own table %d times", got)
+	}
+
+	// Bob sits down; the guest says no. Neither is reminded again.
+	f.svc.PlayerJoined(next, seat(bob))
+	f.svc.HeldSeatReleased(next.ID.Hex(), seat(guest))
+	f.svc.Reconnected(KeyFor(bob))
+	f.svc.Reconnected(KeyFor(guest))
+	if got := f.hub.to(KeyFor(bob), "table_invite"); got != 2 {
+		t.Fatalf("bob was reminded after sitting down (%d invites)", got)
+	}
+	if got := f.hub.to(KeyFor(guest), "table_invite"); got != 1 {
+		t.Fatalf("the guest was reminded after saying no (%d invites)", got)
+	}
+}
+
+// The host hears who said no thanks, by name, and nobody else does.
+func TestADeclineTellsTheHost(t *testing.T) {
+	f := newFixture(t)
+	next := rematchTable()
+	next.HostID = anna.UserID
+	next.Players = []models.Player{seat(anna)}
+	f.svc.RematchDeclined(next, seat(bob))
+	if f.hub.to(KeyFor(anna), "table_declined") != 1 {
+		t.Fatal("anna was not told bob said no")
+	}
+	if f.hub.to(KeyFor(bob), "table_declined") != 0 {
+		t.Fatal("bob was told about his own answer")
+	}
+}

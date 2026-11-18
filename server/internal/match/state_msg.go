@@ -128,8 +128,9 @@ type MatchStateMsg struct {
 	// is how a client that arrives at the table cold — a reload, a resume —
 	// knows to put the guide back.
 	Tutorial *models.TutorialRef `json:"tutorial,omitempty"`
-	// Reserved is who a rematch lobby is still holding seats for.
-	Reserved []models.Reservation `json:"reserved,omitempty"`
+	// Reserved is who a rematch lobby is still holding seats for, and where
+	// each of them is right now.
+	Reserved []ReservedSeat `json:"reserved,omitempty"`
 	// RecentMoves is the moves at the table as this viewer may read them,
 	// oldest first: the last few on a broadcast, the whole kept log on a state
 	// sent on its own (see BuildStateMsg), each numbered by Seq. It rides on
@@ -333,7 +334,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		CanDealAgain:    match.Status == "completed" && m.savedGame(match),
 		RepeatDeal:      match.DealRepeat,
 		Tutorial:        match.Tutorial,
-		Reserved:        match.Reserved,
+		Reserved:        m.reservedSeats(match),
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
 		LegalActions: []module.ActionOffer{},
@@ -352,6 +353,12 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		if !msg.CanResume {
 			msg.AwayPlayers = m.playersAway(match, viewerID)
 		}
+	}
+	// And at a table played to the end, who has gone: what a player deciding
+	// whether to play again needs to know, since "again" holds a seat for the
+	// ones who left and they hear about it elsewhere.
+	if match.Status == "completed" && viewerID != "" {
+		msg.AwayPlayers = m.playersAway(match, viewerID)
 	}
 
 	mod := m.registry.Get(match.ModuleID)

@@ -348,9 +348,8 @@ func (m *Manager) attended(match models.Match) bool {
 // same table, one of them holding the only working button, is a worse failure
 // than the dead end it replaced.
 //
-// Only for abandoned tables: every other status answers CanResume false no
-// matter who is watching, so a broadcast per connection would be pure cost on
-// the path every ordinary player takes.
+// A finished table too: who is still looking at the result is what the
+// people there decide "play again" on. A lobby is left out — it is polled.
 func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
 	match, err := m.current(ctx, matchID)
 	if err != nil {
@@ -360,7 +359,7 @@ func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
 	// invite under their name — at a table being played as much as at one
 	// set aside, where it is also what takes a resume offer away.
 	switch match.Status {
-	case "active", "suspended", string(rules.StatusAbandoned):
+	case "active", "suspended", "completed", string(rules.StatusAbandoned):
 		m.Broadcast(match)
 	}
 }

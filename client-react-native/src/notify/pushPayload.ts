@@ -29,9 +29,10 @@ export function messageFromPush(data: unknown): MeWSMessage | null {
     case 'circle_changed':
       return { type: 'circle_changed' };
     case 'table_joined':
+    case 'table_declined':
       return typeof d.matchId === 'string' && typeof d.playerId === 'string'
         ? {
-            type: 'table_joined',
+            type: d.type,
             matchId: d.matchId,
             joinCode: typeof d.joinCode === 'string' ? d.joinCode : undefined,
             moduleId: typeof d.moduleId === 'string' ? d.moduleId : undefined,
