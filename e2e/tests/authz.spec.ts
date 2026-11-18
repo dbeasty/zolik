@@ -197,62 +197,88 @@ test.describe('table over the socket', () => {
 
 test.describe('socket hygiene', () => {
   test('garbage frames are answered with errors and never take the table down', async ({ page, request }) => {
-    const { host, matchId } = await lobbyTable(request);
+    const { host, stranger, matchId } = await lobbyTable(request);
     const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: as(host) });
     expect(started.ok()).toBeTruthy();
     await page.goto(`${API_BASE}/version`);
     const wsBase = API_BASE.replace(/^http/, 'ws');
 
     const result = await page.evaluate(
-      async ({ wsBase, apiBase, matchId, token }) => {
-        const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
-        const inbox: any[] = [];
-        let closed = false;
-        ws.onclose = () => (closed = true);
-        await new Promise<void>((resolve, reject) => {
-          ws.onopen = () => resolve();
-          ws.onerror = () => reject(new Error('socket failed to open'));
-          setTimeout(() => reject(new Error('socket open timed out')), 10000);
-        });
-        ws.onmessage = (ev) => {
-          try {
-            inbox.push(JSON.parse(String(ev.data)));
-          } catch {
-            inbox.push({ type: 'unparsed' });
-          }
-        };
+      async ({ wsBase, apiBase, matchId, hostToken, spectatorToken }) => {
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        const open = async (token: string) => {
+          const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
+          const s = { ws, inbox: [] as any[], closed: false, closeCode: 0 };
+          ws.onclose = (ev) => {
+            s.closed = true;
+            s.closeCode = ev.code;
+          };
+          await new Promise<void>((resolve, reject) => {
+            ws.onopen = () => resolve();
+            ws.onerror = () => reject(new Error('socket failed to open'));
+            setTimeout(() => reject(new Error('socket open timed out')), 10000);
+          });
+          ws.onmessage = (ev) => {
+            try {
+              s.inbox.push(JSON.parse(String(ev.data)));
+            } catch {
+              s.inbox.push({ type: 'unparsed' });
+            }
+          };
+          return s;
+        };
+
+        // The host's socket gets every malformed frame that is still within
+        // the inbound size bound: each is answered with an error, and the
+        // socket stays open.
+        const host = await open(hostToken);
         await sleep(500);
         const frames = [
           'not json', '{}', '[]', 'null', '123', '{"type":null}', '{"verb":123}',
-          JSON.stringify({ offerId: 'x'.repeat(100_000), verb: 'y' }),
+          JSON.stringify({ offerId: 'x'.repeat(1_000), verb: 'y' }),
           JSON.stringify({ offerId: 'nope', verb: 'nope', cards: ['ZZ', '', 'AC', 'AC'] }),
           JSON.stringify({ offerId: 'draw', verb: 'draw', cards: Array(5000).fill('AC') }),
           JSON.stringify({ offerId: {}, verb: [] }),
           '\u0000\u0001\u0002',
         ];
-        for (const f of frames) ws.send(f);
+        for (const f of frames) host.ws.send(f);
         await sleep(1500);
-        const errors = inbox.filter((m) => m.type === 'error');
-        // Read the match while this socket is still the table's one person:
-        // once it closes, a table with nobody at it is suspended, by design.
+        const errors = host.inbox.filter((m) => m.type === 'error');
+
+        // A frame over the bound (ws.MaxActionMessageBytes, 64 KiB) is not
+        // read at all: the server closes that one socket, by design. Sent on
+        // a spectator's socket, so the host's shows it closes nobody else. Not
+        // a seated player's: their socket closing on their own turn suspends
+        // the table, also by design, which would make this depend on the deal.
+        const spectator = await open(spectatorToken);
+        await sleep(500);
+        spectator.ws.send(JSON.stringify({ offerId: 'x'.repeat(100_000), verb: 'y' }));
+        for (let i = 0; i < 50 && !spectator.closed; i++) await sleep(100);
+
+        // Read the match while the host's socket is still open: a table with
+        // nobody at it is suspended, by design.
         const state = await (
-          await fetch(`${apiBase}/matches/${matchId}`, { headers: { Authorization: `Bearer ${token}` } })
+          await fetch(`${apiBase}/matches/${matchId}`, { headers: { Authorization: `Bearer ${hostToken}` } })
         ).json();
-        ws.close();
+        const hostClosed = host.closed;
+        host.ws.close();
         return {
-          closed,
+          hostClosed,
+          oversizedClosed: spectator.closed,
+          oversizedCloseCode: spectator.closeCode,
           status: state.status as string,
           errors: errors.length,
           codes: [...new Set(errors.map((e) => String(e.code)))],
         };
       },
-      { wsBase, apiBase: API_BASE, matchId, token: host.accessToken },
+      { wsBase, apiBase: API_BASE, matchId, hostToken: host.accessToken, spectatorToken: stranger.accessToken },
     );
 
-    expect(result.closed, 'the socket stays open').toBe(false);
     expect(result.errors, 'every bad frame is answered').toBeGreaterThanOrEqual(10);
     for (const code of result.codes) expect(code).toMatch(/^[A-Z_]+$/);
+    expect(result.oversizedClosed, 'an oversized frame closes its own socket').toBe(true);
+    expect(result.oversizedCloseCode, 'as "message too big"').toBe(1009);
+    expect(result.hostClosed, 'and no other socket').toBe(false);
     expect(result.status, 'and the match is untouched').toBe('active');
   });
 });
