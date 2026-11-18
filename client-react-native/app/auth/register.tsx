@@ -6,7 +6,10 @@ import { Field, FormError, PasswordField } from '@/src/a11y/Field';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
+import { ApiError } from '@/src/api/client';
 import { formatApiError } from '@/src/lib/apiError';
+import { looksLikeEmail } from '@/src/lib/looksLikeEmail';
+import { EmailInstead } from '@/src/components/EmailInstead';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
@@ -17,16 +20,19 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [hasAccount, setHasAccount] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function submit() {
     setBusy(true);
     setError('');
+    setHasAccount(false);
     try {
       await register(username.trim(), password, email.trim() || undefined);
       router.replace('/');
     } catch (e) {
       setError(formatApiError(e, t('error.register')));
+      setHasAccount(e instanceof ApiError && e.code === 'EMAIL_HAS_ACCOUNT');
     } finally {
       setBusy(false);
     }
@@ -46,6 +52,7 @@ export default function RegisterScreen() {
         value={username}
         onChangeText={setUsername}
       />
+      {looksLikeEmail(username) && !hasAccount ? <EmailInstead /> : null}
       <Field
         label={t('auth.register.email')}
         placeholder={t('auth.register.email')}
@@ -63,6 +70,11 @@ export default function RegisterScreen() {
         onChangeText={setPassword}
       />
       {error ? <FormError message={error} /> : null}
+      {hasAccount ? (
+        <Pressable style={[shared.button, shared.buttonSecondary]} role="button" onPress={() => router.push('/auth/email')}>
+          <Text style={shared.buttonTextSecondary}>{t('auth.login.continueWithEmail')}</Text>
+        </Pressable>
+      ) : null}
       <Pressable
         style={shared.button}
         role="button"

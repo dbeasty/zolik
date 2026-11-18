@@ -47,26 +47,35 @@ func (c *Claimer) ClaimGuestHistory(ctx context.Context, guestID, userID, userna
 	if guestID == "" || userID == "" {
 		return 0, errors.New("guest id and user id are both required")
 	}
-	guest := Subject{Kind: SubjectGuest, ID: guestID}
-	user := Subject{Kind: SubjectUser, ID: userID, Name: username}
-	guestKey, userKey := guest.Key(), user.Key()
+	return c.MoveHistory(ctx, Subject{Kind: SubjectGuest, ID: guestID}, Subject{Kind: SubjectUser, ID: userID, Name: username})
+}
+
+// MoveHistory re-attributes every match one subject played to another and
+// rebuilds both lifetime records. A guest claim is the everyday case; the
+// other is one person who ended up with two accounts, whose second account's
+// matches belong on the first.
+func (c *Claimer) MoveHistory(ctx context.Context, from, to Subject) (int, error) {
+	fromKey, toKey := from.Key(), to.Key()
+	if from.ID == "" || to.ID == "" || fromKey == toKey {
+		return 0, errors.New("two different subjects are required")
+	}
 
 	claimed := 0
-	err := c.repo.EachMatchForSubject(ctx, guestKey, func(m MatchResult) error {
-		// A table where this account *and* this guest id both sat is left
-		// alone. It is a rare shape — the same person signed in on one device
-		// and playing as a guest on another, at the same table — but merging
-		// the two seats would put one subject twice in one match, which would
-		// double-count it in every tally and record a head-to-head against
-		// itself. Leaving the guest seat as a guest keeps the record honest;
-		// the cost is one unclaimed match, and the person still sees it in
-		// their history under the seat they were signed in on.
+	err := c.repo.EachMatchForSubject(ctx, fromKey, func(m MatchResult) error {
+		// A table where both subjects sat is left alone. It is a rare shape —
+		// the same person signed in on one device and playing as a guest on
+		// another, at the same table — but merging the two seats would put one
+		// subject twice in one match, which would double-count it in every
+		// tally and record a head-to-head against itself. Leaving the seat
+		// where it is keeps the record honest; the cost is one unmoved match,
+		// and the person still sees it in their history under the seat they
+		// were signed in on.
 		for _, k := range m.SubjectKeys {
-			if k == userKey {
+			if k == toKey {
 				return nil
 			}
 		}
-		if !rewriteSubject(&m, guestKey, user) {
+		if !rewriteSubject(&m, fromKey, to) {
 			return nil
 		}
 		if err := c.repo.ReplaceMatchAttribution(ctx, m); err != nil {
@@ -79,8 +88,15 @@ func (c *Claimer) ClaimGuestHistory(ctx context.Context, guestID, userID, userna
 		return claimed, err
 	}
 
-	if err := c.RebuildPlayerStats(ctx, user); err != nil {
+	if err := c.RebuildPlayerStats(ctx, to); err != nil {
 		return claimed, err
+	}
+	// A guest's record is dropped with its last match; an account's would be
+	// left showing play it no longer has.
+	if from.Kind == SubjectUser && claimed > 0 {
+		if err := c.RebuildPlayerStats(ctx, from); err != nil {
+			return claimed, err
+		}
 	}
 	return claimed, nil
 }

@@ -713,6 +713,19 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		writeAuthError(w, http.StatusBadRequest, "PASSWORD_TOO_LONG", "password too long")
 		return
 	}
+	// Somebody who already has an account and lands here has almost always
+	// typed their address because a sign-in did not take it, and a second
+	// account is the worst answer: it plays, wins and keeps a record of its
+	// own while the real one looks idle. The address is checked by reading
+	// the accounts rather than by the reservation alone, which accounts made
+	// before reservations existed may not hold.
+	if taken, err := h.addressHasAccount(ctx, body.Email, body.Username); err != nil {
+		internalError(w, "register", err)
+		return
+	} else if taken {
+		writeAuthError(w, http.StatusConflict, "EMAIL_HAS_ACCOUNT", "that address already has an account: sign in with email instead")
+		return
+	}
 
 	hash, err := hashPassword(body.Password, 12)
 	if err != nil {
@@ -1105,4 +1118,23 @@ func writeAuthError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]string{"code": code, "message": message})
+}
+
+// addressHasAccount reports whether a registration names an address that an
+// existing account already holds: as the address itself, or as the username,
+// which is where somebody who meant to sign in usually types it.
+func (h *Handlers) addressHasAccount(ctx context.Context, email, username string) (bool, error) {
+	for _, candidate := range []string{NormalizeEmail(email), NormalizeEmail(username)} {
+		if candidate == "" || !ValidEmail(candidate) {
+			continue
+		}
+		_, err := h.store.FindUserByEmail(ctx, candidate)
+		if err == nil {
+			return true, nil
+		}
+		if !errors.Is(err, ErrNotFound) {
+			return false, err
+		}
+	}
+	return false, nil
 }
