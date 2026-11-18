@@ -9,7 +9,7 @@ import { LastCardInk } from '@/src/components/cards/LastCardInk';
 import { HintsSheet } from '@/src/components/match/HintsSheet';
 import { useSkin } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
-import { factText, spokenFactText } from '@/src/lib/labels';
+import { factText, markViewer, spokenFactText } from '@/src/lib/labels';
 import { compactMoves } from '@/src/lib/moveLog';
 import type { Skin } from '@/src/skins/types';
 
@@ -31,6 +31,10 @@ import type { Skin } from '@/src/skins/types';
  * close the box, below the scrolling moves so they are never pushed out.
  * Standing requirements (`hint`) are not here: they are a sheet of their
  * own, opened from the box's corner, listed most relevant first.
+ *
+ * Open, a row of names above the list picks one player's moves out of it —
+ * what has this player been picking up, what have they laid — with the table's
+ * own notes (a deal beginning, the game ending) kept for where they fall.
  *
  * It starts folded to the newest line, which is most of what a player needs
  * in the least of the table's room; the arrow opens the list, and the
@@ -75,6 +79,9 @@ export function MoveAnnouncements({
   const openLines = short ? 3 : Math.max(5, Math.min(MAX_OPEN_LINES, Math.floor((height * OPEN_SHARE) / LINE)));
   const linesHeight = !open || moves.length === 0 ? undefined : LINE * openLines;
   const [hintsOpen, setHintsOpen] = useState(false);
+  // The one player whose moves the open list shows, or everybody's.
+  const [onlyPlayer, setOnlyPlayer] = useState<string | null>(null);
+  const filterPlayers = useMemo(() => markViewer(players, viewerId), [players, viewerId]);
   // Screens stay mounted under the one that replaced them, and a Modal does
   // not hide with its screen: the sheet was left over every other screen.
   const focused = useIsFocused();
@@ -102,7 +109,11 @@ export function MoveAnnouncements({
     if (m.playerId === viewerId) lastMine = i;
   });
   const since = moves.slice(lastMine + 1).slice(-1);
-  const shown = open ? moves : since.length > 0 ? since : moves.slice(-1);
+  const picked =
+    onlyPlayer && players.some((p) => p.id === onlyPlayer)
+      ? moves.filter((m) => !m.playerId || m.playerId === onlyPlayer)
+      : moves;
+  const shown = open ? picked : since.length > 0 ? since : moves.slice(-1);
   const settled = !open && since.length === 0;
 
   // A fixed height, always there. The box sits above the hand, so a box that
@@ -141,7 +152,7 @@ export function MoveAnnouncements({
                 // ellipsis: the corner buttons leave it about two thirds of the
                 // width, and a name plus what it did is longer than that.
                 numberOfLines={open ? undefined : 2}
-                style={[styles.line, newest && styles.newest, settled && styles.settled, m.notable && styles.notable, !open && styles.foldedLine]}
+                style={[styles.line, newest && styles.newest, settled && styles.settled, m.notable && styles.notable, !m.playerId && styles.note, !open && styles.foldedLine]}
               >
                 <LastCardInk text={factText(m.fact, players)} />
               </Text>
@@ -232,6 +243,39 @@ export function MoveAnnouncements({
           the lines. As a third item in the panel's row it took a column of its
           own, and the prompt beside it was squeezed to one word a line. */}
       <View style={[styles.column, bare && styles.linesBeside]}>
+      {listOpen && players.length > 1 ? (
+        <ScrollView
+          horizontal
+          testID="moves-filter"
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+          style={styles.filter}
+        >
+          {[{ id: null as string | null, name: t('moves.filter.all') }, ...filterPlayers].map((p) => {
+            const on = (onlyPlayer ?? null) === p.id;
+            return (
+              <Pressable
+                key={p.id ?? '*'}
+                testID={p.id ? `moves-filter-${p.id}` : 'moves-filter-all'}
+                accessibilityRole="button"
+                accessibilityLabel={p.id ? t('moves.filter.player', { player: p.name }) : t('moves.filter.all')}
+                accessibilityState={{ selected: on }}
+                {...((Platform.OS === 'web' ? { 'aria-pressed': on } : {}) as object)}
+                onPress={() => {
+                  atEnd.current = true;
+                  setOnlyPlayer(p.id);
+                }}
+                hitSlop={4}
+                style={[styles.chip, on && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, on && styles.chipTextOn]} numberOfLines={1}>
+                  {p.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
       <View style={styles.lines}>
         {/* The moves are a list of their own — the prompts after them are
             not moves, and a list may hold nothing but its items. Spaced the
@@ -420,5 +464,15 @@ function announceStyles(s: Skin, linesHeight: number | undefined, short: boolean
     // Taking the discard pile — what the others must not miss — in bold red,
     // even as the viewer's own settled line.
     notable: { color: colors.danger, fontWeight: '700' },
+    // The table's own notes — a deal beginning, the game ending — set apart
+    // from what the players did.
+    note: { fontStyle: 'italic' },
+    // The names that pick one player's moves out of the open list.
+    filter: { flexGrow: 0, paddingRight: cornerWidth + 8 },
+    filterRow: { gap: 6, alignItems: 'center' },
+    chip: { minHeight: 24, justifyContent: 'center', paddingHorizontal: 8, borderRadius: 12, borderWidth: 1, borderColor: colors.muted },
+    chipOn: { borderColor: colors.accent, backgroundColor: colors.accent },
+    chipText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+    chipTextOn: { color: colors.surface },
   });
 }

@@ -42,6 +42,11 @@ type Move struct {
 	// broadcast carries only the last few moves; the client joins them onto
 	// the history it holds by Seq. Zero where nothing keeps a log.
 	Seq int `json:"seq,omitempty"`
+	// Round is the round of the match the move was made in, from 1, in a game
+	// made of rounds (Rounded); zero in one that is not. The log a player
+	// opens is the game in play, not the match so far: a client keeps only
+	// the newest round's lines.
+	Round int `json:"round,omitempty"`
 }
 
 // EventNarrator turns a module's events into moves a person can read.

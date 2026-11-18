@@ -16,6 +16,11 @@ import { newMoveLines } from '@/src/lib/boardSpeech';
  * way speech finds what is new: what this window holds that the last did not
  * (`newMoveLines`). That loses nothing while the screen is open; only a
  * reload starts again from the server's window.
+ *
+ * In a game made of rounds the log is the round in play, not the match so far:
+ * once a line of a new round arrives, the lines of the rounds before it go.
+ * The round that just ended stays until then, so the table between rounds
+ * still shows how it ended.
  */
 export function joinMoveLog(
   held: readonly MoveLine[],
@@ -23,20 +28,22 @@ export function joinMoveLog(
   lastWindow?: readonly MoveLine[],
 ): MoveLine[] {
   const next = window ?? [];
-  if (next.length === 0) return held.slice();
+  if (next.length === 0) return keep(held.slice());
   const first = next[0].seq;
   const last = next[next.length - 1].seq;
   if (!first || !last) {
-    if (!lastWindow || held.length === 0) return next.slice();
+    if (!lastWindow || held.length === 0) return keep(next.slice());
     return keep([...held, ...newMoveLines(lastWindow, next)]);
   }
   const heldLast = held.length > 0 ? held[held.length - 1].seq ?? 0 : 0;
-  if (last < heldLast) return next.slice();
+  if (last < heldLast) return keep(next.slice());
   return keep([...held.filter((m) => (m.seq ?? 0) > 0 && (m.seq ?? 0) < first), ...next]);
 }
 
 function keep(log: MoveLine[]): MoveLine[] {
-  return log.length > KEPT ? log.slice(log.length - KEPT) : log;
+  const round = log.length > 0 ? log[log.length - 1].round : undefined;
+  const game = round ? log.filter((m) => m.round === round) : log;
+  return game.length > KEPT ? game.slice(game.length - KEPT) : game;
 }
 
 /** As many lines as the client holds for one table; the server keeps 200. */
