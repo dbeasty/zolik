@@ -273,6 +273,10 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// should use the flows above; nothing here grows.
 	r.Post("/auth/register", h.requireIdentityAuthority(h.register))
 	r.Post("/auth/login", h.login)
+	// Forgotten passwords, for the accounts above that gave an address. See
+	// passwordreset.go.
+	r.Post("/auth/password/forgot", h.requireIdentityAuthority(h.passwordForgot))
+	r.Post("/auth/password/reset", h.requireIdentityAuthority(h.passwordReset))
 
 	r.Post("/auth/refresh", h.refresh)
 	r.Post("/auth/logout", h.logout)
@@ -790,6 +794,89 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 	tokens, err := h.issueUserSession(ctx, u)
 	if err != nil {
 		internalError(w, "login", err)
+		return
+	}
+	writeSessionJSON(w, req, tokens)
+}
+
+type passwordForgotReq struct {
+	Email string `json:"email"`
+}
+
+func (h *Handlers) passwordForgot(w http.ResponseWriter, req *http.Request) {
+	var body passwordForgotReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	err := h.email.StartPasswordReset(req.Context(), body.Email, clientIP(req))
+	switch {
+	case errors.Is(err, ErrTooManyCodes):
+		writeAuthError(w, http.StatusTooManyRequests, "TOO_MANY_CODES", "too many codes requested for that address — try again shortly")
+		return
+	case errors.Is(err, ErrInvalidEmail):
+		writeAuthError(w, http.StatusBadRequest, "INVALID_EMAIL", err.Error())
+		return
+	case err != nil:
+		internalError(w, "passwordForgot", err)
+		return
+	}
+	// The same answer whether or not the address is an account's: see
+	// StartPasswordReset.
+	writeJSON(w, map[string]any{"sent": true, "expiresInSeconds": int(codeTTL.Seconds())})
+}
+
+type passwordResetReq struct {
+	Email    string `json:"email"`
+	Code     string `json:"code"`
+	Password string `json:"password"`
+}
+
+// passwordReset sets a new password from a mailed reset code, ends every
+// session the account had, and signs this device in with the new one.
+//
+// Every other session is ended because a reset is what somebody does when
+// they think their password is known to someone else; leaving that someone
+// signed in would make the reset decorative.
+func (h *Handlers) passwordReset(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	var body passwordResetReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	// Checked before the code, so a refused password does not spend a guess.
+	if body.Password == "" {
+		writeAuthError(w, http.StatusBadRequest, "PASSWORD_REQUIRED", "a new password is required")
+		return
+	}
+	if len(body.Password) > MaxPasswordBytes {
+		writeAuthError(w, http.StatusBadRequest, "PASSWORD_TOO_LONG", "password too long")
+		return
+	}
+	// The same throttle as code sign-in, for the same reason; see emailVerify.
+	now := time.Now()
+	if !h.verifyByEmail.Allow(NormalizeEmail(body.Email), now) ||
+		(!h.testEndpoints && !h.verifyByIP.Allow(ratelimit.ClientIP(req), now)) {
+		writeAuthError(w, http.StatusTooManyRequests, "CODE_INVALID", ErrInvalidCode.Error())
+		return
+	}
+	u, err := h.email.CompletePasswordReset(ctx, body.Email, body.Code, body.Password)
+	if errors.Is(err, ErrInvalidCode) {
+		writeAuthError(w, http.StatusUnauthorized, "CODE_INVALID", err.Error())
+		return
+	}
+	if err != nil {
+		internalError(w, "passwordReset", err)
+		return
+	}
+	if err := h.sessionRepo.DeleteForUser(ctx, u.ID.Hex()); err != nil {
+		internalError(w, "passwordReset", err)
+		return
+	}
+	tokens, err := h.issueUserSession(ctx, u)
+	if err != nil {
+		internalError(w, "passwordReset", err)
 		return
 	}
 	writeSessionJSON(w, req, tokens)

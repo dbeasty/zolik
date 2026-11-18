@@ -35,6 +35,7 @@ export const en: Record<string, string> = {
   'err.INVALID_EMAIL': 'That doesn’t look like an email address.',
   'err.CODE_INVALID': 'That code isn’t valid. Request a new one.',
   'err.TOO_MANY_CODES': 'Too many codes requested for that address. Try again shortly.',
+  'err.PASSWORD_REQUIRED': 'Enter a new password.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1139,6 +1140,7 @@ export const en: Record<string, string> = {
   'nav.emailSignIn': 'Email sign-in',
   'nav.signingIn': 'Signing in',
   'nav.usernameSignIn': 'Sign in with username',
+  'nav.resetPassword': 'Reset password',
   'nav.legacyAccount': 'Legacy account',
   'nav.guest': 'Guest',
   'nav.account': 'Account',
@@ -1184,6 +1186,7 @@ export const en: Record<string, string> = {
   'error.register': 'Registration failed',
   'error.sendCode': 'Could not send a code',
   'error.badCode': 'That code did not work',
+  'error.resetPassword': 'Could not reset the password',
   'error.rulesLoad': 'Could not load the rules',
   'error.createFailed': 'Create failed',
   'error.saveFailed': 'Save failed',
@@ -1215,6 +1218,11 @@ export const en: Record<string, string> = {
   'auth.register.email': 'Email (optional)',
   'auth.register.password': 'Password',
   'auth.username.createAccount': 'Create a username/password account',
+  'auth.reset.subtitle': 'Enter the email address on your account. We’ll send a code to set a new password.',
+  'auth.reset.sentTo': 'If an account with a password uses {email}, a code is on its way.',
+  'auth.reset.newPassword': 'New password',
+  'auth.reset.submit': 'Set password and sign in',
+  'auth.username.forgot': 'Forgot your password?',
   'auth.callback.signedIn': 'Signed in.',
   'auth.error.alreadyLinked': "That account is already linked to another player.",
   'auth.error.expired': "That sign-in took too long. Please try again.",

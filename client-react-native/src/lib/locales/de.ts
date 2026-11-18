@@ -26,6 +26,7 @@ export const de: Record<string, string> = {
   'err.INVALID_EMAIL': 'Das sieht nicht nach einer E-Mail-Adresse aus.',
   'err.CODE_INVALID': 'Dieser Code ist ungültig. Fordere einen neuen an.',
   'err.TOO_MANY_CODES': 'Für diese Adresse wurden zu viele Codes angefordert. Versuche es gleich noch einmal.',
+  'err.PASSWORD_REQUIRED': 'Gib ein neues Passwort ein.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1165,6 +1166,7 @@ export const de: Record<string, string> = {
   'nav.emailSignIn': 'Anmeldung per E-Mail',
   'nav.signingIn': 'Anmeldung läuft',
   'nav.usernameSignIn': 'Anmeldung mit Benutzername',
+  'nav.resetPassword': 'Passwort zurücksetzen',
   'nav.legacyAccount': 'Altes Konto',
   'nav.guest': 'Gast',
   'nav.account': 'Konto',
@@ -1211,6 +1213,7 @@ export const de: Record<string, string> = {
   'error.register': 'Registrierung fehlgeschlagen',
   'error.sendCode': 'Code konnte nicht gesendet werden',
   'error.badCode': 'Dieser Code hat nicht funktioniert',
+  'error.resetPassword': 'Das Passwort konnte nicht zurückgesetzt werden',
   'error.rulesLoad': 'Die Regeln konnten nicht geladen werden',
   'error.createFailed': 'Anlegen fehlgeschlagen',
   'error.saveFailed': 'Speichern fehlgeschlagen',
@@ -1242,6 +1245,11 @@ export const de: Record<string, string> = {
   'auth.register.email': 'E-Mail (optional)',
   'auth.register.password': 'Passwort',
   'auth.username.createAccount': 'Konto mit Benutzername und Passwort erstellen',
+  'auth.reset.subtitle': 'Gib die E-Mail-Adresse deines Kontos ein. Wir schicken dir einen Code, um ein neues Passwort festzulegen.',
+  'auth.reset.sentTo': 'Falls ein Konto mit Passwort {email} verwendet, ist ein Code unterwegs.',
+  'auth.reset.newPassword': 'Neues Passwort',
+  'auth.reset.submit': 'Passwort festlegen und anmelden',
+  'auth.username.forgot': 'Passwort vergessen?',
   'auth.callback.signedIn': 'Angemeldet.',
   'auth.error.alreadyLinked': "Dieses Konto ist bereits mit einem anderen Spieler verknüpft.",
   'auth.error.expired': "Die Anmeldung hat zu lange gedauert. Bitte versuche es erneut.",

@@ -26,6 +26,7 @@ export const pt: Record<string, string> = {
   'err.INVALID_EMAIL': 'Isso não parece um endereço de e-mail.',
   'err.CODE_INVALID': 'Esse código não é válido. Peça um novo.',
   'err.TOO_MANY_CODES': 'Foram pedidos demasiados códigos para esse endereço. Tente novamente daqui a pouco.',
+  'err.PASSWORD_REQUIRED': 'Introduza uma nova palavra-passe.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1159,6 +1160,7 @@ export const pt: Record<string, string> = {
   'nav.emailSignIn': 'Entrada por e-mail',
   'nav.signingIn': 'A entrar',
   'nav.usernameSignIn': 'Entrada com nome de utilizador',
+  'nav.resetPassword': 'Repor palavra-passe',
   'nav.legacyAccount': 'Conta antiga',
   'nav.guest': 'Convidado',
   'nav.account': 'Conta',
@@ -1205,6 +1207,7 @@ export const pt: Record<string, string> = {
   'error.register': 'Falha no registo',
   'error.sendCode': 'Não foi possível enviar um código',
   'error.badCode': 'Esse código não funcionou',
+  'error.resetPassword': 'Não foi possível repor a palavra-passe',
   'error.rulesLoad': 'Não foi possível carregar as regras',
   'error.createFailed': 'Falha ao criar',
   'error.saveFailed': 'Falha ao guardar',
@@ -1236,6 +1239,11 @@ export const pt: Record<string, string> = {
   'auth.register.email': 'E-mail (opcional)',
   'auth.register.password': 'Palavra-passe',
   'auth.username.createAccount': 'Criar uma conta com nome de utilizador e palavra-passe',
+  'auth.reset.subtitle': 'Introduza o endereço de email da sua conta. Enviaremos um código para definir uma nova palavra-passe.',
+  'auth.reset.sentTo': 'Se uma conta com palavra-passe usar {email}, um código está a caminho.',
+  'auth.reset.newPassword': 'Nova palavra-passe',
+  'auth.reset.submit': 'Definir palavra-passe e iniciar sessão',
+  'auth.username.forgot': 'Esqueceu-se da palavra-passe?',
   'auth.callback.signedIn': 'Sessão iniciada.',
   'auth.error.alreadyLinked': "Essa conta já está associada a outro jogador.",
   'auth.error.expired': "O início de sessão demorou demasiado. Tente novamente.",

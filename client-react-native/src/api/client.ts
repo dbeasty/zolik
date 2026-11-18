@@ -441,6 +441,29 @@ export class ZolikClient {
     return this.toSession(username, false, data.offlinePass);
   }
 
+  /**
+   * Mails a password reset code, if a username/password account holds the
+   * address. Resolves the same either way: the server never says which
+   * addresses are accounts.
+   */
+  async startPasswordReset(email: string): Promise<void> {
+    await this.post('/auth/password/forgot', { email }, false);
+  }
+
+  /** Sets a new password from a mailed reset code and signs in with it. */
+  async resetPassword(email: string, code: string, password: string): Promise<PlayerSession> {
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      username: string;
+      offlinePass?: string;
+    }>('/auth/password/reset', { email, code, password }, false);
+    this.accessToken = data.accessToken;
+    this.refreshToken = this.held(data.refreshToken);
+    await this.loadUserId();
+    return this.toSession(data.username, false, data.offlinePass);
+  }
+
   async logout(): Promise<void> {
     if (this.refreshToken) {
       try {

@@ -56,6 +56,10 @@ type Store interface {
 	// take over an account by signing up elsewhere claiming its owner's
 	// address.
 	FindUserByVerifiedEmail(ctx context.Context, email string) (models.User, error)
+	// FindUserByEmail finds the account holding an address, proven or not.
+	// It is for password reset only, where the mailed code is the proof: it
+	// must never decide which account a sign-in lands in.
+	FindUserByEmail(ctx context.Context, email string) (models.User, error)
 	// ReleaseUnverifiedEmail takes an address off every account other than
 	// keep that holds it without having proven it. It is how a verified
 	// sign-in takes its address back from somebody who merely typed it: the
@@ -234,6 +238,18 @@ func (s *mongoStore) FindUserByUsername(ctx context.Context, username string) (m
 func (s *mongoStore) FindUserByVerifiedEmail(ctx context.Context, email string) (models.User, error) {
 	var u models.User
 	err := s.users.FindOne(ctx, bson.M{"email": email, "emailVerified": true}).Decode(&u)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return models.User{}, ErrNotFound
+	}
+	return u, err
+}
+
+func (s *mongoStore) FindUserByEmail(ctx context.Context, email string) (models.User, error) {
+	if email == "" {
+		return models.User{}, ErrNotFound
+	}
+	var u models.User
+	err := s.users.FindOne(ctx, bson.M{"email": email}).Decode(&u)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return models.User{}, ErrNotFound
 	}

@@ -134,6 +134,7 @@ export default function RootLayout() {
                   <Stack.Screen name="auth/email" options={{ title: t('nav.emailSignIn') }} />
                   <Stack.Screen name="auth/callback" options={{ title: t('nav.signingIn'), headerShown: false }} />
                   <Stack.Screen name="auth/username-login" options={{ title: t('nav.usernameSignIn') }} />
+                  <Stack.Screen name="auth/reset-password" options={{ title: t('nav.resetPassword') }} />
                   <Stack.Screen name="auth/register" options={{ title: t('nav.legacyAccount') }} />
                   <Stack.Screen name="auth/guest" options={{ title: t('nav.guest') }} />
                   <Stack.Screen name="account" options={{ title: t('nav.account') }} />

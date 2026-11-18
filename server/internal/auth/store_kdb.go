@@ -193,6 +193,32 @@ func (s *kdbStore) FindUserByUsername(ctx context.Context, username string) (mod
 	return u, err
 }
 
+func (s *kdbStore) FindUserByEmail(ctx context.Context, email string) (models.User, error) {
+	if email == "" {
+		return models.User{}, ErrNotFound
+	}
+	var out models.User
+	found := false
+	err := s.k.Scan(db.NSUsers, func(doc []byte) error {
+		var u models.User
+		if err := db.UnmarshalDoc(doc, &u); err != nil {
+			return err
+		}
+		if u.Email == email {
+			out, found = u, true
+			return errStopScan
+		}
+		return nil
+	})
+	if err != nil && !errors.Is(err, errStopScan) {
+		return models.User{}, err
+	}
+	if !found {
+		return models.User{}, ErrNotFound
+	}
+	return out, nil
+}
+
 func (s *kdbStore) FindUserByVerifiedEmail(ctx context.Context, email string) (models.User, error) {
 	var out models.User
 	found := false

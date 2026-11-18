@@ -26,6 +26,7 @@ export const bg: Record<string, string> = {
   'err.INVALID_EMAIL': 'Това не прилича на имейл адрес.',
   'err.CODE_INVALID': 'Този код не е валиден. Поискайте нов.',
   'err.TOO_MANY_CODES': 'Поискани са твърде много кодове за този адрес. Опитайте отново след малко.',
+  'err.PASSWORD_REQUIRED': 'Въведете нова парола.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1155,6 +1156,7 @@ export const bg: Record<string, string> = {
   'nav.emailSignIn': 'Вход с имейл',
   'nav.signingIn': 'Влизане',
   'nav.usernameSignIn': 'Вход с потребителско име',
+  'nav.resetPassword': 'Нулиране на паролата',
   'nav.legacyAccount': 'Стар акаунт',
   'nav.guest': 'Гост',
   'nav.account': 'Акаунт',
@@ -1201,6 +1203,7 @@ export const bg: Record<string, string> = {
   'error.register': 'Регистрацията не бе успешна',
   'error.sendCode': 'Кодът не можа да бъде изпратен',
   'error.badCode': 'Този код не сработи',
+  'error.resetPassword': 'Паролата не можа да бъде нулирана',
   'error.rulesLoad': 'Правилата не можаха да се заредят',
   'error.createFailed': 'Създаването не бе успешно',
   'error.saveFailed': 'Запазването не бе успешно',
@@ -1232,6 +1235,11 @@ export const bg: Record<string, string> = {
   'auth.register.email': 'Имейл (по желание)',
   'auth.register.password': 'Парола',
   'auth.username.createAccount': 'Създай акаунт с потребителско име и парола',
+  'auth.reset.subtitle': 'Въведете имейл адреса на акаунта си. Ще изпратим код за задаване на нова парола.',
+  'auth.reset.sentTo': 'Ако акаунт с парола използва {email}, кодът е на път.',
+  'auth.reset.newPassword': 'Нова парола',
+  'auth.reset.submit': 'Задай парола и влез',
+  'auth.username.forgot': 'Забравена парола?',
   'auth.callback.signedIn': 'Влязохте.',
   'auth.error.alreadyLinked': "Този акаунт вече е свързан с друг играч.",
   'auth.error.expired': "Влизането отне твърде дълго. Опитайте отново.",

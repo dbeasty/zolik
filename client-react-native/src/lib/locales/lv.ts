@@ -26,6 +26,7 @@ export const lv: Record<string, string> = {
   'err.INVALID_EMAIL': 'Tas neizskatās pēc e-pasta adreses.',
   'err.CODE_INVALID': 'Šis kods nav derīgs. Pieprasiet jaunu.',
   'err.TOO_MANY_CODES': 'Šai adresei pieprasīts pārāk daudz kodu. Mēģiniet vēlreiz pēc brīža.',
+  'err.PASSWORD_REQUIRED': 'Ievadiet jaunu paroli.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1142,6 +1143,7 @@ export const lv: Record<string, string> = {
   'nav.emailSignIn': 'Pierakstīšanās ar e-pastu',
   'nav.signingIn': 'Notiek pierakstīšanās',
   'nav.usernameSignIn': 'Pierakstīšanās ar lietotājvārdu',
+  'nav.resetPassword': 'Atiestatīt paroli',
   'nav.legacyAccount': 'Vecs konts',
   'nav.guest': 'Viesis',
   'nav.account': 'Konts',
@@ -1188,6 +1190,7 @@ export const lv: Record<string, string> = {
   'error.register': 'Reģistrācija neizdevās',
   'error.sendCode': 'Neizdevās nosūtīt kodu',
   'error.badCode': 'Tas kods nedarbojās',
+  'error.resetPassword': 'Paroli neizdevās atiestatīt',
   'error.rulesLoad': 'Neizdevās ielādēt noteikumus',
   'error.createFailed': 'Izveide neizdevās',
   'error.saveFailed': 'Saglabāšana neizdevās',
@@ -1219,6 +1222,11 @@ export const lv: Record<string, string> = {
   'auth.register.email': 'E-pasts (nav obligāts)',
   'auth.register.password': 'Parole',
   'auth.username.createAccount': 'Izveidot kontu ar lietotājvārdu un paroli',
+  'auth.reset.subtitle': 'Ievadiet sava konta e-pasta adresi. Mēs nosūtīsim kodu jaunas paroles iestatīšanai.',
+  'auth.reset.sentTo': 'Ja adresi {email} izmanto konts ar paroli, kods ir ceļā.',
+  'auth.reset.newPassword': 'Jaunā parole',
+  'auth.reset.submit': 'Iestatīt paroli un pieteikties',
+  'auth.username.forgot': 'Aizmirsāt paroli?',
   'auth.callback.signedIn': 'Pierakstījies.',
   'auth.error.alreadyLinked': "Šis konts jau ir piesaistīts citam spēlētājam.",
   'auth.error.expired': "Pierakstīšanās ilga pārāk ilgi. Mēģiniet vēlreiz.",

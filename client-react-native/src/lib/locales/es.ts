@@ -26,6 +26,7 @@ export const es: Record<string, string> = {
   'err.INVALID_EMAIL': 'Eso no parece una dirección de correo.',
   'err.CODE_INVALID': 'Ese código no es válido. Pide uno nuevo.',
   'err.TOO_MANY_CODES': 'Se han pedido demasiados códigos para esa dirección. Inténtalo de nuevo en un momento.',
+  'err.PASSWORD_REQUIRED': 'Introduce una contraseña nueva.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1162,6 +1163,7 @@ export const es: Record<string, string> = {
   'nav.emailSignIn': 'Acceso con correo',
   'nav.signingIn': 'Accediendo',
   'nav.usernameSignIn': 'Acceso con usuario',
+  'nav.resetPassword': 'Restablecer contraseña',
   'nav.legacyAccount': 'Cuenta antigua',
   'nav.guest': 'Invitado',
   'nav.account': 'Cuenta',
@@ -1208,6 +1210,7 @@ export const es: Record<string, string> = {
   'error.register': 'Error al registrarse',
   'error.sendCode': 'No se ha podido enviar un código',
   'error.badCode': 'Ese código no ha funcionado',
+  'error.resetPassword': 'No se pudo restablecer la contraseña',
   'error.rulesLoad': 'No se han podido cargar las reglas',
   'error.createFailed': 'Error al crear',
   'error.saveFailed': 'Error al guardar',
@@ -1239,6 +1242,11 @@ export const es: Record<string, string> = {
   'auth.register.email': 'Correo (opcional)',
   'auth.register.password': 'Contraseña',
   'auth.username.createAccount': 'Crear una cuenta con usuario y contraseña',
+  'auth.reset.subtitle': 'Introduce la dirección de correo de tu cuenta. Te enviaremos un código para establecer una contraseña nueva.',
+  'auth.reset.sentTo': 'Si una cuenta con contraseña usa {email}, el código va de camino.',
+  'auth.reset.newPassword': 'Contraseña nueva',
+  'auth.reset.submit': 'Establecer contraseña e iniciar sesión',
+  'auth.username.forgot': '¿Olvidaste tu contraseña?',
   'auth.callback.signedIn': 'Sesión iniciada.',
   'auth.error.alreadyLinked': "Esa cuenta ya está vinculada a otro jugador.",
   'auth.error.expired': "El inicio de sesión tardó demasiado. Inténtalo de nuevo.",

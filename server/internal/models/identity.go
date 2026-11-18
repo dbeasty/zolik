@@ -83,7 +83,16 @@ type LoginCode struct {
 	ExpiresAt time.Time `bson:"expiresAt"`
 	// RequestIP is recorded for abuse investigation only.
 	RequestIP string `bson:"requestIp,omitempty"`
+	// Purpose is what the code may be redeemed for. Empty is a sign-in code,
+	// which is every code issued before reset codes existed. A code redeems
+	// only for its own purpose, so a reset code cannot sign anybody in and a
+	// sign-in code cannot change a password.
+	Purpose string `bson:"purpose,omitempty"`
 }
+
+// LoginCodePurposePasswordReset marks a code mailed to reset the password of
+// a username/password account.
+const LoginCodePurposePasswordReset = "password-reset"
 
 // OAuthFlow is the server-side memory of one in-flight browser sign-in.
 //

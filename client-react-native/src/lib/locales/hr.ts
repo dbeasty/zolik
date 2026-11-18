@@ -26,6 +26,7 @@ export const hr: Record<string, string> = {
   'err.INVALID_EMAIL': 'To ne izgleda kao adresa e-pošte.',
   'err.CODE_INVALID': 'Taj kod nije valjan. Zatražite novi.',
   'err.TOO_MANY_CODES': 'Za tu je adresu zatraženo previše kodova. Pokušajte ponovno za trenutak.',
+  'err.PASSWORD_REQUIRED': 'Unesite novu lozinku.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1143,6 +1144,7 @@ export const hr: Record<string, string> = {
   'nav.emailSignIn': 'Prijava e-poštom',
   'nav.signingIn': 'Prijava u tijeku',
   'nav.usernameSignIn': 'Prijava korisničkim imenom',
+  'nav.resetPassword': 'Ponovno postavi lozinku',
   'nav.legacyAccount': 'Stari račun',
   'nav.guest': 'Gost',
   'nav.account': 'Račun',
@@ -1189,6 +1191,7 @@ export const hr: Record<string, string> = {
   'error.register': 'Registracija nije uspjela',
   'error.sendCode': 'Kôd nije bilo moguće poslati',
   'error.badCode': 'Taj kôd nije radio',
+  'error.resetPassword': 'Lozinku nije bilo moguće ponovno postaviti',
   'error.rulesLoad': 'Pravila nije bilo moguće učitati',
   'error.createFailed': 'Stvaranje nije uspjelo',
   'error.saveFailed': 'Spremanje nije uspjelo',
@@ -1220,6 +1223,11 @@ export const hr: Record<string, string> = {
   'auth.register.email': 'E-pošta (neobavezno)',
   'auth.register.password': 'Lozinka',
   'auth.username.createAccount': 'Stvori račun s korisničkim imenom i lozinkom',
+  'auth.reset.subtitle': 'Unesite adresu e-pošte svog računa. Poslat ćemo vam kôd za postavljanje nove lozinke.',
+  'auth.reset.sentTo': 'Ako račun s lozinkom koristi {email}, kôd je na putu.',
+  'auth.reset.newPassword': 'Nova lozinka',
+  'auth.reset.submit': 'Postavi lozinku i prijavi se',
+  'auth.username.forgot': 'Zaboravili ste lozinku?',
   'auth.callback.signedIn': 'Prijavljeno.',
   'auth.error.alreadyLinked': "Taj je račun već povezan s drugim igračem.",
   'auth.error.expired': "Prijava je trajala predugo. Pokušajte ponovno.",

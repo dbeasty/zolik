@@ -26,6 +26,7 @@ export const hu: Record<string, string> = {
   'err.INVALID_EMAIL': 'Ez nem úgy néz ki, mint egy e-mail-cím.',
   'err.CODE_INVALID': 'Ez a kód érvénytelen. Kérj újat.',
   'err.TOO_MANY_CODES': 'Túl sok kódot kértek erre a címre. Próbáld újra egy kicsit később.',
+  'err.PASSWORD_REQUIRED': 'Adj meg egy új jelszót.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1159,6 +1160,7 @@ export const hu: Record<string, string> = {
   'nav.emailSignIn': 'Belépés e-maillel',
   'nav.signingIn': 'Belépés folyamatban',
   'nav.usernameSignIn': 'Belépés felhasználónévvel',
+  'nav.resetPassword': 'Jelszó visszaállítása',
   'nav.legacyAccount': 'Régi fiók',
   'nav.guest': 'Vendég',
   'nav.account': 'Fiók',
@@ -1205,6 +1207,7 @@ export const hu: Record<string, string> = {
   'error.register': 'A regisztráció nem sikerült',
   'error.sendCode': 'Nem sikerült kódot küldeni',
   'error.badCode': 'Ez a kód nem működött',
+  'error.resetPassword': 'Nem sikerült visszaállítani a jelszót',
   'error.rulesLoad': 'A szabályokat nem sikerült betölteni',
   'error.createFailed': 'A létrehozás nem sikerült',
   'error.saveFailed': 'A mentés nem sikerült',
@@ -1236,6 +1239,11 @@ export const hu: Record<string, string> = {
   'auth.register.email': 'E-mail (nem kötelező)',
   'auth.register.password': 'Jelszó',
   'auth.username.createAccount': 'Fiók létrehozása felhasználónévvel és jelszóval',
+  'auth.reset.subtitle': 'Add meg a fiókodhoz tartozó e-mail-címet. Küldünk egy kódot az új jelszó beállításához.',
+  'auth.reset.sentTo': 'Ha egy jelszavas fiók a(z) {email} címet használja, a kód úton van.',
+  'auth.reset.newPassword': 'Új jelszó',
+  'auth.reset.submit': 'Jelszó beállítása és bejelentkezés',
+  'auth.username.forgot': 'Elfelejtetted a jelszavad?',
   'auth.callback.signedIn': 'Beléptél.',
   'auth.error.alreadyLinked': "Ez a fiók már egy másik játékoshoz van kapcsolva.",
   'auth.error.expired': "A bejelentkezés túl sokáig tartott. Próbáld újra.",

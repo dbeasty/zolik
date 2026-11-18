@@ -26,6 +26,7 @@ export const ro: Record<string, string> = {
   'err.INVALID_EMAIL': 'Aceasta nu pare o adresă de e-mail.',
   'err.CODE_INVALID': 'Codul acela nu este valid. Cere unul nou.',
   'err.TOO_MANY_CODES': 'Au fost cerute prea multe coduri pentru acea adresă. Încearcă din nou peste puțin timp.',
+  'err.PASSWORD_REQUIRED': 'Introdu o parolă nouă.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1161,6 +1162,7 @@ export const ro: Record<string, string> = {
   'nav.emailSignIn': 'Autentificare cu e-mail',
   'nav.signingIn': 'Se autentifică',
   'nav.usernameSignIn': 'Autentificare cu nume de utilizator',
+  'nav.resetPassword': 'Resetează parola',
   'nav.legacyAccount': 'Cont vechi',
   'nav.guest': 'Invitat',
   'nav.account': 'Cont',
@@ -1207,6 +1209,7 @@ export const ro: Record<string, string> = {
   'error.register': 'Înregistrarea a eșuat',
   'error.sendCode': 'Nu s-a putut trimite un cod',
   'error.badCode': 'Codul acela nu a funcționat',
+  'error.resetPassword': 'Parola nu a putut fi resetată',
   'error.rulesLoad': 'Regulile nu au putut fi încărcate',
   'error.createFailed': 'Crearea a eșuat',
   'error.saveFailed': 'Salvarea a eșuat',
@@ -1238,6 +1241,11 @@ export const ro: Record<string, string> = {
   'auth.register.email': 'E-mail (opțional)',
   'auth.register.password': 'Parolă',
   'auth.username.createAccount': 'Creează un cont cu nume de utilizator și parolă',
+  'auth.reset.subtitle': 'Introdu adresa de e-mail a contului tău. Îți trimitem un cod pentru a seta o parolă nouă.',
+  'auth.reset.sentTo': 'Dacă un cont cu parolă folosește {email}, un cod este pe drum.',
+  'auth.reset.newPassword': 'Parolă nouă',
+  'auth.reset.submit': 'Setează parola și conectează-te',
+  'auth.username.forgot': 'Ai uitat parola?',
   'auth.callback.signedIn': 'Autentificat.',
   'auth.error.alreadyLinked': "Acest cont este deja asociat cu alt jucător.",
   'auth.error.expired': "Autentificarea a durat prea mult. Încearcă din nou.",

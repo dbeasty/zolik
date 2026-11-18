@@ -71,6 +71,9 @@ export default function UsernameLoginScreen() {
       >
         <Text style={shared.buttonText}>{busy ? '…' : t('settings.signIn')}</Text>
       </Pressable>
+      <Pressable role="link" onPress={() => router.push('/auth/reset-password')}>
+        <Text style={shared.status}>{t('auth.username.forgot')}</Text>
+      </Pressable>
       <Pressable role="link" onPress={() => router.push('/auth/register')}>
         <Text style={shared.status}>{t('auth.username.createAccount')}</Text>
       </Pressable>

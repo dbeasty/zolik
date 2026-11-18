@@ -26,6 +26,7 @@ export const fr: Record<string, string> = {
   'err.INVALID_EMAIL': 'Cela ne ressemble pas à une adresse e-mail.',
   'err.CODE_INVALID': 'Ce code n’est pas valide. Demandez-en un nouveau.',
   'err.TOO_MANY_CODES': 'Trop de codes ont été demandés pour cette adresse. Réessayez dans un instant.',
+  'err.PASSWORD_REQUIRED': 'Saisissez un nouveau mot de passe.',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -1165,6 +1166,7 @@ export const fr: Record<string, string> = {
   'nav.emailSignIn': 'Connexion par e-mail',
   'nav.signingIn': 'Connexion en cours',
   'nav.usernameSignIn': 'Connexion par identifiant',
+  'nav.resetPassword': 'Réinitialiser le mot de passe',
   'nav.legacyAccount': 'Ancien compte',
   'nav.guest': 'Invité',
   'nav.account': 'Compte',
@@ -1211,6 +1213,7 @@ export const fr: Record<string, string> = {
   'error.register': "Échec de l'inscription",
   'error.sendCode': "Impossible d'envoyer un code",
   'error.badCode': "Ce code n'a pas fonctionné",
+  'error.resetPassword': 'Impossible de réinitialiser le mot de passe',
   'error.rulesLoad': 'Impossible de charger les règles',
   'error.createFailed': 'Échec de la création',
   'error.saveFailed': "Échec de l'enregistrement",
@@ -1242,6 +1245,11 @@ export const fr: Record<string, string> = {
   'auth.register.email': 'E-mail (facultatif)',
   'auth.register.password': 'Mot de passe',
   'auth.username.createAccount': 'Créer un compte avec identifiant et mot de passe',
+  'auth.reset.subtitle': 'Saisissez l’adresse e-mail de votre compte. Nous vous enverrons un code pour définir un nouveau mot de passe.',
+  'auth.reset.sentTo': 'Si un compte avec mot de passe utilise {email}, un code est en route.',
+  'auth.reset.newPassword': 'Nouveau mot de passe',
+  'auth.reset.submit': 'Définir le mot de passe et se connecter',
+  'auth.username.forgot': 'Mot de passe oublié ?',
   'auth.callback.signedIn': 'Connecté.',
   'auth.error.alreadyLinked': "Ce compte est déjà lié à un autre joueur.",
   'auth.error.expired': "La connexion a pris trop de temps. Veuillez réessayer.",
