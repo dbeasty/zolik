@@ -29,7 +29,9 @@ import (
 //     again until its player has been back.
 //   - The result says so. A seat a bot played for is recorded in StoodIn, and
 //     its player gets no win or loss for that match (see stats.ApplyMatch) —
-//     otherwise dropping on purpose would let a Hard bot win for you.
+//     otherwise dropping on purpose would let a Hard bot win for you. "Played
+//     for" is a move: a stand-in put in that never moved, or only pressed
+//     Continue between rounds, leaves the result its player's.
 
 // errStandInEnded refuses a stand-in's move that lost the race with its
 // player's return. Never shown to anybody: the bot loop moves on to the next
@@ -450,9 +452,13 @@ func (m *Manager) stepOutLocked(ctx context.Context, e *liveMatch, seatID string
 }
 
 // withStandIn returns match with seatID's stand-in set to si, or cleared when
-// si is nil, and the seat noted in StoodIn the first time one starts. The
-// player slice is copied, never written through: it is shared with the match
-// the live entry holds.
+// si is nil. The player slice is copied, never written through: it is shared
+// with the match the live entry holds.
+//
+// It does not note the seat in StoodIn. Putting a stand-in in is not a bot
+// playing anybody's game: one can start and end without moving, or only press
+// Continue at a pause. The seat is noted when its stand-in first plays
+// (handleAction, countsAsStandInPlay).
 func withStandIn(match models.Match, seatID string, si *models.StandIn) models.Match {
 	players := append([]models.Player(nil), match.Players...)
 	for i := range players {
@@ -461,10 +467,15 @@ func withStandIn(match models.Match, seatID string, si *models.StandIn) models.M
 		}
 	}
 	match.Players = players
-	if si != nil && !contains(match.StoodIn, seatID) {
-		match.StoodIn = append(append([]string(nil), match.StoodIn...), seatID)
-	}
 	return match
+}
+
+// countsAsStandInPlay reports whether a stand-in's action is playing the
+// seat's game, which costs its player the result. Going on to the next round
+// is not: it decides nothing about the cards, and it is the only move a
+// stand-in makes for somebody who left the table at a results screen.
+func countsAsStandInPlay(a module.Action) bool {
+	return a.Verb != module.VerbContinue
 }
 
 // unsuspended is match playing again, with the pause it was in forgotten.
