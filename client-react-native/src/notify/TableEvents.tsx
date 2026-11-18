@@ -33,6 +33,8 @@ import { flashTitle } from '@/src/notify/webTitle';
  */
 
 export type Arrival = {
+  /** Somebody sat down (the default), or said no to a seat held for them. */
+  kind?: 'joined' | 'declined';
   matchId: string;
   playerId: string;
   name: string;
@@ -58,7 +60,7 @@ export function TableEventsProvider({ children }: { children: React.ReactNode })
 
   const announce = useCallback((a: Arrival) => {
     if (!a.matchId || !a.playerId) return;
-    const key = `${a.matchId}:${a.playerId}`;
+    const key = `${a.kind ?? 'joined'}:${a.matchId}:${a.playerId}`;
     if (seen.current.has(key)) return;
     seen.current.add(key);
     setShown(a);
@@ -82,6 +84,12 @@ export function TableEventsProvider({ children }: { children: React.ReactNode })
 
 function arrivalText(a: Arrival) {
   const game = a.moduleId ? moduleName(a.moduleId) : '';
+  if (a.kind === 'declined') {
+    return {
+      title: t('notify.push.declinedTitle', { name: a.name, game }),
+      body: game ? t('notify.push.declinedBody', { name: a.name, game }) : '',
+    };
+  }
   return {
     title: t('notify.push.joinedTitle', { name: a.name, game }),
     body: game ? t('notify.push.joinedBody', { name: a.name, game }) : '',
@@ -89,6 +97,7 @@ function arrivalText(a: Arrival) {
 }
 
 function arrivalPath(a: Arrival): string {
+  if (a.kind === 'declined') return `/lobby/table?matchId=${encodeURIComponent(a.matchId)}`;
   return a.joinCode ? `/join/${encodeURIComponent(a.joinCode)}` : `/match/${encodeURIComponent(a.matchId)}`;
 }
 
@@ -98,7 +107,7 @@ function arrivalPath(a: Arrival): string {
  */
 async function notifyBehind(a: Arrival): Promise<void> {
   const { title, body } = arrivalText(a);
-  const tag = `joined:${a.matchId}:${a.playerId}`;
+  const tag = `${a.kind ?? 'joined'}:${a.matchId}:${a.playerId}`;
   if (Platform.OS === 'web') {
     if (typeof document === 'undefined' || !document.hidden) return;
     flashTitle(title);
@@ -176,6 +185,44 @@ export function useAnnounceArrivals(
       announce({ matchId, playerId: p.id, name: p.name, avatar: p.avatar, moduleId, joinCode });
     }
   }, [announce, matchId, players, viewerId, moduleId, joinCode]);
+}
+
+/**
+ * Announces somebody saying no thanks to the seat a rematch lobby was holding
+ * for them: a held seat that goes away without its holder sitting down.
+ *
+ * The cloud says so on the host's own socket too; this is the copy for a
+ * screen whose socket is not connected, and the two are shown once. A seat the
+ * host let go of themselves (`released`) is not news to them.
+ */
+export function useAnnounceDeclines(
+  matchId: string | undefined,
+  reserved: { playerId: string; name: string; avatar?: string }[] | undefined,
+  players: Pick<MatchPlayer, 'id'>[] | undefined,
+  released: Set<string>,
+  moduleId: string | undefined,
+  status: string | undefined,
+) {
+  const { announce } = useTableEvents();
+  const known = useRef<{ matchId: string; held: Map<string, { name: string; avatar?: string }> } | null>(null);
+  useEffect(() => {
+    if (!matchId || !players) return;
+    // Dealing lets every held seat go at once; that is the host starting
+    // without them, not anybody saying no.
+    if (status !== 'lobby') {
+      known.current = null;
+      return;
+    }
+    const held = new Map((reserved ?? []).map((r) => [r.playerId, { name: r.name, avatar: r.avatar }]));
+    const before = known.current?.matchId === matchId ? known.current.held : null;
+    known.current = { matchId, held };
+    if (!before) return;
+    const seated = new Set((players ?? []).map((p) => p.id));
+    for (const [playerId, who] of before) {
+      if (held.has(playerId) || seated.has(playerId) || released.has(playerId)) continue;
+      announce({ kind: 'declined', matchId, playerId, name: who.name, avatar: who.avatar, moduleId });
+    }
+  }, [announce, matchId, reserved, players, released, moduleId, status]);
 }
 
 const styles = StyleSheet.create({

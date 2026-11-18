@@ -102,6 +102,11 @@ type announcement struct {
 	// rematch's own invites are remembered here too, so dealing withdraws
 	// them, without that counting as the circle having been told.
 	circle bool
+	// held is who a rematch is holding a seat for and has not yet sat down
+	// or let it go: the people told again when their app next connects,
+	// since the one live message went to a socket that may not have been
+	// open (and a browser takes no push in production).
+	held map[string]bool
 }
 
 // Invite is the wire shape of one table somebody was told about.
@@ -758,12 +763,14 @@ func (s *Service) RematchOpened(next models.Match, host models.Player, held []mo
 		RematchOf: next.RematchOf,
 	}
 	told := make(map[string]bool, len(recipients))
+	holding := make(map[string]bool, len(recipients))
 	for _, k := range recipients {
 		told[k] = true
+		holding[k] = true
 	}
 	s.mu.Lock()
 	s.expireLocked(now)
-	s.announced[next.ID.Hex()] = &announcement{host: hostKey, invite: invite, told: told, at: now}
+	s.announced[next.ID.Hex()] = &announcement{host: hostKey, invite: invite, told: told, held: holding, at: now}
 	s.mu.Unlock()
 
 	for _, k := range recipients {
@@ -782,6 +789,12 @@ func (s *Service) RematchOpened(next models.Match, host models.Player, held []mo
 // suppressed in front, see push.native.ts and sw.js).
 func (s *Service) PlayerJoined(m models.Match, p models.Player) {
 	joiner := KeyForPlayer(p)
+	// A held seat taken is no longer one to remind them of.
+	s.mu.Lock()
+	if a, ok := s.announced[m.ID.Hex()]; ok {
+		delete(a.held, joiner)
+	}
+	s.mu.Unlock()
 	var recipients []string
 	for _, other := range m.Players {
 		k := KeyForPlayer(other)
@@ -853,12 +866,101 @@ func (s *Service) HeldSeatReleased(matchID string, holder models.Player) {
 	if told {
 		delete(a.told, k)
 	}
+	if ok {
+		delete(a.held, k)
+	}
 	s.mu.Unlock()
 	if !told {
 		return
 	}
 	s.publish(k, map[string]any{"type": "invite_revoked", "id": matchID})
 	go s.pushRevoke([]string{k}, matchID)
+}
+
+// RematchDeclined tells the host of a rematch that somebody they were holding
+// a seat for said no thanks — on their socket and, with the app closed, as a
+// push. Without it the host's lobby just loses a row, which reads the same as
+// a glitch. Satisfies match.RematchObserver.
+func (s *Service) RematchDeclined(next models.Match, holder models.Player) {
+	var host *models.Player
+	for i := range next.Players {
+		if next.Players[i].ID == next.HostID {
+			host = &next.Players[i]
+		}
+	}
+	if host == nil {
+		return
+	}
+	k := KeyForPlayer(*host)
+	if k == "" || k == KeyForPlayer(holder) {
+		return
+	}
+	msg := TableJoined{
+		Type: "table_declined", MatchID: next.ID.Hex(), JoinCode: next.JoinCode,
+		ModuleID: next.ModuleID, PlayerID: holder.ID, Name: holder.Name, Avatar: holder.Avatar,
+	}
+	s.publish(k, map[string]any{
+		"type": msg.Type, "matchId": msg.MatchID, "joinCode": msg.JoinCode, "moduleId": msg.ModuleID,
+		"playerId": msg.PlayerID, "name": msg.Name, "avatar": msg.Avatar,
+	})
+	go s.pushDeclined(k, msg)
+}
+
+func (s *Service) pushDeclined(key string, msg TableJoined) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	url := "/lobby/table?matchId=" + msg.MatchID
+	s.pushTo(ctx, key, func(d Device) *Push {
+		params := map[string]string{"name": msg.Name, "game": s.gameName(d.Locale, msg.ModuleID)}
+		return &Push{
+			Title: text(d.Locale, "notify.push.declinedTitle", params),
+			Body:  text(d.Locale, "notify.push.declinedBody", params),
+			URL:   s.publicBaseURL + url,
+			Tag:   "declined:" + msg.MatchID + ":" + msg.PlayerID,
+			Data: map[string]any{
+				"type": "table_declined", "matchId": msg.MatchID, "moduleId": msg.ModuleID,
+				"playerId": msg.PlayerID, "name": msg.Name, "url": url,
+			},
+		}
+	})
+}
+
+// Online reports whether p has the app open anywhere: their personal socket
+// is connected. Satisfies match.RematchObserver.
+func (s *Service) Online(p models.Player) bool {
+	k := KeyForPlayer(p)
+	if k == "" {
+		return false
+	}
+	// The real hub knows its sockets; a test's recording publisher does not,
+	// and nobody is online on it.
+	if h, ok := s.hub.(interface{ Registry() *ws.ConnRegistry }); ok {
+		return h.Registry().Has(RoomID, k)
+	}
+	return false
+}
+
+// Reconnected sends a player who has just opened the app every rematch still
+// holding a seat for them. The invite went out once, live, when the rematch
+// opened; somebody whose app was closed then — and whose browser takes no
+// push — would otherwise never hear about it while the host sat waiting.
+func (s *Service) Reconnected(key string) {
+	if key == "" {
+		return
+	}
+	now := s.now()
+	var invites []Invite
+	s.mu.Lock()
+	s.expireLocked(now)
+	for _, a := range s.announced {
+		if a.held[key] && a.told[key] {
+			invites = append(invites, a.invite)
+		}
+	}
+	s.mu.Unlock()
+	for _, inv := range invites {
+		s.publish(key, map[string]any{"type": "table_invite", "invite": inv})
+	}
 }
 
 // LobbyClosed withdraws every invite to a table that has started, filled or

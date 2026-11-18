@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { FormError } from '@/src/a11y/Field';
@@ -13,7 +13,7 @@ import { AgentConnectPanel } from '@/src/components/AgentConnectPanel';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
-import { useAnnounceArrivals } from '@/src/notify/TableEvents';
+import { useAnnounceArrivals, useAnnounceDeclines } from '@/src/notify/TableEvents';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 import { moduleName, variationName } from '@/src/lib/gameLabels';
@@ -80,6 +80,11 @@ export default function TableScreen() {
     moduleId: state?.moduleId,
     joinCode: state?.joinCode,
   });
+  // Seats the host let go of themselves, which are not somebody saying no.
+  const released = useRef(new Set<string>());
+  // And who said no thanks to a held seat — also on the personal socket, and
+  // shown once whichever copy comes first.
+  useAnnounceDeclines(id, state?.reserved, state?.players, released.current, state?.moduleId, state?.status);
 
   const poll = useCallback(async () => {
     if (!id) return;
@@ -161,6 +166,7 @@ export default function TableScreen() {
   // A bot in the seat a rematch was holding, in that seat — the host has
   // stopped waiting for this person.
   async function fillHeldSeat(playerId: string) {
+    released.current.add(playerId);
     setBusy(true);
     setError('');
     try {
@@ -395,8 +401,25 @@ export default function TableScreen() {
             key={r.playerId}
             style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
           >
-            <Text testID={`held-${r.playerId}`} style={{ color: colors.muted, flexShrink: 1 }}>
-              {t('lobby.table.heldFor', { name: r.name })}
+            {/* Where they are, as a dot and in words: the dot for a glance,
+                the words because colour alone says nothing to some. */}
+            <View
+              aria-hidden
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                marginRight: 8,
+                backgroundColor:
+                  r.presence === 'table' || r.presence === 'online' ? colors.success : colors.muted,
+              }}
+            />
+            <Text
+              testID={`held-${r.playerId}`}
+              data-presence={r.presence ?? ''}
+              style={{ color: colors.muted, flexShrink: 1 }}
+            >
+              {heldText(r.name, r.presence)}
             </Text>
             {isHost ? (
               <Pressable
@@ -500,6 +523,20 @@ export default function TableScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+/** Where somebody a rematch is holding a seat for is, in words. */
+function heldText(name: string, presence: 'table' | 'online' | 'away' | undefined): string {
+  switch (presence) {
+    case 'table':
+      return t('lobby.table.heldAtTable', { name });
+    case 'online':
+      return t('lobby.table.heldOnline', { name });
+    case 'away':
+      return t('lobby.table.heldAway', { name });
+    default:
+      return t('lobby.table.heldFor', { name });
+  }
 }
 
 /**

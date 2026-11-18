@@ -651,7 +651,16 @@ export type MatchState = {
   /** The guided lesson this table was dealt for; absent at an ordinary table. */
   tutorial?: { lessonId: string };
   /** Who a rematch lobby is still holding seats for, in seat order. */
-  reserved?: { playerId: string; name: string; avatar?: string }[];
+  reserved?: {
+    playerId: string;
+    name: string;
+    avatar?: string;
+    /**
+     * Where the holder is right now: still looking at the last table's result,
+     * online elsewhere in the app, or not online. Absent from an older server.
+     */
+    presence?: 'table' | 'online' | 'away';
+  }[];
   /**
    * The moves at the table as this viewer may read them, oldest first: the
    * whole kept log on a state sent on its own (a socket opening, a reload),

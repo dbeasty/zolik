@@ -392,6 +392,7 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		_ = prev.Close()
 	}
 	defer h.hub.Registry().RemoveIfCurrent(RoomID, key, wsConn)
+	h.svc.Reconnected(key)
 
 	pingDone := make(chan struct{})
 	defer close(pingDone)

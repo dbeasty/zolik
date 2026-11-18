@@ -385,9 +385,10 @@ export type MeWSMessage =
   | { type: 'circle_changed' }
   | TableJoinedMessage;
 
-/** Somebody sat down at a table this player is already sitting at. */
+/** Somebody sat down at a table this player is already sitting at — or, as
+ *  `table_declined`, said no thanks to the seat a rematch was holding. */
 export type TableJoinedMessage = {
-  type: 'table_joined';
+  type: 'table_joined' | 'table_declined';
   matchId: string;
   joinCode?: string;
   moduleId?: string;

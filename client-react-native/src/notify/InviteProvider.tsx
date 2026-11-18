@@ -192,6 +192,9 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
         case 'table_joined':
           announce(msg);
           return;
+        case 'table_declined':
+          announce({ ...msg, kind: 'declined' });
+          return;
       }
     },
     [receiveSeated, refreshCircle, announce],

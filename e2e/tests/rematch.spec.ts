@@ -99,13 +99,17 @@ test.describe('a rematch with people at the table', () => {
     test.setTimeout(120_000);
     const { annPage, bobPage, bob, order } = await annFinishesTheGame(browser, request);
 
-    // Offered to both, not only to a table of bots.
+    // Offered to both, not only to a table of bots — and before pressing it,
+    // Ann can see Bob is still there.
     await expect(bobPage.getByTestId('match-over-again')).toBeVisible();
+    await expect(annPage.getByTestId('match-over-still-here')).toContainText(/Bob/);
     await annPage.getByTestId('match-over-again').click();
 
-    // Ann waits at her own table, and can see who it is holding a seat for.
+    // Ann waits at her own table, and can see who it is holding a seat for,
+    // and that he is still looking at the last result.
     await expect(annPage).toHaveURL(/\/lobby\/table\?matchId=/);
     await expect(annPage.getByTestId(`held-${bob.userId}`)).toBeVisible();
+    await expect(annPage.getByTestId(`held-${bob.userId}`)).toContainText('still looking at the last result');
 
     // Bob hears about it where he is, by name, without a link being sent —
     // on the table's own banner, and only there: the invite that reaches
@@ -132,19 +136,23 @@ test.describe('a rematch with people at the table', () => {
 
     await bobPage.getByTestId('match-over-decline-rematch').click();
     await expect(bobPage.getByTestId('match-over-rematch-offer')).toBeHidden();
-    // The host is no longer shown somebody who is not coming.
+    // The host is no longer shown somebody who is not coming — and is told
+    // so, rather than left to notice a row has gone.
+    await expect(annPage.getByTestId('arrival-banner')).toContainText(/said no thanks/, { timeout: 10_000 });
     await expect(annPage.getByTestId(`held-${bob.userId}`)).toBeHidden({ timeout: 10_000 });
   });
 
   test('somebody who already left is invited wherever they are', async ({ browser, request }) => {
     test.setTimeout(120_000);
-    const { annPage, bobPage, order } = await annFinishesTheGame(browser, request);
+    const { annPage, bobPage, bob, order } = await annFinishesTheGame(browser, request);
 
     // Bob has gone off to another game's page before Ann asks.
     await bobPage.goto('/lobby/games?moduleId=canasta');
     await expect(bobPage.getByTestId('module-canasta')).toBeVisible({ timeout: 30_000 });
     await annPage.getByTestId('match-over-again').click();
     await expect(annPage).toHaveURL(/\/lobby\/table\?matchId=/);
+    // Ann sees he is around, somewhere else in the app.
+    await expect(annPage.getByTestId(`held-${bob.userId}`)).toContainText('online, has your invite', { timeout: 10_000 });
 
     const banner = bobPage.getByTestId('invite-banner');
     await expect(banner).toBeVisible({ timeout: 15_000 });
@@ -156,6 +164,25 @@ test.describe('a rematch with people at the table', () => {
     const nextId = new URL(annPage.url()).searchParams.get('matchId')!;
     const next = await (await request.get(`${API_BASE}/matches/${nextId}`)).json();
     expect(next.players.map((p: any) => p.id)).toEqual(order);
+  });
+
+  test('somebody whose app was closed is invited when they open it', async ({ browser, request }) => {
+    test.setTimeout(120_000);
+    const { annPage, bobPage, bob, matchId } = await annFinishesTheGame(browser, request);
+
+    // Bob closes the app before Ann asks; Ann sees him go.
+    await bobPage.context().close();
+    await expect(annPage.getByTestId('match-over-left')).toContainText(/Bob/, { timeout: 10_000 });
+    await annPage.getByTestId('match-over-again').click();
+    await expect(annPage).toHaveURL(/\/lobby\/table\?matchId=/);
+    await expect(annPage.getByTestId(`held-${bob.userId}`)).toContainText('not online', { timeout: 10_000 });
+
+    // He opens it again, somewhere other than the old table, and is offered
+    // the seat; Ann sees him come online.
+    const back = await openAs(browser, bob, '/');
+    await expect(back.getByTestId('invite-banner-text')).toContainText('wants a rematch', { timeout: 15_000 });
+    await expect(annPage.getByTestId(`held-${bob.userId}`)).toContainText('online, has your invite', { timeout: 10_000 });
+    expect(matchId).toBeTruthy();
   });
 
   test('the host can stop waiting and seat a bot where they sat', async ({ browser, request }) => {
