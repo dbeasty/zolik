@@ -764,7 +764,20 @@ func (m *Manager) handleAction(ctx context.Context, idOrCode, playerID string, a
 		}
 		m.turns.forgetSeat(e.match.ID.Hex(), playerID)
 	}
+	// The result says whether a bot played for somebody (stats: StandIn), so
+	// the seat is noted the first time its stand-in decides something, under
+	// the lock and in the same write as the move — not when the stand-in is
+	// put in, and not for pressing Continue between rounds. A player who
+	// drops at the results screen of a long table and comes back to play
+	// every card themselves did not have a bot play their game.
+	stoodIn := e.match.StoodIn
+	if standIn && countsAsStandInPlay(a) && !contains(stoodIn, playerID) {
+		e.match.StoodIn = append(append([]string(nil), stoodIn...), playerID)
+	}
 	match, rounds, proj, events, err := m.applyLocked(ctx, e, playerID, a)
+	if err != nil {
+		e.match.StoodIn = stoodIn
+	}
 	e.mu.Unlock()
 	if err != nil {
 		return err
