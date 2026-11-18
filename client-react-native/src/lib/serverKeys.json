@@ -1143,6 +1143,10 @@
     "marias.zone.talon",
     "marias.zone.trick",
     "marias.zone.trumpCard",
+    "moves.gameBegins",
+    "moves.gameEnds",
+    "moves.roundBegins",
+    "moves.roundEnds",
     "offer.leave",
     "okobere.fact.bankFree",
     "okobere.header.bankFree",
@@ -1522,6 +1526,16 @@
     "sietemedio.header.minStake",
     "sietemedio.header.round",
     "sietemedio.header.target",
+    "sietemedio.move.bankBust",
+    "sietemedio.move.bankStands",
+    "sietemedio.move.bankTurn",
+    "sietemedio.move.drew",
+    "sietemedio.move.drewBust",
+    "sietemedio.move.leaving",
+    "sietemedio.move.left",
+    "sietemedio.move.noRoom",
+    "sietemedio.move.staked",
+    "sietemedio.move.stood",
     "sietemedio.offer.hit",
     "sietemedio.offer.stake",
     "sietemedio.offer.stand",
@@ -3694,6 +3708,14 @@
     "marias.seat.tricks": [
       "n"
     ],
+    "moves.roundBegins": [
+      "n",
+      "round"
+    ],
+    "moves.roundEnds": [
+      "n",
+      "round"
+    ],
     "okobere.fact.bankFree": [
       "n"
     ],
@@ -4168,6 +4190,37 @@
     ],
     "sietemedio.header.target": [
       "value"
+    ],
+    "sietemedio.move.bankStands": [
+      "total"
+    ],
+    "sietemedio.move.bankTurn": [
+      "player"
+    ],
+    "sietemedio.move.drew": [
+      "card",
+      "player"
+    ],
+    "sietemedio.move.drewBust": [
+      "card",
+      "player"
+    ],
+    "sietemedio.move.leaving": [
+      "player"
+    ],
+    "sietemedio.move.left": [
+      "n",
+      "player"
+    ],
+    "sietemedio.move.noRoom": [
+      "player"
+    ],
+    "sietemedio.move.staked": [
+      "n",
+      "player"
+    ],
+    "sietemedio.move.stood": [
+      "player"
     ],
     "sietemedio.prompt.waitingFor": [
       "playerId"
@@ -4797,6 +4850,8 @@
     "marias.seat.marriage",
     "marias.seat.points",
     "marias.seat.tricks",
+    "moves.roundBegins",
+    "moves.roundEnds",
     "okobere.fact.bankFree",
     "okobere.header.bankFree",
     "okobere.header.bankRound",
@@ -4931,6 +4986,15 @@
     "sietemedio.header.minStake",
     "sietemedio.header.round",
     "sietemedio.header.target",
+    "sietemedio.move.bankStands",
+    "sietemedio.move.bankTurn",
+    "sietemedio.move.drew",
+    "sietemedio.move.drewBust",
+    "sietemedio.move.leaving",
+    "sietemedio.move.left",
+    "sietemedio.move.noRoom",
+    "sietemedio.move.staked",
+    "sietemedio.move.stood",
     "sietemedio.prompt.waitingFor",
     "sietemedio.quick.doubleMin",
     "sietemedio.quick.theLot",
