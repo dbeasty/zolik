@@ -24,6 +24,17 @@ describe('joinMoveLog', () => {
     expect(joinMoveLog(held, [line(1), line(2)]).map((m) => m.seq)).toEqual([1, 2]);
   });
 
+  it('holds only the round in play once the next one has a move', () => {
+    const r = (seq: number, round: number): MoveLine => ({ ...line(seq), round });
+    const held = [r(1, 1), r(2, 1), r(3, 1)];
+    // Between rounds the round that ended is still the log.
+    expect(joinMoveLog(held, [r(2, 1), r(3, 1)]).map((m) => m.seq)).toEqual([1, 2, 3]);
+    // The next round's first move takes the last round's lines away, even
+    // those the broadcast window still carries.
+    expect(joinMoveLog(held, [r(2, 1), r(3, 1), r(4, 2)]).map((m) => m.seq)).toEqual([4]);
+    expect(joinMoveLog([], [r(3, 1), r(4, 2), r(5, 2)]).map((m) => m.seq)).toEqual([4, 5]);
+  });
+
   it('is just the window without numbers, on a first state', () => {
     const plain: MoveLine = { playerId: 'a', fact: { labelKey: 'x' } };
     expect(joinMoveLog([], [plain])).toEqual([plain]);

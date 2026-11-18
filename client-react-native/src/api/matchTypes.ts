@@ -32,6 +32,12 @@ export type MoveLine = {
   notable?: boolean;
   /** The move's number in this viewer's log at the table, from 1 — see `useMoveLog`. */
   seq?: number;
+  /**
+   * The round of the match the move was made in, from 1, in a game made of
+   * rounds; absent in one that is not. The Moves list shows the newest round
+   * only — see `useMoveLog`.
+   */
+  round?: number;
 };
 
 /**

@@ -698,9 +698,9 @@ func (m *Manager) startLocked(ctx context.Context, e *liveMatch) (models.Match, 
 	if err := m.snapshotLocked(ctx, e, match, state); err != nil {
 		return models.Match{}, err
 	}
-	e.rounds = 0
+	e.rounds, e.roundPending = 0, false
 	if r := module.RoundsFor(mod, state); r != nil {
-		e.rounds = len(r.Rounds)
+		e.rounds, e.roundPending = len(r.Rounds), r.Paused
 	}
 	return e.match, nil
 }
@@ -877,6 +877,7 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 		closed = len(rounds.Rounds)
 		entry.Rounds = closed
 	}
+	mark, pending := logMarkFor(entry.Seq, e.rounds, closed, rounds, e.roundPending)
 
 	envelope := match
 	finished := false
@@ -934,7 +935,11 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	for _, p := range match.Players {
 		players = append(players, p.ID)
 	}
-	e.record(mod, next, players, events)
+	if finished {
+		mark.ends = true
+	}
+	e.roundPending = pending
+	e.record(mod, next, players, events, mark)
 
 	if !snapshot && now.Sub(e.touched) > touchEvery {
 		// Best effort: the move is stored; a missed touch costs a minute of

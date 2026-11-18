@@ -40,6 +40,10 @@ type liveMatch struct {
 	// rounds is how many rounds the board has closed, so a move can tell
 	// whether it closed another.
 	rounds int
+	// roundPending is a round closed and the next not yet under way — the
+	// table between rounds — so the move that resumes play begins one in the
+	// log. See logMarkFor.
+	roundPending bool
 	// touched is when the stored envelope was last written, to keep UpdatedAt
 	// within a minute of the last move without a write per move.
 	touched time.Time
@@ -108,9 +112,26 @@ const recentMoves = 12
 // that follow carry only recentMoves, which the client adds on by Seq.
 const movesKept = 200
 
-// record adds one move's events to every seat's strip.
-func (e *liveMatch) record(mod module.GameModule, next module.State, players []string, events []module.Event) {
-	if mod == nil || len(events) == 0 {
+// logMark is where a move stands in the match, for its log: the round it was
+// played in (from 1, or zero in a game without rounds), what the game calls a
+// round, and whether the move began or ended one — or, without rounds, the
+// game itself.
+type logMark struct {
+	round      int
+	roundLabel string
+	begins     bool
+	ends       bool
+}
+
+// record adds one move's events to every seat's strip, with a note before it
+// when it began a round (or the game) and after it when it ended one.
+//
+// The first move of a new round starts every seat's log again — the history a
+// player opens is the game being played, not the games before it in the
+// match — while Seq runs on, so a client joining by Seq can tell the old lines
+// from the new.
+func (e *liveMatch) record(mod module.GameModule, next module.State, players []string, events []module.Event, mark logMark) {
+	if mod == nil || (len(events) == 0 && !mark.begins && !mark.ends) {
 		return
 	}
 	e.recentMu.Lock()
@@ -120,6 +141,19 @@ func (e *liveMatch) record(mod module.GameModule, next module.State, players []s
 		e.moveSeq = map[string]int{}
 	}
 	for _, viewer := range players {
+		list := e.recent[viewer]
+		if n := len(list); n > 0 && list[n-1].Round != mark.round {
+			list = nil
+		}
+		add := func(mv module.Move) {
+			e.moveSeq[viewer]++
+			mv.Seq = e.moveSeq[viewer]
+			mv.Round = mark.round
+			list = append(list, mv)
+		}
+		if mark.begins {
+			add(module.Move{Fact: beginsFact(mark)})
+		}
 		for _, ev := range events {
 			seen, ok := module.ProjectEvent(mod, ev, viewer)
 			if !ok {
@@ -129,17 +163,67 @@ func (e *liveMatch) record(mod module.GameModule, next module.State, players []s
 			if !ok {
 				continue
 			}
-			e.moveSeq[viewer]++
-			mv.Seq = e.moveSeq[viewer]
-			list := append(e.recent[viewer], mv)
-			if len(list) > movesKept {
-				// Copied down rather than resliced, so the array behind it
-				// does not keep every move ever appended.
-				list = append([]module.Move(nil), list[len(list)-movesKept:]...)
-			}
-			e.recent[viewer] = list
+			add(mv)
 		}
+		if mark.ends {
+			add(module.Move{Fact: endsFact(mark)})
+		}
+		if len(list) > movesKept {
+			// Copied down rather than resliced, so the array behind it
+			// does not keep every move ever appended.
+			list = append([]module.Move(nil), list[len(list)-movesKept:]...)
+		}
+		e.recent[viewer] = list
 	}
+}
+
+// logMarkFor is where a move stands in the match, for its log, and whether a
+// round is still waiting to begin after it. before and after are the rounds
+// closed before and after the move; pending is a round closed and the next
+// not yet under way.
+//
+//   - The move that closes a round belongs to it and ends it.
+//   - Moves made while the table sits between rounds — seats saying to go on —
+//     still belong to the round that closed, so its end stays in view on the
+//     results rather than being cleared by the first seat to continue.
+//   - The first move after that, with play under way again, begins the next
+//     round; so does the match's first move.
+//
+// Without rounds the game begins with the first move; the caller ends it with
+// the one that finishes the match.
+func logMarkFor(seq, before, after int, rounds *module.RoundLog, pending bool) (logMark, bool) {
+	if rounds == nil {
+		return logMark{begins: seq == 1}, false
+	}
+	mark := logMark{roundLabel: rounds.LabelKey}
+	switch {
+	case after > before:
+		mark.round, mark.ends = before+1, true
+		return mark, true
+	case rounds.Paused:
+		mark.round = max(after, 1)
+		return mark, pending
+	default:
+		mark.round, mark.begins = after+1, seq == 1 || pending
+		return mark, false
+	}
+}
+
+// beginsFact is the note a round's log opens with: "Deal 2 begins", in the
+// game's own word for a round, or "The game begins" in a game without rounds.
+func beginsFact(mark logMark) module.Fact {
+	if mark.round > 0 && mark.roundLabel != "" {
+		return module.Fact{LabelKey: "moves.roundBegins", Params: map[string]any{"round": mark.roundLabel, "n": mark.round}}
+	}
+	return module.Fact{LabelKey: "moves.gameBegins"}
+}
+
+// endsFact is the note after the move that closed a round, or the game.
+func endsFact(mark logMark) module.Fact {
+	if mark.round > 0 && mark.roundLabel != "" {
+		return module.Fact{LabelKey: "moves.roundEnds", Params: map[string]any{"round": mark.roundLabel, "n": mark.round}}
+	}
+	return module.Fact{LabelKey: "moves.gameEnds"}
 }
 
 // recentFor is a copy of the last n moves of one seat's log, oldest first;
@@ -347,7 +431,7 @@ func (m *Manager) load(ctx context.Context, e *liveMatch, id bson.ObjectID) erro
 	e.seq = seq
 	e.match.LogSeq = seq
 	if r := module.RoundsFor(m.registry.Get(env.ModuleID), state); r != nil {
-		e.rounds = len(r.Rounds)
+		e.rounds, e.roundPending = len(r.Rounds), r.Paused
 	}
 	return nil
 }
@@ -455,9 +539,9 @@ func (m *Manager) SeedState(ctx context.Context, idOrCode string, state module.S
 	if err := m.snapshotLocked(ctx, e, next, state); err != nil {
 		return models.Match{}, err
 	}
-	e.rounds = 0
+	e.rounds, e.roundPending = 0, false
 	if r := module.RoundsFor(m.registry.Get(next.ModuleID), state); r != nil {
-		e.rounds = len(r.Rounds)
+		e.rounds, e.roundPending = len(r.Rounds), r.Paused
 	}
 	return e.match, nil
 }
