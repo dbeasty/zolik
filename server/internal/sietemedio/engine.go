@@ -386,7 +386,7 @@ func applyPlay(s *GameState, seat *Seat, verb string) ([]module.Event, error) {
 			seat.Stood = true
 		}
 		events = []module.Event{{Type: "card_drawn", Data: map[string]any{
-			"playerId": seat.PlayerID, "card": card,
+			"playerId": seat.PlayerID, "card": card, "bust": IsBust(seat.Cards),
 		}}}
 	case VerbStand:
 		seat.Stood = true
