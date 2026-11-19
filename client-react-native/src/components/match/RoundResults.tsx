@@ -14,6 +14,7 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
+import { breakAnywhere } from '@/src/lib/breakAnywhere';
 import type { Fact, MatchPlayer, RoundLog, RoundScore, Seat, Standing } from '@/src/api/matchTypes';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
@@ -464,12 +465,12 @@ function roundStyles(m: Metrics, s: Skin) {
     labelCompact: { width: 76 },
     // Numbers read down the column, so they end on the same edge; names sit
     // over the numbers they belong to and end on it too.
-    name: { alignSelf: 'stretch', textAlign: 'right' },
+    name: { alignSelf: 'stretch', textAlign: 'right', ...breakAnywhere },
     head: { color: colors.muted, fontSize: m.panel.bodyFont, fontWeight: '600' },
     mine: { color: colors.text },
     youTag: { color: colors.accent, fontSize: Math.max(10, m.panel.bodyFont - 3), fontWeight: '600' },
     roundNumber: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '600' },
-    roundFact: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 3) },
+    roundFact: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 3), ...breakAnywhere },
     delta: { color: colors.text, fontSize: m.panel.bodyFont },
     // Whoever took the round, marked on the cell rather than in a legend.
     tookIt: { color: colors.gold, fontWeight: '700' },
