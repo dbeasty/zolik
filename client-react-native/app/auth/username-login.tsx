@@ -7,6 +7,8 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
 import { formatApiError } from '@/src/lib/apiError';
+import { looksLikeEmail } from '@/src/lib/looksLikeEmail';
+import { EmailInstead } from '@/src/components/EmailInstead';
 import { t } from '@/src/lib/i18n';
 import { useLocale } from '@/src/hooks/useLocale';
 
@@ -49,6 +51,7 @@ export default function UsernameLoginScreen() {
         value={username}
         onChangeText={setUsername}
       />
+      {looksLikeEmail(username) ? <EmailInstead /> : null}
       <PasswordField
         label={t('auth.register.password')}
         placeholder={t('auth.register.password')}
