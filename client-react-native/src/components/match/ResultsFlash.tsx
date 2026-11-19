@@ -13,6 +13,7 @@ import type { FlashKind } from '@/src/hooks/useResultsFlash';
 import { t } from '@/src/lib/i18n';
 import { factText, label, markViewer, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
+import { breakAnywhere } from '@/src/lib/breakAnywhere';
 import { ARRIVAL_EASING, ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
 
@@ -328,9 +329,10 @@ function flashStyles(m: Metrics, s: Skin) {
       lineHeight: 30 * m.scale,
       fontWeight: '700',
       textAlign: 'center',
+      ...breakAnywhere,
     },
     headlineFinal: { fontSize: 34 * m.scale, lineHeight: 39 * m.scale },
-    sub: { color: colors.muted, fontSize: 14 * m.scale, textAlign: 'center' },
+    sub: { color: colors.muted, fontSize: 14 * m.scale, textAlign: 'center', ...breakAnywhere },
     delta: { fontSize: 15 * m.scale, textAlign: 'center', marginTop: 2 },
     up: { color: colors.success, fontWeight: '700' },
     down: { color: colors.danger, fontWeight: '700' },
